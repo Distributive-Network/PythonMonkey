@@ -1,0 +1,30 @@
+Start testing: Jul 19 11:42 EDT
+----------------------------------------------------------
+1/1 Testing: HelloTest.BasicAssertions
+1/1 Test: HelloTest.BasicAssertions
+Command: "/Users/johntedesco/KDS/new_py2cpp/build/tests/testlib" "--gtest_filter=HelloTest.BasicAssertions" "--gtest_also_run_disabled_tests"
+Directory: /Users/johntedesco/KDS/new_py2cpp/build/tests
+"HelloTest.BasicAssertions" start time: Jul 19 11:42 EDT
+Output:
+----------------------------------------------------------
+Running main() from /Users/johntedesco/KDS/new_py2cpp/build/_deps/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = HelloTest.BasicAssertions
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from HelloTest
+[ RUN      ] HelloTest.BasicAssertions
+[       OK ] HelloTest.BasicAssertions (0 ms)
+[----------] 1 test from HelloTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"HelloTest.BasicAssertions" end time: Jul 19 11:42 EDT
+"HelloTest.BasicAssertions" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jul 19 11:42 EDT

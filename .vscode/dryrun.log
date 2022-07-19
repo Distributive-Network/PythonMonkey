@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/johntedesco/KDS/new_py2cpp'
+make: Leaving directory `/Users/johntedesco/KDS/new_py2cpp'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+
