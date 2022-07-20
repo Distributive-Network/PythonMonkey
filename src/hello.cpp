@@ -19,7 +19,7 @@ greet_name(PyObject *self, PyObject *args)
 }
 
 static PyObject*
-try_args(PyObject *self, PyObject *args) {
+output(PyObject *self, PyObject *args) {
     int size = PyTuple_Size(args);
 
     for(int i = 0; i < size; i++) {
@@ -44,7 +44,7 @@ try_args(PyObject *self, PyObject *args) {
 
 static PyMethodDef GreetMethods[] = {
     {"greet", greet_name, METH_VARARGS, "Greet an entity."},
-    {"try_args", try_args, METH_VARARGS, "Trying out arguments"},
+    {"try_args", output, METH_VARARGS, "Trying out arguments"},
     {NULL, NULL, 0, NULL}
 };
 

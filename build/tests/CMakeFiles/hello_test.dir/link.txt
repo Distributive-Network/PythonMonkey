@@ -1,1 +1,0 @@
-/usr/bin/clang++ -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/hello_test.dir/hello_test.cpp.o -o hello_test  ../lib/libgtest_main.a ../lib/libgtest.a 
