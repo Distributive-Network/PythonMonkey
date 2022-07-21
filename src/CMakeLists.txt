@@ -1,5 +1,6 @@
-add_library(test SHARED
-hello.cpp
+add_library(explore SHARED
+explore.cpp
+../include/explore.hpp
 ) # Designate the source files as the library (to be compiled into a .so file)
 
 execute_process(
@@ -7,10 +8,10 @@ execute_process(
     OUTPUT_VARIABLE pyloc
 )
 
-target_include_directories(test PRIVATE .)
+target_include_directories(explore PRIVATE .)
 
-set_target_properties(test PROPERTIES SUFFIX ".so")
-set_target_properties(test PROPERTIES PREFIX "")
+set_target_properties(explore PROPERTIES SUFFIX ".so")
+set_target_properties(explore PROPERTIES PREFIX "")
 
-target_include_directories(test PRIVATE ${PYTHON_INCLUDE_DIR})
-target_link_libraries(test ${PYTHON_LIBRARIES})
+target_include_directories(explore PRIVATE ${PYTHON_INCLUDE_DIR})
+target_link_libraries(explore ${PYTHON_LIBRARIES})
