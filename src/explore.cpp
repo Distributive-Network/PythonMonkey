@@ -1,30 +1,15 @@
-#include <Python.h>
 #include <iostream>
-#include <string>
-#include <stdio.h>
+#include <Python.h>
 
-static PyObject* output(PyObject *self, PyObject *args) {
-    int size = PyTuple_Size(args);
+static PyObject* say_hello(PyObject* self, PyObject *args) {
 
-    for(int i = 0; i < size; i++) {
-        PyObject* item = PyTuple_GET_ITEM(args, i);
+    std::cout << "hello world" << std::endl;
 
-        if(PyUnicode_Check(item)) {
-            const char *print_value = PyUnicode_AsUTF8(item);
-            printf("%s", print_value);
-        } else if(PyLong_Check(item)) {
-            long print_value = PyLong_AS_LONG(item);
-            printf("%ld", print_value);
-        } else {
-            printf("You are attempting to output a type that has not been implemented in this project! Aborting.");
-            Py_RETURN_NONE;
-        }
-    }
     Py_RETURN_NONE;
 }
 
 static PyMethodDef ExploreMethods[] = {
-    {"output", output, METH_VARARGS, "Multivariate function outputs"},
+    {"say_hello", say_hello, METH_VARARGS, "Says hello!"},
     {NULL, NULL, 0, NULL}
 };
 
