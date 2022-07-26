@@ -3,7 +3,6 @@
 #include "../../include/PyTuple.hpp"
 
 TEST(TupleTests, create_tuple) {
-
     Py_Initialize();
     // Figure out this test later ...
     PyObject* input = Py_BuildValue("(ii)", 1, 2);
@@ -12,6 +11,8 @@ TEST(TupleTests, create_tuple) {
 
     Py_XDECREF(input);
 
+    // This doesn't have an assertion but the fact that it doesn't fail is a sign
+    // that the object is being constructed correctly. For now this is fine
 }
 
 TEST(TupleTests, get_one_item) {
@@ -55,6 +56,7 @@ TEST(TupleTests, test_get_size) {
     Py_Initialize();
 
     PyObject* input = Py_BuildValue("(ii)", 1, 2);
+    Py_XINCREF(input);
 
     PyTuple my_py_tuple(input);
 

@@ -12,9 +12,10 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(tests ${TEST_FILES})
+add_executable(tests ${TEST_FILES} ${SOURCE_FILES})
 
 target_include_directories(tests PRIVATE ${PYTHON_INCLUDE_DIR})
+target_include_directories(tests PRIVATE ../include/)
 target_link_libraries(tests PRIVATE explore gtest_main ${PYTHON_LIBRARIES})
 
 include(GoogleTest)
