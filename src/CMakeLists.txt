@@ -5,7 +5,6 @@ file (GLOB HEADER_FILES "../include/*.hpp") # Find all hpp files in the include 
 
 add_library(explore SHARED
     ${SOURCE_FILES}
-    ${HEADER_FILES}
 ) # Designate the source files as the library (to be compiled into a .so file)
 
 execute_process(
@@ -13,7 +12,7 @@ execute_process(
     OUTPUT_VARIABLE pyloc
 )
 
-target_include_directories(explore PRIVATE ..)
+target_include_directories(explore PUBLIC ..)
 
 set_target_properties(explore PROPERTIES SUFFIX ".so")
 set_target_properties(explore PROPERTIES PREFIX "")
