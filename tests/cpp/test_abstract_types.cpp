@@ -4,20 +4,16 @@
 
 class AbstractPyTypeTests : public ::testing::Test {
 protected:
+    PyObject* i_type;
     virtual void SetUp() {      
         Py_Initialize();
+        i_type = Py_BuildValue("i", 10);
+        Py_XINCREF(i_type);
     }
 
     virtual void TearDown() {
-
+        Py_XDECREF(i_type);
     }
 };
 
-TEST_F(AbstractPyTypeTests, can_create_PyType) {
-    PyObject* i_type = Py_BuildValue("i", 10);   
-    Py_XINCREF(i_type);
-
-    PyType abs_type(i_type);
-
-    Py_XDECREF(i_type);
-}
+// TODO: Figure out how to test the abstract class

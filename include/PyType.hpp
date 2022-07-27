@@ -13,6 +13,11 @@ protected:
 PyObject* object;
 
 public:
-    PyType(PyObject* _object) {};
-};
+    PyType(PyObject* _object): object(_object) {};
+
+    virtual std::string getReturnType() = 0;
+    virtual std::string getStringIdentifier() = 0;
+
+    // Is there some way to override constructors... I don't know.
+}
 #endif

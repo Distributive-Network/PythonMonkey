@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "istream": "cpp",
-        "tuple": "cpp"
+        "tuple": "cpp",
+        "string": "cpp"
     }
 }
