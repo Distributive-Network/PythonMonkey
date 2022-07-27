@@ -19,5 +19,5 @@ public:
     virtual std::string getStringIdentifier() = 0;
 
     // Is there some way to override constructors... I don't know.
-}
+};
 #endif

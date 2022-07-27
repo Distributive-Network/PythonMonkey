@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <Python.h>
-#include "../../include/IntPyType.hpp"
+#include "../../include/IntType.hpp"
 
 template<typename Base, typename T>
 inline bool instanceof(const T *ptr) {
@@ -38,3 +38,11 @@ TEST_F(IntPyTypeTests, test_returns_correct_return_type_for_int) {
     EXPECT_EQ(x.getReturnType(), "int");
 }
 
+TEST_F(IntPyTypeTests, test_returns_correct_value) {
+    IntType x = IntType(i_type);
+
+    int expected = 10;
+
+    EXPECT_EQ(x.getValue(), 10); 
+
+}
