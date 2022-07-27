@@ -26,11 +26,23 @@
 ## Running tests
 1. Compile the project 
 2. In the build folder `cd` into the `tests` directory and run `ctest`
-```bash
-# From the root directory we do the following (after compiling the project)
-$ cd buid/tests
-$ ctest
-```
+    ```bash
+    # From the root directory we do the following (after compiling the project)
+    $ cd buid/tests
+    $ ctest
+    ```
+
+## Alternate Method to Running Tests (W.I.P)
+1. In the root directory chmod the script `test_script.sh`:
+    ```bash
+    $ chmod u+x test_script.sh
+    ```
+2. Then simply run the script
+    ```bash
+    $ ./test_script.sh
+    ```
+
+Note that for this method to work you will still need to have the above requirements installed.
 
 ## Using the library
 
