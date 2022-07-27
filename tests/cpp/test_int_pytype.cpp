@@ -38,18 +38,16 @@ TEST_F(IntTypeTests, test_returns_correct_return_type_for_int) {
     EXPECT_EQ(x.getReturnType(), "int");
 }
 
-TEST_F(IntTypeTests, test_returns_correct_value) {
-    IntType x = IntType(i_type);
-
-    int expected = 10;
-
-    EXPECT_EQ(x.getValue(), 10); 
-}
-
 TEST_F(IntTypeTests, test_returns_correct_string_identifier) {
     IntType x = IntType(i_type);
 
     std::string expected = "%d";
 
     EXPECT_EQ(x.getStringIdentifier(), expected); 
+}
+
+TEST_F(IntTypeTests, test_IntType_correctly_casts_pyobject_int_to_IntType) {
+    IntType x = IntType(i_type);
+
+    EXPECT_EQ(x.cast(), 10);
 }

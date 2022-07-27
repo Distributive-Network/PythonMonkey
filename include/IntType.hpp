@@ -14,17 +14,13 @@ class IntType : public PyType {
         int value;
 
     public:
-        inline IntType(PyObject* _object);
+        using PyType::PyType;
         // Virtual Methods
         virtual std::string getStringIdentifier() override;
         virtual std::string getReturnType() override;
 
         // Find a way to show that this type of thing should be virtual.
-        static IntType cast(PyObject* object);
-
-        // TODO: Also find a way to make this virtual. Ideally each class has a function like this.
-        int getValue();
-
+        int cast();
 };
 
 #endif
