@@ -1,11 +1,11 @@
-#ifndef PYTYPES_HPP
-#define PYTYPES_HPP
+#ifndef INFERREDPYTYPES_HPP
+#define INFERREDPYTYPES_HPP
 
 #include <Python.h>
 #include <string>
 #include <any>
 
-class PyType {
+class  InferredPyType {
 
 private:
 PyObject* input;
@@ -18,7 +18,7 @@ void inferTypes(PyObject* object);
 
 public:
 
-PyType(PyObject* _input);
+InferredPyType(PyObject* _input);
 
 std::string getInferedType(); 
 

@@ -1,8 +1,8 @@
 #include <Python.h>
 #include <string>
-#include "../include/PyTypes.hpp"
+#include "../include/InferredPyType.hpp"
 
-void PyType::inferTypes(PyObject* input) {
+void InferredPyType::inferTypes(PyObject* input) {
     if(PyUnicode_Check(input)) {
         const char *input_value = PyUnicode_AsUTF8(input);
         inferred_value = input_value;
@@ -18,21 +18,21 @@ void PyType::inferTypes(PyObject* input) {
     }
 }
 
-PyType::PyType(PyObject* _input) {
+InferredPyType::InferredPyType(PyObject* _input) {
     input = _input;
 
     inferTypes(input);
 }
 
-std::string PyType::getInferedType() {
+std::string InferredPyType::getInferedType() {
     return inferred_type;
 }
 
-char* PyType::getStringIdentifier() {
+char* InferredPyType::getStringIdentifier() {
     return string_identifier;
 }
 
 template <typename T>
-T PyType::cast() {
+T InferredPyType::cast() {
     // Work on this tomorrow...
 }
