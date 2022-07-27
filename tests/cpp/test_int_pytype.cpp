@@ -58,3 +58,17 @@ TEST_F(IntTypeTests, test_getPyObject_returns_correct_PyObject) {
     EXPECT_EQ(x.getPyObject(), i_type);
 }
 
+TEST_F(IntTypeTests, test_create_IntType_from_c_int) {
+    int value = 12;
+
+    IntType my_int = IntType::from_c_type(value);
+
+    PyObject* expected = Py_BuildValue("i", 12);
+    Py_XINCREF(expected);
+
+    EXPECT_EQ(my_int.getPyObject(), expected);
+
+    Py_XDECREF(expected);
+}
+
+

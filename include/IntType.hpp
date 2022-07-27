@@ -15,6 +15,8 @@ class IntType : public PyType {
 
     public:
         using PyType::PyType;
+
+        ~IntType();
         // Virtual Methods
         virtual std::string getStringIdentifier() override;
         virtual std::string getReturnType() override;
@@ -22,6 +24,9 @@ class IntType : public PyType {
 
         // Find a way to show that this type of thing should be virtual.
         int cast();
+
+        // Find a way to have an interface for this.
+        static IntType from_c_type(int x);
 };
 
 #endif
