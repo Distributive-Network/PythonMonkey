@@ -9,7 +9,7 @@ std::string IntType::getReturnType() {
 }
 
 std::string IntType::getStringIdentifier() {
-    return NULL;
+    return stringIdentifier;
 }
 
 IntType IntType::cast(PyObject* object) {
