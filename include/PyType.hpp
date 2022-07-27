@@ -17,6 +17,7 @@ public:
 
     virtual std::string getReturnType() = 0;
     virtual std::string getStringIdentifier() = 0;
+    virtual PyObject* getPyObject() = 0;
 
     // Is there some way to override constructors... I don't know.
 };

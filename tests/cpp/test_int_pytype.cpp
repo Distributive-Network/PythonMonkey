@@ -51,3 +51,10 @@ TEST_F(IntTypeTests, test_IntType_correctly_casts_pyobject_int_to_IntType) {
 
     EXPECT_EQ(x.cast(), 10);
 }
+
+TEST_F(IntTypeTests, test_getPyObject_returns_correct_PyObject) {
+    IntType x = IntType(i_type);
+
+    EXPECT_EQ(x.getPyObject(), i_type);
+}
+
