@@ -1,5 +1,6 @@
 #include "../include/IntType.hpp"
 
+
 IntType::~IntType() {
     Py_XDECREF(object); // Help if object is null for whatever reason or does not need to be decremented.
 }
@@ -14,6 +15,12 @@ std::string IntType::getStringIdentifier() {
 
 PyObject* IntType::getPyObject() {
     return object;
+}
+
+void IntType::print(std::ostream& os) const {
+    int p_value = (int)PyLong_AS_LONG(object);
+
+    os << p_value;
 }
 
 int IntType::cast() {

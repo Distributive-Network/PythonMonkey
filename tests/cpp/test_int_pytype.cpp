@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <Python.h>
 #include "../../include/IntType.hpp"
+#include <iostream>
+#include <string>
 
 template<typename Base, typename T>
 inline bool instanceof(const T *ptr) {
@@ -69,6 +71,18 @@ TEST_F(IntTypeTests, test_create_IntType_from_c_int) {
     EXPECT_EQ(my_int.getPyObject(), expected);
 
     Py_XDECREF(expected);
+}
+
+TEST_F(IntTypeTests, test_cout_type_correctly) {
+
+    IntType my_int = IntType(i_type);
+
+    std::string expected = "10";
+    std::cout << my_int;
+    std::string output = testing::internal::CaptureStdout()
+
+    EXPECT_EQ(expected, output);
+
 }
 
 

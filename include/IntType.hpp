@@ -12,9 +12,15 @@ class IntType : public PyType {
         std::string returnType = "int";
         std::string stringIdentifier = "%d";
         int value;
+    
+    protected:
+        virtual void print(std::ostream& os) const override;
 
     public:
-        using PyType::PyType;
+        // using PyType::PyType;
+        IntType(PyObject* _object): PyType(_object) {
+            value = PyLong_AS_LONG(object);
+        }
 
         ~IntType();
         // Virtual Methods
