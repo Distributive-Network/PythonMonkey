@@ -1,35 +1,15 @@
 #include "../include/IntType.hpp"
 
-
-IntType::~IntType() {
-    Py_XDECREF(object); // Help if object is null for whatever reason or does not need to be decremented.
+IntType::IntType(PyObject* object): PyType(object) {
 }
 
-std::string IntType::getReturnType() {
-    return returnType;
-}
-
-std::string IntType::getStringIdentifier() {
-    return stringIdentifier;
-}
-
-PyObject* IntType::getPyObject() {
-    return object;
+IntType::IntType(long n): PyType(Py_BuildValue("i", n)) {
 }
 
 void IntType::print(std::ostream& os) const {
-    int p_value = (int)PyLong_AS_LONG(object);
-
-    os << p_value;
+    os << this->getValue();
 }
 
-int IntType::cast() {
-    return (int)PyLong_AS_LONG(object);
-}
-
-IntType IntType::from_c_type(int value) {
-    PyObject* new_py_object = Py_BuildValue("i", value);
-    Py_XINCREF(new_py_object);
-
-    return IntType(new_py_object);
+long IntType::getValue() const {
+    return PyLong_AS_LONG(pyObject);
 }

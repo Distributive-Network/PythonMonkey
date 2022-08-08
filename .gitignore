@@ -1,5 +1,5 @@
 build/
-./.vscode
+.vscode/
 pyvenv.cfg
 bin/
 lib/*

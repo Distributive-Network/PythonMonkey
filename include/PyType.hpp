@@ -11,15 +11,16 @@
 class PyType {
 
 protected:
-    PyObject* object;
+    PyObject* pyObject;
+    const std::string returnType;
     virtual void print(std::ostream& os) const = 0;
 
 public:
-    PyType(PyObject* _object): object(_object) {};
+    PyType(PyObject* object);
+    ~PyType();
 
-    virtual std::string getReturnType() = 0;
-    virtual std::string getStringIdentifier() = 0;
-    virtual PyObject* getPyObject() = 0;
+    PyObject* getPyObject();
+    std::string getReturnType();
 
     friend std::ostream& operator<<(std::ostream& str, const PyType& data)
     {

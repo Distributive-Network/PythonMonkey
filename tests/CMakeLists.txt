@@ -22,6 +22,6 @@ include(GoogleTest)
 gtest_discover_tests(tests)
 
 add_test (NAME python-tests
-  COMMAND /opt/homebrew/bin/python3 -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMAND python3 -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/python
 )

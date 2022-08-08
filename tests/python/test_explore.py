@@ -4,7 +4,7 @@ def test_passes():
     assert True == True
 
 def test_output_outputs_correct_integers(capfd):
-    explore.ouptut(1,65,72)
+    explore.output(1,65,72)
 
     
     out, err = capfd.readouterr()
