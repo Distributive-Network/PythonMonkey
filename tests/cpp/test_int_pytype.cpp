@@ -32,14 +32,6 @@ TEST_F(IntTypeTests, test_can_create_IntType) {
     EXPECT_TRUE(instanceof<PyType>(&x));
 }
 
-TEST_F(IntTypeTests, test_returns_correct_return_type_for_int) {
-    IntType x = IntType(i_type);
-
-    std::string expected = "int";
-
-    EXPECT_EQ(x.getReturnType(), "int");
-}
-
 TEST_F(IntTypeTests, test_getPyObject_returns_correct_PyObject) {
     IntType x = IntType(i_type);
 
