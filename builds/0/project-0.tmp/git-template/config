@@ -1,0 +1,4 @@
+[init]
+	defaultBranch = none
+[fetch]
+	recurseSubmodules = false

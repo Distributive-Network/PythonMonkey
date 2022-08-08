@@ -1,0 +1,31 @@
+stages:
+  - build
+  - test
+
+Build-Library:
+  stage: build
+  script:
+    - echo Building the library
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cmake --build .
+    - echo Build complete
+
+    # Could maybe keep the library / the .so as an artifact of the build completion but I don't know
+
+Run-GoogleTests:
+  stage: test
+  script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cmake --build .
+    - cd tests
+    - ctest
+  artifacts:
+    when: always
+    untracked: false
+    expire_in: "1 day"
+    paths: 
+      - build/tests/Testing/Temporary
