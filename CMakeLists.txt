@@ -4,9 +4,11 @@ project(hello LANGUAGES CXX) # Give the project a name and declare that it is a 
 file (GLOB SOURCE_FILES "src/*.cpp") # Find all C++ files in the src directory
 file (GLOB HEADER_FILES "include/*.hpp") # Find all hpp files in the include directory
 file (GLOB PYTHON_FILES "python/*.cpp" "python/*.hpp") # Find all the python bindings in the python directory
-file (GLOB TEST_FILES "test/cpp/*.cpp") # Find all the test files in the test directory
+file (GLOB TEST_FILES "tests/cpp/*.cpp") # Find all the test files in the test directory
 
 set(CMAKE_CXX_STANDARD 17) # Set the standard to C++17
+
+include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
@@ -61,4 +63,3 @@ endif()
 
 # Add compiled folder directories
 add_subdirectory(src)
-
