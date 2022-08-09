@@ -2,6 +2,12 @@ stages:
   - build
   - test
 
+before_script:
+  - apt-get update --yes
+  - apt-get upgrade --yes
+  - apt-get install cmake --yes
+  - apt-get install python3-dev --yes
+
 Build-Library:
   stage: build
   script:
