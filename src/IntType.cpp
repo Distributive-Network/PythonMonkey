@@ -1,3 +1,4 @@
+#include <string>
 #include "../include/IntType.hpp"
 
 IntType::IntType(PyObject* object): PyType(object) {
@@ -12,4 +13,8 @@ void IntType::print(std::ostream& os) const {
 
 long IntType::getValue() const {
     return PyLong_AS_LONG(pyObject);
+}
+
+std::string IntType::getReturnType() const {
+    return this->returnType;
 }

@@ -1,0 +1,44 @@
+image: gcc
+stages:
+  - build
+  - test
+
+before_script:
+  - apt-get update --yes
+  - apt-get upgrade --yes
+  - apt-get install cmake --yes
+  - apt-get install python3-dev --yes
+
+Build-Library:
+  stage: build
+  tags:
+    - dcp-aitf
+    - linux
+  script:
+    - echo Building the library
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cmake --build .
+    - echo Build complete
+
+    # Could maybe keep the library / the .so as an artifact of the build completion but I don't know
+
+Run-GoogleTests:
+  stage: test
+  tags:
+    - dcp-aitf
+    - linux
+  script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cmake --build .
+    - cd tests
+    - ctest
+  artifacts:
+    when: always
+    untracked: false
+    expire_in: "1 day"
+    paths: 
+      - build/tests/Testing/Temporary
