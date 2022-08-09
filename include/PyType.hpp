@@ -5,6 +5,8 @@
 #include <string>
 #include <iostream>
 
+#include "TypeEnum.hpp"
+
 /**
  * @brief Abstract Class that serves as a base for the different type relations in C++/Python
  */
@@ -12,7 +14,7 @@ class PyType {
 
 protected:
     PyObject* pyObject;
-    const std::string returnType;
+    const TYPE returnType;
     virtual void print(std::ostream& os) const = 0;
 
 public:
