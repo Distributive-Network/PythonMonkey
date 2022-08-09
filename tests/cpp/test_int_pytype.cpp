@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 
+#include "include/TypeEnum.hpp"
+
 template<typename Base, typename T>
 inline bool instanceof(const T *ptr) {
    return dynamic_cast<const Base*>(ptr) != nullptr;
@@ -35,9 +37,9 @@ TEST_F(IntTypeTests, test_can_create_IntType) {
 TEST_F(IntTypeTests, test_returns_correct_return_type_for_int) {
     IntType x = IntType(i_type);
 
-    std::string expected = "int";
+    TYPE expected = TYPE::INT;
 
-    EXPECT_EQ(x.getReturnType(), "int");
+    EXPECT_EQ(x.getReturnType(), expected);
 }
 
 TEST_F(IntTypeTests, test_getPyObject_returns_correct_PyObject) {
