@@ -1,3 +1,4 @@
+image: gcc
 stages:
   - build
   - test
@@ -10,6 +11,9 @@ before_script:
 
 Build-Library:
   stage: build
+  tags:
+    - dcp-aitf
+    - linux
   script:
     - echo Building the library
     - mkdir build
@@ -22,6 +26,9 @@ Build-Library:
 
 Run-GoogleTests:
   stage: test
+  tags:
+    - dcp-aitf
+    - linux
   script:
     - mkdir build
     - cd build
