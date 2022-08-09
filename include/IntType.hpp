@@ -16,7 +16,7 @@ class IntType : public PyType {
         IntType(PyObject* object);
         IntType(long n);
         long getValue() const;
-        std::string getReturnType();
+        std::string getReturnType() const;
 
 };
 

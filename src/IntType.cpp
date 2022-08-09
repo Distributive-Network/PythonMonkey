@@ -15,6 +15,6 @@ long IntType::getValue() const {
     return PyLong_AS_LONG(pyObject);
 }
 
-std::string IntType::getReturnType() {
+std::string IntType::getReturnType() const {
     return this->returnType;
 }
