@@ -65,3 +65,18 @@ TEST_F(DictTypeTests, test_sets_values_appropriately) {
     delete key;
     delete value;
 }
+
+TEST_F(DictTypeTests, test_gets_existing_values_appropriately) {
+
+    DictType dict = DictType(dict_type);
+
+    StrType *key = new StrType((char *)"a");
+
+    PyType* get_value = dict.get(key);
+    PyType* expected = new IntType(default_value);
+
+    PyObject* get_value_object = get_value->getPyObject();
+
+
+    EXPECT_EQ(get_value_object, default_value);
+}
