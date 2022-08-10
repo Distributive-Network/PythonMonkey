@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <Python.h>
-#include "../../include/IntType.hpp"
 #include <iostream>
 #include <string>
 #include "include/TypeEnum.hpp"
