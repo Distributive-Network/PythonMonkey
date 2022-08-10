@@ -2,7 +2,9 @@
 #include <Python.h>
 #include <iostream>
 #include <string>
-#include "include/TypeEnum.hpp"
+#include <include/TypeEnum.hpp>
+#include <include/PyType.hpp>
+#include <include/DictType.hpp>
 
 template<typename Base, typename T>
 inline bool instanceof(const T *ptr) {
@@ -33,3 +35,11 @@ protected:
         Py_XINCREF(value);
     }
 };
+
+TEST_F(DictTypeTests, test_dict_type_instance_of_pytype) { 
+
+    DictType dict = DictType(dict_type);
+
+    EXPECT_TRUE(instanceof<PyType>(&dict));
+
+}
