@@ -2,6 +2,7 @@
 #define DICTTYPE_HPP
 
 #include <Python.h>
+#include <optional>
 
 #include "PyType.hpp"
 

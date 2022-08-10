@@ -2,4 +2,4 @@ cd build
 cmake ..
 cmake --build .
 cd tests
-ctest
+ctest --rerun-failed --output-on-failure

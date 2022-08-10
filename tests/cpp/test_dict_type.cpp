@@ -80,3 +80,15 @@ TEST_F(DictTypeTests, test_gets_existing_values_appropriately) {
 
     EXPECT_EQ(get_value_object, default_value);
 }
+
+TEST_F(DictTypeTests, test_get_returns_null_when_getting_non_existent_value) {
+
+    DictType dict = DictType(dict_type);
+
+    StrType *key = new StrType((char*)"b");
+
+    PyType* retrieved_item = dict.get(key);
+
+    EXPECT_EQ(retrieved_item, NULL);
+
+}

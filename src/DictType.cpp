@@ -1,5 +1,6 @@
 #include <include/DictType.hpp>
 #include <Python.h>
+#include <optional>
 
 #include <include/TypeEnum.hpp>
 #include <include/PyTypeFactory.hpp>
@@ -18,7 +19,7 @@ void DictType::set(PyType* key, PyType* value) {
 
 // NOTE: This could possible return a std::optional if the item does not exist
 PyType* DictType::get(PyType* key) { 
-    PyObject* retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
+    PyObject* retrieved_object = PyDict_GetItemWithError(this->pyObject, key->getPyObject());
 
-    return PyTypeFactory(retrieved_object);
+    return retrieved_object != NULL ? PyTypeFactory(retrieved_object) : NULL;
 }
