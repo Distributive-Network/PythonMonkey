@@ -45,7 +45,7 @@ Run-GoogleTests:
     paths: 
       - build/tests/Testing/Temporary
 
-docs:
+pages:
   stage: deploy
   script: 
     - mkdir .public
