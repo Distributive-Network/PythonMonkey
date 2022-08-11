@@ -2,12 +2,14 @@ image: gcc
 stages:
   - build
   - test
+  - deploy
 
 before_script:
   - apt-get update --yes
   - apt-get upgrade --yes
   - apt-get install cmake --yes
   - apt-get install python3-dev --yes
+  - apt-get install doxygen --yes
 
 Build-Library:
   stage: build
@@ -42,3 +44,23 @@ Run-GoogleTests:
     expire_in: "1 day"
     paths: 
       - build/tests/Testing/Temporary
+
+pages:
+  stage: deploy
+  script: 
+    - mkdir .public
+    - cd build
+    - cmake ..
+    - cmake --build .
+    - cd ..
+    - cp -r ./build/docs/doc_doxygen/html/* .public
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+  tags:
+    - dcp-aitf
+    - linux
+
