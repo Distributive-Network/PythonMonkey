@@ -31,3 +31,12 @@ TEST_F(StrTypeTest, test_can_create_string_type_from_pyobject) {
 
     EXPECT_TRUE(instanceof<PyType>(&str));
 }
+
+TEST_F(StrTypeTest, test_returns_correct_return_type_for_str) {
+    StrType str = StrType(s_type);
+
+    TYPE expected = TYPE::STRING;
+
+    EXPECT_EQ(str.getReturnType(), expected);
+}
+
