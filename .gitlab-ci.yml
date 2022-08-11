@@ -52,7 +52,7 @@ docs:
     - cmake ..
     - cmake --build .
     - cd ..
-    - cp -r ./build/docs* .public
+    - cp -r ./build/docs/* .public
     - mv .public public
   
   tags:
