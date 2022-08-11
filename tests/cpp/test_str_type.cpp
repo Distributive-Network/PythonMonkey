@@ -45,3 +45,16 @@ TEST_F(StrTypeTest, test_getPyObject_returns_correct_PyObject) {
 
     EXPECT_EQ(x.getPyObject(), s_type);
 }
+
+TEST_F(StrTypeTest, test_cout_type_correctly) {
+
+    StrType my_str = StrType(s_type);
+
+    std::string expected = "something";
+    testing::internal::CaptureStdout();
+    std::cout << my_str;
+    std::string output = testing::internal::GetCapturedStdout();
+
+    EXPECT_EQ(expected, output);
+
+}
