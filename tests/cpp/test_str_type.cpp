@@ -39,3 +39,9 @@ TEST_F(StrTypeTest, test_returns_correct_return_type_for_str) {
 
     EXPECT_EQ(str.getReturnType(), expected);
 }
+
+TEST_F(StrTypeTest, test_getPyObject_returns_correct_PyObject) {
+    StrType x = StrType(s_type);
+
+    EXPECT_EQ(x.getPyObject(), s_type);
+}
