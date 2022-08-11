@@ -48,8 +48,7 @@ docs:
   stage: deploy
   script: 
     - mkdir .public
-    - mkdir build
-    - cd build 
+    - cd build
     - cmake ..
     - cmake --build .
     - cd ..
