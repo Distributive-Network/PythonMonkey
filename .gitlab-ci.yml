@@ -9,6 +9,7 @@ before_script:
   - apt-get upgrade --yes
   - apt-get install cmake --yes
   - apt-get install python3-dev --yes
+  - apt-get install doxygen --yes
 
 Build-Library:
   stage: build
