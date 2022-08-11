@@ -18,8 +18,9 @@ void DictType::set(PyType* key, PyType* value) {
 }
 
 // NOTE: This could possible return a std::optional if the item does not exist
-PyType* DictType::get(PyType* key) { 
-    PyObject* retrieved_object = PyDict_GetItemWithError(this->pyObject, key->getPyObject());
+std::optional<PyType*> DictType::get(PyType* key) { 
+    PyObject* retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
 
-    return retrieved_object != NULL ? PyTypeFactory(retrieved_object) : NULL;
+    return retrieved_object != NULL ? std::optional<PyType*>{PyTypeFactory(retrieved_object)} : std::nullopt;
 }
+

@@ -34,7 +34,7 @@ class DictType: public PyType {
          * @param key The key of the item in question
          * @return PyType* Returns a pointer to the appropriate PyType object
          */
-        PyType* get(PyType* key);
+        std::optional<PyType*> get(PyType* key);
 };
 
 #endif

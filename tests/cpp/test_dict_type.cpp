@@ -72,13 +72,13 @@ TEST_F(DictTypeTests, test_gets_existing_values_appropriately) {
 
     StrType *key = new StrType((char *)"a");
 
-    PyType* get_value = dict.get(key);
+    auto get_value = dict.get(key);
     PyType* expected = new IntType(default_value);
 
-    PyObject* get_value_object = get_value->getPyObject();
-
+    PyObject* get_value_object = get_value.value()->getPyObject();
 
     EXPECT_EQ(get_value_object, default_value);
+    // EXPECT_TRUE(instanceof<PyType>(get_value_object));
 }
 
 TEST_F(DictTypeTests, test_get_returns_null_when_getting_non_existent_value) {
@@ -87,8 +87,6 @@ TEST_F(DictTypeTests, test_get_returns_null_when_getting_non_existent_value) {
 
     StrType *key = new StrType((char*)"b");
 
-    PyType* retrieved_item = dict.get(key);
-
-    EXPECT_EQ(retrieved_item, NULL);
+    EXPECT_FALSE(dict.get(key).has_value());
 
 }
