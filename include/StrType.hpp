@@ -17,6 +17,7 @@ class StrType : public PyType {
         StrType(PyObject* object);
         StrType(char* string);
         const char* getValue() const;
+        TYPE getReturnType() const;
 };
 
 #endif

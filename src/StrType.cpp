@@ -13,3 +13,7 @@ void StrType::print(std::ostream& os) const {
 const char* StrType::getValue() const {
   return PyUnicode_AsUTF8(pyObject);
 }
+
+TYPE StrType::getReturnType() const {
+  return this->returnType;
+}

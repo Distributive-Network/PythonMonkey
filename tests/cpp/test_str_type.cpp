@@ -39,4 +39,3 @@ TEST_F(StrTypeTest, test_returns_correct_return_type_for_str) {
 
     EXPECT_EQ(str.getReturnType(), expected);
 }
-
