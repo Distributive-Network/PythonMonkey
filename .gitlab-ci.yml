@@ -58,6 +58,8 @@ pages:
   artifacts:
     paths:
       - public
+  only:
+    - main
   tags:
     - dcp-aitf
     - linux
