@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <Python.h>
-#include "../../include/IntType.hpp"
 #include <iostream>
 #include <string>
 
-#include "include/TypeEnum.hpp"
+#include <include/TypeEnum.hpp>
+#include <include/StrType.hpp>
 
 template<typename Base, typename T>
 inline bool instanceof(const T *ptr) {
@@ -25,3 +25,9 @@ protected:
         Py_XDECREF(s_type);
     }
 };
+
+TEST_F(StrTypeTest, test_can_create_string_type_from_pyobject) {
+    StrType str = StrType(s_type);
+
+    EXPECT_TRUE(instanceof<PyType>(&str));
+}
