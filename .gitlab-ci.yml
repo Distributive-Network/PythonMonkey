@@ -2,6 +2,7 @@ image: gcc
 stages:
   - build
   - test
+  - deploy
 
 before_script:
   - apt-get update --yes
@@ -42,3 +43,20 @@ Run-GoogleTests:
     expire_in: "1 day"
     paths: 
       - build/tests/Testing/Temporary
+
+docs:
+  stage: deploy
+  script: 
+    - mkdir .public
+    - mkdir build
+    - cd build 
+    - cmake ..
+    - cmake --build .
+    - cd ..
+    - cp -r ./build/docs* .public
+    - mv .public public
+  
+  tags:
+    - dcp-aitf
+    - linux
+
