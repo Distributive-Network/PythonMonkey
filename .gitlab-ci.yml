@@ -55,7 +55,9 @@ docs:
     - cd ..
     - cp -r ./build/docs/* .public
     - mv .public public
-  
+  artifacts:
+    paths:
+      - public
   tags:
     - dcp-aitf
     - linux
