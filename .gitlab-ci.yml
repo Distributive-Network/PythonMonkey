@@ -47,6 +47,8 @@ Run-GoogleTests:
 
 pages:
   stage: deploy
+  dependencies:
+    - Build-Library
   script: 
     - mkdir .public
     - cd build
