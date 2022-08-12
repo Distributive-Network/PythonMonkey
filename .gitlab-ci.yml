@@ -28,9 +28,7 @@ Build-Library:
 
 Run-GoogleTests:
   stage: test
-  tags:
-    - dcp-aitf
-    - linux
+  coverage: /All files[^|]*\|[^|]*\s+([\d\.]+)/
   script:
     - mkdir build
     - cd build
@@ -44,6 +42,9 @@ Run-GoogleTests:
     expire_in: "1 day"
     paths: 
       - build/tests/Testing/Temporary
+  tags:
+    - dcp-aitf
+    - linux
 
 pages:
   stage: deploy
