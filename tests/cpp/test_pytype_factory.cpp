@@ -10,7 +10,7 @@ inline bool instanceof(const T *ptr) {
    return dynamic_cast<const Base*>(ptr) != nullptr;
 }
 
-class PyFactoryTests : public ::testing::Test {
+class PyTypeFactoryTests : public ::testing::Test {
 protected:
     PyObject* i_type; 
     PyObject* s_type;
@@ -29,10 +29,11 @@ protected:
     }
 };
 
-TEST_F(PyFactoryTests, test_makes_int_type_appropriately) {
+TEST_F(PyTypeFactoryTests, test_makes_int_type_appropriately) {
     
     PyType* obj = PyTypeFactory(i_type);
 
     EXPECT_TRUE(instanceof<IntType>(&*obj));
 
 }
+
