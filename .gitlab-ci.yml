@@ -10,6 +10,7 @@ before_script:
   - apt-get install cmake --yes
   - apt-get install python3-dev --yes
   - apt-get install doxygen --yes
+  - apt-get install gcovr --yes
 
 Build-Library:
   stage: build
@@ -28,22 +29,24 @@ Build-Library:
 
 Run-GoogleTests:
   stage: test
-  tags:
-    - dcp-aitf
-    - linux
   script:
     - mkdir build
     - cd build
     - cmake ..
-    - cmake --build .
-    - cd tests
-    - ctest
+    - make && make tests
+    - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
+    - cd tests && ctest
+  coverage: /^TOTAL.*\s+(\d+\%)$/
   artifacts:
-    when: always
-    untracked: false
-    expire_in: "1 day"
-    paths: 
-      - build/tests/Testing/Temporary
+    name: ${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}
+    expire_in: 2 days
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
+  tags:
+    - dcp-aitf
+    - linux
 
 pages:
   stage: deploy
