@@ -31,9 +31,6 @@ Run-GoogleTests:
   tags:
     - dcp-aitf
     - linux
-  dependencies:
-    - Build-Libarary
-  coverage: /All files[^|]*\|[^|]*\s+([\d\.]+)/
   script:
     - mkdir build
     - cd build
