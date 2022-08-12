@@ -33,10 +33,9 @@ Run-GoogleTests:
     - mkdir build
     - cd build
     - cmake ..
-    - cmake --build .
-    - cd tests
-    - ctest
+    - make && make tests
     - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
+    - cd tests && ctest
   coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
     name: ${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}
