@@ -43,3 +43,9 @@ TEST_F(PyTypeFactoryTests, test_makes_str_type_correctly) {
     EXPECT_TRUE(instanceof<StrType>(&*obj));
 }
 
+TEST_F(PyTypeFactoryTests, test_makes_dict_type_correctly) {
+    PyType* obj = PyTypeFactory(dict_type);
+
+    EXPECT_TRUE(instanceof<DictType>(&*obj));
+}
+
