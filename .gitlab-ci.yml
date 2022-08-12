@@ -54,6 +54,7 @@ pages:
     - Build-Library
   script: 
     - mkdir .public
+    - mkdir build
     - cd build
     - cmake ..
     - cmake --build .
