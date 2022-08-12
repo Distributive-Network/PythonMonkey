@@ -28,7 +28,6 @@ Build-Library:
 
 Run-GoogleTests:
   stage: test
-  coverage: /All files[^|]*\|[^|]*\s+([\d\.]+)/
   script:
     - mkdir build
     - cd build
@@ -36,12 +35,15 @@ Run-GoogleTests:
     - cmake --build .
     - cd tests
     - ctest
+    - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
+  coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
-    when: always
-    untracked: false
-    expire_in: "1 day"
-    paths: 
-      - build/tests/Testing/Temporary
+    name: ${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}
+    expire_in: 2 days
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
   tags:
     - dcp-aitf
     - linux
