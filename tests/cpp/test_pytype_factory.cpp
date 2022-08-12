@@ -29,11 +29,17 @@ protected:
     }
 };
 
-TEST_F(PyTypeFactoryTests, test_makes_int_type_appropriately) {
+TEST_F(PyTypeFactoryTests, test_makes_int_type_correctly) {
     
     PyType* obj = PyTypeFactory(i_type);
 
     EXPECT_TRUE(instanceof<IntType>(&*obj));
 
+}
+
+TEST_F(PyTypeFactoryTests, test_makes_str_type_correctly) {
+    PyType* obj = PyTypeFactory(s_type); 
+
+    EXPECT_TRUE(instanceof<StrType>(&*obj));
 }
 
