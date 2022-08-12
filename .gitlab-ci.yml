@@ -36,7 +36,7 @@ Run-GoogleTests:
     - make && make tests
     - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
     - cd tests && ctest
-  coverage: /^\s*lines:\s*\d+.\d+\%/
+  coverage: /^TOTAL.*\s+(\d+\%)$/
   artifacts:
     name: ${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}
     expire_in: 2 days
