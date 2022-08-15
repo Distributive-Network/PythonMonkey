@@ -6,9 +6,9 @@
 
 #include "include/TypeEnum.hpp"
 
-template<typename Base, typename T>
-inline bool instanceof(const T *ptr) {
-   return dynamic_cast<const Base*>(ptr) != nullptr;
+template<typename base, typename t>
+inline bool instanceof(const t *ptr) {
+   return dynamic_cast<const base*>(ptr) != nullptr;
 }
 
 class IntTypeTests : public ::testing::Test {

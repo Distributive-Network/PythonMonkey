@@ -117,7 +117,7 @@ TEST_F(DictTypeTests, test_print_overload_prints_nested_dictionaries_correctly) 
 
     DictType my_dict = DictType(dict_with_standard_types);
     
-    std::string expected = "{\n  'a':10,\n  'b':'c',\n  'd':12,\n  'nested_dict':{\n  'nested_a':13,\n  'nested_b':14\n}\n}";
+    std::string expected = "{\n  'a':10,\n  'b':'c',\n  'd':12,\n  'nested_dict':{\n    'nested_a':13,\n    'nested_b':14\n  }\n}";
     testing::internal::CaptureStdout();
     std::cout << my_dict;
     std::string output = testing::internal::GetCapturedStdout();

@@ -19,7 +19,6 @@ class DictType: public PyType {
     public:
         DictType(PyObject* object);
         TYPE getReturnType() const;
-
         /**
          * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
          * 
@@ -35,6 +34,8 @@ class DictType: public PyType {
          * @return PyType* Returns a pointer to the appropriate PyType object
          */
         std::optional<PyType*> get(PyType* key) const;
+
+        virtual void print_helper(std::ostream& os, int depth = 0) const;
 };
 
 #endif
