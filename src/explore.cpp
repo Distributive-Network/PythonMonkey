@@ -10,16 +10,7 @@ static PyObject* output(PyObject* self, PyObject *args) {
   for (int i = 0; i < size; i++) {
     PyType* item = PyTypeFactory(PyTuple_GET_ITEM(args, i));
 
-      if (dynamic_cast<IntType*>(item) != nullptr)
-        printf("%ld", ((IntType *)item)->getValue());
-      else if (dynamic_cast<StrType*>(item) != nullptr)
-        printf("%s", ((StrType *)item)->getValue());
-      else if (dynamic_cast<FuncType*>(item) != nullptr)
-        printf("[FUNCTION %s]", ((FuncType *)item)->getValue());
-      else {
-        printf("You are attempting to output a type that has not been implemented in this project! Aborting.");
-        Py_RETURN_NONE;
-      }
+    std::cout << *item;
   }
   Py_RETURN_NONE;
 }
