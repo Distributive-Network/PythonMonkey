@@ -90,3 +90,18 @@ TEST_F(DictTypeTests, test_get_returns_null_when_getting_non_existent_value) {
     EXPECT_FALSE(dict.get(key).has_value());
 
 }
+
+TEST_F(DictTypeTests, test_print_overload_prints_basic_types_correctly) {
+    PyObject* dict_with_standard_types = Py_BuildValue("{s:i, s:s, s:i}", 
+                                                        (char*)"a", 10, (char*)"b", 
+                                                        (char*)"c", (char*)"d", 12);
+
+    DictType my_dict = DictType(dict_with_standard_types);
+    
+    std::string expected = "{'a':10,'b':'c','d':12}";
+    testing::internal::CaptureStdout();
+    std::cout << my_dict;
+    std::string output = testing::internal::GetCapturedStdout();
+
+    EXPECT_EQ(expected, output);
+}

@@ -50,7 +50,7 @@ TEST_F(StrTypeTest, test_cout_type_correctly) {
 
     StrType my_str = StrType(s_type);
 
-    std::string expected = "something";
+    std::string expected = "'something'";
     testing::internal::CaptureStdout();
     std::cout << my_str;
     std::string output = testing::internal::GetCapturedStdout();
