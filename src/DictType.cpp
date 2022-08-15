@@ -13,17 +13,17 @@ void DictType::print(std::ostream& os) const {
 
     const Py_ssize_t keys_size = PyList_Size(keys);
 
-    os << "{";
+    os << "{\n";
     for(int i = 0; i < keys_size; i++) {
         PyType* key = PyTypeFactory(PyList_GetItem(keys, i));
         PyType* value = this->get(key).value();
 
-        os << *key << ":" << *value;
+        os << "  " << *key << ":" << *value;
         if(i < keys_size - 1) {
-            os << ",";
+            os << ",\n";
         }
     }
-    os << "}";
+    os << "\n}";
 
 }
 
