@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <include/IntType.hpp>
-#include <include/StrType.hpp>
-#include <include/DictType.hpp>
-#include <include/PyTypeFactory.hpp>
+#include "include/IntType.hpp"
+#include "include/StrType.hpp"
+#include "include/DictType.hpp"
+#include "include/PyTypeFactory.hpp"
 
 template<typename Base, typename T>
 inline bool instanceof(const T *ptr) {
