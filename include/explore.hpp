@@ -12,5 +12,6 @@
     @param args - The PyTuple of arguments that are passed into the function
     */
 static PyObject* output(PyObject* self, PyObject *args);
+static PyObject* factor(PyObject* self, PyObject *factor);
 
 #endif

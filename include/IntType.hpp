@@ -1,6 +1,7 @@
 #ifndef INTPYTYPE_HPP
 #define INTPYTYPE_HPP
 
+#include <Python.h>
 #include <string>
 #include "PyType.hpp"
 #include "TypeEnum.hpp"
@@ -18,6 +19,8 @@ class IntType : public PyType {
         IntType(long n);
         long getValue() const;
         TYPE getReturnType() const;
+
+        PyObject* factor() const;
 
 };
 

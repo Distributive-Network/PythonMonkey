@@ -15,8 +15,14 @@ static PyObject* output(PyObject* self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
+static PyObject* factor(PyObject* self, PyObject* args) {
+
+  Py_RETURN_NONE;
+}
+
 static PyMethodDef ExploreMethods[] = {
   {"output", output, METH_VARARGS, "Multivariatic function outputs"},
+  {"factor", factor, METH_VARARGS, "Factor a python integer in C++"},
   {NULL, NULL, 0, NULL}
 };
 

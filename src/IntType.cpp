@@ -19,3 +19,23 @@ long IntType::getValue() const {
 TYPE IntType::getReturnType() const {
     return this->returnType;
 }
+
+PyObject* IntType::factor() const {
+    PyObject* list = PyList_New(0);
+    Py_XINCREF(list);
+
+    double sqrt_value = sqrt(this->getValue());
+
+
+    for(int i = 1; i < sqrt_value; i++) {
+        if(this->getValue() % i == 0) {
+            PyObject* append_value_1 = Py_BuildValue("i", i);
+            PyObject* append_value_2 = Py_BuildValue("i", this->getValue()/i);
+            PyList_Append(list, append_value_1);
+            PyList_Append(list, append_value_2);
+        }
+    }
+    PyList_Sort(list);
+
+    return list;
+}
