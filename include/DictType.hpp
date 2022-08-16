@@ -5,7 +5,7 @@
 #include <optional>
 
 #include "PyType.hpp"
-
+#include "TypeEnum.hpp"
 /**
  * @brief This class represents a dictionary in python. It derives from the PyType class
  * 
