@@ -2,9 +2,9 @@
 #include <Python.h>
 #include <optional>
 
-#include <include/TypeEnum.hpp>
-#include <include/PyTypeFactory.hpp>
-#include <include/utilities.hpp>
+#include "include/TypeEnum.hpp"
+#include "include/PyTypeFactory.hpp"
+#include "include/utilities.hpp"
 
 DictType::DictType(PyObject* object): PyType(object) {
 }
