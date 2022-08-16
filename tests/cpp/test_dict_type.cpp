@@ -3,11 +3,11 @@
 #include <iostream>
 #include <string>
 
-#include <include/TypeEnum.hpp>
-#include <include/PyType.hpp>
-#include <include/DictType.hpp>
-#include <include/StrType.hpp>
-#include <include/IntType.hpp>
+#include "include/TypeEnum.hpp"
+#include "include/PyType.hpp"
+#include "include/DictType.hpp"
+#include "include/StrType.hpp"
+#include "include/IntType.hpp"
 
 
 template<typename Base, typename T>
