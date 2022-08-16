@@ -4,6 +4,7 @@
 #include "../include/IntType.hpp"
 #include "../include/StrType.hpp"
 #include "../include/FuncType.hpp"
+#include "include/utilities.hpp"
 
 static PyObject* output(PyObject* self, PyObject *args) {
   const int size = PyTuple_Size(args);
@@ -17,7 +18,16 @@ static PyObject* output(PyObject* self, PyObject *args) {
 
 static PyObject* factor(PyObject* self, PyObject* args) {
 
-  Py_RETURN_NONE;
+  PyType* item = PyTypeFactory(PyTuple_GetItem(args, 0));
+
+  if(instanceof<IntType>(item)) {
+    IntType* casted_int = dynamic_cast<IntType*>(item);
+    return casted_int->factor();
+  } else {
+    PyErr_SetNone(PyExc_TypeError);
+    PyErr_Occurred();
+    Py_RETURN_NONE;
+  }
 }
 
 static PyMethodDef ExploreMethods[] = {
