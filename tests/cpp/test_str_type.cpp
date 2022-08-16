@@ -3,8 +3,8 @@
 #include <iostream>
 #include <string>
 
-#include <include/TypeEnum.hpp>
-#include <include/StrType.hpp>
+#include "include/TypeEnum.hpp"
+#include "include/StrType.hpp"
 
 template<typename Base, typename T>
 inline bool instanceof(const T *ptr) {
