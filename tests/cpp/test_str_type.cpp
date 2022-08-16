@@ -5,11 +5,7 @@
 
 #include "include/TypeEnum.hpp"
 #include "include/StrType.hpp"
-
-template<typename Base, typename T>
-inline bool instanceof(const T *ptr) {
-   return dynamic_cast<const Base*>(ptr) != nullptr;
-}
+#include "include/utilities.hpp"
 
 class StrTypeTest : public ::testing::Test {
 protected:

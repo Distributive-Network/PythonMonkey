@@ -4,11 +4,7 @@
 #include "include/StrType.hpp"
 #include "include/DictType.hpp"
 #include "include/PyTypeFactory.hpp"
-
-template<typename Base, typename T>
-inline bool instanceof(const T *ptr) {
-   return dynamic_cast<const Base*>(ptr) != nullptr;
-}
+#include "include/utilities.hpp"
 
 class PyTypeFactoryTests : public ::testing::Test {
 protected:

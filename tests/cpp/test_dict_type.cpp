@@ -9,11 +9,7 @@
 #include "include/StrType.hpp"
 #include "include/IntType.hpp"
 
-
-template<typename Base, typename T>
-inline bool instanceof(const T *ptr) {
-   return dynamic_cast<const Base*>(ptr) != nullptr;
-}
+#include "include/utilities.hpp"
 
 class DictTypeTests : public ::testing::Test {
 protected:
@@ -34,9 +30,9 @@ protected:
     }
 
     virtual void TearDown() {
-        Py_XINCREF(dict_type);
-        Py_XINCREF(default_key);
-        Py_XINCREF(default_value);
+        Py_XDECREF(dict_type);
+        Py_XDECREF(default_key);
+        Py_XDECREF(default_value);
     }
 };
 
