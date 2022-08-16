@@ -33,7 +33,7 @@ class DictType: public PyType {
          * @param key The key of the item in question
          * @return PyType* Returns a pointer to the appropriate PyType object
          */
-        std::optional<PyType*> get(PyType* key) const;
+        PyType* get(PyType* key) const;
 
         virtual void print_helper(std::ostream& os, int depth = 0) const;
 };

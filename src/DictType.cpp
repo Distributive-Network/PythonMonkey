@@ -22,7 +22,7 @@ void DictType::print_helper(std::ostream& os, int depth) const {
     os << "{\n  ";
     for(int i = 0; i < keys_size; i++) {
         PyType* key = PyTypeFactory(PyList_GetItem(keys, i));
-        PyType* value = this->get(key).value();
+        PyType* value = this->get(key);
 
         if(instanceof<DictType>(value)) {
             DictType* casted_value = dynamic_cast<DictType*>(value);
@@ -44,9 +44,9 @@ void DictType::set(PyType* key, PyType* value) {
 }
 
 // NOTE: This could possible return a std::optional if the item does not exist
-std::optional<PyType*> DictType::get(PyType* key) const { 
+PyType* DictType::get(PyType* key) const { 
     PyObject* retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
 
-    return retrieved_object != NULL ? std::optional<PyType*>{PyTypeFactory(retrieved_object)} : std::nullopt;
+    return retrieved_object != NULL ? PyTypeFactory(retrieved_object) : nullptr;
 }
 
