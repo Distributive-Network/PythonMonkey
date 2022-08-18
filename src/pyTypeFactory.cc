@@ -3,6 +3,7 @@
 #include "include/DictType.hh"
 #include "include/FuncType.hh"
 #include "include/IntType.hh"
+#include "include/ListType.hh"
 #include "include/PyType.hh"
 #include "include/StrType.hh"
 
@@ -22,6 +23,9 @@ PyType *pyTypeFactory(PyObject *object) {
   }
   else if (PyDict_Check(object)) {
     pyType = new DictType(object);
+  }
+  else if (PyList_Check(object)) {
+    pyType = new ListType(object);
   }
   else {
     return nullptr;
