@@ -5,10 +5,10 @@
 #include "../include/StrType.hpp"
 #include "../include/FuncType.hpp"
 
-static PyObject* output(PyObject* self, PyObject *args) {
+static PyObject *output(PyObject *self, PyObject *args) {
   const int size = PyTuple_Size(args);
   for (int i = 0; i < size; i++) {
-    PyType* item = PyTypeFactory(PyTuple_GET_ITEM(args, i));
+    PyType *item = PyTypeFactory(PyTuple_GET_ITEM(args, i));
 
     std::cout << *item;
   }

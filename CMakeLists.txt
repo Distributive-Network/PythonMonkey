@@ -1,5 +1,31 @@
+# Copyright (c) 2022 Distributive Inc. All Rights Reserved.
+
 cmake_minimum_required(VERSION 3.4...3.18) # Set minimum cmake version
-project(hello LANGUAGES CXX) # Give the project a name and declare that it is a C++ project
+
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" BIFROST_VERSION)
+string(STRIP "${BIFROST_VERSION}" BIFROST_VERSION)
+project("Bifrost"
+  VERSION "${BIFROST_VERSION}"
+  DESCRIPTION "A tool for Javascript-Python interoperability."
+  LANGUAGES "CXX"
+)
+
+# Set C++ settings.
+set(CMAKE_CXX_STANDARD "17")
+
+# Add an external; appends to `BIFROST_EXTERNAL_FILES` in the parent scope.
+function(bifrost_add_external BIFROST_EXTERNAL)
+  add_subdirectory("externals/${BIFROST_EXTERNAL}")
+  set(BIFROST_EXTERNAL_FILE "externals/${BIFROST_EXTERNAL}/CMakeLists.txt")
+  source_group(
+    TREE "${CMAKE_CURRENT_SOURCE_DIR}/externals/${BIFROST_EXTERNAL}"
+    PREFIX "Externals\\${BIFROST_EXTERNAL}"
+    FILES "${BIFROST_EXTERNAL_FILE}"
+  )
+  list(APPEND BIFROST_EXTERNAL_FILES "${BIFROST_EXTERNAL_FILE}")
+
+  set(BIFROST_EXTERNAL_FILES ${BIFROST_EXTERNAL_FILES} PARENT_SCOPE)
+endfunction()
 
 file (GLOB SOURCE_FILES "src/*.cpp") # Find all C++ files in the src directory
 file (GLOB HEADER_FILES "include/*.hpp") # Find all hpp files in the include directory
@@ -58,3 +84,7 @@ endif()
 
 # Add compiled folder directories
 add_subdirectory(src)
+
+bifrost_add_external("uncrustify")
+bifrost_add_external("autopep8")
+add_subdirectory(format)

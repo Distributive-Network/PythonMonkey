@@ -13,21 +13,21 @@
 class PyType {
 
 protected:
-    PyObject* pyObject;
-    const TYPE returnType = TYPE::DEFAULT;
-    virtual void print(std::ostream& os) const = 0;
+PyObject *pyObject;
+const TYPE returnType = TYPE::DEFAULT;
+virtual void print(std::ostream &os) const = 0;
 
 public:
-    PyType(PyObject* object);
-    ~PyType();
+PyType(PyObject *object);
+~PyType();
 
-    PyObject* getPyObject();
-    TYPE getReturnType();
+PyObject *getPyObject();
+TYPE getReturnType();
 
-    friend std::ostream& operator<<(std::ostream& str, const PyType& data)
-    {
-        data.print(str);
-        return str;
-    }
+friend std::ostream &operator <<(std::ostream &str, const PyType &data)
+{
+  data.print(str);
+  return str;
+}
 };
 #endif

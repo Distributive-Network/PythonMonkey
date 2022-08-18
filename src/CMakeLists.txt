@@ -1,5 +1,4 @@
 include_directories(${CMAKE_CURRENT_LIST_DIR})
-
 file (GLOB SOURCE_FILES "../src/*.cpp") # Find all C++ files in the src directory
 file (GLOB HEADER_FILES "../include/*.hpp") # Find all hpp files in the include directory
 

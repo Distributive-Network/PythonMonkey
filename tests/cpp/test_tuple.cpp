@@ -3,35 +3,35 @@
 #include "../../include/PyTuple.hpp"
 
 TEST(TupleTests, create_tuple) {
-    Py_Initialize();
-    // Figure out this test later ...
-    PyObject* input = Py_BuildValue("(ii)", 1, 2);
+  Py_Initialize();
+  // Figure out this test later ...
+  PyObject *input = Py_BuildValue("(ii)", 1, 2);
 
-    PyTuple my_tuple(input);
+  PyTuple my_tuple(input);
 
-    Py_XDECREF(input);
+  Py_XDECREF(input);
 
-    // This doesn't have an assertion but the fact that it doesn't fail is a sign
-    // that the object is being constructed correctly. For now this is fine
+  // This doesn't have an assertion but the fact that it doesn't fail is a sign
+  // that the object is being constructed correctly. For now this is fine
 }
 
 TEST(TupleTests, get_one_item) {
 
-    Py_Initialize();
+  Py_Initialize();
 
-    PyObject* input = Py_BuildValue("(ii)", 1, 2);
-    Py_XINCREF(input);
+  PyObject *input = Py_BuildValue("(ii)", 1, 2);
+  Py_XINCREF(input);
 
-    PyTuple my_py_tuple(input);
+  PyTuple my_py_tuple(input);
 
-    Py_ssize_t size = PyTuple_GET_SIZE(input);
+  Py_ssize_t size = PyTuple_GET_SIZE(input);
 
-    PyObject* expected = PyTuple_GetItem(input, 0);
+  PyObject *expected = PyTuple_GetItem(input, 0);
 
-    EXPECT_EQ(my_py_tuple.get(0), expected);
+  EXPECT_EQ(my_py_tuple.get(0), expected);
 
 
-    Py_XDECREF(input);
+  Py_XDECREF(input);
 }
 
 // Temporary until I can figure out how the exceptions work
@@ -51,19 +51,19 @@ TEST(TupleTests, get_one_item) {
 //     Py_XDECREF(input);
 // }
 
-TEST(TupleTests, test_get_size) { 
+TEST(TupleTests, test_get_size) {
 
-    Py_Initialize();
+  Py_Initialize();
 
-    PyObject* input = Py_BuildValue("(ii)", 1, 2);
-    Py_XINCREF(input);
+  PyObject *input = Py_BuildValue("(ii)", 1, 2);
+  Py_XINCREF(input);
 
-    PyTuple my_py_tuple(input);
+  PyTuple my_py_tuple(input);
 
-    Py_ssize_t expected_size = 2;
+  Py_ssize_t expected_size = 2;
 
-    EXPECT_EQ(my_py_tuple.getSize(), expected_size);
+  EXPECT_EQ(my_py_tuple.getSize(), expected_size);
 
-    Py_XDECREF(input);
+  Py_XDECREF(input);
 }
 
