@@ -41,6 +41,21 @@ PyType *get(int index) const;
  */
 void append(PyType *value);
 
+/**
+ * @brief Helper function for print()
+ *
+ * @param os output stream to print to
+ * @param depth depth into sub-objects
+ */
+void print_helper(std::ostream &os, int depth = 0) const;
+
+/**
+ * @brief Gets length of the list
+ *
+ * @returns int length of the list
+ */
+int len() const;
+
 protected:
 virtual void print(std::ostream &os) const override;
 };

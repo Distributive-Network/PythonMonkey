@@ -83,3 +83,26 @@ TEST_F(ListTypeTests, test_append_works_properly) {
   EXPECT_EQ(retrieved, expected);
   Py_XDECREF(expected);
 }
+
+TEST_F(ListTypeTests, test_getLength_returns_correct_length) {
+  PyObject *test_list = Py_BuildValue("[i,s,i]", 10, (char *)"hello", 12);
+
+  ListType my_list = ListType(test_list);
+
+  EXPECT_EQ(my_list.len(), 3);
+}
+
+TEST_F(ListTypeTests, test_prints_basic_list_correctly) {
+
+  PyObject *test_list = Py_BuildValue("[i,s,i]", 10, (char *)"hello", 12);
+
+  ListType my_list = ListType(test_list);
+
+  std::string expected = "[\n  10,\n  'hello',\n  12\n]";
+  testing::internal::CaptureStdout();
+  std::cout << my_list;
+  std::string output = testing::internal::GetCapturedStdout();
+
+  EXPECT_EQ(expected, output);
+
+}
