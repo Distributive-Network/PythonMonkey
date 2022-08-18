@@ -1,5 +1,6 @@
-#include <Python.h>
 #include "include/PyTuple.hh"
+
+#include <Python.h>
 
 PyObject *PyTuple::get(int n) {
 

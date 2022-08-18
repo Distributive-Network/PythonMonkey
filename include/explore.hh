@@ -1,9 +1,9 @@
 #ifndef Bifrost_Explore_
 #define Bifrost_Explore_
 
-#include <Python.h>
-
 #include "IntType.hh"
+
+#include <Python.h>
 
 /** @brief Function that takes an arbitrary number of arguments from python and outputs their C/C++ values.
 

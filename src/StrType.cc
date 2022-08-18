@@ -1,4 +1,10 @@
-#include "../include/StrType.hh"
+#include "include/StrType.hh"
+
+#include "include/PyType.hh"
+
+#include <Python.h>
+
+#include <iostream>
 
 StrType::StrType(PyObject *object) : PyType(object) {}
 
@@ -10,8 +16,4 @@ void StrType::print(std::ostream &os) const {
 
 const char *StrType::getValue() const {
   return PyUnicode_AsUTF8(pyObject);
-}
-
-TYPE StrType::getReturnType() const {
-  return this->returnType;
 }

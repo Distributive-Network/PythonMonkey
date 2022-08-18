@@ -1,10 +1,13 @@
 #include "include/DictType.hh"
-#include <Python.h>
-#include <optional>
 
-#include "include/TypeEnum.hh"
+#include "include/PyType.hh"
 #include "include/PyTypeFactory.hh"
 #include "include/utilities.hh"
+
+#include <Python.h>
+
+#include <string>
+#include <iostream>
 
 DictType::DictType(PyObject *object) : PyType(object) {}
 
@@ -37,12 +40,10 @@ void DictType::print_helper(std::ostream &os, int depth) const {
   os << std::endl << std::string(depth * 2, ' ') << "}";
 }
 
-// NOTE: Maybe this should return something on success/failure?
 void DictType::set(PyType *key, PyType *value) {
   PyDict_SetItem(this->pyObject, key->getPyObject(), value->getPyObject());
 }
 
-// NOTE: This could possible return a std::optional if the item does not exist
 PyType *DictType::get(PyType *key) const {
   PyObject *retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
 

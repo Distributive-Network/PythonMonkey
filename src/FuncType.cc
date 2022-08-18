@@ -1,5 +1,10 @@
 #include "include/FuncType.hh"
+
+#include "include/PyType.hh"
+
 #include <Python.h>
+
+#include <iostream>
 
 FuncType::FuncType(PyObject *object) : PyType(object) {}
 

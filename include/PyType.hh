@@ -1,11 +1,11 @@
 #ifndef Bifrost_PyType_
 #define Bifrost_PyType_
 
-#include <Python.h>
-#include <string>
-#include <iostream>
-
 #include "TypeEnum.hh"
+
+#include <Python.h>
+
+#include <iostream>
 
 /**
  * @brief Abstract Class that serves as a base for the different type relations in C++/Python

@@ -1,8 +1,10 @@
 #ifndef Bifrost_PyTypeFactory_
 #define Bifrost_PyTypeFactory_
 
-#include <Python.h>
 #include "PyType.hh"
+
+#include <Python.h>
+
 
 /** @brief Function that takes an arbitrary PyObject* and returns a corresponding PyType* object
 

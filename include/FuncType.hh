@@ -1,9 +1,12 @@
 #ifndef Bifrost_FuncType_
 #define Bifrost_FuncType_
 
-#include <string>
 #include "PyType.hh"
 #include "TypeEnum.hh"
+
+#include <Python.h>
+
+#include <iostream>
 
 /**
  * @brief This class represents the 'function' type in Python. It inherits from the PyType class

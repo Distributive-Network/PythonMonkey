@@ -1,11 +1,14 @@
 #ifndef Bifrost_DictType_
 #define Bifrost_DictType_
 
-#include <Python.h>
-#include <optional>
-
 #include "PyType.hh"
 #include "TypeEnum.hh"
+
+#include <Python.h>
+
+#include <iostream>
+
+
 /**
  * @brief This class represents a dictionary in python. It derives from the PyType class
  *
@@ -18,7 +21,6 @@ virtual void print(std::ostream &os) const override;
 
 public:
 DictType(PyObject *object);
-TYPE getReturnType() const;
 /**
  * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
  *
