@@ -6,7 +6,8 @@ enum class TYPE {
   INT,
   STRING,
   FUNC,
-  DICT
+  DICT,
+  LIST
 };
 
 #endif
