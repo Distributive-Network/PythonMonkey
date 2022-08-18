@@ -21,7 +21,7 @@ target_link_libraries(tests PRIVATE explore gtest_main ${PYTHON_LIBRARIES})
 include(GoogleTest)
 gtest_discover_tests(tests)
 
-add_test (NAME python-tests
-  COMMAND python3 -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/python
-)
+# add_test (NAME python-tests
+#   COMMAND python3 -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
+#   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/python
+# )

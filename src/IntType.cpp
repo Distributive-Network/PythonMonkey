@@ -1,4 +1,6 @@
-#include "../include/IntType.hpp"
+#include <string>
+#include "include/IntType.hpp"
+#include "include/TypeEnum.hpp"
 
 IntType::IntType(PyObject *object) : PyType(object) {}
 
@@ -10,4 +12,8 @@ void IntType::print(std::ostream &os) const {
 
 long IntType::getValue() const {
   return PyLong_AS_LONG(pyObject);
+}
+
+TYPE IntType::getReturnType() const {
+  return this->returnType;
 }

@@ -1,0 +1,72 @@
+image: gcc
+stages:
+  - build
+  - test
+  - deploy
+
+before_script:
+  - apt-get update --yes
+  - apt-get upgrade --yes
+  - apt-get install cmake --yes
+  - apt-get install python3-dev --yes
+  - apt-get install doxygen --yes
+  - apt-get install gcovr --yes
+
+Build-Library:
+  stage: build
+  tags:
+    - dcp-aitf
+    - linux
+  script:
+    - echo Building the library
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cmake --build .
+    - echo Build complete
+
+    # Could maybe keep the library / the .so as an artifact of the build completion but I don't know
+
+Run-GoogleTests:
+  stage: test
+  script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make && make tests
+    - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
+    - cd tests && ctest
+  coverage: /All files[^|]*\|[^|]*\s+([\d\.]+)/
+  artifacts:
+    name: ${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}
+    expire_in: 2 days
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
+  tags:
+    - dcp-aitf
+    - linux
+
+pages:
+  stage: deploy
+  dependencies:
+    - Build-Library
+  script: 
+    - mkdir .public
+    - mkdir build
+    - cd build
+    - cmake ..
+    - cmake --build .
+    - cd ..
+    - cp -r ./build/docs/doc_doxygen/html/* .public
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+  tags:
+    - dcp-aitf
+    - linux
+
