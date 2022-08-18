@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <Python.h>
-#include "../../include/PyTuple.hpp"
+#include "include/PyTuple.hh"
 
 TEST(TupleTests, create_tuple) {
   Py_Initialize();

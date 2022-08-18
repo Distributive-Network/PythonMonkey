@@ -1,11 +1,16 @@
-#include <iostream>
+#include "include/explore.hh"
+
+#include "include/FuncType.hh"
+#include "include/IntType.hh"
+#include "include/pyTypeFactory.hh"
+#include "include/StrType.hh"
+#include "include/utilities.hh"
+
 #include <Python.h>
+
 #include <math.h>
-#include "../include/PyTypeFactory.hpp"
-#include "../include/IntType.hpp"
-#include "../include/StrType.hpp"
-#include "../include/FuncType.hpp"
-#include "include/utilities.hpp"
+
+#include <iostream>
 
 /**
  * @brief Factors an IntType
@@ -37,9 +42,9 @@ PyObject *factor_int(IntType *x) {
 static PyObject *output(PyObject *self, PyObject *args) {
   const int size = PyTuple_Size(args);
   for (int i = 0; i < size; i++) {
-    PyType *item = PyTypeFactory(PyTuple_GET_ITEM(args, i));
+    PyType *item = pyTypeFactory(PyTuple_GET_ITEM(args, i));
 
-    std::cout << *item;
+    std::cout << *item << std::endl;
   }
   Py_RETURN_NONE;
 }

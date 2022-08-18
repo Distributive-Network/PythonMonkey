@@ -38,9 +38,9 @@ else()
 endif()
 
 file(GLOB_RECURSE BIFROST_CPP_FORMAT_FILES CONFIGURE_DEPENDS
-  "${PROJECT_SOURCE_DIR}/include/*.hpp"
-  "${PROJECT_SOURCE_DIR}/src/*.cpp"
-  "${PROJECT_SOURCE_DIR}/tests/cpp/*.cpp"
+  "${PROJECT_SOURCE_DIR}/include/*.hh"
+  "${PROJECT_SOURCE_DIR}/src/*.cc"
+  "${PROJECT_SOURCE_DIR}/tests/cpp/*.cc"
 )
 
 set(BIFROST_CPP_FORMAT_COMMAND

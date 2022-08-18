@@ -1,6 +1,6 @@
 include_directories(${CMAKE_CURRENT_LIST_DIR})
-file (GLOB SOURCE_FILES "../src/*.cpp") # Find all C++ files in the src directory
-file (GLOB HEADER_FILES "../include/*.hpp") # Find all hpp files in the include directory
+file (GLOB SOURCE_FILES "../src/*.cc") # Find all C++ files in the src directory
+file (GLOB HEADER_FILES "../include/*.hh") # Find all header files in the include directory
 
 add_library(explore SHARED
     ${SOURCE_FILES}

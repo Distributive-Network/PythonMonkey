@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <Python.h>
-#include "../../include/IntType.hpp"
 #include <iostream>
 #include <string>
 
-#include "include/TypeEnum.hpp"
-#include "include/utilities.hpp"
+#include "include/IntType.hh"
+#include "include/TypeEnum.hh"
+#include "include/utilities.hh"
 
 
 class IntTypeTests : public ::testing::Test {
@@ -36,7 +36,7 @@ TEST_F(IntTypeTests, test_returns_correct_return_type_for_int) {
 
   TYPE expected = TYPE::INT;
 
-  EXPECT_EQ(x.getReturnType(), expected);
+  EXPECT_EQ(x.returnType, expected);
 }
 
 TEST_F(IntTypeTests, test_getPyObject_returns_correct_PyObject) {

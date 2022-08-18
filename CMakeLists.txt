@@ -27,10 +27,10 @@ function(bifrost_add_external BIFROST_EXTERNAL)
   set(BIFROST_EXTERNAL_FILES ${BIFROST_EXTERNAL_FILES} PARENT_SCOPE)
 endfunction()
 
-file (GLOB SOURCE_FILES "src/*.cpp") # Find all C++ files in the src directory
-file (GLOB HEADER_FILES "include/*.hpp") # Find all hpp files in the include directory
-file (GLOB PYTHON_FILES "python/*.cpp" "python/*.hpp") # Find all the python bindings in the python directory
-file (GLOB TEST_FILES "tests/cpp/*.cpp") # Find all the test files in the test directory
+file (GLOB SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory
+file (GLOB HEADER_FILES "include/*.hh") # Find all header files in the include directory
+file (GLOB PYTHON_FILES "python/*.cc" "python/*.hh") # Find all the python bindings in the python directory
+file (GLOB TEST_FILES "tests/cpp/*.cc") # Find all the test files in the test directory
 
 set(CMAKE_CXX_STANDARD 17) # Set the standard to C++17
 

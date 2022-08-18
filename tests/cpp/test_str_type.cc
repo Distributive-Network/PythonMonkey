@@ -3,9 +3,9 @@
 #include <iostream>
 #include <string>
 
-#include "include/TypeEnum.hpp"
-#include "include/StrType.hpp"
-#include "include/utilities.hpp"
+#include "include/TypeEnum.hh"
+#include "include/StrType.hh"
+#include "include/utilities.hh"
 
 class StrTypeTest : public ::testing::Test {
 protected:
@@ -33,7 +33,7 @@ TEST_F(StrTypeTest, test_returns_correct_return_type_for_str) {
 
   TYPE expected = TYPE::STRING;
 
-  EXPECT_EQ(str.getReturnType(), expected);
+  EXPECT_EQ(str.returnType, expected);
 }
 
 TEST_F(StrTypeTest, test_getPyObject_returns_correct_PyObject) {

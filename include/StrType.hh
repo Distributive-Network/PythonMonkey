@@ -1,23 +1,25 @@
-#ifndef STRPYTYPE_HPP
-#define STRPYTYPE_HPP
+#ifndef Bifrost_StrType_
+#define Bifrost_StrType_
 
-#include <string>
-#include "PyType.hpp"
-#include "TypeEnum.hpp"
+#include "PyType.hh"
+#include "TypeEnum.hh"
+
+#include <Python.h>
+
+#include <iostream>
 
 /**
  * @brief This class represents the 'string' type in Python, which is represented as a 'char*' in C++. It inherits from the PyType class
  */
 class StrType : public PyType {
-protected:
-const TYPE returnType = TYPE::STRING;
-virtual void print(std::ostream &os) const override;
-
 public:
 StrType(PyObject *object);
 StrType(char *string);
+const TYPE returnType = TYPE::STRING;
 const char *getValue() const;
-TYPE getReturnType() const;
+
+protected:
+virtual void print(std::ostream &os) const override;
 };
 
 #endif

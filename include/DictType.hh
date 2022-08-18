@@ -1,24 +1,22 @@
-#ifndef DICTTYPE_HPP
-#define DICTTYPE_HPP
+#ifndef Bifrost_DictType_
+#define Bifrost_DictType_
+
+#include "PyType.hh"
+#include "TypeEnum.hh"
 
 #include <Python.h>
-#include <optional>
 
-#include "PyType.hpp"
-#include "TypeEnum.hpp"
+#include <iostream>
+
 /**
  * @brief This class represents a dictionary in python. It derives from the PyType class
  *
  * @author Giovanni
  */
 class DictType : public PyType {
-protected:
-const TYPE returnType = TYPE::DICT;
-virtual void print(std::ostream &os) const override;
-
 public:
 DictType(PyObject *object);
-TYPE getReturnType() const;
+const TYPE returnType = TYPE::DICT;
 /**
  * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
  *
@@ -35,7 +33,10 @@ void set(PyType *key, PyType *value);
  */
 PyType *get(PyType *key) const;
 
-virtual void print_helper(std::ostream &os, int depth = 0) const;
+void print_helper(std::ostream &os, int depth = 0) const;
+
+protected:
+virtual void print(std::ostream &os) const override;
 };
 
 #endif

@@ -1,25 +1,25 @@
-#ifndef INTPYTYPE_HPP
-#define INTPYTYPE_HPP
+#ifndef Bifrost_IntType_
+#define Bifrost_IntType_
+
+#include "PyType.hh"
+#include "TypeEnum.hh"
 
 #include <Python.h>
-#include <string>
-#include "PyType.hpp"
-#include "TypeEnum.hpp"
+
+#include <iostream>
 
 /**
  * @brief This class represents the 'int' type in Python, which is represented as a 'long' in C++. It inherits from the PyType class
  */
 class IntType : public PyType {
-protected:
-const TYPE returnType = TYPE::INT;
-virtual void print(std::ostream &os) const override;
-
 public:
 IntType(PyObject *object);
 IntType(long n);
+const TYPE returnType = TYPE::INT;
 long getValue() const;
-TYPE getReturnType() const;
 
+protected:
+virtual void print(std::ostream &os) const override;
 };
 
 #endif

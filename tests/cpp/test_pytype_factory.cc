@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "include/IntType.hpp"
-#include "include/StrType.hpp"
-#include "include/DictType.hpp"
-#include "include/PyTypeFactory.hpp"
-#include "include/utilities.hpp"
+#include "include/IntType.hh"
+#include "include/StrType.hh"
+#include "include/DictType.hh"
+#include "include/pyTypeFactory.hh"
+#include "include/utilities.hh"
 
 class PyTypeFactoryTests : public ::testing::Test {
 protected:
@@ -27,20 +27,20 @@ virtual void TearDown() {
 
 TEST_F(PyTypeFactoryTests, test_makes_int_type_correctly) {
 
-  PyType *obj = PyTypeFactory(i_type);
+  PyType *obj = pyTypeFactory(i_type);
 
   EXPECT_TRUE(instanceof<IntType>(&*obj));
 
 }
 
 TEST_F(PyTypeFactoryTests, test_makes_str_type_correctly) {
-  PyType *obj = PyTypeFactory(s_type);
+  PyType *obj = pyTypeFactory(s_type);
 
   EXPECT_TRUE(instanceof<StrType>(&*obj));
 }
 
 TEST_F(PyTypeFactoryTests, test_makes_dict_type_correctly) {
-  PyType *obj = PyTypeFactory(dict_type);
+  PyType *obj = pyTypeFactory(dict_type);
 
   EXPECT_TRUE(instanceof<DictType>(&*obj));
 }
