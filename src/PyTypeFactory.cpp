@@ -4,8 +4,8 @@
 #include "../include/StrType.hpp"
 #include "../include/FuncType.hpp"
 
-PyType* PyTypeFactory(PyObject* object) {
-  PyType* pyType;
+PyType *PyTypeFactory(PyObject *object) {
+  PyType *pyType;
 
   if (PyLong_Check(object))
     pyType = new IntType(object);

@@ -1,14 +1,16 @@
 import explore
 
+
 def test_passes():
-    assert True == True
+    assert True
+
 
 def test_output_outputs_correct_integers(capfd):
-    explore.output(1,65,72)
+    explore.output(1, 65, 72)
 
-    
     out, err = capfd.readouterr()
     assert out == "16572"
+
 
 def test_output_outputs_correct_strings(capfd):
 
@@ -16,6 +18,7 @@ def test_output_outputs_correct_strings(capfd):
 
     out, err = capfd.readouterr()
     assert out == "abcdnewline\ntabs\t"
+
 
 def test_output_outputs_correct_mixture(capfd):
 
