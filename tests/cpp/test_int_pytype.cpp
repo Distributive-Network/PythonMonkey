@@ -57,5 +57,3 @@ TEST_F(IntTypeTests, test_cout_type_correctly) {
   EXPECT_EQ(expected, output);
 
 }
-
-

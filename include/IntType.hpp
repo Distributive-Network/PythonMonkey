@@ -1,6 +1,7 @@
 #ifndef INTPYTYPE_HPP
 #define INTPYTYPE_HPP
 
+#include <Python.h>
 #include <string>
 #include "PyType.hpp"
 #include "TypeEnum.hpp"
