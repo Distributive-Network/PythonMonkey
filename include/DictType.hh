@@ -8,17 +8,12 @@
 
 #include <iostream>
 
-
 /**
  * @brief This class represents a dictionary in python. It derives from the PyType class
  *
  * @author Giovanni
  */
 class DictType : public PyType {
-protected:
-const TYPE returnType = TYPE::DICT;
-virtual void print(std::ostream &os) const override;
-
 public:
 DictType(PyObject *object);
 /**
@@ -37,7 +32,11 @@ void set(PyType *key, PyType *value);
  */
 PyType *get(PyType *key) const;
 
-virtual void print_helper(std::ostream &os, int depth = 0) const;
+void print_helper(std::ostream &os, int depth = 0) const;
+
+protected:
+const TYPE returnType = TYPE::DICT;
+virtual void print(std::ostream &os) const override;
 };
 
 #endif

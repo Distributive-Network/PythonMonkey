@@ -11,15 +11,18 @@
 
 DictType::DictType(PyObject *object) : PyType(object) {}
 
-void DictType::print(std::ostream &os) const {
-  print_helper(os);
+void DictType::set(PyType *key, PyType *value) {
+  PyDict_SetItem(this->pyObject, key->getPyObject(), value->getPyObject());
+}
+
+PyType *DictType::get(PyType *key) const {
+  PyObject *retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
+  return retrieved_object != NULL ? PyTypeFactory(retrieved_object) : nullptr;
 }
 
 void DictType::print_helper(std::ostream &os, int depth) const {
   PyObject *keys = PyDict_Keys(this->pyObject);
-
   const Py_ssize_t keys_size = PyList_Size(keys);
-
 
   os << "{\n  ";
   for (int i = 0; i < keys_size; i++) {
@@ -40,13 +43,6 @@ void DictType::print_helper(std::ostream &os, int depth) const {
   os << std::endl << std::string(depth * 2, ' ') << "}";
 }
 
-void DictType::set(PyType *key, PyType *value) {
-  PyDict_SetItem(this->pyObject, key->getPyObject(), value->getPyObject());
+void DictType::print(std::ostream &os) const {
+  print_helper(os);
 }
-
-PyType *DictType::get(PyType *key) const {
-  PyObject *retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
-
-  return retrieved_object != NULL ? PyTypeFactory(retrieved_object) : nullptr;
-}
-
