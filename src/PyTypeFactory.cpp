@@ -5,8 +5,8 @@
 #include "include/FuncType.hpp"
 #include "include/DictType.hpp"
 
-PyType* PyTypeFactory(PyObject* object) {
-  PyType* pyType;
+PyType *PyTypeFactory(PyObject *object) {
+  PyType *pyType;
 
   if (PyLong_Check(object))
     pyType = new IntType(object);

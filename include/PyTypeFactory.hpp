@@ -8,8 +8,8 @@
 
     @author Caleb Aikens
     @date August 2022
-    
+
     @param object - Pointer to the PyObject who's type and value we wish to encapsulate
-    */
-PyType* PyTypeFactory(PyObject* object);
+ */
+PyType *PyTypeFactory(PyObject *object);
 #endif

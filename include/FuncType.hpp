@@ -8,14 +8,14 @@
 /**
  * @brief This class represents the 'function' type in Python. It inherits from the PyType class
  */
-class FuncType : public PyType {    
-    protected:
-        const TYPE returnType = TYPE::FUNC;
-        virtual void print(std::ostream& os) const override;
+class FuncType : public PyType {
+protected:
+const TYPE returnType = TYPE::FUNC;
+virtual void print(std::ostream &os) const override;
 
-    public:
-        FuncType(PyObject* object);
-        const char* getValue() const;
+public:
+FuncType(PyObject *object);
+const char *getValue() const;
 };
 
 #endif
