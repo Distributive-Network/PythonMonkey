@@ -57,16 +57,3 @@ TEST_F(IntTypeTests, test_cout_type_correctly) {
   EXPECT_EQ(expected, output);
 
 }
-
-TEST_F(IntTypeTests, test_factor_correctly) {
-    IntType my_int = IntType(i_type);
-
-    PyObject* expected = Py_BuildValue("[i, i, i, i]", 1, 2, 5, 10);
-    PyObject* output = my_int.factor();
-
-    EXPECT_EQ(PyList_GetItem(expected, 0), PyList_GetItem(output, 0));
-    EXPECT_EQ(PyList_GetItem(expected, 1), PyList_GetItem(output, 1));
-    EXPECT_EQ(PyList_GetItem(expected, 2), PyList_GetItem(output, 2));
-    EXPECT_EQ(PyList_GetItem(expected, 3), PyList_GetItem(output, 3));
-}
-
