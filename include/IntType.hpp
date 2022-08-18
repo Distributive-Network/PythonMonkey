@@ -20,6 +20,11 @@ class IntType : public PyType {
         long getValue() const;
         TYPE getReturnType() const;
 
+        /**
+         * @brief Factors an IntType
+         * 
+         * @return PyObject* which is not referenced by Python garbage collector
+         */
         PyObject* factor() const;
 
 };

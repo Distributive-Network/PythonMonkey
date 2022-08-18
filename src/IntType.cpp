@@ -20,11 +20,6 @@ TYPE IntType::getReturnType() const {
     return this->returnType;
 }
 
-/**
- * @brief Factors an IntType
- * 
- * @return PyObject* which is not referenced by Python garbage collector
- */
 PyObject* IntType::factor() const {
     PyObject* list = PyList_New(0);
     Py_XINCREF(list);
