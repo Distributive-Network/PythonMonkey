@@ -14,10 +14,10 @@
 class FuncType : public PyType {
 public:
 FuncType(PyObject *object);
+const TYPE returnType = TYPE::FUNC;
 const char *getValue() const;
 
 protected:
-const TYPE returnType = TYPE::FUNC;
 virtual void print(std::ostream &os) const override;
 };
 

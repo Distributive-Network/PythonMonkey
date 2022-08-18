@@ -15,10 +15,10 @@ class StrType : public PyType {
 public:
 StrType(PyObject *object);
 StrType(char *string);
+const TYPE returnType = TYPE::STRING;
 const char *getValue() const;
 
 protected:
-const TYPE returnType = TYPE::STRING;
 virtual void print(std::ostream &os) const override;
 };
 

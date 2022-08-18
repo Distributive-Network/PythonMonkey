@@ -15,10 +15,10 @@ class IntType : public PyType {
 public:
 IntType(PyObject *object);
 IntType(long n);
+const TYPE returnType = TYPE::INT;
 long getValue() const;
 
 protected:
-const TYPE returnType = TYPE::INT;
 virtual void print(std::ostream &os) const override;
 };
 

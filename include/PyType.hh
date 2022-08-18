@@ -17,12 +17,11 @@ friend std::ostream &operator <<(std::ostream &str, const PyType &data) {
   data.print(str);
   return str;
 }
+const TYPE returnType = TYPE::DEFAULT;
 PyObject *getPyObject();
-TYPE getReturnType();
 ~PyType();
 
 protected:
-const TYPE returnType = TYPE::DEFAULT;
 virtual void print(std::ostream &os) const = 0;
 PyObject *pyObject;
 };

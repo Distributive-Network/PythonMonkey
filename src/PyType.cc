@@ -13,10 +13,6 @@ PyObject *PyType::getPyObject() {
   return pyObject;
 }
 
-TYPE PyType::getReturnType() {
-  return returnType;
-}
-
 PyType::~PyType() {
   Py_XDECREF(pyObject);
 }

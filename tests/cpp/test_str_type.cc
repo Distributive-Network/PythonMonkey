@@ -33,7 +33,7 @@ TEST_F(StrTypeTest, test_returns_correct_return_type_for_str) {
 
   TYPE expected = TYPE::STRING;
 
-  EXPECT_EQ(str.getReturnType(), expected);
+  EXPECT_EQ(str.returnType, expected);
 }
 
 TEST_F(StrTypeTest, test_getPyObject_returns_correct_PyObject) {

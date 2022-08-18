@@ -36,7 +36,7 @@ TEST_F(IntTypeTests, test_returns_correct_return_type_for_int) {
 
   TYPE expected = TYPE::INT;
 
-  EXPECT_EQ(x.getReturnType(), expected);
+  EXPECT_EQ(x.returnType, expected);
 }
 
 TEST_F(IntTypeTests, test_getPyObject_returns_correct_PyObject) {

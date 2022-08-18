@@ -16,6 +16,7 @@
 class DictType : public PyType {
 public:
 DictType(PyObject *object);
+const TYPE returnType = TYPE::DICT;
 /**
  * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
  *
@@ -35,7 +36,6 @@ PyType *get(PyType *key) const;
 void print_helper(std::ostream &os, int depth = 0) const;
 
 protected:
-const TYPE returnType = TYPE::DICT;
 virtual void print(std::ostream &os) const override;
 };
 
