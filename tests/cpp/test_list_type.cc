@@ -65,4 +65,21 @@ TEST_F(ListTypeTests, test_gets_existing_values_appropriately) {
   EXPECT_EQ(retrieved->getPyObject(), expected);
 }
 
-TEST_F(ListTypeTests, test_get_returns_null_when_getting_non_existent_value) {}
+TEST_F(ListTypeTests, test_append_works_properly) {
+
+  PyObject *new_list = PyList_New(0);
+
+  ListType list = ListType(new_list);
+
+  PyObject *expected = Py_BuildValue("i", 10);
+  Py_XINCREF(expected);
+
+  IntType *ins = new IntType(expected);
+
+  list.append(ins);
+
+  PyObject *retrieved = PyList_GetItem(list.getPyObject(), 0);
+
+  EXPECT_EQ(retrieved, expected);
+  Py_XDECREF(expected);
+}

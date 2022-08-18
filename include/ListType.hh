@@ -34,6 +34,13 @@ void set(int index, PyType *value);
  */
 PyType *get(int index) const;
 
+/**
+ * @brief Appends the given value to the list
+ *
+ * @param value The item to be appended
+ */
+void append(PyType *value);
+
 protected:
 virtual void print(std::ostream &os) const override;
 };
