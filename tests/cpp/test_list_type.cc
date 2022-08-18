@@ -16,7 +16,7 @@ protected:
 PyObject *list_type;
 virtual void SetUp() {
   Py_Initialize();
-  list_type = PyList_New(0);
+  list_type = PyList_New(1);
 
   Py_XINCREF(list_type);
 
@@ -40,11 +40,29 @@ TEST_F(ListTypeTests, test_sets_values_appropriately) {
 
   ListType list = ListType(list_type);
 
+  PyObject *expected = Py_BuildValue("i", 10);
+
+  IntType *insert = new IntType(expected);
+
+  list.set(0, insert);
+
+  PyObject *retrieved = PyList_GetItem(list.getPyObject(), 0);
+
+  EXPECT_EQ(retrieved, expected);
+
 }
 
 TEST_F(ListTypeTests, test_gets_existing_values_appropriately) {
 
   ListType list = ListType(list_type);
+
+  PyObject *expected = Py_BuildValue("i", 10);
+
+  PyList_SetItem(list.getPyObject(), 0, expected);
+
+  PyType *retrieved = list.get(0);
+
+  EXPECT_EQ(retrieved->getPyObject(), expected);
 }
 
 TEST_F(ListTypeTests, test_get_returns_null_when_getting_non_existent_value) {}

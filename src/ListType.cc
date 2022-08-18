@@ -12,8 +12,12 @@
 ListType::ListType(PyObject *object) : PyType(object) {}
 
 PyType *ListType::get(int index) const {
-  return nullptr;
+
+  return pyTypeFactory(PyList_GetItem(this->pyObject, index));
 }
-void ListType::set(int index, PyType *object) {}
+
+void ListType::set(int index, PyType *object) {
+  PyList_SetItem(this->pyObject, index, object->getPyObject());
+}
 
 void ListType::print(std::ostream &os) const {}
