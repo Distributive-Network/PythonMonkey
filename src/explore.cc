@@ -2,6 +2,7 @@
 
 #include "include/FuncType.hh"
 #include "include/IntType.hh"
+#include "include/ListType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/utilities.hh"
@@ -18,24 +19,22 @@
  * @param x The IntType representation of the integer you want to factor
  * @return PyObject* a list which is not referenced by the python garbage collector
  */
-PyObject *factor_int(IntType *x) {
-  PyObject *list = PyList_New(0);
+ListType *factor_int(IntType *x) {
+  ListType *list = new ListType();
   int n = x->getValue();
-  Py_XINCREF(list);
 
   for (int i = 1; i < sqrt(n); i++) {
     if (n % i == 0) {
-      PyObject *f_1 = Py_BuildValue("i", i);
-      PyObject *f_2 = Py_BuildValue("i", n / i);
+      IntType *a = new IntType(i);
+      IntType *b = new IntType(n/i);
 
-      PyList_Append(list, f_1);
-      PyList_Append(list, f_2);
+      list->append(a);
+      list->append(b);
     }
   }
 
-  PyList_Sort(list);
+  list->sort();
 
-  Py_XDECREF(list);
   return list;
 }
 
@@ -52,7 +51,7 @@ static PyObject *output(PyObject *self, PyObject *args) {
 static PyObject *factor(PyObject *self, PyObject *args) {
   IntType *input = new IntType(PyTuple_GetItem(args, 0));
 
-  return factor_int(input);
+  return factor_int(input)->getPyObject();
 }
 
 static PyMethodDef ExploreMethods[] = {
