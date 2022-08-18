@@ -15,6 +15,7 @@
  */
 class ListType : public PyType {
 public:
+ListType();
 ListType(PyObject *object);
 const TYPE returnType = TYPE::LIST;
 /**
@@ -50,11 +51,15 @@ void append(PyType *value);
 void print_helper(std::ostream &os, int depth = 0) const;
 
 /**
- * @brief Gets length of the list
+ * @brief
+ *
+ *
  *
  * @returns int length of the list
  */
 int len() const;
+
+void sort();
 
 protected:
 virtual void print(std::ostream &os) const override;

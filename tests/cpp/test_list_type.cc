@@ -106,3 +106,18 @@ TEST_F(ListTypeTests, test_prints_basic_list_correctly) {
   EXPECT_EQ(expected, output);
 
 }
+
+TEST_F(ListTypeTests, test_sorts_list) {
+  PyObject *test_list = Py_BuildValue("[i,i,i]", 12, 11, 10);
+
+  ListType my_list = ListType(test_list);
+  my_list.sort();
+
+  std::string expected = "[\n  10,\n  11,\n  12\n]";
+  testing::internal::CaptureStdout();
+  std::cout << my_list;
+  std::string output = testing::internal::GetCapturedStdout();
+
+  EXPECT_EQ(expected, output);
+
+}

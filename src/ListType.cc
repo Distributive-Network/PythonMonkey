@@ -9,6 +9,7 @@
 #include <string>
 #include <iostream>
 
+ListType::ListType() : PyType(PyList_New(0)) {}
 ListType::ListType(PyObject *object) : PyType(object) {}
 
 PyType *ListType::get(int index) const {
@@ -25,6 +26,10 @@ void ListType::append(PyType *value) {
 
 int ListType::len() const {
   return PyList_Size(this->pyObject);
+}
+
+void ListType::sort() {
+  PyList_Sort(this->pyObject);
 }
 
 void ListType::print_helper(std::ostream &os, int depth) const {

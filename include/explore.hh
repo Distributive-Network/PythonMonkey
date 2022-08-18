@@ -2,6 +2,7 @@
 #define Bifrost_Explore_
 
 #include "IntType.hh"
+#include "ListType.hh"
 
 #include <Python.h>
 
@@ -16,6 +17,6 @@
 static PyObject *output(PyObject *self, PyObject *args);
 static PyObject *factor(PyObject *self, PyObject *args);
 
-PyObject *factor_int(IntType *x);
+ListType *factor_int(IntType *x);
 
 #endif
