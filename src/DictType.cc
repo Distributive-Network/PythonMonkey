@@ -1,10 +1,10 @@
-#include <include/DictType.hpp>
+#include "include/DictType.hh"
 #include <Python.h>
 #include <optional>
 
-#include "include/TypeEnum.hpp"
-#include "include/PyTypeFactory.hpp"
-#include "include/utilities.hpp"
+#include "include/TypeEnum.hh"
+#include "include/PyTypeFactory.hh"
+#include "include/utilities.hh"
 
 DictType::DictType(PyObject *object) : PyType(object) {}
 

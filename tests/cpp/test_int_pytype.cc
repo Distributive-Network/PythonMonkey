@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <Python.h>
-#include "../../include/IntType.hpp"
 #include <iostream>
 #include <string>
 
-#include "include/TypeEnum.hpp"
-#include "include/utilities.hpp"
+#include "include/IntType.hh"
+#include "include/TypeEnum.hh"
+#include "include/utilities.hh"
 
 
 class IntTypeTests : public ::testing::Test {

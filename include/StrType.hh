@@ -2,8 +2,8 @@
 #define Bifrost_StrType_
 
 #include <string>
-#include "PyType.hpp"
-#include "TypeEnum.hpp"
+#include "PyType.hh"
+#include "TypeEnum.hh"
 
 /**
  * @brief This class represents the 'string' type in Python, which is represented as a 'char*' in C++. It inherits from the PyType class

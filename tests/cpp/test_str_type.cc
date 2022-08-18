@@ -3,9 +3,9 @@
 #include <iostream>
 #include <string>
 
-#include "include/TypeEnum.hpp"
-#include "include/StrType.hpp"
-#include "include/utilities.hpp"
+#include "include/TypeEnum.hh"
+#include "include/StrType.hh"
+#include "include/utilities.hh"
 
 class StrTypeTest : public ::testing::Test {
 protected:

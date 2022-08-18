@@ -1,9 +1,9 @@
 #include <Python.h>
-#include "../include/PyTypeFactory.hpp"
-#include "include/IntType.hpp"
-#include "include/StrType.hpp"
-#include "include/FuncType.hpp"
-#include "include/DictType.hpp"
+#include "include/PyTypeFactory.hh"
+#include "include/IntType.hh"
+#include "include/StrType.hh"
+#include "include/FuncType.hh"
+#include "include/DictType.hh"
 
 PyType *PyTypeFactory(PyObject *object) {
   PyType *pyType;

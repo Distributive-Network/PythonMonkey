@@ -2,7 +2,7 @@
 #define Bifrost_PyTypeFactory_
 
 #include <Python.h>
-#include "PyType.hpp"
+#include "PyType.hh"
 
 /** @brief Function that takes an arbitrary PyObject* and returns a corresponding PyType* object
 

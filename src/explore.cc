@@ -1,11 +1,11 @@
 #include <iostream>
 #include <Python.h>
 #include <math.h>
-#include "../include/PyTypeFactory.hpp"
-#include "../include/IntType.hpp"
-#include "../include/StrType.hpp"
-#include "../include/FuncType.hpp"
-#include "include/utilities.hpp"
+#include "include/PyTypeFactory.hh"
+#include "include/IntType.hh"
+#include "include/StrType.hh"
+#include "include/FuncType.hh"
+#include "include/utilities.hh"
 
 /**
  * @brief Factors an IntType

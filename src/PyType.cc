@@ -1,7 +1,7 @@
 #include <Python.h>
 #include <string>
-#include "include/PyType.hpp"
-#include "include/TypeEnum.hpp"
+#include "include/PyType.hh"
+#include "include/TypeEnum.hh"
 
 PyType::PyType(PyObject *object) {
   Py_XINCREF(object);

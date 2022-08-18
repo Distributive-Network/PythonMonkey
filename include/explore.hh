@@ -3,7 +3,7 @@
 
 #include <Python.h>
 
-#include "IntType.hpp"
+#include "IntType.hh"
 
 /** @brief Function that takes an arbitrary number of arguments from python and outputs their C/C++ values.
 

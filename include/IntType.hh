@@ -3,8 +3,8 @@
 
 #include <Python.h>
 #include <string>
-#include "PyType.hpp"
-#include "TypeEnum.hpp"
+#include "PyType.hh"
+#include "TypeEnum.hh"
 
 /**
  * @brief This class represents the 'int' type in Python, which is represented as a 'long' in C++. It inherits from the PyType class

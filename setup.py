@@ -8,7 +8,7 @@ setup(
     ext_modules=[
         Extension(
             'greet',
-            sources=['hello.cpp'],
+            sources=['hello.cc'],
             py_limited_api=True)
     ],
 )

@@ -3,13 +3,13 @@
 #include <iostream>
 #include <string>
 
-#include "include/TypeEnum.hpp"
-#include "include/PyType.hpp"
-#include "include/DictType.hpp"
-#include "include/StrType.hpp"
-#include "include/IntType.hpp"
+#include "include/TypeEnum.hh"
+#include "include/PyType.hh"
+#include "include/DictType.hh"
+#include "include/StrType.hh"
+#include "include/IntType.hh"
 
-#include "include/utilities.hpp"
+#include "include/utilities.hh"
 
 class DictTypeTests : public ::testing::Test {
 protected:

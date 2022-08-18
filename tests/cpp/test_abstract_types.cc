@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <Python.h>
-#include "../../include/PyType.hpp"
+#include "include/PyType.hh"
 
 class AbstractPyTypeTests : public ::testing::Test {
 protected:

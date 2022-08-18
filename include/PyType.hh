@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 
-#include "TypeEnum.hpp"
+#include "TypeEnum.hh"
 
 /**
  * @brief Abstract Class that serves as a base for the different type relations in C++/Python

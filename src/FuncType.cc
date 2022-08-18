@@ -1,4 +1,4 @@
-#include "../include/FuncType.hpp"
+#include "include/FuncType.hh"
 #include <Python.h>
 
 FuncType::FuncType(PyObject *object) : PyType(object) {}

@@ -1,6 +1,6 @@
 #include <string>
-#include "include/IntType.hpp"
-#include "include/TypeEnum.hpp"
+#include "include/IntType.hh"
+#include "include/TypeEnum.hh"
 
 IntType::IntType(PyObject *object) : PyType(object) {}
 

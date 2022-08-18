@@ -1,4 +1,4 @@
-#include "../include/StrType.hpp"
+#include "../include/StrType.hh"
 
 StrType::StrType(PyObject *object) : PyType(object) {}
 
