@@ -1,7 +1,7 @@
 #include "include/DictType.hh"
 
 #include "include/PyType.hh"
-#include "include/PyTypeFactory.hh"
+#include "include/pyTypeFactory.hh"
 #include "include/utilities.hh"
 
 #include <Python.h>
@@ -17,7 +17,7 @@ void DictType::set(PyType *key, PyType *value) {
 
 PyType *DictType::get(PyType *key) const {
   PyObject *retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
-  return retrieved_object != NULL ? PyTypeFactory(retrieved_object) : nullptr;
+  return retrieved_object != NULL ? pyTypeFactory(retrieved_object) : nullptr;
 }
 
 void DictType::print_helper(std::ostream &os, int depth) const {
@@ -26,7 +26,7 @@ void DictType::print_helper(std::ostream &os, int depth) const {
 
   os << "{\n  ";
   for (int i = 0; i < keys_size; i++) {
-    PyType *key = PyTypeFactory(PyList_GetItem(keys, i));
+    PyType *key = pyTypeFactory(PyList_GetItem(keys, i));
     PyType *value = this->get(key);
 
     if (instanceof<DictType>(value)) {

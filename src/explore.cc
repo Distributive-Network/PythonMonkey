@@ -2,7 +2,7 @@
 
 #include "include/FuncType.hh"
 #include "include/IntType.hh"
-#include "include/PyTypeFactory.hh"
+#include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/utilities.hh"
 
@@ -42,7 +42,7 @@ PyObject *factor_int(IntType *x) {
 static PyObject *output(PyObject *self, PyObject *args) {
   const int size = PyTuple_Size(args);
   for (int i = 0; i < size; i++) {
-    PyType *item = PyTypeFactory(PyTuple_GET_ITEM(args, i));
+    PyType *item = pyTypeFactory(PyTuple_GET_ITEM(args, i));
 
     std::cout << *item << std::endl;
   }

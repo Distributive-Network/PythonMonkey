@@ -1,4 +1,4 @@
-#include "include/PyTypeFactory.hh"
+#include "include/pyTypeFactory.hh"
 
 #include "include/DictType.hh"
 #include "include/FuncType.hh"
@@ -8,7 +8,7 @@
 
 #include <Python.h>
 
-PyType *PyTypeFactory(PyObject *object) {
+PyType *pyTypeFactory(PyObject *object) {
   PyType *pyType;
 
   if (PyLong_Check(object))

@@ -12,6 +12,6 @@
 
     @param object - Pointer to the PyObject who's type and value we wish to encapsulate
  */
-PyType *PyTypeFactory(PyObject *object);
+PyType *pyTypeFactory(PyObject *object);
 
 #endif
