@@ -1,5 +1,5 @@
-#ifndef STRPYTYPE_HPP
-#define STRPYTYPE_HPP
+#ifndef Bifrost_StrType_
+#define Bifrost_StrType_
 
 #include <string>
 #include "PyType.hpp"

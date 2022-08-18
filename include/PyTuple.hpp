@@ -1,5 +1,5 @@
-#ifndef PYTUPLE_HPP
-#define PYTUPLE_HPP
+#ifndef Bifrost_PyTuple_
+#define Bifrost_PyTuple_
 
 #include <Python.h>
 

@@ -1,5 +1,5 @@
-#ifndef PYTYPE_HPP
-#define PYTYPE_HPP
+#ifndef Bifrost_PyType_
+#define Bifrost_PyType_
 
 #include <Python.h>
 #include <string>

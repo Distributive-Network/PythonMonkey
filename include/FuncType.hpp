@@ -1,5 +1,5 @@
-#ifndef FUNCPYTYPE_HPP
-#define FUNCPYTYPE_HPP
+#ifndef Bifrost_FuncType_
+#define Bifrost_FuncType_
 
 #include <string>
 #include "PyType.hpp"

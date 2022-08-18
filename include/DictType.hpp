@@ -1,5 +1,5 @@
-#ifndef DICTTYPE_HPP
-#define DICTTYPE_HPP
+#ifndef Bifrost_DictType_
+#define Bifrost_DictType_
 
 #include <Python.h>
 #include <optional>

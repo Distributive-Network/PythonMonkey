@@ -1,5 +1,5 @@
-#ifndef TYPE_ENUM_HPP
-#define TYPE_ENUM_HPP
+#ifndef Bifrost_TypeEnum_
+#define Bifrost_TypeEnum_
 
 enum class TYPE {
   DEFAULT,

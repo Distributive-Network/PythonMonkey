@@ -1,5 +1,5 @@
-#ifndef EXPLORE_H
-#define EXPLORE_H
+#ifndef Bifrost_Explore_
+#define Bifrost_Explore_
 
 #include <Python.h>
 

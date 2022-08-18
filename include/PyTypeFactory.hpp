@@ -1,5 +1,5 @@
-#ifndef PYTYPEFACTORY_HPP
-#define PYTYPEFACTORY_HPP
+#ifndef Bifrost_PyTypeFactory_
+#define Bifrost_PyTypeFactory_
 
 #include <Python.h>
 #include "PyType.hpp"
