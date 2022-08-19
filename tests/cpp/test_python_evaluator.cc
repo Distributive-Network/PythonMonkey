@@ -1,3 +1,13 @@
+/**
+ * @file test_python_evaluator.cc
+ * @author Giovanni Tedesco
+ * @brief Tests for the Python Evaluator Class
+ * @version 0.1
+ * @date 2022-08-19
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #include "include/PyEvaluator.hh"
 #include "include/TupleType.hh"
 
