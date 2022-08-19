@@ -8,6 +8,12 @@
 
 #include <string>
 
+/**
+ * @brief A class that is used for evaluating python programs inside of C++ using the embedding api
+ * provided by python.
+ * 
+ * @author Giovanni Tedesco
+ */
 class PyEvaluator {
 private:
 PyObject *py_module; // The module that our custom functions will be contained in.
