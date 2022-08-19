@@ -14,6 +14,9 @@
 #include <gtest/gtest.h>
 #include <Python.h>
 
+#include <string.h>
+#include <iostream>
+
 class PyEvaluatorTests : public ::testing::Test {
 protected:
 PyObject *i_type;
