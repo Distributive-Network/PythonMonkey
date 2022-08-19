@@ -1,8 +1,8 @@
 #ifndef Bifrost_PyEvaluator_
 #define Bifrost_PyEvaluator_
 
-#include "include/TupleType.hh"
 #include "include/DictType.hh"
+#include "include/TupleType.hh"
 
 #include <Python.h>
 
