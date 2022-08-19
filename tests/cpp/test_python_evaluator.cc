@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 #include <Python.h>
 
-#include <string.h>
+#include <string>
 #include <iostream>
 
 class PyEvaluatorTests : public ::testing::Test {
