@@ -13,6 +13,7 @@
 
 #include "include/DictType.hh"
 #include "include/TupleType.hh"
+#include "include/PyType.hh"
 
 #include <Python.h>
 

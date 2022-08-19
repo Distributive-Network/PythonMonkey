@@ -12,6 +12,7 @@
 #define Bifrost_TupleType_
 
 #include "include/PyType.hh"
+#include "include/TypeEnum.hh"
 
 #include <Python.h>
 
