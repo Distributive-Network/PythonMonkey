@@ -7,7 +7,8 @@ enum class TYPE {
   STRING,
   FUNC,
   DICT,
-  LIST
+  LIST,
+  TUPLE
 };
 
 #endif

@@ -1,5 +1,5 @@
 #include "include/PyEvaluator.hh"
-#include "include/PyTuple.hh"
+#include "include/TupleType.hh"
 
 #include <gtest/gtest.h>
 #include <Python.h>
@@ -26,8 +26,8 @@ TEST_F(PyEvaluatorTests, test_evaluates_simple_string_correctly) {
 
 TEST_F(PyEvaluatorTests, test_can_evaluate_and_run_a_function) {
   PyEvaluator p;
-  PyObject* arg_tuple = Py_BuildValue("(i)", 10);
-  PyTuple* args = new PyTuple(arg_tuple);
-  
-  p.eval("def f(x)\n\treturn x * 5", args);
+  PyObject *arg_tuple = Py_BuildValue("(i)", 10);
+  TupleType *args = new TupleType(arg_tuple);
+
+  p.eval("def f(x)\n\treturn x * 5", "f", args);
 }
