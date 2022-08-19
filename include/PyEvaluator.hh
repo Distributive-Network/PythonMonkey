@@ -48,9 +48,9 @@ void eval(const std::string &input);
 PyType *eval(const std::string &input, const std::string &func_name, TupleType *args);
 
 private:
-PyObject *py_module; /** The module that our custom functions will be contained in. */
-DictType *py_local; /** python dictionary that stores local context (i think?) */
-DictType *py_global; /** python dictionary that stores global context */
+PyObject *py_module; /**< The module that our custom functions will be contained in. */
+DictType *py_local; /**< python dictionary that stores local context (i think?) */
+DictType *py_global; /**< python dictionary that stores global context */
 
 
 };
