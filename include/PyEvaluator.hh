@@ -4,9 +4,9 @@
  * @brief Class definition and method prototypes for a python code evaluator.
  * @version 0.1
  * @date 2022-08-19
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 #ifndef Bifrost_PyEvaluator_
 #define Bifrost_PyEvaluator_
@@ -22,7 +22,7 @@
 /**
  * @brief A class that is used for evaluating python programs inside of C++ using the embedding api
  * provided by python.
- * 
+ *
  * @author Giovanni Tedesco
  */
 class PyEvaluator {

@@ -4,9 +4,9 @@
  * @brief Class and function prototypes for a class the represents the python tuple type in C++
  * @version 0.1
  * @date 2022-08-19
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 #ifndef Bifrost_TupleType_
 #define Bifrost_TupleType_
@@ -20,7 +20,7 @@
 
 /**
  * @brief A class to represent the tuple type in python
- * 
+ *
  */
 class TupleType : public PyType {
 
@@ -56,7 +56,7 @@ void print_helper(std::ostream &os, int depth = 0) const;
 protected:
 /**
  * @brief Override to the print method defined in PyType to enable us to print this class easily
- * 
+ *
  * @param os output stream to print to
  */
 virtual void print(std::ostream &os) const override;

@@ -19,10 +19,10 @@ static PyObject *factor(PyObject *self, PyObject *args);
 
 /**
  * @brief Function that factors an integer in python
- * 
+ *
  * @param self - Pointer to python environment
  * @param args  - The PyTuple of arugments that are passed into the function
- * @return PyObject* 
+ * @return PyObject*
  */
 static PyObject *pfactor(PyObject *self, PyObject *args);
 
