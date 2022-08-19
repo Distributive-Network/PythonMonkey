@@ -6,6 +6,7 @@
 #include "include/ListType.hh"
 #include "include/PyType.hh"
 #include "include/StrType.hh"
+#include "include/TupleType.hh"
 
 #include <Python.h>
 
@@ -26,6 +27,8 @@ PyType *pyTypeFactory(PyObject *object) {
   }
   else if (PyList_Check(object)) {
     pyType = new ListType(object);
+  } else if (PyList_Check(object)) {
+    pyType = new TupleType(object);
   }
   else {
     return nullptr;

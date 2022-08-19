@@ -3,8 +3,10 @@
 #include "include/FuncType.hh"
 #include "include/IntType.hh"
 #include "include/ListType.hh"
+#include "include/PyEvaluator.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
+#include "include/TupleType.hh"
 #include "include/utilities.hh"
 
 #include <Python.h>
@@ -54,9 +56,20 @@ static PyObject *factor(PyObject *self, PyObject *args) {
   return factor_int(input)->getPyObject();
 }
 
+static PyObject *pfactor(PyObject *self, PyObject *args) {
+  PyEvaluator *p = new PyEvaluator();
+  TupleType *arguments = new TupleType(args);
+
+
+  p->eval("import math\ndef f(n):\n\treturn [x for x in range(1, n + 1) if n % x == 0]\n", "f", arguments);
+  Py_RETURN_NONE;
+
+}
+
 static PyMethodDef ExploreMethods[] = {
   {"output", output, METH_VARARGS, "Multivariatic function outputs"},
   {"factor", factor, METH_VARARGS, "Factor a python integer in C++"},
+  {"pfactor", pfactor, METH_VARARGS, "Factor a python integer in C++ using python"},
   {NULL, NULL, 0, NULL}
 };
 
