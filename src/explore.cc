@@ -57,12 +57,17 @@ static PyObject *factor(PyObject *self, PyObject *args) {
 }
 
 static PyObject *pfactor(PyObject *self, PyObject *args) {
-  PyEvaluator *p = new PyEvaluator();
+  PyEvaluator p = PyEvaluator();
   TupleType *arguments = new TupleType(args);
 
 
-  p->eval("import math\ndef f(n):\n\treturn [x for x in range(1, n + 1) if n % x == 0]\n", "f", arguments);
-  Py_RETURN_NONE;
+  return p.eval("import math\ndef f(n):\n\treturn [x for x in range(1, n + 1) if n % x == 0]\n", "f", arguments)->getPyObject();
+
+}
+
+static PyObject *run(PyObject *self, PyObject *args) {
+
+  PyEvaluator p;
 
 }
 

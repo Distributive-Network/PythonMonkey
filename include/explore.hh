@@ -16,6 +16,7 @@
  */
 static PyObject *output(PyObject *self, PyObject *args);
 static PyObject *factor(PyObject *self, PyObject *args);
+static PyObject *pfactor(PyObject *self, PyObject *args);
 
 ListType *factor_int(IntType *x);
 

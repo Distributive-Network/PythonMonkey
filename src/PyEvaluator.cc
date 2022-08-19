@@ -24,7 +24,7 @@ void PyEvaluator::eval(const std::string &input) {
 
 }
 
-void PyEvaluator::eval(const std::string &input, const std::string &func_name, TupleType *args) {
+PyType *PyEvaluator::eval(const std::string &input, const std::string &func_name, TupleType *args) {
 
   PyObject *py_create_func = PyRun_String(input.c_str(), Py_file_input, this->py_global->getPyObject(), this->py_local->getPyObject());
 
@@ -33,7 +33,7 @@ void PyEvaluator::eval(const std::string &input, const std::string &func_name, T
     if (PyErr_Occurred()) {
       std::cout << "Something wronog happened";
     }
-    return;
+    return nullptr;
   }
 
   Py_DECREF(py_create_func);
@@ -46,12 +46,11 @@ void PyEvaluator::eval(const std::string &input, const std::string &func_name, T
       std::cout << "function is not callable";
     }
     fprintf(stderr, "Cannot find function \"blah\"\n");
-    return;
+    return nullptr;
   }
 
   PyObject *function_return = PyObject_CallObject(py_func, args->getPyObject());
 
-  PyType *pytype_function_return = pyTypeFactory(function_return);
+  return pyTypeFactory(function_return);
 
-  std::cout << *pytype_function_return;
 }

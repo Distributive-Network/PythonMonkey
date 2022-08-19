@@ -35,7 +35,7 @@ TEST_F(PyEvaluatorTests, test_can_evaluate_and_run_a_function) {
 
   std::string expected = "50";
   testing::internal::CaptureStdout();
-  p.eval("def f(x):\n\treturn x * 5\n", "f", args);
+  std::cout << *p.eval("def f(x):\n\treturn x * 5\n", "f", args);
   std::string output = testing::internal::GetCapturedStdout();
 
   EXPECT_EQ(expected, output);
@@ -49,7 +49,7 @@ TEST_F(PyEvaluatorTests, test_evaluates_pfactor_correctly) {
 
   std::string expected = "[\n  1,\n  2,\n  5,\n  10\n]";
   testing::internal::CaptureStdout();
-  p.eval("import math\ndef f(n):\n\treturn [x for x in range(1, n + 1) if n % x == 0]\n", "f", args);
+  std::cout << *p.eval("import math\ndef f(n):\n\treturn [x for x in range(1, n + 1) if n % x == 0]\n", "f", args);
   std::string output = testing::internal::GetCapturedStdout();
 
   EXPECT_EQ(expected, output);
