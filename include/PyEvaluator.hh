@@ -15,14 +15,15 @@
  * @author Giovanni Tedesco
  */
 class PyEvaluator {
-private:
-PyObject *py_module; // The module that our custom functions will be contained in.
-DictType *py_local; // python dictionry that stores local context (i think?)
-DictType *py_global; // python dictionary that stores global context
-
 public:
 PyEvaluator();
 ~PyEvaluator();
+
+private:
+PyObject *py_module; // The module that our custom functions will be contained in.
+DictType *py_local; // python dictionary that stores local context (i think?)
+DictType *py_global; // python dictionary that stores global context
+
 
 /**
  * @brief Simple python program evaluation method. This is not meant to handle input, it will simply run
