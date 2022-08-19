@@ -31,7 +31,7 @@ PyType *PyEvaluator::eval(const std::string &input, const std::string &func_name
 // pValue would be null if the Python syntax is wrong, for example
   if (py_create_func == NULL) {
     if (PyErr_Occurred()) {
-      std::cout << "Something wronog happened";
+      std::cout << "Something wrong happened";
     }
     return nullptr;
   }
