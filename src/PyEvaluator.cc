@@ -1,6 +1,6 @@
 /**
  * @file PyEvaluator.cc
- * @author your name (you@domain.com)
+ * @author Giovanni Tedesco
  * @brief Implementation of the methods of the PyEvaluator class
  * @version 0.1
  * @date 2022-08-19
