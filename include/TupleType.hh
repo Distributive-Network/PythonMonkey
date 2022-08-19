@@ -1,3 +1,13 @@
+/**
+ * @file TupleType.hh
+ * @author Giovanni Tedesco
+ * @brief Class and function prototypes for a class the represents the python tuple type in C++
+ * @version 0.1
+ * @date 2022-08-19
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #ifndef Bifrost_TupleType_
 #define Bifrost_TupleType_
 

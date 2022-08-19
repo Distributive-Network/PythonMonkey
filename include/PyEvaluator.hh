@@ -1,7 +1,7 @@
 /**
  * @file PyEvaluator.hh
  * @author Giovanni Tedesco
- * @brief Function prototypes for evaluating python code inside of c++
+ * @brief Class definition and method prototypes for a python code evaluator.
  * @version 0.1
  * @date 2022-08-19
  * 
