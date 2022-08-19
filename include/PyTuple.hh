@@ -3,14 +3,10 @@
 
 #include <Python.h>
 
-class PyTuple {
-public:
-PyTuple(PyObject *_tuple) : tuple(_tuple) {};
-PyObject *get(int n);
-Py_ssize_t getSize();
+class PyTuple : public PyType {
 
-private:
-PyObject *tuple;
+
+
 };
 
 #endif
