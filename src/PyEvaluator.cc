@@ -10,8 +10,9 @@
  */
 #include "include/DictType.hh"
 #include "include/PyEvaluator.hh"
-#include "include/TupleType.hh"
 #include "include/pyTypeFactory.hh"
+#include "include/TupleType.hh"
+
 
 #include <Python.h>
 
