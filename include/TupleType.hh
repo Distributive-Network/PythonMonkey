@@ -1,7 +1,7 @@
 /**
  * @file TupleType.hh
  * @author Giovanni Tedesco
- * @brief Class and function prototypes for a class the represents the python tuple type in C++
+ * @brief Class and function prototypes for a class that represents the python tuple type in C++
  * @version 0.1
  * @date 2022-08-19
  *
