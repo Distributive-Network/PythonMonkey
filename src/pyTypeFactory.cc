@@ -27,7 +27,8 @@ PyType *pyTypeFactory(PyObject *object) {
   }
   else if (PyList_Check(object)) {
     pyType = new ListType(object);
-  } else if (PyList_Check(object)) {
+  }
+  else if (PyTuple_Check(object)) {
     pyType = new TupleType(object);
   }
   else {
