@@ -65,12 +65,6 @@ static PyObject *pfactor(PyObject *self, PyObject *args) {
 
 }
 
-static PyObject *run(PyObject *self, PyObject *args) {
-
-  PyEvaluator p;
-
-}
-
 static PyMethodDef ExploreMethods[] = {
   {"output", output, METH_VARARGS, "Multivariatic function outputs"},
   {"factor", factor, METH_VARARGS, "Factor a python integer in C++"},
