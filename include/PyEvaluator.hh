@@ -19,12 +19,6 @@ public:
 PyEvaluator();
 ~PyEvaluator();
 
-private:
-PyObject *py_module; // The module that our custom functions will be contained in.
-DictType *py_local; // python dictionary that stores local context (i think?)
-DictType *py_global; // python dictionary that stores global context
-
-
 /**
  * @brief Simple python program evaluation method. This is not meant to handle input, it will simply run
  * the python program as described in the input string
@@ -41,6 +35,12 @@ void eval(const std::string &input);
  * @param args The arguments to evaluate the python function at.
  */
 PyType *eval(const std::string &input, const std::string &func_name, TupleType *args);
+
+private:
+PyObject *py_module; /** The module that our custom functions will be contained in. */
+DictType *py_local; /** python dictionary that stores local context (i think?) */
+DictType *py_global; /** python dictionary that stores global context */
+
 
 };
 
