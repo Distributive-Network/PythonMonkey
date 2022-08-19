@@ -1,15 +1,13 @@
+#include "include/TupleType.hh"
+
+#include "include/PyType.hh"
+#include "include/utilities.hh"
+
 #include <gtest/gtest.h>
 #include <Python.h>
+
 #include <iostream>
 #include <string>
-
-#include "include/TypeEnum.hh"
-#include "include/PyType.hh"
-#include "include/TupleType.hh"
-#include "include/StrType.hh"
-#include "include/IntType.hh"
-
-#include "include/utilities.hh"
 
 class TupleTypeTests : public ::testing::Test {
 protected:
