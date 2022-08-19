@@ -16,6 +16,8 @@
 
 #include <Python.h>
 
+#include <iostream>
+
 /**
  * @brief A class to represent the tuple type in python
  * 

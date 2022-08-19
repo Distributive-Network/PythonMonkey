@@ -10,6 +10,7 @@
  */
 #include "include/DictType.hh"
 #include "include/PyEvaluator.hh"
+#include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/TupleType.hh"
 
@@ -57,7 +58,7 @@ PyType *PyEvaluator::eval(const std::string &input, const std::string &func_name
     if (PyErr_Occurred()) {
       std::cout << "function is not callable";
     }
-    fprintf(stderr, "Cannot find function \"blah\"\n");
+    std::cerr << "Cannot find function: " << func_name << std::endl;
     return nullptr;
   }
 
