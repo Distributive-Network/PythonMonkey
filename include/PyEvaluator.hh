@@ -1,3 +1,13 @@
+/**
+ * @file PyEvaluator.hh
+ * @author Giovanni Tedesco
+ * @brief Function prototypes for evaluating python code inside of c++
+ * @version 0.1
+ * @date 2022-08-19
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #ifndef Bifrost_PyEvaluator_
 #define Bifrost_PyEvaluator_
 
