@@ -16,6 +16,14 @@
  */
 static PyObject *output(PyObject *self, PyObject *args);
 static PyObject *factor(PyObject *self, PyObject *args);
+
+/**
+ * @brief 
+ * 
+ * @param self - Pointer to the python environment
+ * @param args - The PyTuple of arguments that are passed into the function
+ * @return PyObject* 
+ */
 static PyObject *run(PyObject *self, PyObject *args);
 
 /**

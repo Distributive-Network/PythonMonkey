@@ -12,9 +12,8 @@
 #define Bifrost_PyEvaluator_
 
 #include "include/DictType.hh"
-#include "include/TupleType.hh"
 #include "include/PyType.hh"
-#include "include/StrType.hh"
+#include "include/TupleType.hh"
 
 #include <Python.h>
 

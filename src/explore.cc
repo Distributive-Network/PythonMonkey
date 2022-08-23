@@ -74,8 +74,6 @@ static PyObject *run(PyObject *self, PyObject *args) {
 
   p.eval(input->getValue());
 
-  printf("%p\n", malloc(1));
-
   Py_RETURN_NONE;
 }
 
