@@ -11,8 +11,6 @@
 
 #include <Python.h>
 
-#include "stdlib.h"
-
 #include <math.h>
 
 #include <iostream>

@@ -13,8 +13,6 @@
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/TupleType.hh"
-#include "include/StrType.hh"
-
 
 #include <Python.h>
 
@@ -62,8 +60,6 @@ PyType *PyEvaluator::eval(const std::string &input, const std::string &func_name
   }
 
   PyObject *function_return = PyObject_CallObject(py_func, args->getPyObject());
-
-  // Py_DECREF(py_func);
 
   return pyTypeFactory(function_return);
 
