@@ -65,10 +65,21 @@ static PyObject *pfactor(PyObject *self, PyObject *args) {
 
 }
 
+static PyObject *run(PyObject *self, PyObject *args) {
+  PyEvaluator p = PyEvaluator();
+
+  StrType *input = new StrType(PyTuple_GetItem(args, 0));
+
+  p.eval(input->getValue());
+
+  Py_RETURN_NONE;
+}
+
 static PyMethodDef ExploreMethods[] = {
   {"output", output, METH_VARARGS, "Multivariatic function outputs"},
   {"factor", factor, METH_VARARGS, "Factor a python integer in C++"},
   {"pfactor", pfactor, METH_VARARGS, "Factor a python integer in C++ using python"},
+  {"run", run, METH_VARARGS, "Run an arbirtrary python command in c++"},
   {NULL, NULL, 0, NULL}
 };
 

@@ -14,7 +14,6 @@
 #include "include/pyTypeFactory.hh"
 #include "include/TupleType.hh"
 
-
 #include <Python.h>
 
 #include <iostream>
@@ -32,9 +31,7 @@ PyEvaluator::PyEvaluator() {
 PyEvaluator::~PyEvaluator() {}
 
 void PyEvaluator::eval(const std::string &input) {
-
   PyRun_SimpleString(input.c_str());
-
 }
 
 PyType *PyEvaluator::eval(const std::string &input, const std::string &func_name, TupleType *args) {
