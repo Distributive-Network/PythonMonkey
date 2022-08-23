@@ -16,6 +16,7 @@
  */
 static PyObject *output(PyObject *self, PyObject *args);
 static PyObject *factor(PyObject *self, PyObject *args);
+static PyObject *run(PyObject *self, PyObject *args);
 
 /**
  * @brief Function that factors an integer in python
