@@ -8,8 +8,9 @@
  * @copyright Copyright (c) 2022
  *
  */
-#include "include/DictType.hh"
 #include "include/PyEvaluator.hh"
+
+#include "include/DictType.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/TupleType.hh"
@@ -60,6 +61,10 @@ PyType *PyEvaluator::eval(const std::string &input, const std::string &func_name
   }
 
   PyObject *function_return = PyObject_CallObject(py_func, args->getPyObject());
+
+  if (PyErr_Occurred()) {
+    return nullptr;
+  }
 
   return pyTypeFactory(function_return);
 
