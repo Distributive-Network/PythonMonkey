@@ -60,9 +60,14 @@ static PyObject *pfactor(PyObject *self, PyObject *args) {
   PyEvaluator p = PyEvaluator();
   TupleType *arguments = new TupleType(args);
 
+  PyType *result = p.eval("import math\ndef f(n):\n\treturn [x for x in range(1, n + 1) if n % x == 0]\n", "pfactor", arguments);
 
-  return p.eval("import math\ndef f(n):\n\treturn [x for x in range(1, n + 1) if n % x == 0]\n", "f", arguments)->getPyObject();
-
+  if (result) {
+    return result->getPyObject();
+  }
+  else {
+    return NULL;
+  }
 }
 
 static PyObject *run(PyObject *self, PyObject *args) {
