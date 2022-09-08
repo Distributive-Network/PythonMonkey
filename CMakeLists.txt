@@ -50,6 +50,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   SET(GCC_COVERAGE_LINK_FLAGS    "-coverage -lgcov")
   SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
 
+  set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
   # Try to set bindings for apple
   # Note I don't actually think that this works currently
   if(APPLE)
@@ -62,11 +63,13 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
   elseif(UNIX)
     find_package(PythonLibs 3 REQUIRED)
+    # find_package(SpiderMonkey REQUIRED) TODO: Fix this
   else()
     set(PYTHONLIBS_VERSION_STRING $ENV{PY_VERSION})
   endif()
-  # find_package(PythonLibs REQUIRED)
   include_directories(${PYTHON_INCLUDE_DIRS})
+  # include_directories(${SPIDERMONKEY_INCLUDE_DIRS}) TODO: Fix this
+  include_directories(/usr/local/include/mozjs-102/)
 
   # Add doxygen if this is the main app
   find_package(Doxygen)

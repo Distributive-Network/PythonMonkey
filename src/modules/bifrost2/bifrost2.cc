@@ -1,4 +1,4 @@
-#include "include/bifrost2.hh"
+#include "include/modules/bifrost2/bifrost2.hh"
 
 #include <jsapi.h>
 #include <js/Initialization.h>
@@ -7,8 +7,13 @@
 
 static JSContext *cx;
 
+static void cleanup() {
+  JS_DestroyContext(cx);
+  JS_ShutDown();
+}
+
 static PyMethodDef Bifrost2Methods[] = {
-    {NULL, NULL, 0, NULL}
+  {NULL, NULL, 0, NULL}
 };
 
 static struct PyModuleDef bifrost2 =
@@ -30,7 +35,8 @@ PyMODINIT_FUNC PyInit_bifrost2(void)
     return NULL;
 
   if (!JS::InitSelfHostedCode(cx))
-    return NULL;  
+    return NULL;
 
+  Py_AtExit(cleanup);
   return PyModule_Create(&bifrost2);
 }
