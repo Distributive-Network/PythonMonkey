@@ -1,7 +1,11 @@
 #include "include/bifrost2.hh"
 
+#include <jsapi.h>
+#include <js/Initialization.h>
 
 #include <Python.h>
+
+static JSContext *cx;
 
 static PyMethodDef Bifrost2Methods[] = {
     {NULL, NULL, 0, NULL}
@@ -16,8 +20,17 @@ static struct PyModuleDef bifrost2 =
   Bifrost2Methods
 };
 
-PyMODINIT_FUNC PyInit_explore(void)
+PyMODINIT_FUNC PyInit_bifrost2(void)
 {
+  if (!JS_Init())
+    return NULL;
+
+  cx = JS_NewContext(JS::DefaultHeapMaxBytes);
+  if (!cx)
+    return NULL;
+
+  if (!JS::InitSelfHostedCode(cx))
+    return NULL;  
 
   return PyModule_Create(&bifrost2);
 }
