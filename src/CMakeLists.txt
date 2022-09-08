@@ -24,7 +24,7 @@ set_target_properties(bifrost2 PROPERTIES SUFFIX ".so")
 set_target_properties(bifrost2 PROPERTIES PREFIX "")
 
 target_include_directories(explore PRIVATE ${PYTHON_INCLUDE_DIR})
-target_include_directories(explore PRIVATE /usr/local/include/mozjs-102/) #TODO: Fix this
+target_include_directories(explore PRIVATE /usr/local/include/mozjs-102/) #TODO: (Caleb Aikens) Fix this
 
 target_link_libraries(bifrost2 ${PYTHON_LIBRARIES})
-target_link_libraries(bifrost2 /usr/local/lib/libmozjs-102.so) #TODO: Fix this
+target_link_libraries(bifrost2 /usr/local/lib/libmozjs-102.so) #TODO: (Caleb Aikens) Fix this
