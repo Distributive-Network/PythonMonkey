@@ -24,6 +24,9 @@
 #  SPIDERMONKEY_FOUND		  - True if SpiderMonkey found.
 #  SPIDERMONKEY_THREADSAFE	 - True if SpiderMonkey is compiled with multi threading support.
 
+#TODO: (Caleb Aikens)add what changes were necessary to make this work to match the requirements of the apache license (see above)
+#TODO: make below generalizable for any spidermonkey version
+
 include(CheckIncludeFileCXX)
 include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
