@@ -23,11 +23,6 @@
 #  SPIDERMONKEY_LIBRARY		- List of libraries when using libjs.
 #  SPIDERMONKEY_FOUND		  - True if SpiderMonkey found.
 #  SPIDERMONKEY_THREADSAFE	 - True if SpiderMonkey is compiled with multi threading support.
-#
-#  SPIDERMONKEY_VERSION_STRING - The version of SpiderMonkey library found (x.y.z)
-#  SPIDERMONKEY_VERSION_MAJOR  - The major version of SpiderMonkey library
-#  SPIDERMONKEY_VERSION_MINOR  - The minor version of SpiderMonkey library
-#  SPIDERMONKEY_VERSION_PATCH  - The patch version of SpiderMonkey library
 
 include(CheckIncludeFileCXX)
 include(CheckCXXSourceCompiles)
@@ -45,6 +40,7 @@ set(SPIDERMONKEY_PATHS
 	$ENV{SPIDERMONKEY_ROOT}
 	~/Library/Frameworks
 	/Library/Frameworks
+  /usr/local/lib
 	/usr/local
 	/usr
 	/sw # Fink
@@ -58,7 +54,7 @@ set(SPIDERMONKEY_PATHS
 set(SPIDERMONKEY_HEADERS jsapi.h js/RequiredDefines.h)
 
 # SpiderMonkey include suffix paths
-set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS include include/js include/mozjs-48a1)
+set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS include include/js include/mozjs-48a1 include/mozjs-102/)
 
 # Find SpiderMonkey include path
 find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
@@ -68,7 +64,7 @@ find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
 )
 
 # SpiderMonkey libs
-set(SPIDERMONKEY_LIBRARY_NAMES mozjs185 mozjs-1.9.2 mozjs-48a1 mozjs js185 js js32 js3250)
+set(SPIDERMONKEY_LIBRARY_NAMES libmozjs-102.so mozjs185 mozjs-1.9.2 mozjs-48a1 mozjs js185 js js32 js3250)
 
 # Find SpiderMonkey base library debug
 find_library(SPIDERMONKEY_LIBRARY
@@ -99,6 +95,14 @@ check_cxx_source_compiles(
 	SPIDERMONKEY_BUILDS
 )
 
+message (STATUS "Spidermonkey successfully compiled. Variables are:
+SPIDERMONKEY_LIBRARIES     =${SPIDERMONKEY_LIBRARIES}
+SPIDERMONKEY_INCLUDE_DIR   =${SPIDERMONKEY_INCLUDE_DIR}
+SPIDERMONKEY_LIBRARY       =${SPIDERMONKEY_LIBRARY}
+SPIDERMONKEY_FOUND         =${SPIDERMONKEY_FOUND}
+SPIDERMONKEY_THREADSAFE    =${SPIDERMONKEY_THREADSAFE}
+")
+
 find_package_handle_standard_args(SpiderMonkey DEFAULT_MSG SPIDERMONKEY_LIBRARIES SPIDERMONKEY_INCLUDE_DIR) # SPIDERMONKEY_BUILDS)
 
 if(SPIDERMONKEY_FOUND)
@@ -113,22 +117,7 @@ if(SPIDERMONKEY_FOUND)
 		DOC "Mozilla SpiderMonkey JavaScript Engine Config Header"
 	)
 
-	find_path(SPIDERMONKEY_JS_VERSION_HEADER_PATH jsversion.h
-		PATHS ${SPIDERMONKEY_PATHS}
-		PATH_SUFFIXES ${SPIDERMONKEY_INCLUDE_SUFFIX_PATHS}
-		DOC "Mozilla SpiderMonkey JavaScript Engine Version Header"
-	)
-
 	check_include_file_cxx("${SPIDERMONKEY_JS_CONFIG_HEADER_PATH}/js-config.h" SPIDERMONKEY_JS_CONFIG_HEADER)
-	check_include_file_cxx("${SPIDERMONKEY_JS_CONFIG_HEADER_PATH}/jsversion.h" SPIDERMONKEY_JS_VERSION_HEADER)
-
-	if(SPIDERMONKEY_JS_VERSION_HEADER)
-		file(STRINGS "${SPIDERMONKEY_JS_VERSION_HEADER_PATH}/jsversion.h" JSVERSION REGEX "^#define JS_VERSION [^\"]*$")
-		string(REGEX REPLACE "^.*JS_VERSION ([0-9]+)*$" "\\1" SPIDERMONKEY_VERSION_STRING "${JSVERSION}")
-		string(REGEX REPLACE "^([0-9]).." "\\1" SPIDERMONKEY_VERSION_MAJOR  "${SPIDERMONKEY_VERSION_STRING}")
-		string(REGEX REPLACE "^.([0-9])." "\\1" SPIDERMONKEY_VERSION_MINOR  "${SPIDERMONKEY_VERSION_STRING}")
-		string(REGEX REPLACE "^..([0-9])" "\\1" SPIDERMONKEY_VERSION_PATCH  "${SPIDERMONKEY_VERSION_STRING}")
-	endif()
 
 	if(NOT SPIDERMONKEY_JS_CONFIG_HEADER)
 		check_cxx_source_runs(
@@ -152,10 +141,6 @@ if(SPIDERMONKEY_FOUND)
 		if(${JS_THREADSAFE} MATCHES "1")
 			set(SPIDERMONKEY_THREADSAFE "TRUE")
 		endif()
-	endif()
-
-	if(NOT SPIDERMONKEY_JS_VERSION_HEADER)
-		message(FATAL_ERROR "SpiderMonkey include file jsversion.h not found.")
 	endif()
 
 	# Removed in newest versions of SpiderMonkey
