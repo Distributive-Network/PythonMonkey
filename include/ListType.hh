@@ -1,3 +1,14 @@
+/**
+ * @file ListType.hh
+ * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @brief Struct for representing python lists
+ * @version 0.1
+ * @date 2022-08-18
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #ifndef Bifrost_ListType_
 #define Bifrost_ListType_
 
@@ -9,15 +20,15 @@
 #include <iostream>
 
 /**
- * @brief This class represents a list in python. It derives from the PyType class
+ * @brief This struct represents a list in python. It derives from the PyType struct
  *
  * @author Giovanni
  */
-class ListType : public PyType {
+struct ListType : public PyType {
 public:
-ListType();
-ListType(PyObject *object);
-const TYPE returnType = TYPE::LIST;
+  ListType();
+  ListType(PyObject *object);
+  const TYPE returnType = TYPE::LIST;
 /**
  * @brief
  *
@@ -25,7 +36,7 @@ const TYPE returnType = TYPE::LIST;
  * @param index The index of the list item
  * @param value The value of the list item
  */
-void set(int index, PyType *value);
+  void set(int index, PyType *value);
 
 /**
  * @brief Gets the list item at the given index
@@ -33,14 +44,14 @@ void set(int index, PyType *value);
  * @param index The index of the item in question
  * @return PyType* Returns a pointer to the appropriate PyType object
  */
-PyType *get(int index) const;
+  PyType *get(int index) const;
 
 /**
  * @brief Appends the given value to the list
  *
  * @param value The item to be appended
  */
-void append(PyType *value);
+  void append(PyType *value);
 
 /**
  * @brief Helper function for print()
@@ -48,7 +59,7 @@ void append(PyType *value);
  * @param os output stream to print to
  * @param depth depth into sub-objects
  */
-void print_helper(std::ostream &os, int depth = 0) const;
+  void print_helper(std::ostream &os, int depth = 0) const;
 
 /**
  * @brief
@@ -57,11 +68,11 @@ void print_helper(std::ostream &os, int depth = 0) const;
  *
  * @returns int length of the list
  */
-int len() const;
+  int len() const;
 
-void sort();
+  void sort();
 
 protected:
-virtual void print(std::ostream &os) const override;
+  virtual void print(std::ostream &os) const override;
 };
 #endif
