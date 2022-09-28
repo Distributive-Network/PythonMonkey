@@ -1,3 +1,13 @@
+/**
+ * @file FuncType.hh
+ * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @brief Struct representing python functions
+ * @version 0.1
+ * @date 2022-08-08
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
 #ifndef Bifrost_FuncType_
 #define Bifrost_FuncType_
 
@@ -9,16 +19,16 @@
 #include <iostream>
 
 /**
- * @brief This class represents the 'function' type in Python. It inherits from the PyType class
+ * @brief This struct represents the 'function' type in Python. It inherits from the PyType struct
  */
-class FuncType : public PyType {
+struct FuncType : public PyType {
 public:
-FuncType(PyObject *object);
-const TYPE returnType = TYPE::FUNC;
-const char *getValue() const;
+  FuncType(PyObject *object);
+  const TYPE returnType = TYPE::FUNC;
+  const char *getValue() const;
 
 protected:
-virtual void print(std::ostream &os) const override;
+  virtual void print(std::ostream &os) const override;
 };
 
 #endif

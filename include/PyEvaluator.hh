@@ -1,13 +1,14 @@
 /**
  * @file PyEvaluator.hh
  * @author Giovanni Tedesco
- * @brief Class definition and method prototypes for a python code evaluator.
+ * @brief Struct definition and method prototypes for a python code evaluator.
  * @version 0.1
  * @date 2022-08-19
  *
  * @copyright Copyright (c) 2022
  *
  */
+
 #ifndef Bifrost_PyEvaluator_
 #define Bifrost_PyEvaluator_
 
@@ -20,15 +21,15 @@
 #include <string>
 
 /**
- * @brief A class that is used for evaluating python programs inside of C++ using the embedding api
+ * @brief A struct that is used for evaluating python programs inside of C++ using the embedding api
  * provided by python.
  *
  * @author Giovanni Tedesco
  */
-class PyEvaluator {
+struct PyEvaluator {
 public:
-PyEvaluator();
-~PyEvaluator();
+  PyEvaluator();
+  ~PyEvaluator();
 
 /**
  * @brief Simple python program evaluation method. This is not meant to handle input, it will simply run
@@ -36,7 +37,7 @@ PyEvaluator();
  *
  * @param input A string defining the python program
  */
-void eval(const std::string &input);
+  void eval(const std::string &input);
 
 /**
  * @brief Evaluation method for python functions. This will store the python function defined in the input string,
@@ -47,12 +48,12 @@ void eval(const std::string &input);
  *
  * @returns PyType* to returned value from the evaluate function
  */
-PyType *eval(const std::string &input, const std::string &func_name, TupleType *args);
+  PyType *eval(const std::string &input, const std::string &func_name, TupleType *args);
 
 private:
-PyObject *py_module; /**< The module that our custom functions will be contained in. */
-DictType *py_local; /**< python dictionary that stores local context (i think?) */
-DictType *py_global; /**< python dictionary that stores global context */
+  PyObject *py_module; /**< The module that our custom functions will be contained in. */
+  DictType *py_local; /**< python dictionary that stores local context (i think?) */
+  DictType *py_global; /**< python dictionary that stores global context */
 
 
 };
