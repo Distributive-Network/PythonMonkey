@@ -46,7 +46,7 @@ public:
  * @param input The python function input
  * @param args The arguments to evaluate the python function at.
  *
- * @returns PyObject* to returned value from the evaluate function
+ * @returns PyType* to returned value from the evaluate function
  */
   PyType *eval(const std::string &input, const std::string &func_name, TupleType *args);
 
