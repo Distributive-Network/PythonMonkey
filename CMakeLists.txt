@@ -11,8 +11,8 @@ project("Bifrost"
 )
 
 # Set C++ settings.
-set(CMAKE_CXX_STANDARD "17")
-
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQURIED ON)
 # Add an external; appends to `BIFROST_EXTERNAL_FILES` in the parent scope.
 function(bifrost_add_external BIFROST_EXTERNAL)
   add_subdirectory("externals/${BIFROST_EXTERNAL}")
@@ -32,8 +32,6 @@ file (GLOB HEADER_FILES "include/*.hh") # Find all header files in the include d
 file (GLOB PYTHON_FILES "python/*.cc" "python/*.hh") # Find all the python bindings in the python directory
 file (GLOB TEST_FILES "tests/cpp/*.cc") # Find all the test files in the test directory
 
-set(CMAKE_CXX_STANDARD 17) # Set the standard to C++17
-
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 
@@ -46,14 +44,19 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
-  SET(GCC_COVERAGE_COMPILE_FLAGS "-g -O0 -coverage -fprofile-arcs -ftest-coverage")
-  SET(GCC_COVERAGE_LINK_FLAGS    "-coverage -lgcov")
-  SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}" )
+  if(UNIX)
+    SET(COMPILE_FLAGS "-g -O0 -coverage -fprofile-arcs -ftest-coverage")
+  elseif(WIN32)
+    SET(COMPILE_FLAGS "")
+  endif()
+  SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}" )
 
+  set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
   # Try to set bindings for apple
   # Note I don't actually think that this works currently
   if(APPLE)
     find_package(Python 3 COMPONENTS Interpreter Development REQUIRED)
+    find_package(SpiderMonkey REQUIRED)
     set(PYTHON_MAJOR $ENV{Python_VERSION_MAJOR})
     set(PYTHON_MINOR $ENV{Python_VERSION_MINOR})
     set(PYTHONLIBS_VERSION_STRING ${Python_VERSION})
@@ -62,11 +65,15 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
   elseif(UNIX)
     find_package(PythonLibs 3 REQUIRED)
-  else()
+    find_package(SpiderMonkey REQUIRED)
+  elseif(WIN32)
+    find_package(PythonInterp 3 REQUIRED)
+    find_package(PythonLibs 3   REQUIRED)
+    find_package(SpiderMonkey   REQUIRED)
     set(PYTHONLIBS_VERSION_STRING $ENV{PY_VERSION})
   endif()
-  # find_package(PythonLibs REQUIRED)
   include_directories(${PYTHON_INCLUDE_DIRS})
+  include_directories(${SPIDERMONKEY_INCLUDE_DIR})
 
   # Add doxygen if this is the main app
   find_package(Doxygen)

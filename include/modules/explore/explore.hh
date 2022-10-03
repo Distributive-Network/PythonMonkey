@@ -1,8 +1,8 @@
 #ifndef Bifrost_Explore_
 #define Bifrost_Explore_
 
-#include "IntType.hh"
-#include "ListType.hh"
+#include "include/IntType.hh"
+#include "include/ListType.hh"
 
 #include <Python.h>
 
