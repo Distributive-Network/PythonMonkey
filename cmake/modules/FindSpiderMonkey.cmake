@@ -51,30 +51,33 @@ set(SPIDERMONKEY_PATHS
 	/opt/csw # Blastwave
 	/opt
 	/usr/freeware
+  C:/mozilla-source/mozilla-unified/obj-x86_64-pc-mingw32 # Windows Mozilla bootstrap build
 )
 
 # SpiderMonkey headers
 set(SPIDERMONKEY_HEADERS jsapi.h js/RequiredDefines.h)
 
 # SpiderMonkey include suffix paths
-set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS include include/js include/mozjs-48a1 include/mozjs-102/)
+set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS dist/include js/src include include/js include/mozjs-48a1 include/mozjs-102/)
 
 # Find SpiderMonkey include path
-find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
-	PATHS ${SPIDERMONKEY_PATHS}
-	PATH_SUFFIXES ${SPIDERMONKEY_INCLUDE_SUFFIX_PATHS}
-	DOC "Mozilla SpiderMonkey JavaScript Engine Headers"
-)
+  find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
+    PATHS ${SPIDERMONKEY_PATHS}
+    PATH_SUFFIXES ${SPIDERMONKEY_INCLUDE_SUFFIX_PATHS}
+    DOC "Mozilla SpiderMonkey JavaScript Engine Headers"
+  )
 
 # SpiderMonkey libs
-set(SPIDERMONKEY_LIBRARY_NAMES libmozjs-102.so mozjs185 mozjs-1.9.2 mozjs-48a1 mozjs js185 js js32 js3250)
+set(SPIDERMONKEY_LIBRARY_NAMES mozjs-107a1.lib libmozjs-102.so mozjs185 mozjs-1.9.2 mozjs-48a1 mozjs js185 js js32 js3250)
 
-# Find SpiderMonkey base library debug
+set(SPIDERMONKEY_LIB_SUFFIX_PATHS js/src/build lib)
+
+# Find SpiderMonkey base library
 find_library(SPIDERMONKEY_LIBRARY
-	NAMES ${SPIDERMONKEY_LIBRARY_NAMES}
-	PATHS ${SPIDERMONKEY_PATHS}
-	PATH_SUFFIXES lib
-	DOC "Mozilla SpiderMonkey JavaScript Engine Library"
+  NAMES ${SPIDERMONKEY_LIBRARY_NAMES}
+  PATHS ${SPIDERMONKEY_PATHS}
+  PATH_SUFFIXES ${SPIDERMONKEY_LIB_SUFFIX_PATHS}
+  DOC "Mozilla SpiderMonkey JavaScript Engine Library"
 )
 
 set(SPIDERMONKEY_LIBRARIES ${SPIDERMONKEY_LIBRARY})
@@ -87,24 +90,16 @@ check_cxx_source_compiles(
 	"#include <jsapi.h>
 	int main()
 	{
-		JSRuntime *rt = JS_NewRuntime(8L * 1024L * 1024L);
+    JSRuntime *rt = JS_NewRuntime(8L * 1024L * 1024L);
 		if (rt != NULL)
 		{
-			return 0;
-		}
-		return 1;
+		return 0;
+  }
+  return 1;
 	}"
 
 	SPIDERMONKEY_BUILDS
 )
-
-message (STATUS "Spidermonkey successfully compiled. Variables are:
-SPIDERMONKEY_LIBRARIES     =${SPIDERMONKEY_LIBRARIES}
-SPIDERMONKEY_INCLUDE_DIR   =${SPIDERMONKEY_INCLUDE_DIR}
-SPIDERMONKEY_LIBRARY       =${SPIDERMONKEY_LIBRARY}
-SPIDERMONKEY_FOUND         =${SPIDERMONKEY_FOUND}
-SPIDERMONKEY_THREADSAFE    =${SPIDERMONKEY_THREADSAFE}
-")
 
 find_package_handle_standard_args(SpiderMonkey DEFAULT_MSG SPIDERMONKEY_LIBRARIES SPIDERMONKEY_INCLUDE_DIR) # SPIDERMONKEY_BUILDS)
 
