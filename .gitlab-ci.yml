@@ -12,18 +12,6 @@ before_script:
   - apt-get install doxygen --yes
   - apt-get install gcovr --yes
   - apt-get install llvm --yes
-  - curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
-  # TODO: (Caleb Aikens)is there a better way to get spidermonkey?
-  - wget https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
-  - tar xf firefox-102.2.0esr.source.tar.xz
-  - cd firefox-102.2.0/js/src
-  - cp ./configure.in ./configure
-  - chmod +x ./configure
-  - mkdir _build
-  - cd _build
-  - ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-debug --enable-optimize
-  - make
-  - make install
 
 Build-Library:
   stage: build
@@ -31,21 +19,39 @@ Build-Library:
     - dcp-aitf
     - linux
   script:
+    - echo Building SpiderMonkey
+    - curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
+    # TODO: (Caleb Aikens)is there a better way to get spidermonkey?
+    - wget https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
+    - tar xf firefox-102.2.0esr.source.tar.xz
+    - cd firefox-102.2.0/js/src
+    - cp ./configure.in ./configure
+    - chmod +x ./configure
+    - mkdir _build
+    - cd _build
+    - ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-debug --enable-optimize
+    - make
+    - make install
+    - cd ../../../..
     - echo Building the library
     - mkdir build
     - cd build
     - cmake ..
     - cmake --build .
     - echo Build complete
-
-    # Could maybe keep the library / the .so as an artifact of the build completion but I don't know
+  cache:
+    key: build
+    paths:
+     - build/*
+     - firefox-102.2.0/*
 
 Run-GoogleTests:
   stage: test
   script:
-    - mkdir build
+    - cd firefox-102.2.0/js/src/_build
+    - make install
+    - cd ../../../..
     - cd build
-    - cmake ..
     - make && make tests
     - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
     - cd tests && ctest
@@ -57,6 +63,8 @@ Run-GoogleTests:
       coverage_report:
         coverage_format: cobertura
         path: build/coverage.xml
+  cache:
+    key: build
   tags:
     - dcp-aitf
     - linux
@@ -67,11 +75,6 @@ pages:
     - Build-Library
   script: 
     - mkdir .public
-    - mkdir build
-    - cd build
-    - cmake ..
-    - cmake --build .
-    - cd ..
     - cp -r ./build/docs/doc_doxygen/html/* .public
     - mv .public public
   artifacts:
@@ -79,6 +82,8 @@ pages:
       - public
   only:
     - main
+  cache:
+    key: build
   tags:
     - dcp-aitf
     - linux
