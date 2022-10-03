@@ -22,14 +22,14 @@ Build-Library:
     - echo Building SpiderMonkey
     - curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
     # TODO: (Caleb Aikens)is there a better way to get spidermonkey?
-    - wget https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
+    - wget -q https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
     - tar xf firefox-102.2.0esr.source.tar.xz
     - cd firefox-102.2.0/js/src
     - cp ./configure.in ./configure
     - chmod +x ./configure
     - mkdir _build
     - cd _build
-    - ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-debug --enable-optimize
+    - ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-optimize
     - make
     - make install
     - cd ../../../..
