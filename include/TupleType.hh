@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef Bifrost_TupleType_
-#define Bifrost_TupleType_
+#ifndef PythonMonkey_TupleType_
+#define PythonMonkey_TupleType_
 
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"

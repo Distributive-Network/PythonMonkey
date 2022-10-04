@@ -1,14 +1,14 @@
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 list(APPEND EXPLORE_SOURCE_FILES  ${SOURCE_FILES} "${CMAKE_SOURCE_DIR}/src/modules/explore/explore.cc")
-list(APPEND BIFROST2_SOURCE_FILES ${SOURCE_FILES} "${CMAKE_SOURCE_DIR}/src/modules/bifrost2/bifrost2.cc")
+list(APPEND PYTHONMONKEY_SOURCE_FILES ${SOURCE_FILES} "${CMAKE_SOURCE_DIR}/src/modules/pythonmonkey/pythonmonkey.cc")
 
 add_library(explore SHARED
     ${EXPLORE_SOURCE_FILES}
 )
 
-add_library(bifrost2 SHARED
-    ${BIFROST2_SOURCE_FILES}
+add_library(pythonmonkey SHARED
+    ${PYTHONMONKEY_SOURCE_FILES}
 )
 
 execute_process(
@@ -17,7 +17,7 @@ execute_process(
 )
 
 target_include_directories(explore  PUBLIC ..)
-target_include_directories(bifrost2 PUBLIC ..)
+target_include_directories(pythonmonkey PUBLIC ..)
 
 if(WIN32)
   set_target_properties(
@@ -29,11 +29,11 @@ if(WIN32)
       CXX_STANDARD 17
   )
   set_target_properties(
-    bifrost2
+    pythonmonkey
     PROPERTIES
       PREFIX ""
       SUFFIX ".pyd"
-      OUTPUT_NAME "bifrost2"
+      OUTPUT_NAME "pythonmonkey"
       CXX_STANDARD 17
   )
 elseif(UNIX)
@@ -44,7 +44,7 @@ elseif(UNIX)
       SUFFIX ".so"
   )
   set_target_properties(
-    bifrost2
+    pythonmonkey
     PROPERTIES
     PREFIX ""
     SUFFIX ".so"
@@ -52,9 +52,9 @@ elseif(UNIX)
 endif()
 
 target_include_directories(explore PRIVATE ${PYTHON_INCLUDE_DIR})
-target_include_directories(bifrost2 PRIVATE ${PYTHON_INCLUDE_DIR})
-target_include_directories(bifrost2 PRIVATE ${SPIDERMONKEY_INCLUDE_DIR})
+target_include_directories(pythonmonkey PRIVATE ${PYTHON_INCLUDE_DIR})
+target_include_directories(pythonmonkey PRIVATE ${SPIDERMONKEY_INCLUDE_DIR})
 
 target_link_libraries(explore ${PYTHON_LIBRARIES})
-target_link_libraries(bifrost2 ${PYTHON_LIBRARIES})
-target_link_libraries(bifrost2 ${SPIDERMONKEY_LIBRARIES})
+target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+target_link_libraries(pythonmonkey ${SPIDERMONKEY_LIBRARIES})

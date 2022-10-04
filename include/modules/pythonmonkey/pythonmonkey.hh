@@ -1,15 +1,15 @@
 /**
- * @file bifrost2.hh
+ * @file pythonmonkey.hh
  * @author Caleb Aikens (caleb@kingsds.network)
- * @brief This file defines the bifrost2 module, along with its various functions.
+ * @brief This file defines the pythonmonkey module, along with its various functions.
  * @version 0.1
  * @date 2022-09-06
  *
  * @copyright Copyright (c) 2022
  *
  */
-#ifndef Bifrost_Module_Bifrost2_
-#define Bifrost_Module_Bifrost2_
+#ifndef PythonMonkey_Module_PythonMonkey
+#define PythonMonkey_Module_PythonMonkey
 
 #include <jsapi.h>
 #include <js/Initialization.h>
@@ -38,6 +38,6 @@ static PyObject *eval(PyObject *self, PyObject *args);
  *
  * @return PyObject* - The module object to be passed to the python user
  */
-PyMODINIT_FUNC PyInit_bifrost2(void);
+PyMODINIT_FUNC PyInit_pythonmonkey(void);
 
 #endif
