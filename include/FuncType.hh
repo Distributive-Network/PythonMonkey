@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2022
  *
  */
-#ifndef Bifrost_FuncType_
-#define Bifrost_FuncType_
+#ifndef PythonMonkey_FuncType_
+#define PythonMonkey_FuncType_
 
 #include "PyType.hh"
 #include "TypeEnum.hh"

@@ -24,7 +24,7 @@
 
 PyEvaluator::PyEvaluator() {
 
-  this->py_module = PyModule_New("Bifrost2");
+  this->py_module = PyModule_New("PythonMonkey");
   PyModule_AddStringConstant(this->py_module, "__file__", "");
   this->py_global = new DictType(PyDict_New());
   this->py_local = new DictType(PyModule_GetDict(this->py_module));

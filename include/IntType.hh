@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef Bifrost_IntType_
-#define Bifrost_IntType_
+#ifndef PythonMonkey_IntType_
+#define PythonMonkey_IntType_
 
 #include "PyType.hh"
 #include "TypeEnum.hh"
