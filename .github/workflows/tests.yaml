@@ -42,7 +42,7 @@ jobs:
           cd _build
           ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-optimize
           make
-          make install
+          sudo make install
           cd ../../../..
           echo "Building the library"
           mkdir build
