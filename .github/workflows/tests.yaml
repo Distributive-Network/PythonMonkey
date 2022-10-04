@@ -61,6 +61,6 @@ jobs:
       - name: google-tests-artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.job }}-${{ github.ref_name }}-${{ github.sha }}
+          name: ${{ github.job }}-${{ github.run_id }}-${{ github.sha }}
           path: ./build/coverage.xml
 
