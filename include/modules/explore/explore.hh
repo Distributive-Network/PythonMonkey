@@ -1,5 +1,5 @@
-#ifndef Bifrost_Explore_
-#define Bifrost_Explore_
+#ifndef PythonMonkey_Explore_
+#define PythonMonkey_Explore_
 
 #include "include/IntType.hh"
 #include "include/ListType.hh"

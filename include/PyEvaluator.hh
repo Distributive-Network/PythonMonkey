@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef Bifrost_PyEvaluator_
-#define Bifrost_PyEvaluator_
+#ifndef PythonMonkey_PyEvaluator_
+#define PythonMonkey_PyEvaluator_
 
 #include "include/DictType.hh"
 #include "include/PyType.hh"

@@ -2,10 +2,10 @@
 
 cmake_minimum_required(VERSION 3.4...3.18) # Set minimum cmake version
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" BIFROST_VERSION)
-string(STRIP "${BIFROST_VERSION}" BIFROST_VERSION)
-project("Bifrost"
-  VERSION "${BIFROST_VERSION}"
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" PYTHONMONKEY_VERSION)
+string(STRIP "${PYTHONMONKEY_VERSION}" PYTHONMONKEY_VERSION)
+project("PythonMonkey"
+  VERSION "${PYTHONMONKEY_VERSION}"
   DESCRIPTION "A tool for Javascript-Python interoperability."
   LANGUAGES "CXX"
 )
@@ -13,18 +13,18 @@ project("Bifrost"
 # Set C++ settings.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQURIED ON)
-# Add an external; appends to `BIFROST_EXTERNAL_FILES` in the parent scope.
-function(bifrost_add_external BIFROST_EXTERNAL)
-  add_subdirectory("externals/${BIFROST_EXTERNAL}")
-  set(BIFROST_EXTERNAL_FILE "externals/${BIFROST_EXTERNAL}/CMakeLists.txt")
+# Add an external; appends to `PYTHONMONKEY_EXTERNAL_FILES` in the parent scope.
+function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
+  add_subdirectory("externals/${PYTHONMONKEY_EXTERNAL}")
+  set(PYTHONMONKEY_EXTERNAL_FILE "externals/${PYTHONMONKEY_EXTERNAL}/CMakeLists.txt")
   source_group(
-    TREE "${CMAKE_CURRENT_SOURCE_DIR}/externals/${BIFROST_EXTERNAL}"
-    PREFIX "Externals\\${BIFROST_EXTERNAL}"
-    FILES "${BIFROST_EXTERNAL_FILE}"
+    TREE "${CMAKE_CURRENT_SOURCE_DIR}/externals/${PYTHONMONKEY_EXTERNAL}"
+    PREFIX "Externals\\${PYTHONMONKEY_EXTERNAL}"
+    FILES "${PYTHONMONKEY_EXTERNAL_FILE}"
   )
-  list(APPEND BIFROST_EXTERNAL_FILES "${BIFROST_EXTERNAL_FILE}")
+  list(APPEND PYTHONMONKEY_EXTERNAL_FILES "${PYTHONMONKEY_EXTERNAL_FILE}")
 
-  set(BIFROST_EXTERNAL_FILES ${BIFROST_EXTERNAL_FILES} PARENT_SCOPE)
+  set(PYTHONMONKEY_EXTERNAL_FILES ${PYTHONMONKEY_EXTERNAL_FILES} PARENT_SCOPE)
 endfunction()
 
 file (GLOB SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory
@@ -92,6 +92,6 @@ endif()
 # Add compiled folder directories
 add_subdirectory(src)
 
-bifrost_add_external("uncrustify")
-bifrost_add_external("autopep8")
+pythonmonkey_add_external("uncrustify")
+pythonmonkey_add_external("autopep8")
 add_subdirectory(format)

@@ -1,4 +1,4 @@
-# Bifrost 2 C++ Style Guide
+# PythonMonkey 2 C++ Style Guide
 
 ### Meta
 

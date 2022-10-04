@@ -1,5 +1,5 @@
-#ifndef Bifrost_TypeEnum_
-#define Bifrost_TypeEnum_
+#ifndef PythonMonkey_TypeEnum_
+#define PythonMonkey_TypeEnum_
 
 enum class TYPE {
   DEFAULT,

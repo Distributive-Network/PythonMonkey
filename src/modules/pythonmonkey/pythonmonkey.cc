@@ -1,4 +1,4 @@
-#include "include/modules/bifrost2/bifrost2.hh"
+#include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include "include/StrType.hh"
 
@@ -9,8 +9,8 @@
 
 #include <Python.h>
 
-static JSContext *cx;             /**< pointer to Bifrost's JSContext */
-static JS::RootedObject *global;  /**< pointer to the global object of Bifrost's JSContext */
+static JSContext *cx;             /**< pointer to PythonMonkey's JSContext */
+static JS::RootedObject *global;  /**< pointer to the global object of PythonMonkey's JSContext */
 
 static void cleanup() {
   JS_DestroyContext(cx);
@@ -41,21 +41,21 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyMethodDef Bifrost2Methods[] = {
+static PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef bifrost2 =
+static struct PyModuleDef pythonmonkey =
 {
   PyModuleDef_HEAD_INIT,
-  "bifrost2",                                   /* name of module */
+  "pythonmonkey",                                   /* name of module */
   "A module for python to JS interoperability", /* module documentation, may be NULL */
   -1,                                           /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
-  Bifrost2Methods
+  PythonMonkeyMethods
 };
 
-PyMODINIT_FUNC PyInit_bifrost2(void)
+PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
   if (!JS_Init())
     return NULL;
@@ -74,5 +74,5 @@ PyMODINIT_FUNC PyInit_bifrost2(void)
     return NULL;
 
   Py_AtExit(cleanup);
-  return PyModule_Create(&bifrost2);
+  return PyModule_Create(&pythonmonkey);
 }

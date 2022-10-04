@@ -1,5 +1,5 @@
-#ifndef Bifrost_PyTypeFactory_
-#define Bifrost_PyTypeFactory_
+#ifndef PythonMonkey_PyTypeFactory_
+#define PythonMonkey_PyTypeFactory_
 
 #include "PyType.hh"
 

@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef Bifrost_DictType_
-#define Bifrost_DictType_
+#ifndef PythonMonkey_DictType_
+#define PythonMonkey_DictType_
 
 #include "PyType.hh"
 #include "TypeEnum.hh"
