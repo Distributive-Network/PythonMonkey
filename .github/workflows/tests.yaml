@@ -27,6 +27,7 @@ jobs:
           path: |
             ./build/*
             ./firefox-102.2.0/*
+          key: ${{ runner.os }}-spidermonkey
       - name: Build-Library
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
