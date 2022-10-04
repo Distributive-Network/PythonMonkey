@@ -53,7 +53,7 @@ jobs:
       - name: google-tests
         run: |
           cd firefox-102.2.0/js/src/_build
-          make install
+          sudo make install
           cd ../../../../build
           make && make tests
           gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
