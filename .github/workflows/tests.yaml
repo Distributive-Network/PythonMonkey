@@ -2,7 +2,6 @@ name: 'Run Testing Suite'
 
 on:
   workflow_dispatch:
-  push:
   pull_request:
 
 jobs:
@@ -33,6 +32,7 @@ jobs:
         run: |
           echo "Building SpiderMonkey"
           #install rust compiler
+          curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
           wget -q https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
           tar xf firefox-102.2.0esr.source.tar.xz
           cd firefox-102.2.0/js/src
@@ -63,4 +63,3 @@ jobs:
         with:
           name: ${{ github.job }}-${{ github.run_id }}-${{ github.sha }}
           path: ./build/coverage.xml
-
