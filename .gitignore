@@ -4,3 +4,4 @@ pyvenv.cfg
 bin/
 lib/*
 .pytest_cache
+.DS_Store
