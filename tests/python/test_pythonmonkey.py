@@ -13,7 +13,7 @@ def test_eval_latin1_string_matches_evaluated_string():
 
 def test_eval_null_character_string_matches_evaluated_string():
     null_character_string = pythonmonkey.eval("'a\\x00©'")
-    assert null_character_string = 'a\x00©'
+    assert null_character_string == 'a\x00©'
 
 def test_eval_ucs2_string_matches_evaluated_string():
     ucs2_string = pythonmonkey.eval("'ՄԸՋ'")
@@ -21,6 +21,6 @@ def test_eval_ucs2_string_matches_evaluated_string():
 
 def test_eval_unpaired_surrogate_string_matches_evaluated_string():
     unpaired_surrogate_string = pythonmonkey.eval("'Ջ©\\ud8fe'")
-    assert unpaired_surrogate_string = 'Ջ©\ud8fe'
+    assert unpaired_surrogate_string == 'Ջ©\ud8fe'
 
 # TODO (Caleb Aikens) write test for ucs4, and a fuzz test
