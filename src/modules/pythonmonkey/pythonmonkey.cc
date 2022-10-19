@@ -1,5 +1,6 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
+#include "include/PyType.hh"
 #include "include/StrType.hh"
 
 #include <jsapi.h>
@@ -36,6 +37,12 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   if (!JS::Evaluate(cx, options, source, &rval)) {
     PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not evaluate the given JS code.");
     return NULL;
+  }
+
+  PyType *returnValue;
+  if (rval.isString()) {
+    returnValue = new StrType(cx, rval.toString());
+    return returnValue->getPyObject();
   }
 
   Py_RETURN_NONE;

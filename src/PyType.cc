@@ -4,6 +4,8 @@
 
 #include <Python.h>
 
+PyType::PyType() {}
+
 PyType::PyType(PyObject *object) {
   Py_XINCREF(object);
   pyObject = object;

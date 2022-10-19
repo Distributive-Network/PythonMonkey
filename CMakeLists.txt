@@ -45,7 +45,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
   if(UNIX)
-    SET(COMPILE_FLAGS "-g -O0 -coverage -fprofile-arcs -ftest-coverage")
+    SET(COMPILE_FLAGS "-g -ggdb -O0 -coverage -fprofile-arcs -ftest-coverage")
   elseif(WIN32)
     SET(COMPILE_FLAGS "")
   endif()

@@ -50,11 +50,10 @@ elseif(UNIX)
     SUFFIX ".so"
   )
 endif()
+target_link_libraries(explore ${PYTHON_LIBRARIES})
+target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+target_link_libraries(pythonmonkey ${SPIDERMONKEY_LIBRARIES})
 
 target_include_directories(explore PRIVATE ${PYTHON_INCLUDE_DIR})
 target_include_directories(pythonmonkey PRIVATE ${PYTHON_INCLUDE_DIR})
 target_include_directories(pythonmonkey PRIVATE ${SPIDERMONKEY_INCLUDE_DIR})
-
-target_link_libraries(explore ${PYTHON_LIBRARIES})
-target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
-target_link_libraries(pythonmonkey ${SPIDERMONKEY_LIBRARIES})

@@ -23,6 +23,7 @@
  */
 struct PyType {
 public:
+  PyType();
   PyType(PyObject *object);
   friend std::ostream &operator <<(std::ostream &str, const PyType &data) {
     data.print(str);
