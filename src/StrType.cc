@@ -9,6 +9,11 @@
 
 #include <iostream>
 
+#define HIGH_SURROGATE_START 0xD800
+#define HIGH_SURROGATE_END 0xDBFF
+#define LOW_SURROGATE_START 0xDC00
+#define LOW_SURROGATE_END 0xDFFF
+
 StrType::StrType(PyObject *object) : PyType(object) {}
 
 StrType::StrType(char *string) : PyType(Py_BuildValue("s", string)) {}
@@ -72,16 +77,53 @@ bool StrType::containsSurrogatePair() {
   ssize_t length = (*(PyUnicodeObject *)pyObject)._base._base.length;
 
   for (size_t i = 0; i < length; i++) {
-    if (chars[i] >= 0xD800 && chars[i] <= 0xDBFF && chars[i+1] >= 0xDC00 && chars[i+1] <= 0xDFFF) {
+    if (chars[i] >= HIGH_SURROGATE_START && chars[i] <= HIGH_SURROGATE_END && chars[i+1] >= LOW_SURROGATE_START && chars[i+1] <= LOW_SURROGATE_END) {
       return true;
     }
     return false;
   }
 }
 
-// TODO (Caleb Aikens) implement this
-void asUCS4() {
+void StrType::asUCS4() {
+  if (!this->containsSurrogatePair()) {
+    return;
+  }
 
+   // TODO (Caleb Aikens) check if there are any python-made macros that make this less ugly
+  uint16_t *chars = (*(PyUnicodeObject *)pyObject).data.ucs2;
+  ssize_t length = (*(PyUnicodeObject *)pyObject)._base._base.length;
+
+  uint32_t ucs4String[length];
+  size_t ucs4Length = 0;
+
+  for (ssize_t i = 0; i < length; i++) {
+    if (chars[i] >= LOW_SURROGATE_START && chars[i] <= LOW_SURROGATE_END) // character is an unpaired low surrogate
+    {
+      //TODO (Caleb Aikens) raise an exception here
+    }
+    else if (chars[i] >= HIGH_SURROGATE_START && chars[i] <= HIGH_SURROGATE_END) { // character is a high surrogate
+      if ((i + 1 < length) && chars[i+1] >= LOW_SURROGATE_START && chars[i+1] <= LOW_SURROGATE_END) { // next character is a low surrogate
+        //see https://www.unicode.org/faq/utf_bom.html#utf16-3 for details
+        uint32_t X = (chars[i] & ((1 << 6) -1)) << 10 | chars[i+1] & ((1 << 10) -1);
+        uint32_t W = (chars[i] >> 6) & ((1 << 5) - 1);
+        uint32_t U = W+1;
+        ucs4String[ucs4Length] = U << 16 | X;
+        ucs4Length++;
+        i++; // skip over low surrogate
+      }
+      else { // next character is not a low surrogate
+        // TODO (Caleb Aikens) raise an exception here
+      }
+    }
+    else { //character is not a surrogate, and is in the BMP
+      ucs4String[ucs4Length] = chars[i];
+      ucs4Length++;
+    }
+  }
+
+  Py_XDECREF(pyObject);
+  pyObject = PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, ucs4String, ucs4Length);
+  Py_XINCREF(pyObject);
 }
 
 void StrType::print(std::ostream &os) const {
