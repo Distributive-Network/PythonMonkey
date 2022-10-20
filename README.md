@@ -1,5 +1,7 @@
 # PythonMonkey
 
+![Testing Suite](https://github.com/Kings-Distributed-Systems/PythonMonkey/actions/workflows/tests.yaml/badge.svg)
+
 ## Build Instructions
 1. You will need the following installed:
     - pytest
