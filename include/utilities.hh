@@ -2,8 +2,8 @@
 #define PythonMonkey_Utilities_
 
 /**
- * @brief
- *
+ * @brief 
+ * 
  * @tparam Base - child type
  * @tparam T - parent type
  * @param ptr - pointer to parent object

@@ -22,6 +22,11 @@ static void cleanup() {
 static PyObject *eval(PyObject *self, PyObject *args) {
 
   StrType *code = new StrType(PyTuple_GetItem(args, 0));
+  if (!PyUnicode_Check(code)) {
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
+    return NULL;
+  }
+
 
   JSAutoRealm ar(cx, *global);
   JS::CompileOptions options (cx);
