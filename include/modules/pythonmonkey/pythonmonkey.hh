@@ -45,6 +45,16 @@ static void cleanup();
  * @param GCThing  - Pointer to the GCThing to be memoized
  */
 static void memoizePyTypeAndGCThing(PyType *pyType, JS::PersistentRootedValue *GCThing);
+
+/**
+ * @brief Function exposed by the python module to convert UTF16 strings to UCS4 strings
+ * 
+ * @param self - Pointer to the module object
+ * @param args - Pointer to the python tuple of arguments (expected to contain a UTF16-encoded string as the first element)
+ * @return PyObject* - A new python string in UCS4 encoding
+ */
+static PyObject *asUCS4(PyObject *self, PyObject *args);
+
 /**
  * @brief Function exposed by the python module for evaluating arbitrary JS code
  *
