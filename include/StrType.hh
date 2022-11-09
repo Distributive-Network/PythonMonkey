@@ -36,7 +36,7 @@ public:
    * 000100-00D7FF | UCS2            | UTF16            | Yes
    * 00D800-00DFFF | UCS2 (unpaired) | UTF16 (unpaired) | Yes
    * 00E000-00FFFF | UCS2            | UTF16            | Yes
-   * 010000-10FFFF | UCS4            | UTF16            | No, conversion and new backing store required, user must explicitly call asUnicode()
+   * 010000-10FFFF | UCS4            | UTF16            | No, conversion and new backing store required, user must explicitly call asUCS4()
    *
    * @param cx - javascript context pointer
    * @param str - JSString pointer
@@ -46,21 +46,25 @@ public:
   const TYPE returnType = TYPE::STRING;
   const char *getValue() const;
 
-/**
- *
- * @return true  - pyObject is UCS2-encoded and contains a surrogate pair
- * @return false - pyObject is not UCS2-encoded or does not contain a surrogate pair
- */
-  bool containsSurrogatePair();
-
   /**
-   * @brief creates new UCS4-encoded backing store for the pyObject string
-   * 
+   * @brief creates new UCS4-encoded pyObject string. This must be called by the user if the original JSString contains any surrogate pairs
+   *
+   * @return PyObject* - the UCS4-encoding of the pyObject string
+   *
    */
-  void asUCS4();
+  PyObject *asUCS4();
 
 protected:
   virtual void print(std::ostream &os) const override;
+
+private:
+  /**
+   * @brief check if this.pyObject contains a surrogate pair
+   *
+   * @return true  - pyObject is UCS2-encoded and contains a surrogate pair
+   * @return false - pyObject is not UCS2-encoded or does not contain a surrogate pair
+   */
+  bool containsSurrogatePair();
 };
 
 #endif

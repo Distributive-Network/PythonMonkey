@@ -11,19 +11,40 @@
 #ifndef PythonMonkey_Module_PythonMonkey
 #define PythonMonkey_Module_PythonMonkey
 
+#include "include/PyType.hh"
+
 #include <jsapi.h>
+#include <js/CompilationAndEvaluation.h>
 #include <js/Initialization.h>
 
 #include <Python.h>
 
 /**
+ * @brief Callback function passed to JS_SetGCCallback to handle PythonMonkey shared memory
+ *
+ * @param cx - Pointer to the JS Context (not used)
+ * @param status - enum specifying whether the Callback triggered at the beginning or end of the GC Cycle
+ * @param reason - reason for the GC Cycle
+ * @param data -
+ */
+void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data);
+
+/**
  * @brief Destroys the JSContext and deletes associated memory. Called when python quits or faces a fatal exception.
  *
- * @author Caleb Aikens (caleb@kingsds.network)
- * @date 2022-09-09
  */
 static void cleanup();
 
+/**
+ * @brief This function is used to memoize PyTypes and GCThings that use the same backing store for their data,
+ * so that the JS garbage collector doesn't collect memory still in use by Python. It does this by storing the
+ * pointers in an unordered_map, with the key being the PyType pointer, and the value being a vector of GCThing
+ * pointers.
+ *
+ * @param pyType - Pointer to the PyType to be memoized
+ * @param GCThing  - Pointer to the GCThing to be memoized
+ */
+static void memoizePyTypeAndGCThing(PyType *pyType, JS::PersistentRootedValue *GCThing);
 /**
  * @brief Function exposed by the python module for evaluating arbitrary JS code
  *
