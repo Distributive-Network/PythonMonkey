@@ -1,3 +1,4 @@
+.gitlab-ci.yml
 build/
 .vscode/
 pyvenv.cfg
