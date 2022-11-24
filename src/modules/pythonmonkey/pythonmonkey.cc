@@ -64,9 +64,14 @@ static void memoizePyTypeAndGCThing(PyType *pyType, JS::PersistentRootedValue *G
   }
 }
 
+static PyObject *collect(PyObject *self, PyObject *args) {
+  JS_GC(cx);
+  Py_RETURN_NONE;
+}
+
 static PyObject *asUCS4(PyObject *self, PyObject *args) {
   StrType *str = new StrType(PyTuple_GetItem(args, 0));
-  if (!PyUnicode_Check(str)) {
+  if (!PyUnicode_Check(str->getPyObject())) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.asUCS4 expects a string as its first argument");
     return NULL;
   }
@@ -81,7 +86,6 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
     return NULL;
   }
-
 
   JSAutoRealm ar(cx, *global);
   JS::CompileOptions options (cx);
@@ -119,6 +123,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
 static PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
+  {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
   {"asUCS4", asUCS4, METH_VARARGS, "Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4. Undefined behaviour if the string is not in UTF16."},
   {NULL, NULL, 0, NULL}
 };

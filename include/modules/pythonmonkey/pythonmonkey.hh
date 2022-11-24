@@ -47,6 +47,15 @@ static void cleanup();
 static void memoizePyTypeAndGCThing(PyType *pyType, JS::PersistentRootedValue *GCThing);
 
 /**
+ * @brief Function exposed by the python module that calls the spidermonkey garbage collector
+ *
+ * @param self - Pointer to the module object
+ * @param args - Pointer to the python tuple of arguments (not used)
+ * @return PyObject* - returns python None
+ */
+static PyObject *collect(PyObject *self, PyObject *args);
+
+/**
  * @brief Function exposed by the python module to convert UTF16 strings to UCS4 strings
  *
  * @param self - Pointer to the module object
