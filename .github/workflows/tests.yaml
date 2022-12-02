@@ -31,7 +31,6 @@ jobs:
             ./firefox-102.2.0/*
           key: ${{ runner.os }}-spidermonkey
       - name: Build-Library
-        uses: actions/setup-python@v4
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           echo "Building SpiderMonkey"
