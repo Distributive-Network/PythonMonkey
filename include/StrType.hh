@@ -59,11 +59,11 @@ protected:
 
 private:
   /**
- * @brief check if this.pyObject contains a surrogate pair
- *
- * @return true  - pyObject is UCS2-encoded and contains a surrogate pair
- * @return false - pyObject is not UCS2-encoded or does not contain a surrogate pair
- */
+   * @brief check if this.pyObject contains a surrogate pair
+   *
+   * @return true  - pyObject is UCS2-encoded and contains a surrogate pair
+   * @return false - pyObject is not UCS2-encoded or does not contain a surrogate pair
+   */
   bool containsSurrogatePair();
 };
 

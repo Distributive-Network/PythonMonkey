@@ -2,6 +2,7 @@
 
 #include "include/PyType.hh"
 #include "include/StrType.hh"
+#include "include/FloatType.hh"
 
 #include <jsapi.h>
 #include <js/CompilationAndEvaluation.h>
@@ -109,9 +110,11 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   PyType *returnValue = NULL;
   if (rval->isString()) {
     returnValue = new StrType(cx, rval->toString());
+    memoizePyTypeAndGCThing(returnValue, rval);
   }
-
-  memoizePyTypeAndGCThing(returnValue, rval);
+  if (rval->isNumber()) {
+    returnValue = new FloatType(rval->toNumber());
+  }
 
   if (returnValue) {
     return returnValue->getPyObject();
