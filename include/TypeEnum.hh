@@ -14,6 +14,7 @@
 
 enum class TYPE {
   DEFAULT,
+  BOOL,
   INT,
   FLOAT,
   STRING,
