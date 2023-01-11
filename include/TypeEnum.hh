@@ -21,7 +21,8 @@ enum class TYPE {
   FUNC,
   DICT,
   LIST,
-  TUPLE
+  TUPLE,
+  DATE
 };
 
 #endif

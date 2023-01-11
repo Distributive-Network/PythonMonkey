@@ -2,6 +2,7 @@
 
 #include "include/PyType.hh"
 #include "include/BoolType.hh"
+#include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/StrType.hh"
 
@@ -139,27 +140,10 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     JS_ValueToObject(cx, *rval, &obj);
     bool *isDate = new bool;
     if (JS::ObjectIsDate(cx, obj, isDate) && isDate) {
-      JS::Rooted<JS::ValueArray<0>> args(cx);
-      JS::Rooted<JS::Value> year(cx);
-      JS::Rooted<JS::Value> month(cx);
-      JS::Rooted<JS::Value> day(cx);
-      JS::Rooted<JS::Value> hour(cx);
-      JS::Rooted<JS::Value> minute(cx);
-      JS::Rooted<JS::Value> second(cx);
-      JS::Rooted<JS::Value> usecond(cx);
-      JS_CallFunctionName(cx, obj, "getFullYear", args, &year);
-      JS_CallFunctionName(cx, obj, "getMonth", args, &month);
-      JS_CallFunctionName(cx, obj, "getDate", args, &day);
-      JS_CallFunctionName(cx, obj, "getHours", args, &hour);
-      JS_CallFunctionName(cx, obj, "getMinutes", args, &minute);
-      JS_CallFunctionName(cx, obj, "getSeconds", args, &second);
-      JS_CallFunctionName(cx, obj, "getMilliseconds", args, &usecond);
-
-      PyObject *datetime = PyDateTime_FromDateAndTime(
-        year.toNumber(), month.toNumber() + 1, day.toNumber(),
-        hour.toNumber(), minute.toNumber(), second.toNumber(),
-        usecond.toNumber());
-      return datetime;
+      returnValue = new DateType(cx, obj);
+    }
+    else {
+      printf("non-date object type is not handled by PythonMonkey yet");
     }
   }
   else if (rval->isMagic()) {
