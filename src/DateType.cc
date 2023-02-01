@@ -35,7 +35,7 @@ DateType::DateType(JSContext *cx, JS::Handle<JSObject *> dateObj) {
   pyObject = PyDateTime_FromDateAndTime(
     year.toNumber(), month.toNumber() + 1, day.toNumber(),
     hour.toNumber(), minute.toNumber(), second.toNumber(),
-    usecond.toNumber());
+    usecond.toNumber() * 1000);
 }
 
 void DateType::print(std::ostream &os) const {}
