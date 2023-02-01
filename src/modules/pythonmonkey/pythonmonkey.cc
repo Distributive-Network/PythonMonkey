@@ -8,8 +8,11 @@
 
 #include <jsapi.h>
 #include <js/CompilationAndEvaluation.h>
+#include <js/Class.h>
 #include <js/Date.h>
 #include <js/Initialization.h>
+#include <js/Object.h>
+#include <js/Proxy.h>
 #include <js/SourceText.h>
 #include <js/Symbol.h>
 
@@ -17,7 +20,7 @@
 #include <datetime.h>
 
 static JSContext *cx;             /**< pointer to PythonMonkey's JSContext */
-static JS::RootedObject *global;  /**< pointer to the global object of PythonMonkey's JSContext */
+static JS::Rooted<JSObject *> *global;  /**< pointer to the global object of PythonMonkey's JSContext */
 
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
@@ -138,12 +141,34 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   else if (rval->isObject()) {
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
-    bool *isDate = new bool;
-    if (JS::ObjectIsDate(cx, obj, isDate) && isDate) {
-      returnValue = new DateType(cx, obj);
-    }
-    else {
-      printf("non-date object type is not handled by PythonMonkey yet");
+    js::ESClass cls;
+    JS::GetBuiltinClass(cx, obj, &cls);
+    switch (cls) {
+    case js::ESClass::Boolean: {
+        JS::RootedValue unboxed(cx);
+        js::Unbox(cx, obj, &unboxed);
+        returnValue = new BoolType(unboxed.toBoolean());
+        break;
+      }
+    case js::ESClass::Date: {
+        JS::RootedValue unboxed(cx);
+        js::Unbox(cx, obj, &unboxed);
+        returnValue = new DateType(cx, obj);
+        break;
+      }
+    case js::ESClass::Number: {
+        JS::RootedValue unboxed(cx);
+        js::Unbox(cx, obj, &unboxed);
+        returnValue = new FloatType(unboxed.toNumber());
+        break;
+      }
+    case js::ESClass::String: {
+        JS::RootedValue unboxed(cx);
+        js::Unbox(cx, obj, &unboxed);
+        returnValue = new StrType(cx, unboxed.toString());
+        memoizePyTypeAndGCThing(returnValue, rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
+        break;
+      }
     }
   }
   else if (rval->isMagic()) {
