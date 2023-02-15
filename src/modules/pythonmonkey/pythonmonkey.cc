@@ -4,6 +4,8 @@
 #include "include/BoolType.hh"
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
+#include "include/FuncType.hh"
+#include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 
 #include <jsapi.h>
@@ -19,18 +21,35 @@
 #include <Python.h>
 #include <datetime.h>
 
-static JSContext *cx;             /**< pointer to PythonMonkey's JSContext */
-static JS::Rooted<JSObject *> *global;  /**< pointer to the global object of PythonMonkey's JSContext */
-
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
+
+static void cleanup() {
+  JS_DestroyContext(cx);
+  JS_ShutDown();
+  delete global;
+}
+
+void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
+  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(cx, GCThing);
+  PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
+
+  if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
+    std::vector<JS::PersistentRooted<JS::Value> *> gcVector(
+      {{RootedGCThing}});
+    PyTypeToGCThing.insert({{pyType, gcVector}});
+  }
+  else {
+    pyIt->second.push_back(RootedGCThing);
+  }
+}
 
 void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_BEGIN) {
     PyToGCIterator pyIt = PyTypeToGCThing.begin();
     while (pyIt != PyTypeToGCThing.end()) {
       // If the PyObject reference count is exactly 1, then the only reference to the object is the one
-      // we are holding, which means the object is ready to be freed.
+      // we are holding, which means the object is ready to be free'd.
       if (PyObject_GC_IsFinalized(pyIt->first->getPyObject()) || pyIt->first->getPyObject()->ob_refcnt == 1) {
         for (JS::PersistentRooted<JS::Value> *rval: pyIt->second) { // for each related GCThing
           bool found = false;
@@ -53,25 +72,6 @@ void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReas
     }
   }
 };
-
-static void cleanup() {
-  JS_DestroyContext(cx);
-  JS_ShutDown();
-  delete global;
-}
-
-static void memoizePyTypeAndGCThing(PyType *pyType, JS::PersistentRooted<JS::Value> *GCThing) {
-  PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
-
-  if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
-    std::vector<JS::PersistentRooted<JS::Value> *> gcVector(
-      {{GCThing}});
-    PyTypeToGCThing.insert({{pyType, gcVector}});
-  }
-  else {
-    pyIt->second.push_back(GCThing);
-  }
-}
 
 static PyObject *collect(PyObject *self, PyObject *args) {
   JS_GC(cx);
@@ -108,72 +108,14 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // evaluate source code
-  JS::PersistentRooted<JS::Value> *rval = new JS::PersistentRooted<JS::Value>(cx);
+  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(cx);
   if (!JS::Evaluate(cx, options, source, rval)) {
     PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not evaluate the given JS code.");
     return NULL; // TODO (Caleb Aikens) figure out how to capture JS exceptions
   }
 
   // translate to the proper python type
-  PyType *returnValue = NULL;
-  if (rval->isUndefined()) {
-    printf("undefined type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isNull()) {
-    printf("null type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isBoolean()) {
-    returnValue = new BoolType(rval->toBoolean());
-  }
-  else if (rval->isNumber()) {
-    returnValue = new FloatType(rval->toNumber());
-  }
-  else if (rval->isString()) {
-    returnValue = new StrType(cx, rval->toString());
-    memoizePyTypeAndGCThing(returnValue, rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
-  }
-  else if (rval->isSymbol()) {
-    printf("symbol type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isBigInt()) {
-    printf("bigint type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isObject()) {
-    JS::Rooted<JSObject *> obj(cx);
-    JS_ValueToObject(cx, *rval, &obj);
-    js::ESClass cls;
-    JS::GetBuiltinClass(cx, obj, &cls);
-    switch (cls) {
-    case js::ESClass::Boolean: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new BoolType(unboxed.toBoolean());
-        break;
-      }
-    case js::ESClass::Date: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new DateType(cx, obj);
-        break;
-      }
-    case js::ESClass::Number: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new FloatType(unboxed.toNumber());
-        break;
-      }
-    case js::ESClass::String: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new StrType(cx, unboxed.toString());
-        memoizePyTypeAndGCThing(returnValue, rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
-        break;
-      }
-    }
-  }
-  else if (rval->isMagic()) {
-    printf("magic type is not handled by PythonMonkey yet");
-  }
+  PyType *returnValue = pyTypeFactory(cx, global, rval);
 
   if (returnValue) {
     return returnValue->getPyObject();
