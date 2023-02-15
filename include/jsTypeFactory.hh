@@ -12,16 +12,16 @@
 #ifndef PythonMonkey_JsTypeFactory_
 #define PythonMonkey_JsTypeFactory_
 
-#include "PyType.hh"
+#include "include/PyType.hh"
 
 #include <jsapi.h>
 
 /**
  * @brief Function that takes a PyType and returns a corresponding JS::Value, doing shared memory management when necessary
  *
- * @param pyType  Pointer to the PyType who's type and value we wish to encapsulate
- * @return JS::Value A JS::Value corresponding to the PyType
+ * @param object - Pointer to the PyObject who's type and value we wish to encapsulate
+ * @return JS::Value - A JS::Value corresponding to the PyType
  */
-JS::Value jsTypeFactory(const PyType *pyType);
+JS::Value jsTypeFactory(PyObject *object);
 
 #endif

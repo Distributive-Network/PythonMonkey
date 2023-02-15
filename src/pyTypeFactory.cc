@@ -130,8 +130,14 @@ static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {
   JS::RootedObject *globalObject = (JS::RootedObject *)PyLong_AsLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 1));
   JS::RootedValue *JSFuncValue = (JS::RootedValue *)PyLong_AsLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 2));
 
-  // check HandleValueArray constructors
-  JS::Rooted<JS::ValueArray<0>> JSargs(JScontext);
+  JS::RootedVector<JS::Value> JSargsVector(JScontext);
+  for (size_t i = 0; i < PyTuple_Size(args); i++) {
+    // TODO (Caleb Aikens) write an overload for jsTypeFactory to handle PyObjects directly
+    JS::Value jsValue = jsTypeFactory(PyTuple_GetItem(args, i));
+    JSargsVector.append(jsValue);
+  }
+
+  JS::HandleValueArray JSargs(JSargsVector);
   JS::Rooted<JS::Value> *JSreturnVal = new JS::Rooted<JS::Value>(JScontext);
   JS_CallFunctionValue(JScontext, *globalObject, *JSFuncValue, JSargs, JSreturnVal);
 

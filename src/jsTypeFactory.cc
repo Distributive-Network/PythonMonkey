@@ -19,24 +19,23 @@
 
 #include <jsapi.h>
 
-JS::Value jsTypeFactory(PyType *pyType) {
+JS::Value jsTypeFactory(PyObject *object) {
   JS::Value returnType;
-  switch (pyType->returnType)
-  {
-  case TYPE::BOOL:
-    returnType.setBoolean(((BoolType *)pyType)->getValue());
-    break;
-  case TYPE::INT:
-    returnType.setNumber(((IntType *)pyType)->getValue());
-  case TYPE::FLOAT:
-    returnType.setNumber(((FloatType *)pyType)->getValue());
-  default:
-    if (pyType->getPyObject() == Py_None) {
-      returnType.setUndefined();
-    }
-    else {
-      PyErr_SetString(PyExc_TypeError, "");
-    }
+
+  if (PyBool_Check(object)) {
+    returnType.setBoolean(PyLong_AsLong(object));
+  }
+  else if (PyLong_Check(object)) {
+    returnType.setNumber(PyLong_AsLong(object));
+  }
+  else if (PyFloat_Check(object)) {
+    returnType.setNumber(PyFloat_AsDouble(object));
+  }
+  else if (object == Py_None) {
+    returnType.setUndefined();
+  }
+  else {
+    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, float, and None are not supported by pythonmonkey yet.");
   }
   return returnType;
 
