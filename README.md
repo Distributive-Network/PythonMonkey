@@ -45,65 +45,45 @@ this package to execute our complex `dcp-client` library, which is written in JS
 - JS TypedArrays coerce to Python TypeArrays
 
 ## Build Instructions
-1. You will need the following installed:
+1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
     - pytest
     - cmake
     - doxygen 
     - python3-dev (python-dev)
+    - graphviz
+    - gcovr
+    - llvm
+    - rust
+    - python3.9 or later
+    - spidermonkey 102.2.0 or later
 
-2. Create a build folder in the root directory
-    ```bash
-    $ mkdir build
-    ```
-
-3. Next cd into the build directory and run `cmake ..`
-    ```bash
-    $ cd build
-    $ cmake ..
-    ```
-
-4. Now run `cmake --build .` to compile the project
-    ```bash
-    $ cmake --build .
-    ```
+2. Compile pythonmonkey in ``/build`` (which can be done automatically by running ``./build_script.sh``)
 
 ## Running tests
 1. Compile the project 
-2. In the build folder `cd` into the `tests` directory and run `ctest`
+2. In the build folder `cd` into the `tests` directory and run `ctest`.
     ```bash
     # From the root directory we do the following (after compiling the project)
     $ cd buid/tests
     $ ctest
     ```
-
-## Alternate Method to Running Tests (W.I.P)
-1. In the root directory chmod the script `test_script.sh`:
-    ```bash
-    $ chmod u+x test_script.sh
-    ```
-2. Then simply run the script
-    ```bash
-    $ ./test_script.sh
-    ```
-
-Note that for this method to work you will still need to have the above requirements installed.
+    Alternatively, from the root directory, run ``./test_script.sh``
 
 ## Using the library
 
 ### Method 1
-After compiling the project in the `build/src` folder you will find a `.so` file named `explore.so` this is the shared object file that contains the c++ -> python library.
+After compiling the project in the `build/src` folder you will find a `.so` file named `pythonmonkey.so`. This is the shared object file that contains the pythonmonkey module.
 
-If you wish to use the library you can simply copy the `.so` file into the directory that you wish.
-
-### Method 2
-**(W.I.P)**  
-In the root directory you can run
+If you wish to use the library you can simply copy the `.so` file into the directory that you wish to use python in.
 ```bash
-pip3 install .
-
-or
-
-pip install .
+# In the directory containg pythonmonkey.so
+$ python
 ```
-To install this file into your current python environment. Then it is accessible anywhere on your machine.
-
+```py
+Python 3.10.6 (main, Nov 14 2022, 16:10:14) [GCC 11.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import pythonmonkey as pm
+>>> hello = pm.eval("() => {return 'Hello from Spidermonkey!'}")
+>>> hello()
+'Hello from Spidermonkey!'
+```
