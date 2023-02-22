@@ -22,7 +22,9 @@ enum class TYPE {
   DICT,
   LIST,
   TUPLE,
-  DATE
+  DATE,
+  NONE,
+  NIL,
 };
 
 #endif

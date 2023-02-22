@@ -125,14 +125,71 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 }
 
-static PyMethodDef PythonMonkeyMethods[] = {
+typedef struct {
+  PyObject_HEAD
+} NullObject;
+
+// @TODO (Caleb Aikens) figure out how to use C99-style designated initializers with a modern C++ compiler
+static PyTypeObject NullType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.Null",
+  .tp_basicsize = sizeof(NullObject),
+  .tp_itemsize = 0,
+  .tp_dealloc = NULL,
+  .tp_vectorcall_offset = NULL,
+  .tp_getattr = NULL,
+  .tp_setattr = NULL,
+  .tp_as_async = NULL,
+  .tp_repr = NULL,
+  .tp_as_number = NULL,
+  .tp_as_sequence = NULL,
+  .tp_as_mapping = NULL,
+  .tp_hash = NULL,
+  .tp_call = NULL,
+  .tp_str = NULL,
+  .tp_getattro = NULL,
+  .tp_setattro = NULL,
+  .tp_as_buffer = NULL,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = PyDoc_STR("Javascript null object"),
+  .tp_traverse = NULL,
+  .tp_clear = NULL,
+  .tp_richcompare = NULL,
+  .tp_weaklistoffset = NULL,
+  .tp_iter = NULL,
+  .tp_iternext = NULL,
+  .tp_methods = NULL,
+  .tp_members = NULL,
+  .tp_getset = NULL,
+  .tp_base = NULL,
+  .tp_dict = NULL,
+  .tp_descr_get = NULL,
+  .tp_descr_set = NULL,
+  .tp_dictoffset = NULL,
+  .tp_init = NULL,
+  .tp_alloc = NULL,
+  .tp_new = PyType_GenericNew,
+  .tp_free = NULL,
+  .tp_is_gc = NULL,
+  .tp_bases = NULL,
+  .tp_mro = NULL,
+  .tp_cache = NULL,
+  .tp_subclasses = NULL,
+  .tp_weaklist = NULL,
+  .tp_del = NULL,
+  .tp_version_tag = NULL,
+  .tp_finalize = NULL,
+  .tp_vectorcall = NULL,
+};
+
+PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
   {"asUCS4", asUCS4, METH_VARARGS, "Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4. Undefined behaviour if the string is not in UTF16."},
   {NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef pythonmonkey =
+struct PyModuleDef pythonmonkey =
 {
   PyModuleDef_HEAD_INIT,
   "pythonmonkey",                                   /* name of module */
@@ -163,5 +220,20 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
 
   Py_AtExit(cleanup);
   JS_SetGCCallback(cx, handleSharedPythonMonkeyMemory, NULL);
-  return PyModule_Create(&pythonmonkey);
+
+  PyObject *pyModule;
+  if (PyType_Ready(&NullType) < 0)
+    return NULL;
+
+  pyModule = PyModule_Create(&pythonmonkey);
+  if (pyModule == NULL)
+    return NULL;
+
+  Py_INCREF(&NullType);
+  if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
+    Py_DECREF(&NullType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+  return pyModule;
 }

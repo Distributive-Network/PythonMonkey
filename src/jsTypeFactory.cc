@@ -11,11 +11,7 @@
 
 #include "include/jsTypeFactory.hh"
 
-#include "include/BoolType.hh"
-#include "include/FloatType.hh"
-#include "include/IntType.hh"
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
+#include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include <jsapi.h>
 
@@ -34,8 +30,11 @@ JS::Value jsTypeFactory(PyObject *object) {
   else if (object == Py_None) {
     returnType.setUndefined();
   }
+  else if (object == PythonMonkey_Null) {
+    returnType.setNull();
+  }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, float, and None are not supported by pythonmonkey yet.");
+    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, float, None, and our custom Null type are not supported by pythonmonkey yet.");
   }
   return returnType;
 

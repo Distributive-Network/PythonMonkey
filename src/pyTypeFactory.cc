@@ -8,6 +8,8 @@
 #include "include/IntType.hh"
 #include "include/jsTypeFactory.hh"
 #include "include/ListType.hh"
+#include "include/NoneType.hh"
+#include "include/NullType.hh"
 #include "include/PyType.hh"
 #include "include/StrType.hh"
 #include "include/TupleType.hh"
@@ -53,10 +55,10 @@ PyType *pyTypeFactory(PyObject *object) {
 PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<JS::Value> *rval) {
   PyType *returnValue = NULL;
   if (rval->isUndefined()) {
-    printf("undefined type is not handled by PythonMonkey yet");
+    returnValue = new NoneType();
   }
   else if (rval->isNull()) {
-    printf("null type is not handled by PythonMonkey yet");
+    returnValue = new NullType();
   }
   else if (rval->isBoolean()) {
     returnValue = new BoolType(rval->toBoolean());
