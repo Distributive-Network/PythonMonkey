@@ -155,7 +155,7 @@ def test_eval_booleans():
     assert py_bool == js_bool
 
 def test_eval_dates():
-    MIN_YEAR = 0
+    MIN_YEAR = 100
     MAX_YEAR = 2023
     start = datetime(MIN_YEAR, 1, 1, 00, 00, 00)
     years = MAX_YEAR - MIN_YEAR + 1
@@ -177,13 +177,13 @@ def test_eval_boxed_booleans():
 def test_eval_boxed_numbers_floats():
     for i in range(10):
         py_number = random.uniform(-1000000,1000000)
-        js_number = pm.eval(f'new Number({repr(py_number)}')
+        js_number = pm.eval(f'new Number({repr(py_number)})')
         assert py_number == js_number
 
 def test_eval_boxed_numbers_integers():
     for i in range(10):
         py_number = random.randint(-1000000,1000000)
-        js_number = pm.eval(f'new Number({repr(py_number)}')
+        js_number = pm.eval(f'new Number({repr(py_number)})')
         assert py_number == js_number
 
 def test_eval_boxed_ascii_string_matches_evaluated_string():
@@ -313,3 +313,30 @@ def test_eval_boxed_ucs4_string_fuzztest():
 
             string1 = string2
         assert INITIAL_STRING == string1 #strings should still match after a bunch of iterations through JS
+        
+def test_eval_undefined():
+    x = pm.eval("undefined")
+    assert x == None
+
+def test_eval_null():
+    x = pm.eval("null")
+    assert x == pm.null
+    
+def test_eval_functions():
+    f = pm.eval("() => { return undefined }")
+    assert f() == None
+
+    g = pm.eval("() => { return null}")
+    assert g() == pm.null
+
+    h = pm.eval("(a, b) => {return a + b}")
+    n = 10
+    for i in range(n):
+        a = random.randint(0, 1000)
+        b = random.randint(0, 1000)
+        assert h(a, b) == (a + b)
+    
+    for i in range (n):
+        a = random.uniform(-1000.0, 1000.0)
+        b = random.uniform(-1000.0, 1000.0)
+        assert h(a, b) == (a + b)
