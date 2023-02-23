@@ -7,12 +7,7 @@ stages:
 before_script:
   - apt-get update --yes
   - apt-get upgrade --yes
-  - apt-get install cmake --yes
-  - apt-get install python3-dev --yes
-  - apt-get install doxygen --yes
-  - apt-get install graphviz --yes
-  - apt-get install gcovr --yes
-  - apt-get install llvm --yes
+  - apt-get install cmake python3-dev doxygen graphviz gcovr llvm --yes
 
 Build-Library:
   stage: build
@@ -22,10 +17,11 @@ Build-Library:
   script:
     - echo Building SpiderMonkey
     - curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
-    # TODO: (Caleb Aikens)is there a better way to get spidermonkey?
     - wget -q https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
     - tar xf firefox-102.2.0esr.source.tar.xz
     - cd firefox-102.2.0/js/src
+    - sed -i 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
+    - sed -i 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./vm/JSObject.cpp  # same here
     - cp ./configure.in ./configure
     - chmod +x ./configure
     - mkdir _build
@@ -56,6 +52,8 @@ Run-GoogleTests:
     - make && make tests
     - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
     - cd tests && ctest
+    - cd ../src
+    - python -m pytest ../../tests/python
   coverage: /All files[^|]*\|[^|]*\s+([\d\.]+)/
   artifacts:
     name: ${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHA}
