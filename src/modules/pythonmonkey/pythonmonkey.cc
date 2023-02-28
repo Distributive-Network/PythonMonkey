@@ -200,6 +200,8 @@ struct PyModuleDef pythonmonkey =
   PythonMonkeyMethods
 };
 
+PyObject *SpiderMonkeyError = NULL;
+
 PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
   PyDateTime_IMPORT;
