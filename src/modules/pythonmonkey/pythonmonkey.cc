@@ -1,10 +1,12 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
-#include "include/PyType.hh"
+
 #include "include/BoolType.hh"
+#include "include/setSpiderMonkeyException.hh"
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 
@@ -22,7 +24,64 @@
 #include <datetime.h>
 
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
+typedef struct {
+  PyObject_HEAD
+} NullObject;
+
 std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
+
+// @TODO (Caleb Aikens) figure out how to use C99-style designated initializers with a modern C++ compiler
+static PyTypeObject NullType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.Null",
+  .tp_basicsize = sizeof(NullObject),
+  .tp_itemsize = 0,
+  .tp_dealloc = NULL,
+  .tp_vectorcall_offset = NULL,
+  .tp_getattr = NULL,
+  .tp_setattr = NULL,
+  .tp_as_async = NULL,
+  .tp_repr = NULL,
+  .tp_as_number = NULL,
+  .tp_as_sequence = NULL,
+  .tp_as_mapping = NULL,
+  .tp_hash = NULL,
+  .tp_call = NULL,
+  .tp_str = NULL,
+  .tp_getattro = NULL,
+  .tp_setattro = NULL,
+  .tp_as_buffer = NULL,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = PyDoc_STR("Javascript null object"),
+  .tp_traverse = NULL,
+  .tp_clear = NULL,
+  .tp_richcompare = NULL,
+  .tp_weaklistoffset = NULL,
+  .tp_iter = NULL,
+  .tp_iternext = NULL,
+  .tp_methods = NULL,
+  .tp_members = NULL,
+  .tp_getset = NULL,
+  .tp_base = NULL,
+  .tp_dict = NULL,
+  .tp_descr_get = NULL,
+  .tp_descr_set = NULL,
+  .tp_dictoffset = NULL,
+  .tp_init = NULL,
+  .tp_alloc = NULL,
+  .tp_new = PyType_GenericNew,
+  .tp_free = NULL,
+  .tp_is_gc = NULL,
+  .tp_bases = NULL,
+  .tp_mro = NULL,
+  .tp_cache = NULL,
+  .tp_subclasses = NULL,
+  .tp_weaklist = NULL,
+  .tp_del = NULL,
+  .tp_version_tag = NULL,
+  .tp_finalize = NULL,
+  .tp_vectorcall = NULL,
+};
 
 static void cleanup() {
   JS_DestroyContext(cx);
@@ -103,15 +162,15 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
   if (!source.init(cx, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
-    PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not initialize with given JS code.");
+    setSpiderMonkeyException(cx);
     return NULL;
   }
 
   // evaluate source code
   JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(cx);
   if (!JS::Evaluate(cx, options, source, rval)) {
-    PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not evaluate the given JS code.");
-    return NULL; // TODO (Caleb Aikens) figure out how to capture JS exceptions
+    setSpiderMonkeyException(cx);
+    return NULL;
   }
 
   // translate to the proper python type
@@ -124,63 +183,6 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     Py_RETURN_NONE;
   }
 }
-
-typedef struct {
-  PyObject_HEAD
-} NullObject;
-
-// @TODO (Caleb Aikens) figure out how to use C99-style designated initializers with a modern C++ compiler
-static PyTypeObject NullType = {
-  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.Null",
-  .tp_basicsize = sizeof(NullObject),
-  .tp_itemsize = 0,
-  .tp_dealloc = NULL,
-  .tp_vectorcall_offset = NULL,
-  .tp_getattr = NULL,
-  .tp_setattr = NULL,
-  .tp_as_async = NULL,
-  .tp_repr = NULL,
-  .tp_as_number = NULL,
-  .tp_as_sequence = NULL,
-  .tp_as_mapping = NULL,
-  .tp_hash = NULL,
-  .tp_call = NULL,
-  .tp_str = NULL,
-  .tp_getattro = NULL,
-  .tp_setattro = NULL,
-  .tp_as_buffer = NULL,
-  .tp_flags = Py_TPFLAGS_DEFAULT,
-  .tp_doc = PyDoc_STR("Javascript null object"),
-  .tp_traverse = NULL,
-  .tp_clear = NULL,
-  .tp_richcompare = NULL,
-  .tp_weaklistoffset = NULL,
-  .tp_iter = NULL,
-  .tp_iternext = NULL,
-  .tp_methods = NULL,
-  .tp_members = NULL,
-  .tp_getset = NULL,
-  .tp_base = NULL,
-  .tp_dict = NULL,
-  .tp_descr_get = NULL,
-  .tp_descr_set = NULL,
-  .tp_dictoffset = NULL,
-  .tp_init = NULL,
-  .tp_alloc = NULL,
-  .tp_new = PyType_GenericNew,
-  .tp_free = NULL,
-  .tp_is_gc = NULL,
-  .tp_bases = NULL,
-  .tp_mro = NULL,
-  .tp_cache = NULL,
-  .tp_subclasses = NULL,
-  .tp_weaklist = NULL,
-  .tp_del = NULL,
-  .tp_version_tag = NULL,
-  .tp_finalize = NULL,
-  .tp_vectorcall = NULL,
-};
 
 PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
@@ -202,21 +204,30 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
   PyDateTime_IMPORT;
 
-  if (!JS_Init())
+  if (!JS_Init()) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
+  }
+    
 
   cx = JS_NewContext(JS::DefaultHeapMaxBytes);
-  if (!cx)
+  if (!cx) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a JS context.");
     return NULL;
+  }
 
-  if (!JS::InitSelfHostedCode(cx))
+  if (!JS::InitSelfHostedCode(cx)) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not initialize self-hosted code.");
     return NULL;
+  }
 
   JS::RealmOptions options;
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
   global = new JS::RootedObject(cx, JS_NewGlobalObject(cx, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
-  if (!global)
+  if (!global) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a global object.");
     return NULL;
+  }
 
   Py_AtExit(cleanup);
   JS_SetGCCallback(cx, handleSharedPythonMonkeyMemory, NULL);
@@ -232,6 +243,12 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&NullType);
   if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
     Py_DECREF(&NullType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
+  if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError)) {
     Py_DECREF(pyModule);
     return NULL;
   }

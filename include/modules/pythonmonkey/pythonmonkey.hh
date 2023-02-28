@@ -21,6 +21,8 @@
 
 #define PythonMonkey_Null PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null") /**< macro for python null object*/
 
+PyObject *SpiderMonkeyError = NULL;
+
 static JSContext *cx; /**< pointer to PythonMonkey's JSContext */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 
