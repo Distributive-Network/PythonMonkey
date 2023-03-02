@@ -3,7 +3,7 @@
 ![Testing Suite](https://github.com/Kings-Distributed-Systems/PythonMonkey/actions/workflows/tests.yaml/badge.svg)
 
 ## About
-PythonMonkey is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JS engine embedded into the Python VM,
+PythonMonkey is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
 using the Python engine to provide the JS host environment.
 
 This product is in an early stage, approximately 65% to MVP as of March 2023. It is under active development by Distributive Corp.,
