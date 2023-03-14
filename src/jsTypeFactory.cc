@@ -19,10 +19,18 @@
 #include <Python.h>
 
 #define HIGH_SURROGATE_START 0xD800
-#define HIGH_SURROGATE_END 0xDBFF
 #define LOW_SURROGATE_START 0xDC00
 #define LOW_SURROGATE_END 0xDFFF
 #define BMP_END 0x10000
+
+struct PythonExternalString : public JSExternalStringCallbacks {
+  void finalize(char16_t *chars) const override {}
+  size_t sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const override {
+    return 0;
+  }
+};
+
+static constexpr PythonExternalString PythonExternalStringCallbacks;
 
 size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr) {
   uint16_t utf16String[length*2];
@@ -34,9 +42,11 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr) {
       utf16Length += 1;
     }
     else {
-      utf16String[utf16Length] = uint16_t(((0b1111'1111'1100'0000'0000 & (chars[i] - BMP_END)) >> 10) + HIGH_SURROGATE_START);
-      utf16String[utf16Length + 1] = uint16_t(((0b0000'0000'0011'1111'1111 & (chars[i] - BMP_END)) >> 00) +  LOW_SURROGATE_START);
+      /* *INDENT-OFF* */
+      utf16String[utf16Length]      = uint16_t(((0b1111'1111'1100'0000'0000 & (chars[i] - BMP_END)) >> 10) + HIGH_SURROGATE_START);
+      utf16String[utf16Length + 1]  = uint16_t(((0b0000'0000'0011'1111'1111 & (chars[i] - BMP_END)) >> 00) +  LOW_SURROGATE_START);
       utf16Length += 2;
+      /* *INDENT-ON* */
     }
   }
   outStr = utf16String;
@@ -66,14 +76,18 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     case (PyUnicode_2BYTE_KIND): {
-        JS::UniqueTwoByteChars chars((char16_t *)PyUnicode_2BYTE_DATA(object));
-        JSString *str = JS_NewUCString(cx, std::move(chars), PyUnicode_GET_LENGTH(object));
+        JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_2BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         returnType.setString(str);
         break;
       }
     case (PyUnicode_1BYTE_KIND): {
-        JS::UniqueLatin1Chars chars(PyUnicode_1BYTE_DATA(object));
-        JSString *str = JS_NewLatin1String(cx, std::move(chars), PyUnicode_GET_LENGTH(object));
+
+        JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
+        /* @TODO (Caleb Aikens) this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
+         * Ideally we submit a patch to Spidermonkey to make this part of their API with the following signature:
+         * JS_NewExternalString(JSContext *cx, const char *chars, size_t length, const JSExternalStringCallbacks *callbacks)
+         */
+        *(std::atomic<unsigned long> *)str |= 512;
         returnType.setString(str);
         break;
       }
@@ -87,7 +101,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, float, None, and our custom Null type are not supported by pythonmonkey yet.");
+    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, float, str, None, and our custom Null type are not supported by pythonmonkey yet.");
   }
   return returnType;
 

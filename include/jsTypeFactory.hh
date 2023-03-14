@@ -16,6 +16,18 @@
 
 #include <jsapi.h>
 
+
+struct PythonExternalString;
+
+/**
+ * @brief Function that makes a UTF16-encoded copy of a UCS4 string
+ *
+ * @param chars - pointer to the UCS4-encoded string
+ * @param length - length of chars in code points
+ * @param outStr - UTF16-encoded out-parameter string
+ * @return size_t - length of outStr (counting surrogate pairs as 2)
+ */
+size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr);
 /**
  * @brief Function that takes a PyType and returns a corresponding JS::Value, doing shared memory management when necessary
  *
