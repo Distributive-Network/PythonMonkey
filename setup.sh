@@ -1,3 +1,6 @@
+# Get number of CPU cores
+CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
+
 apt-get update --yes
 apt-get upgrade --yes
 apt-get install cmake python3-dev python3-pytest doxygen graphviz gcovr llvm g++ pkg-config m4 --yes
@@ -13,5 +16,5 @@ chmod +x ./configure
 mkdir _build
 cd _build
 ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-optimize
-make
+make -j$CPUS
 make install
