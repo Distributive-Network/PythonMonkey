@@ -15,7 +15,11 @@
 
 #define JS_DIGIT_BIT JS_BITS_PER_WORD
 #define PY_DIGIT_BIT PYLONG_BITS_IN_DIGIT
-#define JS_DIGIT_BYTE (sizeof(uintptr_t)/sizeof(uint8_t))
+
+#define js_digit_t uintptr_t // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l36
+#define JS_DIGIT_BYTE (sizeof(js_digit_t)/sizeof(uint8_t))
+
+#define JS_INLINE_DIGIT_MAX_LEN 1 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l43
 
 IntType::IntType(PyObject *object) : PyType(object) {}
 
@@ -25,13 +29,18 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // Get the sign bit
   bool isNegative = BigIntIsNegative(bigint);
 
-  // Read the digits count in the JS BigInt
-  // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l48
-  // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/gc/Cell.h#l623
+  // Read the digits count in this JS BigInt
+  //    https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l48
+  //    https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/gc/Cell.h#l623
   uint32_t jsDigitCount = ((uint32_t *)bigint)[1];
 
   // Get all the 64-bit (assuming we compile on 64-bit OS) "digits" from JS BigInt
-  uintptr_t *jsDigits = (uintptr_t *)(((char *)bigint) + CELL_HEADER_LENGTH);
+  js_digit_t *jsDigits = (js_digit_t *)(((char *)bigint) + CELL_HEADER_LENGTH);
+  if (jsDigitCount > JS_INLINE_DIGIT_MAX_LEN) { // hasHeapDigits
+    // We actually have a pointer to the digit storage if the number cannot fit in one uint64_t
+    //    https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l54
+    jsDigits = *((js_digit_t **)jsDigits);
+  }
   //
   // The digit storage starts with the least significant digit (little-endian digit order).
   // Byte order within a digit is native-endian.
