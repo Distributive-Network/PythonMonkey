@@ -54,7 +54,11 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // we now have uniform bytes of 8-bit "digits" in little-endian order
   auto bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);
   pyObject = _PyLong_FromByteArray(bytes, jsDigitCount * JS_DIGIT_BYTE, true, false);
-  // FIXME: sign
+
+  // Set the sign bit
+  //    https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L956
+  auto pyDigitCount = Py_SIZE(pyObject);
+  Py_SET_SIZE(pyObject, isNegative ? -pyDigitCount : pyDigitCount);
 }
 
 void IntType::print(std::ostream &os) const {
