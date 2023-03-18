@@ -11,7 +11,6 @@
 #include <iostream>
 #include <bit>
 
-#define SIGN_BIT_MASK 0b1000 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l40
 #define CELL_HEADER_LENGTH 8 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/gc/Cell.h#l602
 
 #define JS_DIGIT_BIT JS_BITS_PER_WORD
@@ -24,9 +23,7 @@ IntType::IntType(long n) : PyType(Py_BuildValue("i", n)) {}
 
 IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // Get the sign bit
-  uint32_t flagsField = ((uint32_t *)bigint)[0];
-  // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l91
-  bool isNegative = flagsField & SIGN_BIT_MASK;
+  bool isNegative = BigIntIsNegative(bigint);
 
   // Read the digits count in the JS BigInt
   // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l48
