@@ -30,15 +30,15 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   bool isNegative = BigIntIsNegative(bigint);
 
   // Read the digits count in this JS BigInt
-  //    https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l48
-  //    https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/gc/Cell.h#l623
+  //    see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l48
+  //        https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/gc/Cell.h#l623
   uint32_t jsDigitCount = ((uint32_t *)bigint)[1];
 
   // Get all the 64-bit (assuming we compile on 64-bit OS) "digits" from JS BigInt
   js_digit_t *jsDigits = (js_digit_t *)(((char *)bigint) + CELL_HEADER_LENGTH);
   if (jsDigitCount > JS_INLINE_DIGIT_MAX_LEN) { // hasHeapDigits
     // We actually have a pointer to the digit storage if the number cannot fit in one uint64_t
-    //    https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l54
+    //    see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l54
     jsDigits = *((js_digit_t **)jsDigits);
   }
   //
@@ -56,9 +56,11 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   pyObject = _PyLong_FromByteArray(bytes, jsDigitCount * JS_DIGIT_BYTE, true, false);
 
   // Set the sign bit
-  //    https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L956
-  auto pyDigitCount = Py_SIZE(pyObject);
-  Py_SET_SIZE(pyObject, isNegative ? -pyDigitCount : pyDigitCount);
+  //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L956
+  if (isNegative) {
+    auto pyDigitCount = Py_SIZE(pyObject);
+    Py_SET_SIZE(pyObject, -pyDigitCount);
+  }
 }
 
 void IntType::print(std::ostream &os) const {
