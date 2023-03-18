@@ -84,6 +84,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
     JS::GetBuiltinClass(cx, obj, &cls);
     switch (cls) {
     case js::ESClass::Boolean: {
+        // TODO: refactor out all `js::Unbox` calls
+        // TODO: refactor using recursive call to `pyTypeFactory`
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
         returnValue = new BoolType(unboxed.toBoolean());
@@ -106,6 +108,12 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
         returnValue = new FloatType(unboxed.toNumber());
+        break;
+      }
+    case js::ESClass::BigInt: {
+        JS::RootedValue unboxed(cx);
+        js::Unbox(cx, obj, &unboxed);
+        returnValue = new IntType(cx, unboxed.toBigInt());
         break;
       }
     case js::ESClass::String: {
