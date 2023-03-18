@@ -75,7 +75,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
     printf("symbol type is not handled by PythonMonkey yet");
   }
   else if (rval->isBigInt()) {
-    printf("bigint type is not handled by PythonMonkey yet");
+    returnValue = new IntType(cx, rval->toBigInt());
   }
   else if (rval->isObject()) {
     JS::Rooted<JSObject *> obj(cx);
