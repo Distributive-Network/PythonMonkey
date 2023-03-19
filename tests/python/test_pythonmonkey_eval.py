@@ -146,6 +146,27 @@ def test_eval_numbers_integers():
         js_number = pm.eval(repr(py_number))
         assert py_number == js_number
 
+def test_eval_numbers_bigints():
+    def test_bigint(py_number: int):
+        js_number = pm.eval(f'{repr(py_number)}n')
+        assert py_number == js_number
+
+    test_bigint(0)
+    test_bigint(1)
+    test_bigint(-1)
+
+    test_bigint(18014398509481984)      #  2**54
+    test_bigint(-18014398509481984)     # -2**54
+    test_bigint(18446744073709551615)   #  2**64-1
+    test_bigint(18446744073709551616)   #  2**64
+    test_bigint(-18446744073709551617)  # -2**64-1
+
+    limit = 2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376
+    #     = 2**300
+    for i in range(10):
+        py_number = random.randint(-limit, limit)
+        test_bigint(py_number)
+
 def test_eval_booleans():
     py_bool = True
     js_bool = pm.eval('true')
