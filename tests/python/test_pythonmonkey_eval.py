@@ -207,6 +207,23 @@ def test_eval_boxed_numbers_integers():
         js_number = pm.eval(f'new Number({repr(py_number)})')
         assert py_number == js_number
 
+def test_eval_boxed_numbers_bigints():
+    def test_boxed_bigint(py_number: int):
+        # `BigInt()` can only be called without `new`
+        #   https://tc39.es/ecma262/#sec-bigint-constructor
+        js_number = pm.eval(f'new Object({repr(py_number)}n)')
+        assert py_number == js_number
+
+    test_boxed_bigint(0)
+    test_boxed_bigint(1)
+    test_boxed_bigint(-1)
+
+    limit = 2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376
+    #     = 2**300
+    for i in range(10):
+        py_number = random.randint(-limit, limit)
+        test_boxed_bigint(py_number)
+
 def test_eval_boxed_ascii_string_matches_evaluated_string():
     py_ascii_string = "abc"
     js_ascii_string = pm.eval(f'new String({repr(py_ascii_string)})')
