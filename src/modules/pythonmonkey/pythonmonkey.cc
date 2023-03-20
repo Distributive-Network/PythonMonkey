@@ -40,6 +40,15 @@ static PyTypeObject NullType = {
   .tp_new = PyType_GenericNew,
 };
 
+static PyTypeObject BigIntType = {
+  .tp_name = "pythonmonkey.bigint",
+  .tp_flags = Py_TPFLAGS_DEFAULT
+  | Py_TPFLAGS_LONG_SUBCLASS // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_LONG_SUBCLASS
+  | Py_TPFLAGS_BASETYPE,     // can be subclassed
+  .tp_doc = PyDoc_STR("Javascript BigInt object"),
+  .tp_base = &PyLong_Type,   // extending the builtin int type
+};
+
 static void cleanup() {
   JS_DestroyContext(cx);
   JS_ShutDown();
@@ -167,7 +176,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
   }
-    
 
   cx = JS_NewContext(JS::DefaultHeapMaxBytes);
   if (!cx) {
@@ -194,6 +202,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)
     return NULL;
+  if (PyType_Ready(&BigIntType) < 0)
+    return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
@@ -202,6 +212,12 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&NullType);
   if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
     Py_DECREF(&NullType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+  Py_INCREF(&BigIntType);
+  if (PyModule_AddObject(pyModule, "bigint", (PyObject *)&BigIntType) < 0) {
+    Py_DECREF(&BigIntType);
     Py_DECREF(pyModule);
     return NULL;
   }
