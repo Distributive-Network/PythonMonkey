@@ -34,7 +34,7 @@ static PyTypeObject NullType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "pythonmonkey.null",
   .tp_basicsize = sizeof(NullObject),
-  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_DISALLOW_INSTANTIATION, // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DISALLOW_INSTANTIATION
+  .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_doc = PyDoc_STR("Javascript null object"),
 };
 
