@@ -22,7 +22,12 @@ JS::Value jsTypeFactory(PyObject *object) {
     returnType.setBoolean(PyLong_AsLong(object));
   }
   else if (PyLong_Check(object)) {
-    returnType.setNumber(PyLong_AsLong(object));
+    long num = PyLong_AsLong(object); // FIXME: long is 32-bit on Win64 or 32bit *nix  
+    if (JS::Value::isNumberRepresentable(num)) {
+      returnType.setNumber(num);
+    } else {
+      PyErr_SetString(PyExc_TypeError, "Integer exceeds Number.MAX_SAFE_INTEGER. Use pythonmonkey.bigint instead.");
+    }
   }
   else if (PyFloat_Check(object)) {
     returnType.setNumber(PyFloat_AsDouble(object));
