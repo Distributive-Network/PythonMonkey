@@ -24,6 +24,7 @@
 
 static JSContext *cx; /**< pointer to PythonMonkey's JSContext */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
+static JSAutoRealm *autoRealm; /**< pointer to PythonMonkey's AutoRealm */
 
 /**
  * @brief Destroys the JSContext and deletes associated memory. Called when python quits or faces a fatal exception.

@@ -119,7 +119,6 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  JSAutoRealm ar(cx, *global);
   JS::CompileOptions options (cx);
   options.setFileAndLine("noname", 1);
 
@@ -175,6 +174,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+
   cx = JS_NewContext(JS::DefaultHeapMaxBytes);
   if (!cx) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a JS context.");
@@ -193,6 +193,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a global object.");
     return NULL;
   }
+
+  autoRealm = new JSAutoRealm(cx, *global);
 
   Py_AtExit(cleanup);
   JS_SetGCCallback(cx, handleSharedPythonMonkeyMemory, NULL);

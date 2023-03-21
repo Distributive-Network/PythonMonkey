@@ -98,7 +98,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         break;
       }
     case js::ESClass::Function: {
-        PyObject *JSCxGlobalFuncTuple = Py_BuildValue("(lll)", (long)cx, (long)global, (long)rval);
+        PyObject *JSCxGlobalFuncTuple = Py_BuildValue("(lll)", (uint64_t)cx, (uint64_t)global, (uint64_t)rval);
         PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, JSCxGlobalFuncTuple);
         returnValue = new FuncType(pyFunc);
         memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
@@ -143,11 +143,7 @@ static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {
 
   JS::RootedVector<JS::Value> JSargsVector(JScontext);
   for (size_t i = 0; i < PyTuple_Size(args); i++) {
-    // TODO (Caleb Aikens) write an overload for jsTypeFactory to handle PyObjects directly
     JS::Value jsValue = jsTypeFactory(JScontext, PyTuple_GetItem(args, i));
-    if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
-      return NULL; // Fail-fast
-    }
     JSargsVector.append(jsValue);
   }
 
@@ -157,6 +153,6 @@ static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {
     setSpiderMonkeyException(JScontext);
     return NULL;
   }
-  
+
   return pyTypeFactory(JScontext, globalObject, JSreturnVal)->getPyObject();
 }
