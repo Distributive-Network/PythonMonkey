@@ -39,6 +39,13 @@ public:
 
   const TYPE returnType = TYPE::INT;
 
+  /**
+   * @brief Convert the IntType object to a JS::BigInt
+   *
+   * @param cx - javascript context pointer
+   */
+  JS::BigInt *toJsBigInt(JSContext *cx);
+
 protected:
   virtual void print(std::ostream &os) const override;
 };

@@ -12,6 +12,7 @@
 #include "include/jsTypeFactory.hh"
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
+#include "include/IntType.hh"
 
 #include <jsapi.h>
 
@@ -23,7 +24,8 @@ JS::Value jsTypeFactory(PyObject *object) {
   }
   else if (PyLong_Check(object)) {
     if (PyObject_IsInstance(object, PythonMonkey_BigInt)) { // pm.bigint is a subclass of the builtin int type
-      returnType.setBigInt(num);
+      auto bigint = IntType(object).toJsBigInt(cx);
+      returnType.setBigInt(bigint);
     } else {
       long long num = PyLong_AsLongLong(object);
       if (JS::Value::isNumberRepresentable(num)) { // TODO: refactor using _PyLong_NumBits ?

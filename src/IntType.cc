@@ -23,6 +23,8 @@
 
 #define JS_INLINE_DIGIT_MAX_LEN 1 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l43
 
+static const char HEX_CHAR_LOOKUP_TABLE[] = "0123456789ABCDEF";
+
 IntType::IntType(PyObject *object) : PyType(object) {}
 
 IntType::IntType(long n) : PyType(Py_BuildValue("i", n)) {}
@@ -67,6 +69,42 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
   //  allowing Py<->JS two-way BigInt conversion
   Py_SET_TYPE(pyObject, (PyTypeObject *)(PythonMonkey_BigInt));
+}
+
+JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
+  // Figure out how many 64-bit "digits" we have
+  //    see https://github.com/python/cpython/blob/3.9/Modules/_randommodule.c#L306
+  auto bitCount = _PyLong_NumBits(pyObject);
+  if (bitCount == (size_t)-1 && PyErr_Occurred())
+    return nullptr;
+  uint32_t jsDigitCount = bitCount == 0 ? 1 : (bitCount - 1) / JS_DIGIT_BIT + 1;
+  size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
+
+  // Convert to bytes of 8-bit "digits" in **big-endian** order
+  auto bytes = (uint8_t *)PyMem_Malloc(byteCount);
+  if (bytes == NULL) {
+    PyErr_NoMemory();
+    return nullptr;
+  }
+  _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
+
+  // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
+  // TODO: We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API
+  // TODO: Could we fill in an object with similar memory alignment (maybe by NewArrayBufferWithContents), and coerce it to BigInt?
+
+  // Calculate the number of chars required to represent the bigint in hex string
+  auto charCount = byteCount * 2;
+  // Convert bytes to hex string (big-endian)
+  auto chars = std::vector<char>(charCount+1);
+  for (size_t i = 0, j = 0; i < charCount; i += 2, j++) {
+    chars[i] = HEX_CHAR_LOOKUP_TABLE[(bytes[j] >> 4)&0xf]; // high nibble
+    chars[i+1] = HEX_CHAR_LOOKUP_TABLE[bytes[j]&0xf];      // low  nibble
+  }
+  PyMem_Free(bytes);
+
+  // Convert hex string to JS::BigInt
+  auto strSpan = mozilla::Span<const char>(chars);
+  return JS::SimpleStringToBigInt(cx, strSpan, 16);
 }
 
 void IntType::print(std::ostream &os) const {
