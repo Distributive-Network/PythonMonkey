@@ -29,7 +29,7 @@ struct PythonExternalString;
  */
 size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr);
 /**
- * @brief Function that takes a PyType and returns a corresponding JS::Value, doing shared memory management when necessary
+ * @brief Function that takes a PyObject and returns a corresponding JS::Value, doing shared memory management when necessary
  *
  * @param cx - Pointer to the JSContext
  * @param object - Pointer to the PyObject who's type and value we wish to encapsulate
@@ -37,4 +37,14 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr);
  */
 JS::Value jsTypeFactory(JSContext *cx, PyObject *object);
 
+/**
+ * @brief Helper function for jsTypeFactory to create a JSFunction* through JS_NewFunction that knows how to call a python function.
+ *
+ * @param cx - Pointer to the JSContext
+ * @param argc - The number of arguments the JSFunction expects
+ * @param vp - The return value of the JSFunction
+ * @return true - Function executed successfully
+ * @return false - Function did not execute successfully and an exception has been set
+ */
+bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp);
 #endif

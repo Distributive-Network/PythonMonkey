@@ -12,9 +12,13 @@
 #include "include/jsTypeFactory.hh"
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
+#include "include/PyType.hh"
+#include "include/FuncType.hh"
+#include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 
 #include <Python.h>
 
@@ -94,6 +98,26 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
+  else if (PyFunction_Check(object)) {
+    /*
+     * import inspect
+     * args = (inspect.getfullargspec(object)).args
+     */
+    PyObject *const inspect = PyImport_Import(PyUnicode_DecodeFSDefault("inspect"));
+    PyObject *const getfullargspec = PyObject_GetAttrString(inspect, "getfullargspec");
+    PyObject *const getfullargspecArgs = PyTuple_New(1);
+    PyTuple_SetItem(getfullargspecArgs, 0, object);
+    PyObject *const argspec = PyObject_CallObject(getfullargspec, getfullargspecArgs);
+    PyObject *const args = PyObject_GetAttrString(argspec, "args");
+
+    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, PyList_Size(args), 0, NULL);
+    JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
+
+    // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
+    js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
+    returnType.setObject(*jsFuncObject);
+    memoizePyTypeAndGCThing(new FuncType(object), returnType);
+  }
   else if (object == Py_None) {
     returnType.setUndefined();
   }
@@ -105,4 +129,36 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   return returnType;
 
+}
+
+bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
+  JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
+
+  // get the python function from the 0th reserved slot
+  JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
+  PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
+
+  JS::RootedObject thisv(cx);
+  JS_ValueToObject(cx, callargs.thisv(), &thisv);
+
+  if (argc == 0) {
+    PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
+    // @TODO (Caleb Aikens) need to check for python exceptions here
+    callargs.rval().set(jsTypeFactory(cx, pyRval));
+    return true;
+  }
+
+  // populate python args tuple
+  PyObject *pyArgs = PyTuple_New(argc);
+  for (size_t i = 0; i < argc; i++) {
+    JS::RootedValue jsArg = JS::RootedValue(cx, callargs[i]);
+    PyType *pyArg = (pyTypeFactory(cx, &thisv, &jsArg));
+    PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
+  }
+
+  PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
+  // @TODO (Caleb Aikens) need to check for python exceptions here
+  callargs.rval().set(jsTypeFactory(cx, pyRval));
+
+  return true;
 }

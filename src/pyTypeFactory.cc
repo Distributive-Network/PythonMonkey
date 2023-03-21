@@ -96,7 +96,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         break;
       }
     case js::ESClass::Function: {
-        PyObject *JSCxGlobalFuncTuple = Py_BuildValue("(lll)", (long)cx, (long)global, (long)rval);
+        PyObject *JSCxGlobalFuncTuple = Py_BuildValue("(lll)", (uint64_t)cx, (uint64_t)global, (uint64_t)rval);
         PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, JSCxGlobalFuncTuple);
         returnValue = new FuncType(pyFunc);
         memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
