@@ -25,8 +25,8 @@ JS::Value jsTypeFactory(PyObject *object) {
     if (PyObject_IsInstance(object, PythonMonkey_BigInt)) { // pm.bigint is a subclass of the builtin int type
       returnType.setBigInt(num);
     } else {
-      long num = PyLong_AsLong(object); // FIXME: long is 32-bit on Win64 or 32bit *nix
-      if (JS::Value::isNumberRepresentable(num)) {
+      long long num = PyLong_AsLongLong(object);
+      if (JS::Value::isNumberRepresentable(num)) { // TODO: refactor using _PyLong_NumBits ?
         returnType.setNumber(num);
       } else {
         PyErr_SetString(PyExc_TypeError, "Integer exceeds Number.MAX_SAFE_INTEGER. Use pythonmonkey.bigint instead.");
