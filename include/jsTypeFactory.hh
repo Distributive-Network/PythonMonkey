@@ -19,9 +19,10 @@
 /**
  * @brief Function that takes a PyType and returns a corresponding JS::Value, doing shared memory management when necessary
  *
+ * @param cx - javascript context pointer
  * @param object - Pointer to the PyObject who's type and value we wish to encapsulate
  * @return JS::Value - A JS::Value corresponding to the PyType
  */
-JS::Value jsTypeFactory(PyObject *object);
+JS::Value jsTypeFactory(JSContext *cx, PyObject *object);
 
 #endif

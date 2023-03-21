@@ -144,7 +144,7 @@ static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {
   JS::RootedVector<JS::Value> JSargsVector(JScontext);
   for (size_t i = 0; i < PyTuple_Size(args); i++) {
     // TODO (Caleb Aikens) write an overload for jsTypeFactory to handle PyObjects directly
-    JS::Value jsValue = jsTypeFactory(PyTuple_GetItem(args, i));
+    JS::Value jsValue = jsTypeFactory(JScontext, PyTuple_GetItem(args, i));
     if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
       return NULL; // Fail-fast
     }

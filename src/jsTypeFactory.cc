@@ -16,7 +16,7 @@
 
 #include <jsapi.h>
 
-JS::Value jsTypeFactory(PyObject *object) {
+JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   JS::Value returnType;
 
   if (PyBool_Check(object)) {
