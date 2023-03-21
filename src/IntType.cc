@@ -1,3 +1,5 @@
+#include "include/modules/pythonmonkey/pythonmonkey.hh"
+
 #include "include/IntType.hh"
 
 #include "include/PyType.hh"
@@ -51,7 +53,7 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
     return;
   }
   // If the native endianness is also little-endian,
-  // we now have uniform bytes of 8-bit "digits" in little-endian order
+  // we now have consecutive bytes of 8-bit "digits" in little-endian order
   auto bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);
   pyObject = _PyLong_FromByteArray(bytes, jsDigitCount * JS_DIGIT_BYTE, true, false);
 
@@ -61,6 +63,10 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
     auto pyDigitCount = Py_SIZE(pyObject);
     Py_SET_SIZE(pyObject, -pyDigitCount);
   }
+
+  // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
+  //  allowing Py<->JS two-way BigInt conversion
+  Py_SET_TYPE(pyObject, (PyTypeObject *)(PythonMonkey_BigInt));
 }
 
 void IntType::print(std::ostream &os) const {
