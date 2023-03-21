@@ -71,7 +71,8 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
 
 void IntType::print(std::ostream &os) const {
   // Making sure the value does not overflow even if the int has millions of bits of precision
-  // FIXME double still overflows at 1.7976931348623157E+308
-  // TODO (Tom Tang) use Python's `str` conversion and then use `PyUnicode_AsUTF8` to print with whole precisions
-  os << PyLong_AsDouble(pyObject);
+  auto str = PyObject_Str(pyObject);
+  os << PyUnicode_AsUTF8(str);
+  // https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html#new-references
+  Py_DECREF(str); // free
 }
