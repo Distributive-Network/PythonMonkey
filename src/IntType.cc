@@ -57,7 +57,14 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // If the native endianness is also little-endian,
   // we now have consecutive bytes of 8-bit "digits" in little-endian order
   auto bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);
-  pyObject = _PyLong_FromByteArray(bytes, jsDigitCount * JS_DIGIT_BYTE, true, false);
+  if (jsDigitCount == 0) {
+    // Create a new object instead of reusing the object for int 0
+    //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L862
+    //        https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L310
+    pyObject = (PyObject *)_PyLong_New(0);
+  } else {
+    pyObject = _PyLong_FromByteArray(bytes, jsDigitCount * JS_DIGIT_BYTE, true, false);
+  }
 
   // Set the sign bit
   //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L956
