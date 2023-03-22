@@ -13,6 +13,7 @@
 #include <iostream>
 #include <bit>
 
+#define SIGN_BIT_MASK 0b1000 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l40
 #define CELL_HEADER_LENGTH 8 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/gc/Cell.h#l602
 
 #define JS_DIGIT_BIT JS_BITS_PER_WORD
@@ -79,13 +80,23 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
 }
 
 JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
-  // Figure out how many 64-bit "digits" we have
+  // Figure out how many 64-bit "digits" we would have for JS BigInt
   //    see https://github.com/python/cpython/blob/3.9/Modules/_randommodule.c#L306
   auto bitCount = _PyLong_NumBits(pyObject);
   if (bitCount == (size_t)-1 && PyErr_Occurred())
     return nullptr;
   uint32_t jsDigitCount = bitCount == 0 ? 1 : (bitCount - 1) / JS_DIGIT_BIT + 1;
   size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
+
+  // Get the sign bit
+  //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L977
+  auto pyDigitCount = Py_SIZE(pyObject); // negative on negative numbers
+  bool isNegative = pyDigitCount < 0;
+  // Force to make the number positive otherwise _PyLong_AsByteArray would complain
+  //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L980
+  if (isNegative) {
+    Py_SET_SIZE(pyObject, /*abs()*/ -pyDigitCount);
+  }
 
   // Convert to bytes of 8-bit "digits" in **big-endian** order
   auto bytes = (uint8_t *)PyMem_Malloc(byteCount);
@@ -94,6 +105,11 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
     return nullptr;
   }
   _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
+  // Make negative number back negative
+  // TODO: use _PyLong_Copy to create a new object. Not thread-safe here
+  if (isNegative) {
+    Py_SET_SIZE(pyObject, pyDigitCount);
+  }
 
   // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
   // TODO: We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API
@@ -111,7 +127,15 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
 
   // Convert hex string to JS::BigInt
   auto strSpan = mozilla::Span<const char>(chars); // storing only a pointer to the underlying array and length
-  return JS::SimpleStringToBigInt(cx, strSpan, 16);
+  auto bigint = JS::SimpleStringToBigInt(cx, strSpan, 16);
+
+  // Set the sign bit
+  if (isNegative) {
+    // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l1801
+    /* flagsField */ ((uint32_t *)bigint)[0] |= SIGN_BIT_MASK;
+  }
+
+  return bigint;
 }
 
 void IntType::print(std::ostream &os) const {
