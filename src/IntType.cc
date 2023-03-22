@@ -102,7 +102,7 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
   // Calculate the number of chars required to represent the bigint in hex string
   auto charCount = byteCount * 2;
   // Convert bytes to hex string (big-endian)
-  auto chars = std::vector<char>(charCount+1);
+  auto chars = std::vector<char>(charCount); // can't be null-terminated, otherwise SimpleStringToBigInt would read the extra \0 character and then segfault
   for (size_t i = 0, j = 0; i < charCount; i += 2, j++) {
     chars[i] = HEX_CHAR_LOOKUP_TABLE[(bytes[j] >> 4)&0xf]; // high nibble
     chars[i+1] = HEX_CHAR_LOOKUP_TABLE[bytes[j]&0xf];      // low  nibble
@@ -110,7 +110,7 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
   PyMem_Free(bytes);
 
   // Convert hex string to JS::BigInt
-  auto strSpan = mozilla::MakeStringSpan(chars.data());
+  auto strSpan = mozilla::Span<const char>(chars); // storing only a pointer to the underlying array and length
   return JS::SimpleStringToBigInt(cx, strSpan, 16);
 }
 
