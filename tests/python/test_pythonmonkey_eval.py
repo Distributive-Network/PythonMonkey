@@ -394,3 +394,32 @@ def test_eval_functions_ucs4_string_args():
             string2 += chr(codepoint)
         
         assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
+
+def test_eval_functions_pyfunctions_ints():
+    caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
+    def add(a, b):
+        return a + b
+    n = 10
+    for i in range(n):
+        int1 = random.randint(0x0000, 0xFFFF)
+        int2 = random.randint(0x0000, 0xFFFF)
+        assert caller(add, int1, int2) == int1 + int2
+
+def test_eval_functions_pyfunctions_strs():
+    caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
+    def concatenate(a, b):
+        return a + b
+    n = 10
+    for i in range(n):
+        length1 = random.randint(0x0000, 0xFFFF)
+        length2 = random.randint(0x0000, 0xFFFF)
+        string1 = ''
+        string2 = ''
+
+        for j in range(length1):
+            codepoint = random.randint(0x0000, 0xFFFF)
+            string1 += chr(codepoint) # add random chr
+        for j in range(length2):
+            codepoint = random.randint(0x0000, 0xFFFF)
+            string2 += chr(codepoint)
+        assert caller(concatenate, string1, string2) == string1 + string2
