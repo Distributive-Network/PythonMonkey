@@ -103,7 +103,7 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
   PyMem_Free(bytes);
 
   // Convert hex string to JS::BigInt
-  auto strSpan = mozilla::Span<const char>(chars);
+  auto strSpan = mozilla::MakeStringSpan(chars.data());
   return JS::SimpleStringToBigInt(cx, strSpan, 16);
 }
 
