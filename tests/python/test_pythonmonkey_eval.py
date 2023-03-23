@@ -490,6 +490,29 @@ def test_eval_functions_bigint_factorial():
     assert factorial(pm.bigint(21)) == 51090942171709440000 # > 64 bit int
     assert factorial(pm.bigint(35)) == 10333147966386144929666651337523200000000 # > 128 bit
 
+def test_eval_functions_bigint_crc32():
+    crc_table_at = pm.eval("""
+    // translated from https://rosettacode.org/wiki/CRC-32#Python
+    const crc_table = (function create_table() {
+        const a = []
+        for (let i = 0n; i < 256n; i++) {
+            let k = i
+            for (let j = 0n; j < 8n; j++) {
+                // must use bigint here as js number is trimmed to int32 in bitwise operations
+                if (k & 1n) k ^= 0x1db710640n
+                k >>= 1n
+            }
+            a.push(k)
+        }
+        return a
+    })();
+    (n) => crc_table[n]
+    """)
+    assert type(crc_table_at(1)) == pm.bigint
+    assert crc_table_at(0) == 0
+    assert crc_table_at(1) == 1996959894
+    assert crc_table_at(255) == 755167117 # last item
+
 def test_eval_functions_ucs2_string_args():
     concatenate = pm.eval("(a, b) => { return a + b}")
     n = 10
