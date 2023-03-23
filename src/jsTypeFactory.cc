@@ -136,7 +136,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, float, str, None, and our custom Null type are not supported by pythonmonkey yet.");
+    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, pythonmonkey.bigint, float, str, None, and our custom Null type are not supported by pythonmonkey yet.");
   }
   return returnType;
 
