@@ -482,6 +482,14 @@ def test_eval_functions_bigints():
         num2 = random.randint(-limit, limit)
         assert add(pm.bigint(num1), pm.bigint(num2)) == num1+num2
 
+def test_eval_functions_bigint_factorial():
+    factorial = pm.eval("(num) => {let r = 1n; for(let i = 0n; i<num; i++){r *= num - i}; return r}")
+    assert factorial(pm.bigint(1)) == 1
+    assert factorial(pm.bigint(18)) == 6402373705728000
+    assert factorial(pm.bigint(19)) == 121645100408832000 # > Number.MAX_SAFE_INTEGER
+    assert factorial(pm.bigint(21)) == 51090942171709440000 # > 64 bit int
+    assert factorial(pm.bigint(35)) == 10333147966386144929666651337523200000000 # > 128 bit
+
 def test_eval_functions_ucs2_string_args():
     concatenate = pm.eval("(a, b) => { return a + b}")
     n = 10
