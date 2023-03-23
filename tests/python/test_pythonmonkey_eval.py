@@ -1,3 +1,4 @@
+import pytest
 import pythonmonkey as pm
 import gc
 import random
@@ -155,6 +156,23 @@ def test_eval_numbers_bigints():
     test_bigint(1)
     test_bigint(-1)
 
+    # CPython would reuse the objects for small ints in range [-5, 256] 
+    # Making sure we don't do any changes on them
+    def test_cached_int_object(py_number):
+        # type is still int
+        assert type(py_number) == int
+        assert type(py_number) != pm.bigint
+        test_bigint(py_number)
+        assert type(py_number) == int
+        assert type(py_number) != pm.bigint
+        # the value doesn't change
+        # TODO: Find a way to create a NEW int object with the same value, because int literals also reuse the cached int objects
+    for _ in range(2):
+        test_cached_int_object(0) # _PyLong_FromByteArray reuses the int 0 object,
+                                  # see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L862
+        for i in range(10):
+            test_cached_int_object(random.randint(-5, 256))
+
     test_bigint(18014398509481984)      #  2**54
     test_bigint(-18014398509481984)     # -2**54
     test_bigint(18446744073709551615)   #  2**64-1
@@ -166,6 +184,11 @@ def test_eval_numbers_bigints():
     for i in range(10):
         py_number = random.randint(-limit, limit)
         test_bigint(py_number)
+
+    # TODO: test -0 (negative zero)
+    # There's no -0 in both Python int and JS BigInt, 
+    # but this could be possible in JS BigInt's internal representation as it uses a sign bit flag.
+    # On the other hand, Python int uses `ob_size` 0 for 0, >0 for positive values, <0 for negative values
 
 def test_eval_booleans():
     py_bool = True
@@ -396,6 +419,32 @@ def test_eval_functions_latin1_string_args():
             string2 += chr(codepoint)
         
         assert concatenate(string1, string2) == (string1 + string2)
+
+def test_eval_functions_bigints():
+    ident = pm.eval("(a) => { return a }")
+    add = pm.eval("(a, b) => { return a + b }")
+
+    int1 = random.randint(-1000000,1000000)
+    bigint1 = pm.bigint(int1)
+    assert int1 == bigint1
+
+    # should return pm.bigint
+    assert type(ident(bigint1)) == pm.bigint
+    assert ident(bigint1) is not bigint1
+    # should return float (because JS number is float64)
+    assert type(ident(int1)) == float
+    assert ident(int1) == ident(bigint1)
+
+    # should raise exception on ints > 2^53, or < -2^53
+    ident(9007199254740991)         #   2**53-1, 0x433_FFFFFFFFFFFFF in float64
+    ident(9007199254740992)         #   2**53,   0x434_0000000000000 in float64
+    with pytest.raises(TypeError, match="Use pythonmonkey.bigint instead"):
+        ident(9007199254740993)     #   2**53+1, NOT 0x434_0000000000001 (2**53+2)
+    # ident(9007199254740994)  # FIXME: Should 2**53+2 and other large integers that can be exactly represented by a float64 raise exception?
+    ident(-9007199254740991)        # -(2**53-1)
+    ident(-9007199254740992)        # -(2**53)
+    with pytest.raises(TypeError, match="Use pythonmonkey.bigint instead"):
+        ident(-9007199254740993)    # -(2**53+1)
 
 def test_eval_functions_ucs2_string_args():
     concatenate = pm.eval("(a, b) => { return a + b}")
