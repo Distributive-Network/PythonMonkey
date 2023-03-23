@@ -438,12 +438,12 @@ def test_eval_functions_bigints():
     # should raise exception on ints > 2^53, or < -2^53
     ident(9007199254740991)         #   2**53-1, 0x433_FFFFFFFFFFFFF in float64
     ident(9007199254740992)         #   2**53,   0x434_0000000000000 in float64
-    with pytest.raises(TypeError, match="Use pythonmonkey.bigint instead"):
+    with pytest.raises(OverflowError, match="Use pythonmonkey.bigint instead"):
         ident(9007199254740993)     #   2**53+1, NOT 0x434_0000000000001 (2**53+2)
     # ident(9007199254740994)  # FIXME: Should 2**53+2 and other large integers that can be exactly represented by a float64 raise exception?
     ident(-9007199254740991)        # -(2**53-1)
     ident(-9007199254740992)        # -(2**53)
-    with pytest.raises(TypeError, match="Use pythonmonkey.bigint instead"):
+    with pytest.raises(OverflowError, match="Use pythonmonkey.bigint instead"):
         ident(-9007199254740993)    # -(2**53+1)
 
 def test_eval_functions_ucs2_string_args():

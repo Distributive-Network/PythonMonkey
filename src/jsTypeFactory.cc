@@ -74,7 +74,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
       if (JS::Value::isNumberRepresentable(num)) { // TODO: refactor using _PyLong_NumBits ?
         returnType.setNumber(num);
       } else {
-        PyErr_SetString(PyExc_TypeError, "Integer exceeds Number.MAX_SAFE_INTEGER. Use pythonmonkey.bigint instead.");
+        PyErr_SetString(PyExc_OverflowError, "Absolute value of the integer exceeds JS Number.MAX_SAFE_INTEGER. Use pythonmonkey.bigint instead.");
       }
     }
   }
