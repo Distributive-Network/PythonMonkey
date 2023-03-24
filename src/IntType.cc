@@ -86,8 +86,6 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
   if (bitCount == (size_t)-1 && PyErr_Occurred())
     return nullptr;
   uint32_t jsDigitCount = bitCount == 0 ? 1 : (bitCount - 1) / JS_DIGIT_BIT + 1;
-  size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
-
   // Get the sign bit
   //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L977
   auto pyDigitCount = Py_SIZE(pyObject); // negative on negative numbers
@@ -98,39 +96,45 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
     Py_SET_SIZE(pyObject, /*abs()*/ -pyDigitCount);
   }
 
-  // Convert to bytes of 8-bit "digits" in **big-endian** order
-  auto bytes = (uint8_t *)PyMem_Malloc(byteCount);
-  if (bytes == NULL) {
-    PyErr_NoMemory();
-    return nullptr;
+  JS::BigInt *bigint = nullptr;
+  if (jsDigitCount <= 1) {
+    // Fast path for int fits in one js_digit_t (uint64 on 64-bit OS)
+    bigint = JS::detail::BigIntFromUint64(cx, PyLong_AsUnsignedLongLong(pyObject));
+  } else {
+    // Convert to bytes of 8-bit "digits" in **big-endian** order
+    size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
+    auto bytes = (uint8_t *)PyMem_Malloc(byteCount);
+    if (bytes == NULL) {
+      PyErr_NoMemory();
+      return nullptr;
+    }
+    _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
+
+    // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
+    // TODO: We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API
+    // TODO: Could we fill in an object with similar memory alignment (maybe by NewArrayBufferWithContents), and coerce it to BigInt?
+
+    // Calculate the number of chars required to represent the bigint in hex string
+    auto charCount = byteCount * 2;
+    // Convert bytes to hex string (big-endian)
+    auto chars = std::vector<char>(charCount); // can't be null-terminated, otherwise SimpleStringToBigInt would read the extra \0 character and then segfault
+    for (size_t i = 0, j = 0; i < charCount; i += 2, j++) {
+      chars[i] = HEX_CHAR_LOOKUP_TABLE[(bytes[j] >> 4)&0xf]; // high nibble
+      chars[i+1] = HEX_CHAR_LOOKUP_TABLE[bytes[j]&0xf];      // low  nibble
+    }
+    PyMem_Free(bytes);
+
+    // Convert hex string to JS::BigInt
+    auto strSpan = mozilla::Span<const char>(chars); // storing only a pointer to the underlying array and length
+    bigint = JS::SimpleStringToBigInt(cx, strSpan, 16);
   }
-  _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
-  // Make negative number back negative
-  // TODO: use _PyLong_Copy to create a new object. Not thread-safe here
+
   if (isNegative) {
+    // Make negative number back negative
+    // TODO: use _PyLong_Copy to create a new object. Not thread-safe here
     Py_SET_SIZE(pyObject, pyDigitCount);
-  }
 
-  // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
-  // TODO: We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API
-  // TODO: Could we fill in an object with similar memory alignment (maybe by NewArrayBufferWithContents), and coerce it to BigInt?
-
-  // Calculate the number of chars required to represent the bigint in hex string
-  auto charCount = byteCount * 2;
-  // Convert bytes to hex string (big-endian)
-  auto chars = std::vector<char>(charCount); // can't be null-terminated, otherwise SimpleStringToBigInt would read the extra \0 character and then segfault
-  for (size_t i = 0, j = 0; i < charCount; i += 2, j++) {
-    chars[i] = HEX_CHAR_LOOKUP_TABLE[(bytes[j] >> 4)&0xf]; // high nibble
-    chars[i+1] = HEX_CHAR_LOOKUP_TABLE[bytes[j]&0xf];      // low  nibble
-  }
-  PyMem_Free(bytes);
-
-  // Convert hex string to JS::BigInt
-  auto strSpan = mozilla::Span<const char>(chars); // storing only a pointer to the underlying array and length
-  auto bigint = JS::SimpleStringToBigInt(cx, strSpan, 16);
-
-  // Set the sign bit
-  if (isNegative) {
+    // Set the sign bit
     // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l1801
     /* flagsField */ ((uint32_t *)bigint)[0] |= SIGN_BIT_MASK;
   }
