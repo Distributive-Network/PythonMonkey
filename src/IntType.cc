@@ -104,10 +104,6 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
     // Convert to bytes of 8-bit "digits" in **big-endian** order
     size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
     auto bytes = (uint8_t *)PyMem_Malloc(byteCount);
-    if (bytes == NULL) {
-      PyErr_NoMemory();
-      return nullptr;
-    }
     _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
 
     // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
