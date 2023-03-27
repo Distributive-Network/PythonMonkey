@@ -30,57 +30,21 @@ typedef struct {
 
 std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
 
-// @TODO (Caleb Aikens) figure out how to use C99-style designated initializers with a modern C++ compiler
 static PyTypeObject NullType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.Null",
+  .tp_name = "pythonmonkey.null",
   .tp_basicsize = sizeof(NullObject),
-  .tp_itemsize = 0,
-  .tp_dealloc = NULL,
-  .tp_vectorcall_offset = NULL,
-  .tp_getattr = NULL,
-  .tp_setattr = NULL,
-  .tp_as_async = NULL,
-  .tp_repr = NULL,
-  .tp_as_number = NULL,
-  .tp_as_sequence = NULL,
-  .tp_as_mapping = NULL,
-  .tp_hash = NULL,
-  .tp_call = NULL,
-  .tp_str = NULL,
-  .tp_getattro = NULL,
-  .tp_setattro = NULL,
-  .tp_as_buffer = NULL,
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_doc = PyDoc_STR("Javascript null object"),
-  .tp_traverse = NULL,
-  .tp_clear = NULL,
-  .tp_richcompare = NULL,
-  .tp_weaklistoffset = NULL,
-  .tp_iter = NULL,
-  .tp_iternext = NULL,
-  .tp_methods = NULL,
-  .tp_members = NULL,
-  .tp_getset = NULL,
-  .tp_base = NULL,
-  .tp_dict = NULL,
-  .tp_descr_get = NULL,
-  .tp_descr_set = NULL,
-  .tp_dictoffset = NULL,
-  .tp_init = NULL,
-  .tp_alloc = NULL,
-  .tp_new = PyType_GenericNew,
-  .tp_free = NULL,
-  .tp_is_gc = NULL,
-  .tp_bases = NULL,
-  .tp_mro = NULL,
-  .tp_cache = NULL,
-  .tp_subclasses = NULL,
-  .tp_weaklist = NULL,
-  .tp_del = NULL,
-  .tp_version_tag = NULL,
-  .tp_finalize = NULL,
-  .tp_vectorcall = NULL,
+};
+
+static PyTypeObject BigIntType = {
+  .tp_name = "pythonmonkey.bigint",
+  .tp_flags = Py_TPFLAGS_DEFAULT
+  | Py_TPFLAGS_LONG_SUBCLASS // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_LONG_SUBCLASS
+  | Py_TPFLAGS_BASETYPE,     // can be subclassed
+  .tp_doc = PyDoc_STR("Javascript BigInt object"),
+  .tp_base = &PyLong_Type,   // extending the builtin int type
 };
 
 static void cleanup() {
@@ -238,6 +202,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)
     return NULL;
+  if (PyType_Ready(&BigIntType) < 0)
+    return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
@@ -246,6 +212,12 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&NullType);
   if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
     Py_DECREF(&NullType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+  Py_INCREF(&BigIntType);
+  if (PyModule_AddObject(pyModule, "bigint", (PyObject *)&BigIntType) < 0) {
+    Py_DECREF(&BigIntType);
     Py_DECREF(pyModule);
     return NULL;
   }

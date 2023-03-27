@@ -16,6 +16,7 @@
 #include "include/FuncType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
+#include "include/IntType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -65,7 +66,15 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setBoolean(PyLong_AsLong(object));
   }
   else if (PyLong_Check(object)) {
-    returnType.setNumber(PyLong_AsLong(object));
+    if (PyObject_IsInstance(object, PythonMonkey_BigInt)) { // pm.bigint is a subclass of the builtin int type
+      JS::BigInt *bigint = IntType(object).toJsBigInt(cx);
+      returnType.setBigInt(bigint);
+    } else if (_PyLong_NumBits(object) <= 53) { // num <= JS Number.MAX_SAFE_INTEGER, the mantissa of a float64 is 53 bits (with 52 explicitly stored and the highest bit always being 1)
+      uint64_t num = PyLong_AsLongLong(object);
+      returnType.setNumber(num);
+    } else {
+      PyErr_SetString(PyExc_OverflowError, "Absolute value of the integer exceeds JS Number.MAX_SAFE_INTEGER. Use pythonmonkey.bigint instead.");
+    }
   }
   else if (PyFloat_Check(object)) {
     returnType.setNumber(PyFloat_AsDouble(object));
@@ -127,7 +136,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, float, str, None, and our custom Null type are not supported by pythonmonkey yet.");
+    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, pythonmonkey.bigint, float, str, None, and our custom Null type are not supported by pythonmonkey yet.");
   }
   return returnType;
 

@@ -75,7 +75,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
     printf("symbol type is not handled by PythonMonkey yet");
   }
   else if (rval->isBigInt()) {
-    printf("bigint type is not handled by PythonMonkey yet");
+    returnValue = new IntType(cx, rval->toBigInt());
   }
   else if (rval->isObject()) {
     JS::Rooted<JSObject *> obj(cx);
@@ -84,6 +84,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
     JS::GetBuiltinClass(cx, obj, &cls);
     switch (cls) {
     case js::ESClass::Boolean: {
+        // TODO (Caleb Aikens): refactor out all `js::Unbox` calls
+        // TODO (Caleb Aikens): refactor using recursive call to `pyTypeFactory`
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
         returnValue = new BoolType(unboxed.toBoolean());
@@ -106,6 +108,12 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
         returnValue = new FloatType(unboxed.toNumber());
+        break;
+      }
+    case js::ESClass::BigInt: {
+        JS::RootedValue unboxed(cx);
+        js::Unbox(cx, obj, &unboxed);
+        returnValue = new IntType(cx, unboxed.toBigInt());
         break;
       }
     case js::ESClass::String: {
@@ -136,6 +144,9 @@ static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {
   JS::RootedVector<JS::Value> JSargsVector(JScontext);
   for (size_t i = 0; i < PyTuple_Size(args); i++) {
     JS::Value jsValue = jsTypeFactory(JScontext, PyTuple_GetItem(args, i));
+    if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
+      return NULL; // Fail-fast
+    }
     JSargsVector.append(jsValue);
   }
 
