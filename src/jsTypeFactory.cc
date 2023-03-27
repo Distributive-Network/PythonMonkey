@@ -67,10 +67,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   else if (PyLong_Check(object)) {
     if (PyObject_IsInstance(object, PythonMonkey_BigInt)) { // pm.bigint is a subclass of the builtin int type
-      auto bigint = IntType(object).toJsBigInt(cx);
+      JS::BigInt *bigint = IntType(object).toJsBigInt(cx);
       returnType.setBigInt(bigint);
     } else if (_PyLong_NumBits(object) <= 53) { // num <= JS Number.MAX_SAFE_INTEGER, the mantissa of a float64 is 53 bits (with 52 explicitly stored and the highest bit always being 1)
-      long long num = PyLong_AsLongLong(object);
+      uint64_t num = PyLong_AsLongLong(object);
       returnType.setNumber(num);
     } else {
       PyErr_SetString(PyExc_OverflowError, "Absolute value of the integer exceeds JS Number.MAX_SAFE_INTEGER. Use pythonmonkey.bigint instead.");

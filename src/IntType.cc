@@ -51,13 +51,13 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // Byte order within a digit is native-endian.
 
   if constexpr (std::endian::native == std::endian::big) { // C++20
-    // TODO: use C++23 std::byteswap?
+    // @TODO (Tom Tang): use C++23 std::byteswap?
     printf("big-endian cpu is not supported by PythonMonkey yet");
     return;
   }
   // If the native endianness is also little-endian,
   // we now have consecutive bytes of 8-bit "digits" in little-endian order
-  auto bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);
+  const uint8_t *bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);
   if (jsDigitCount == 0) {
     // Create a new object instead of reusing the object for int 0
     //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L862
@@ -70,7 +70,7 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // Set the sign bit
   //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L956
   if (isNegative) {
-    auto pyDigitCount = Py_SIZE(pyObject);
+    ssize_t pyDigitCount = Py_SIZE(pyObject);
     Py_SET_SIZE(pyObject, -pyDigitCount);
   }
 
@@ -82,13 +82,13 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
 JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
   // Figure out how many 64-bit "digits" we would have for JS BigInt
   //    see https://github.com/python/cpython/blob/3.9/Modules/_randommodule.c#L306
-  auto bitCount = _PyLong_NumBits(pyObject);
+  size_t bitCount = _PyLong_NumBits(pyObject);
   if (bitCount == (size_t)-1 && PyErr_Occurred())
     return nullptr;
   uint32_t jsDigitCount = bitCount == 0 ? 1 : (bitCount - 1) / JS_DIGIT_BIT + 1;
   // Get the sign bit
   //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L977
-  auto pyDigitCount = Py_SIZE(pyObject); // negative on negative numbers
+  ssize_t pyDigitCount = Py_SIZE(pyObject); // negative on negative numbers
   bool isNegative = pyDigitCount < 0;
   // Force to make the number positive otherwise _PyLong_AsByteArray would complain
   //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L980
@@ -103,17 +103,17 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
   } else {
     // Convert to bytes of 8-bit "digits" in **big-endian** order
     size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
-    auto bytes = (uint8_t *)PyMem_Malloc(byteCount);
+    uint8_t *bytes = (uint8_t *)PyMem_Malloc(byteCount);
     _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
 
     // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
-    // TODO: We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API
-    // TODO: Could we fill in an object with similar memory alignment (maybe by NewArrayBufferWithContents), and coerce it to BigInt?
+    // TODO (Tom Tang): We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API
+    // TODO (Tom Tang): Could we fill in an object with similar memory alignment (maybe by NewArrayBufferWithContents), and coerce it to BigInt?
 
     // Calculate the number of chars required to represent the bigint in hex string
-    auto charCount = byteCount * 2;
+    size_t charCount = byteCount * 2;
     // Convert bytes to hex string (big-endian)
-    auto chars = std::vector<char>(charCount); // can't be null-terminated, otherwise SimpleStringToBigInt would read the extra \0 character and then segfault
+    std::vector<char> chars = std::vector<char>(charCount); // can't be null-terminated, otherwise SimpleStringToBigInt would read the extra \0 character and then segfault
     for (size_t i = 0, j = 0; i < charCount; i += 2, j++) {
       chars[i] = HEX_CHAR_LOOKUP_TABLE[(bytes[j] >> 4)&0xf]; // high nibble
       chars[i+1] = HEX_CHAR_LOOKUP_TABLE[bytes[j]&0xf];      // low  nibble
@@ -121,13 +121,13 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
     PyMem_Free(bytes);
 
     // Convert hex string to JS::BigInt
-    auto strSpan = mozilla::Span<const char>(chars); // storing only a pointer to the underlying array and length
+    mozilla::Span<const char> strSpan = mozilla::Span<const char>(chars); // storing only a pointer to the underlying array and length
     bigint = JS::SimpleStringToBigInt(cx, strSpan, 16);
   }
 
   if (isNegative) {
     // Make negative number back negative
-    // TODO: use _PyLong_Copy to create a new object. Not thread-safe here
+    // TODO (Tom Tang): use _PyLong_Copy to create a new object. Not thread-safe here
     Py_SET_SIZE(pyObject, pyDigitCount);
 
     // Set the sign bit
@@ -140,7 +140,7 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
 
 void IntType::print(std::ostream &os) const {
   // Making sure the value does not overflow even if the int has millions of bits of precision
-  auto str = PyObject_Str(pyObject);
+  PyObject *str = PyObject_Str(pyObject);
   os << PyUnicode_AsUTF8(str);
   // https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html#new-references
   Py_DECREF(str); // free

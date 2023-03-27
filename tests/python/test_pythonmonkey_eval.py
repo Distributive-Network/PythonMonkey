@@ -166,7 +166,7 @@ def test_eval_numbers_bigints():
         assert type(py_number) == int
         assert type(py_number) != pm.bigint
         # the value doesn't change
-        # TODO: Find a way to create a NEW int object with the same value, because int literals also reuse the cached int objects
+        # TODO (Tom Tang): Find a way to create a NEW int object with the same value, because int literals also reuse the cached int objects
     for _ in range(2):
         test_cached_int_object(0) # _PyLong_FromByteArray reuses the int 0 object,
                                   # see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L862
@@ -185,7 +185,7 @@ def test_eval_numbers_bigints():
         py_number = random.randint(-limit, limit)
         test_bigint(py_number)
 
-    # TODO: test -0 (negative zero)
+    # TODO (Tom Tang): test -0 (negative zero)
     # There's no -0 in both Python int and JS BigInt, 
     # but this could be possible in JS BigInt's internal representation as it uses a sign bit flag.
     # On the other hand, Python int uses `ob_size` 0 for 0, >0 for positive values, <0 for negative values

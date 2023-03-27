@@ -84,8 +84,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
     JS::GetBuiltinClass(cx, obj, &cls);
     switch (cls) {
     case js::ESClass::Boolean: {
-        // TODO: refactor out all `js::Unbox` calls
-        // TODO: refactor using recursive call to `pyTypeFactory`
+        // TODO (Caleb Aikens): refactor out all `js::Unbox` calls
+        // TODO (Caleb Aikens): refactor using recursive call to `pyTypeFactory`
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
         returnValue = new BoolType(unboxed.toBoolean());
