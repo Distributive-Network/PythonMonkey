@@ -1,6 +1,6 @@
 apt-get update --yes
 apt-get upgrade --yes
-apt-get install cmake python3-dev python3-pytest doxygen graphviz gcovr llvm --yes
+apt-get install cmake python3-dev python3-pytest doxygen graphviz gcovr llvm m4 --yes
 curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
 wget -q https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
 tar xf firefox-102.2.0esr.source.tar.xz
