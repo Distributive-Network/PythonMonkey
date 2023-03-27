@@ -1,3 +1,6 @@
+# Get number of CPU cores
+CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
+
 DIR="build"
 if [  ! -d "$DIR" ]; then
   ### Take action if $DIR exists ###
@@ -6,4 +9,4 @@ fi
 
 cd build
 cmake ..
-cmake --build .
+cmake --build . -j$CPUS
