@@ -38,7 +38,7 @@ struct PythonExternalString : public JSExternalStringCallbacks {
 static constexpr PythonExternalString PythonExternalStringCallbacks;
 
 size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
-  uint16_t utf16String[length*2];
+  uint16_t *utf16String = (uint16_t *)malloc(sizeof(uint16_t) * length*2);
   size_t utf16Length = 0;
 
   for (size_t i = 0; i < length; i++) {
@@ -54,8 +54,7 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
       /* *INDENT-ON* */
     }
   }
-  (*outStr) = (uint16_t *)malloc(sizeof(uint16_t) * utf16Length);
-  memcpy(*outStr, utf16String, sizeof(uint16_t) * utf16Length);
+  *outStr = utf16String;
   return utf16Length;
 }
 
