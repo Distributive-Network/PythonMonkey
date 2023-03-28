@@ -19,6 +19,27 @@
 
 #include <Python.h>
 
+#ifndef Py_SET_SIZE
+// https://github.com/python/cpython/blob/3.9/Include/object.h#L145
+// https://github.com/python/cpython/blob/3.8/Include/object.h#L123
+    #define Py_SET_SIZE(ob, size) (Py_SIZE(ob) = size)
+#endif
+
+#ifndef Py_SET_TYPE
+// https://github.com/python/cpython/blob/3.9/Include/object.h#L140
+// https://github.com/python/cpython/blob/3.8/Include/object.h#L122
+    #define Py_SET_TYPE(ob, type) (Py_TYPE(ob) = type)
+#endif
+
+#ifndef PyObject_CallNoArgs // FIXME: PyObject_CallNoArgs is not a macro
+// https://docs.python.org/3/c-api/call.html#c.PyObject_CallObject
+    #define PyObject_CallNoArgs(callable) PyObject_CallObject(callable, NULL)
+#endif
+
+#ifndef PyObject_GC_IsFinalized // FIXME: PyObject_GC_IsFinalized is not a macro
+    #define PyObject_GC_IsFinalized(ob) (0) // no-op
+#endif
+
 #define PythonMonkey_Null   PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null")   /**< macro for pythonmonkey.null object*/
 #define PythonMonkey_BigInt PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint") /**< macro for pythonmonkey.bigint class object */
 
