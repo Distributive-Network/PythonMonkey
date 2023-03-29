@@ -89,7 +89,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void);
  * @brief Array of method definitions for the pythonmonkey module
  *
  */
-extern PyMethodDef PythonMonkeyMethods[4];
+extern PyMethodDef PythonMonkeyMethods[];
 
 /**
  * @brief Module definition for the pythonmonkey module
