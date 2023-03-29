@@ -145,6 +145,19 @@ def test_eval_numbers_floats_nan():
     jsNaN = pm.eval("NaN")
     assert math.isnan(jsNaN)
 
+def test_eval_numbers_floats_negative_zero():
+    jsNegZero = pm.eval("-0")
+    assert jsNegZero == 0
+    assert jsNegZero == 0.0 # expected that -0.0 == 0.0 == 0
+    # https://docs.python.org/3/library/math.html#math.copysign
+    assert math.copysign(1.0, jsNegZero) == -1.0
+
+def test_eval_numbers_floats_inf():
+    jsPosInf = pm.eval("Infinity")
+    jsNegInf = pm.eval("-Infinity")
+    assert jsPosInf == float("+inf")
+    assert jsNegInf == float("-inf")
+
 def test_eval_numbers_integers():
     for _ in range(10):
         py_number = random.randint(-1000000,1000000)
