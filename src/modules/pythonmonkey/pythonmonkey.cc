@@ -1,3 +1,14 @@
+/**
+ * @file pythonmonkey.cc
+ * @author Caleb Aikens (caleb@distributive.network)
+ * @brief This file defines the pythonmonkey module, along with its various functions.
+ * @version 0.1
+ * @date 2023-03-29
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include "include/PyType.hh"
