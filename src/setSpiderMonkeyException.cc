@@ -28,6 +28,7 @@ void setSpiderMonkeyException(JSContext *cx) {
   JS::ExceptionStack exceptionStack(cx);
   if (!JS::GetPendingExceptionStack(cx, &exceptionStack)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
+    return;
   }
   JS::RootedObject exceptionObject(cx);
   if (!JS_ValueToObject(cx, exceptionStack.exception(), &exceptionObject)) {
