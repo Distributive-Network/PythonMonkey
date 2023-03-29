@@ -84,7 +84,7 @@ static PyTypeObject NullType = {
 };
 
 static void cleanup() {
-  JS_DestroyContext(cx);
+  if (cx) JS_DestroyContext(cx);
   JS_ShutDown();
   delete global;
 }
