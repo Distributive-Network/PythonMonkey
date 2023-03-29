@@ -210,7 +210,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
   }
-    
+    Py_AtExit(cleanup);
 
   cx = JS_NewContext(JS::DefaultHeapMaxBytes);
   if (!cx) {
