@@ -19,15 +19,10 @@
 
 #include <Python.h>
 
-/**
- * @brief Callback function passed to JS_SetGCCallback to handle PythonMonkey shared memory
- *
- * @param cx - Pointer to the JS Context (not used)
- * @param status - enum specifying whether the Callback triggered at the beginning or end of the GC Cycle
- * @param reason - reason for the GC Cycle
- * @param data -
- */
-void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data);
+#define PythonMonkey_Null PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null") /**< macro for python null object*/
+
+static JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
+static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 
 /**
  * @brief Destroys the JSContext and deletes associated memory. Called when python quits or faces a fatal exception.
@@ -44,7 +39,17 @@ static void cleanup();
  * @param pyType - Pointer to the PyType to be memoized
  * @param GCThing  - Pointer to the GCThing to be memoized
  */
-static void memoizePyTypeAndGCThing(PyType *pyType, JS::PersistentRootedValue *GCThing);
+void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing);
+
+/**
+ * @brief Callback function passed to JS_SetGCCallback to handle PythonMonkey shared memory
+ *
+ * @param cx - Pointer to the JS Context (not used)
+ * @param status - enum specifying whether the Callback triggered at the beginning or end of the GC Cycle
+ * @param reason - reason for the GC Cycle
+ * @param data -
+ */
+void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data);
 
 /**
  * @brief Function exposed by the python module that calls the spidermonkey garbage collector
@@ -80,4 +85,15 @@ static PyObject *eval(PyObject *self, PyObject *args);
  */
 PyMODINIT_FUNC PyInit_pythonmonkey(void);
 
+/**
+ * @brief Array of method definitions for the pythonmonkey module
+ *
+ */
+extern PyMethodDef PythonMonkeyMethods[];
+
+/**
+ * @brief Module definition for the pythonmonkey module
+ *
+ */
+extern struct PyModuleDef pythonmonkey;
 #endif

@@ -1,9 +1,22 @@
+/**
+ * @file pythonmonkey.cc
+ * @author Caleb Aikens (caleb@distributive.network)
+ * @brief This file defines the pythonmonkey module, along with its various functions.
+ * @version 0.1
+ * @date 2023-03-29
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include "include/PyType.hh"
 #include "include/BoolType.hh"
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
+#include "include/FuncType.hh"
+#include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 
 #include <jsapi.h>
@@ -19,18 +32,35 @@
 #include <Python.h>
 #include <datetime.h>
 
-static JSContext *cx;             /**< pointer to PythonMonkey's JSContext */
-static JS::Rooted<JSObject *> *global;  /**< pointer to the global object of PythonMonkey's JSContext */
-
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
+
+static void cleanup() {
+  JS_DestroyContext(GLOBAL_CX);
+  JS_ShutDown();
+  delete global;
+}
+
+void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
+  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(GLOBAL_CX, GCThing);
+  PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
+
+  if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
+    std::vector<JS::PersistentRooted<JS::Value> *> gcVector(
+      {{RootedGCThing}});
+    PyTypeToGCThing.insert({{pyType, gcVector}});
+  }
+  else {
+    pyIt->second.push_back(RootedGCThing);
+  }
+}
 
 void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_BEGIN) {
     PyToGCIterator pyIt = PyTypeToGCThing.begin();
     while (pyIt != PyTypeToGCThing.end()) {
       // If the PyObject reference count is exactly 1, then the only reference to the object is the one
-      // we are holding, which means the object is ready to be freed.
+      // we are holding, which means the object is ready to be free'd.
       if (PyObject_GC_IsFinalized(pyIt->first->getPyObject()) || pyIt->first->getPyObject()->ob_refcnt == 1) {
         for (JS::PersistentRooted<JS::Value> *rval: pyIt->second) { // for each related GCThing
           bool found = false;
@@ -54,27 +84,8 @@ void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReas
   }
 };
 
-static void cleanup() {
-  JS_DestroyContext(cx);
-  JS_ShutDown();
-  delete global;
-}
-
-static void memoizePyTypeAndGCThing(PyType *pyType, JS::PersistentRooted<JS::Value> *GCThing) {
-  PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
-
-  if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
-    std::vector<JS::PersistentRooted<JS::Value> *> gcVector(
-      {{GCThing}});
-    PyTypeToGCThing.insert({{pyType, gcVector}});
-  }
-  else {
-    pyIt->second.push_back(GCThing);
-  }
-}
-
 static PyObject *collect(PyObject *self, PyObject *args) {
-  JS_GC(cx);
+  JS_GC(GLOBAL_CX);
   Py_RETURN_NONE;
 }
 
@@ -96,84 +107,26 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  JSAutoRealm ar(cx, *global);
-  JS::CompileOptions options (cx);
+  JSAutoRealm ar(GLOBAL_CX, *global);
+  JS::CompileOptions options (GLOBAL_CX);
   options.setFileAndLine("noname", 1);
 
   // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
-  if (!source.init(cx, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
+  if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
     PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not initialize with given JS code.");
     return NULL;
   }
 
   // evaluate source code
-  JS::PersistentRooted<JS::Value> *rval = new JS::PersistentRooted<JS::Value>(cx);
-  if (!JS::Evaluate(cx, options, source, rval)) {
+  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  if (!JS::Evaluate(GLOBAL_CX, options, source, rval)) {
     PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not evaluate the given JS code.");
     return NULL; // TODO (Caleb Aikens) figure out how to capture JS exceptions
   }
 
   // translate to the proper python type
-  PyType *returnValue = NULL;
-  if (rval->isUndefined()) {
-    printf("undefined type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isNull()) {
-    printf("null type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isBoolean()) {
-    returnValue = new BoolType(rval->toBoolean());
-  }
-  else if (rval->isNumber()) {
-    returnValue = new FloatType(rval->toNumber());
-  }
-  else if (rval->isString()) {
-    returnValue = new StrType(cx, rval->toString());
-    memoizePyTypeAndGCThing(returnValue, rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
-  }
-  else if (rval->isSymbol()) {
-    printf("symbol type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isBigInt()) {
-    printf("bigint type is not handled by PythonMonkey yet");
-  }
-  else if (rval->isObject()) {
-    JS::Rooted<JSObject *> obj(cx);
-    JS_ValueToObject(cx, *rval, &obj);
-    js::ESClass cls;
-    JS::GetBuiltinClass(cx, obj, &cls);
-    switch (cls) {
-    case js::ESClass::Boolean: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new BoolType(unboxed.toBoolean());
-        break;
-      }
-    case js::ESClass::Date: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new DateType(cx, obj);
-        break;
-      }
-    case js::ESClass::Number: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new FloatType(unboxed.toNumber());
-        break;
-      }
-    case js::ESClass::String: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new StrType(cx, unboxed.toString());
-        memoizePyTypeAndGCThing(returnValue, rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
-        break;
-      }
-    }
-  }
-  else if (rval->isMagic()) {
-    printf("magic type is not handled by PythonMonkey yet");
-  }
+  PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, rval);
 
   if (returnValue) {
     return returnValue->getPyObject();
@@ -183,14 +136,71 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 }
 
-static PyMethodDef PythonMonkeyMethods[] = {
+typedef struct {
+  PyObject_HEAD
+} NullObject;
+
+// @TODO (Caleb Aikens) figure out how to use C99-style designated initializers with a modern C++ compiler
+static PyTypeObject NullType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.Null",
+  .tp_basicsize = sizeof(NullObject),
+  .tp_itemsize = 0,
+  .tp_dealloc = NULL,
+  .tp_vectorcall_offset = NULL,
+  .tp_getattr = NULL,
+  .tp_setattr = NULL,
+  .tp_as_async = NULL,
+  .tp_repr = NULL,
+  .tp_as_number = NULL,
+  .tp_as_sequence = NULL,
+  .tp_as_mapping = NULL,
+  .tp_hash = NULL,
+  .tp_call = NULL,
+  .tp_str = NULL,
+  .tp_getattro = NULL,
+  .tp_setattro = NULL,
+  .tp_as_buffer = NULL,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = PyDoc_STR("Javascript null object"),
+  .tp_traverse = NULL,
+  .tp_clear = NULL,
+  .tp_richcompare = NULL,
+  .tp_weaklistoffset = NULL,
+  .tp_iter = NULL,
+  .tp_iternext = NULL,
+  .tp_methods = NULL,
+  .tp_members = NULL,
+  .tp_getset = NULL,
+  .tp_base = NULL,
+  .tp_dict = NULL,
+  .tp_descr_get = NULL,
+  .tp_descr_set = NULL,
+  .tp_dictoffset = NULL,
+  .tp_init = NULL,
+  .tp_alloc = NULL,
+  .tp_new = PyType_GenericNew,
+  .tp_free = NULL,
+  .tp_is_gc = NULL,
+  .tp_bases = NULL,
+  .tp_mro = NULL,
+  .tp_cache = NULL,
+  .tp_subclasses = NULL,
+  .tp_weaklist = NULL,
+  .tp_del = NULL,
+  .tp_version_tag = NULL,
+  .tp_finalize = NULL,
+  .tp_vectorcall = NULL,
+};
+
+PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
   {"asUCS4", asUCS4, METH_VARARGS, "Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4. Undefined behaviour if the string is not in UTF16."},
   {NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef pythonmonkey =
+struct PyModuleDef pythonmonkey =
 {
   PyModuleDef_HEAD_INIT,
   "pythonmonkey",                                   /* name of module */
@@ -206,20 +216,35 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   if (!JS_Init())
     return NULL;
 
-  cx = JS_NewContext(JS::DefaultHeapMaxBytes);
-  if (!cx)
+  GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
+  if (!GLOBAL_CX)
     return NULL;
 
-  if (!JS::InitSelfHostedCode(cx))
+  if (!JS::InitSelfHostedCode(GLOBAL_CX))
     return NULL;
 
   JS::RealmOptions options;
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
-  global = new JS::RootedObject(cx, JS_NewGlobalObject(cx, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
+  global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   if (!global)
     return NULL;
 
   Py_AtExit(cleanup);
-  JS_SetGCCallback(cx, handleSharedPythonMonkeyMemory, NULL);
-  return PyModule_Create(&pythonmonkey);
+  JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
+
+  PyObject *pyModule;
+  if (PyType_Ready(&NullType) < 0)
+    return NULL;
+
+  pyModule = PyModule_Create(&pythonmonkey);
+  if (pyModule == NULL)
+    return NULL;
+
+  Py_INCREF(&NullType);
+  if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
+    Py_DECREF(&NullType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+  return pyModule;
 }
