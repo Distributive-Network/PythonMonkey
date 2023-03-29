@@ -231,7 +231,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  Py_AtExit(cleanup);
   JS_SetGCCallback(cx, handleSharedPythonMonkeyMemory, NULL);
 
   PyObject *pyModule;
