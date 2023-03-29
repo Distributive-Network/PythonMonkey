@@ -36,13 +36,13 @@ typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value>
 std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
 
 static void cleanup() {
-  JS_DestroyContext(cx);
+  JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
   delete global;
 }
 
 void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
-  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(cx, GCThing);
+  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(GLOBAL_CX, GCThing);
   PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
 
   if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
@@ -85,7 +85,7 @@ void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReas
 };
 
 static PyObject *collect(PyObject *self, PyObject *args) {
-  JS_GC(cx);
+  JS_GC(GLOBAL_CX);
   Py_RETURN_NONE;
 }
 
@@ -107,26 +107,26 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  JSAutoRealm ar(cx, *global);
-  JS::CompileOptions options (cx);
+  JSAutoRealm ar(GLOBAL_CX, *global);
+  JS::CompileOptions options (GLOBAL_CX);
   options.setFileAndLine("noname", 1);
 
   // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
-  if (!source.init(cx, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
+  if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
     PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not initialize with given JS code.");
     return NULL;
   }
 
   // evaluate source code
-  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(cx);
-  if (!JS::Evaluate(cx, options, source, rval)) {
+  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  if (!JS::Evaluate(GLOBAL_CX, options, source, rval)) {
     PyErr_SetString(PyExc_RuntimeError, "Spidermonkey could not evaluate the given JS code.");
     return NULL; // TODO (Caleb Aikens) figure out how to capture JS exceptions
   }
 
   // translate to the proper python type
-  PyType *returnValue = pyTypeFactory(cx, global, rval);
+  PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, rval);
 
   if (returnValue) {
     return returnValue->getPyObject();
@@ -216,21 +216,21 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   if (!JS_Init())
     return NULL;
 
-  cx = JS_NewContext(JS::DefaultHeapMaxBytes);
-  if (!cx)
+  GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
+  if (!GLOBAL_CX)
     return NULL;
 
-  if (!JS::InitSelfHostedCode(cx))
+  if (!JS::InitSelfHostedCode(GLOBAL_CX))
     return NULL;
 
   JS::RealmOptions options;
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
-  global = new JS::RootedObject(cx, JS_NewGlobalObject(cx, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
+  global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   if (!global)
     return NULL;
 
   Py_AtExit(cleanup);
-  JS_SetGCCallback(cx, handleSharedPythonMonkeyMemory, NULL);
+  JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
 
   PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)
