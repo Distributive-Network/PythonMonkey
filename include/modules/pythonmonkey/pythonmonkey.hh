@@ -21,7 +21,7 @@
 
 #define PythonMonkey_Null PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null") /**< macro for python null object*/
 
-static JSContext *cx; /**< pointer to PythonMonkey's JSContext */
+static JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 
 /**
@@ -89,7 +89,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void);
  * @brief Array of method definitions for the pythonmonkey module
  *
  */
-extern PyMethodDef PythonMonkeyMethods[4];
+extern PyMethodDef PythonMonkeyMethods[];
 
 /**
  * @brief Module definition for the pythonmonkey module

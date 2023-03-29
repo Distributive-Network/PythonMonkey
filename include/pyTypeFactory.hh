@@ -1,7 +1,7 @@
 /**
  * @file pyTypeFactory.hh
  * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
- * @brief Function for wrapping arbitrary PyObjects into the appropriate PyType class
+ * @brief Function for wrapping arbitrary PyObjects into the appropriate PyType class, and coercing JS types to python types
  * @version 0.1
  * @date 2022-08-08
  *

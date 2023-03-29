@@ -23,7 +23,7 @@
 struct NullType : public PyType {
 public:
   NullType();
-  const TYPE returnType = TYPE::NIL;
+  const TYPE returnType = TYPE::PYTHONMONKEY_NULL;
 
 protected:
   virtual void print(std::ostream &os) const override;
