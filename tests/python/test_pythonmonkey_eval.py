@@ -155,7 +155,7 @@ def test_eval_booleans():
     assert py_bool == js_bool
 
 def test_eval_dates():
-    MIN_YEAR = 100
+    MIN_YEAR = 1 # https://docs.python.org/3/library/datetime.html#datetime.MINYEAR
     MAX_YEAR = 2023
     start = datetime(MIN_YEAR, 1, 1, 00, 00, 00)
     years = MAX_YEAR - MIN_YEAR + 1
