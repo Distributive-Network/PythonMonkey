@@ -33,6 +33,7 @@ void setSpiderMonkeyException(JSContext *cx) {
   JS::RootedObject exceptionObject(cx);
   if (!JS_ValueToObject(cx, exceptionStack.exception(), &exceptionObject)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but the exception could not be converted to an object.");
+    return;
   }
 
   /**
