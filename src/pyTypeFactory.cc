@@ -137,9 +137,9 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
 
 static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {
   // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
-  JSContext *JScontext = (JSContext *)PyLong_AsLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 0));
-  JS::RootedObject *globalObject = (JS::RootedObject *)PyLong_AsLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 1));
-  JS::RootedValue *JSFuncValue = (JS::RootedValue *)PyLong_AsLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 2));
+  JSContext *JScontext = (JSContext *)PyLong_AsLongLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 0));
+  JS::RootedObject *globalObject = (JS::RootedObject *)PyLong_AsLongLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 1));
+  JS::RootedValue *JSFuncValue = (JS::RootedValue *)PyLong_AsLongLong(PyTuple_GetItem(JSCxGlobalFuncTuple, 2));
 
   JS::RootedVector<JS::Value> JSargsVector(JScontext);
   for (size_t i = 0; i < PyTuple_Size(args); i++) {

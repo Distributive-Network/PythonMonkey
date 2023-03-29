@@ -129,6 +129,17 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(*jsFuncObject);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
   }
+  else if (PyCFunction_Check(object)) {
+    // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
+    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, 0, 0, NULL);
+    JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
+
+    // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
+    js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
+    returnType.setObject(*jsFuncObject);
+    memoizePyTypeAndGCThing(new FuncType(object), returnType);
+
+  }
   else if (object == Py_None) {
     returnType.setUndefined();
   }
@@ -136,7 +147,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, int, pythonmonkey.bigint, float, str, None, and our custom Null type are not supported by pythonmonkey yet.");
+    PyErr_SetString(PyExc_TypeError, "Python types other than bool, function, int, pythonmonkey.bigint, pythonmonkey.null, float, str, and None are not supported by pythonmonkey yet.");
   }
   return returnType;
 
@@ -152,7 +163,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::RootedObject thisv(cx);
   JS_ValueToObject(cx, callargs.thisv(), &thisv);
 
-  if (argc == 0) {
+  if (!callargs.length()) {
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
     // @TODO (Caleb Aikens) need to check for python exceptions here
     callargs.rval().set(jsTypeFactory(cx, pyRval));
@@ -160,8 +171,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   // populate python args tuple
-  PyObject *pyArgs = PyTuple_New(argc);
-  for (size_t i = 0; i < argc; i++) {
+  PyObject *pyArgs = PyTuple_New(callargs.length());
+  for (size_t i = 0; i < callargs.length(); i++) {
     JS::RootedValue jsArg = JS::RootedValue(cx, callargs[i]);
     PyType *pyArg = (pyTypeFactory(cx, &thisv, &jsArg));
     PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
