@@ -23,6 +23,7 @@ enum class TYPE {
   LIST,
   TUPLE,
   DATE,
+  PYTHONMONKEY_PROMISE,
   NONE,
   PYTHONMONKEY_NULL,
 };
