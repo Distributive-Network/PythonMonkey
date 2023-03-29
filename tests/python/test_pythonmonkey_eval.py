@@ -332,8 +332,8 @@ def test_eval_functions():
     h = pm.eval("(a, b) => {return a + b}")
     n = 10
     for i in range(n):
-        a = random.randint(0, 1000)
-        b = random.randint(0, 1000)
+        a = random.randint(-1000, 1000)
+        b = random.randint(-1000, 1000)
         assert h(a, b) == (a + b)
     
     for i in range (n):
