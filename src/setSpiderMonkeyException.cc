@@ -23,6 +23,7 @@
 void setSpiderMonkeyException(JSContext *cx) {
   if (!JS_IsExceptionPending(cx)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey failed, but spidermonkey did not set an exception.");
+    return;
   }
   JS::ExceptionStack exceptionStack(cx);
   if (!JS::GetPendingExceptionStack(cx, &exceptionStack)) {
