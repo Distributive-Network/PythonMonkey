@@ -46,26 +46,27 @@ void setSpiderMonkeyException(JSContext *cx) {
    * <stack trace>"
    *
    */
-
-  JSErrorReport *errorReport = JS_ErrorFromException(cx, exceptionObject);
   std::stringstream outStrStream;
 
-  std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
-  std::string linebuf; // the offending JS line of code (can be empty)
+  JSErrorReport *errorReport = JS_ErrorFromException(cx, exceptionObject);
+  if (errorReport) { // JS_ErrorFromException returns nullptr if the given object is not an exception object
+    std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
+    std::string linebuf; // the offending JS line of code (can be empty)
 
-  outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ":\n";
-  if (errorReport->linebuf()) {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    std::u16string u16linebuf(errorReport->linebuf());
-    linebuf = convert.to_bytes(u16linebuf);
+    outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ":\n";
+    if (errorReport->linebuf()) {
+      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+      std::u16string u16linebuf(errorReport->linebuf());
+      linebuf = convert.to_bytes(u16linebuf);
+    }
+    if (linebuf.size()) {
+      outStrStream << linebuf << "\n";
+      outStrStream << offsetSpaces << "^\n";
+    }
+    outStrStream << errorReport->message().c_str() << "\n";
   }
-  if (linebuf.size()) {
-    outStrStream << linebuf << "\n";
-    outStrStream << offsetSpaces << "^\n";
-  }
-  outStrStream << errorReport->message().c_str() << "\n";
 
-  if (exceptionStack.stack()) {
+  if (exceptionStack.stack()) { // stack can be null
     JS::Rooted<JS::ValueArray<0>> args(cx);
     JS::RootedValue stackString(cx);
     JS_CallFunctionName(cx, exceptionStack.stack(), "toString", args, &stackString);
