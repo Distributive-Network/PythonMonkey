@@ -180,8 +180,9 @@ def test_eval_dates():
     end = start + timedelta(days=365 * years)
     for _ in range(10):
         py_date = start + (end - start) * random.random()
-        py_date = py_date.replace(microsecond=0)
-        js_date = pm.eval(f'new Date({py_date.year}, {py_date.month - 1}, {py_date.day}, {py_date.hour}, {py_date.minute}, {py_date.second}, {py_date.microsecond / 1000})')
+        # round to milliseconds precision because the smallest unit for js Date is 1ms
+        py_date = py_date.replace(microsecond=round(py_date.microsecond, -3))
+        js_date = pm.eval(f'new Date("{py_date.isoformat()}")')
         assert py_date == js_date
 
 def test_eval_boxed_booleans():
