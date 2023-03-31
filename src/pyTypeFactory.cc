@@ -22,6 +22,7 @@
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
 #include "include/PyType.hh"
+#include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
 #include "include/TupleType.hh"
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
@@ -152,7 +153,10 @@ static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {
 
   JS::HandleValueArray JSargs(JSargsVector);
   JS::Rooted<JS::Value> *JSreturnVal = new JS::Rooted<JS::Value>(JScontext);
-  JS_CallFunctionValue(JScontext, *globalObject, *JSFuncValue, JSargs, JSreturnVal);
-
+  if (!JS_CallFunctionValue(JScontext, *globalObject, *JSFuncValue, JSargs, JSreturnVal)) {
+    setSpiderMonkeyException(JScontext);
+    return NULL;
+  }
+  
   return pyTypeFactory(JScontext, globalObject, JSreturnVal)->getPyObject();
 }

@@ -96,4 +96,10 @@ extern PyMethodDef PythonMonkeyMethods[];
  *
  */
 extern struct PyModuleDef pythonmonkey;
+
+/**
+ * @brief PyObject for spidermonkey error type
+ *
+ */
+extern PyObject *SpiderMonkeyError;
 #endif

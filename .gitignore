@@ -11,4 +11,3 @@ firefox-*/*
 firefox-*/
 tests/__pycache__/*
 tests/python/__pycache__/*
-

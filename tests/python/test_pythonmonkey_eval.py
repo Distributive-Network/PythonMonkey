@@ -1,3 +1,4 @@
+import pytest
 import pythonmonkey as pm
 import gc
 import random
@@ -332,6 +333,25 @@ def test_eval_boxed_ucs4_string_fuzztest():
             string1 = string2
         assert INITIAL_STRING == string1 #strings should still match after a bunch of iterations through JS
         
+def test_eval_exceptions():
+    # should print out the correct error messages
+    with pytest.raises(pm.SpiderMonkeyError, match='SyntaxError: "" literal not terminated before end of script'):
+        pm.eval('"123')
+    with pytest.raises(pm.SpiderMonkeyError, match="SyntaxError: missing } in compound statement"):
+        pm.eval('{')
+    with pytest.raises(pm.SpiderMonkeyError, match="TypeError: can't convert BigInt to number"):
+        pm.eval('1n + 1')
+    with pytest.raises(pm.SpiderMonkeyError, match="ReferenceError: RANDOM_VARIABLE is not defined"):
+        pm.eval('RANDOM_VARIABLE')
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: invalid array length"):
+        pm.eval('new Array(-1)')
+    with pytest.raises(pm.SpiderMonkeyError, match="Error: abc"):
+        # manually by the `throw` statement
+        pm.eval('throw new Error("abc")')
+    with pytest.raises(pm.SpiderMonkeyError, match="uncaught exception: something from toString"):
+        # (side effect) calls the `toString` method if an object is thrown
+        pm.eval('throw { toString() { return "something from toString" } }')
+
 def test_eval_undefined():
     x = pm.eval("undefined")
     assert x == None
