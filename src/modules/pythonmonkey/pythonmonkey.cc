@@ -4,9 +4,9 @@
  * @brief This file defines the pythonmonkey module, along with its various functions.
  * @version 0.1
  * @date 2023-03-29
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
@@ -217,6 +217,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
   PyDateTime_IMPORT;
 
+  SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
   if (!JS_Init()) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
@@ -259,7 +260,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
   if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError)) {
     Py_DECREF(pyModule);
     return NULL;
