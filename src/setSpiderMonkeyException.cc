@@ -14,7 +14,6 @@
 #include "include/StrType.hh"
 
 #include <jsapi.h>
-#include <js/Exception.h>
 
 #include <codecvt>
 #include <locale>
@@ -31,9 +30,9 @@ void setSpiderMonkeyException(JSContext *cx) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
     return;
   }
-  JS::RootedObject exceptionObject(cx);
-  if (!JS_ValueToObject(cx, exceptionStack.exception(), &exceptionObject)) {
-    PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but the exception could not be converted to an object.");
+  JS::ErrorReportBuilder reportBuilder(cx);
+  if (!reportBuilder.init(cx, exceptionStack, JS::ErrorReportBuilder::WithSideEffects /* may call the `toString` method if an object is thrown */)) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but could not initialize the error report.");
     return;
   }
 
@@ -49,8 +48,8 @@ void setSpiderMonkeyException(JSContext *cx) {
    */
   std::stringstream outStrStream;
 
-  JSErrorReport *errorReport = JS_ErrorFromException(cx, exceptionObject);
-  if (errorReport) { // JS_ErrorFromException returns nullptr if the given object is not an exception object
+  JSErrorReport *errorReport = reportBuilder.report();
+  if (errorReport) {
     std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
     std::string linebuf; // the offending JS line of code (can be empty)
 
@@ -64,8 +63,10 @@ void setSpiderMonkeyException(JSContext *cx) {
       outStrStream << linebuf << "\n";
       outStrStream << offsetSpaces << "^\n";
     }
-    outStrStream << errorReport->message().c_str() << "\n";
   }
+
+  // print out the SpiderMonkey error message
+  outStrStream << reportBuilder.toStringResult().c_str() << "\n";
 
   JS::HandleObject stackObj = exceptionStack.stack();
   if (stackObj) { // stack can be null
