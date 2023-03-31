@@ -1,3 +1,14 @@
+/**
+ * @file pythonmonkey.cc
+ * @author Caleb Aikens (caleb@distributive.network)
+ * @brief This file defines the pythonmonkey module, along with its various functions.
+ * @version 0.1
+ * @date 2023-03-29
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 
@@ -48,13 +59,13 @@ static PyTypeObject BigIntType = {
 };
 
 static void cleanup() {
-  JS_DestroyContext(cx);
+  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
   delete global;
 }
 
 void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
-  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(cx, GCThing);
+  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(GLOBAL_CX, GCThing);
   PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
 
   if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
@@ -97,7 +108,7 @@ void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReas
 };
 
 static PyObject *collect(PyObject *self, PyObject *args) {
-  JS_GC(cx);
+  JS_GC(GLOBAL_CX);
   Py_RETURN_NONE;
 }
 
@@ -119,25 +130,26 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  JS::CompileOptions options (cx);
+  JSAutoRealm ar(GLOBAL_CX, *global);
+  JS::CompileOptions options (GLOBAL_CX);
   options.setFileAndLine("noname", 1);
 
   // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
-  if (!source.init(cx, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
-    setSpiderMonkeyException(cx);
+  if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
+    setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
 
   // evaluate source code
-  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(cx);
-  if (!JS::Evaluate(cx, options, source, rval)) {
-    setSpiderMonkeyException(cx);
+  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  if (!JS::Evaluate(GLOBAL_CX, options, source, rval)) {
+    setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
 
   // translate to the proper python type
-  PyType *returnValue = pyTypeFactory(cx, global, rval);
+  PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, rval);
 
   if (returnValue) {
     return returnValue->getPyObject();
@@ -169,35 +181,35 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
   PyDateTime_IMPORT;
 
+  SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
   if (!JS_Init()) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
   }
+  Py_AtExit(cleanup);
 
-
-  cx = JS_NewContext(JS::DefaultHeapMaxBytes);
-  if (!cx) {
+  GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
+  if (!GLOBAL_CX) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a JS context.");
     return NULL;
   }
 
-  if (!JS::InitSelfHostedCode(cx)) {
+  if (!JS::InitSelfHostedCode(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not initialize self-hosted code.");
     return NULL;
   }
 
   JS::RealmOptions options;
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
-  global = new JS::RootedObject(cx, JS_NewGlobalObject(cx, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
+  global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   if (!global) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a global object.");
     return NULL;
   }
 
-  autoRealm = new JSAutoRealm(cx, *global);
+  autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
 
-  Py_AtExit(cleanup);
-  JS_SetGCCallback(cx, handleSharedPythonMonkeyMemory, NULL);
+  JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
 
   PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)
@@ -222,7 +234,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
   if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError)) {
     Py_DECREF(pyModule);
     return NULL;

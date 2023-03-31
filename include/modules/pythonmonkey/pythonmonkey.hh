@@ -22,7 +22,7 @@
 #define PythonMonkey_Null   PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null")   /**< macro for pythonmonkey.null object*/
 #define PythonMonkey_BigInt PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint") /**< macro for pythonmonkey.bigint class object */
 
-static JSContext *cx; /**< pointer to PythonMonkey's JSContext */
+static JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 static JSAutoRealm *autoRealm; /**< pointer to PythonMonkey's AutoRealm */
 
@@ -91,7 +91,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void);
  * @brief Array of method definitions for the pythonmonkey module
  *
  */
-extern PyMethodDef PythonMonkeyMethods[4];
+extern PyMethodDef PythonMonkeyMethods[];
 
 /**
  * @brief Module definition for the pythonmonkey module
