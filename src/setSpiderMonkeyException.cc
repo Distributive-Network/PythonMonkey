@@ -14,6 +14,7 @@
 #include "include/StrType.hh"
 
 #include <jsapi.h>
+#include <js/Exception.h>
 
 #include <codecvt>
 #include <locale>
@@ -66,12 +67,11 @@ void setSpiderMonkeyException(JSContext *cx) {
     outStrStream << errorReport->message().c_str() << "\n";
   }
 
-  if (exceptionStack.stack()) { // stack can be null
-    JS::Rooted<JS::ValueArray<0>> args(cx);
-    JS::RootedValue stackString(cx);
-    JS_CallFunctionName(cx, exceptionStack.stack(), "toString", args, &stackString);
-    StrType stackStr(cx, stackString.toString());
-    outStrStream << "Stack Trace: \n" << stackStr.getValue();
+  JS::HandleObject stackObj = exceptionStack.stack();
+  if (stackObj) { // stack can be null
+    JS::RootedString stackStr(cx);
+    BuildStackString(cx, nullptr, stackObj, &stackStr, /* indent */ 2, js::StackFormat::SpiderMonkey);
+    outStrStream << "Stack Trace: \n" << StrType(cx, stackStr).getValue();
   }
 
   PyErr_SetString(SpiderMonkeyError, outStrStream.str().c_str());
