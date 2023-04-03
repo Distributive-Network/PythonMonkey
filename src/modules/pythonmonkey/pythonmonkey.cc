@@ -60,7 +60,6 @@ static PyTypeObject BigIntType = {
 };
 
 static void cleanup() {
-  JS::ShutdownAsyncTasks(GLOBAL_CX);
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
   delete global;
