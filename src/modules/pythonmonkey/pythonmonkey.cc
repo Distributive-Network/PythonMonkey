@@ -22,6 +22,7 @@
 #include "include/StrType.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 #include <js/CompilationAndEvaluation.h>
 #include <js/Class.h>
 #include <js/Date.h>
@@ -191,6 +192,11 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
   if (!GLOBAL_CX) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a JS context.");
+    return NULL;
+  }
+
+  if (!js::UseInternalJobQueues(GLOBAL_CX)) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
   }
 
