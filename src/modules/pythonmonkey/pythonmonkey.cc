@@ -60,9 +60,12 @@ static PyTypeObject BigIntType = {
 };
 
 static void cleanup() {
+  JS::ShutdownAsyncTasks(GLOBAL_CX);
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
   delete global;
+  delete autoRealm;
+  delete JOB_QUEUE;
 }
 
 void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
@@ -195,7 +198,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  if (!js::UseInternalJobQueues(GLOBAL_CX)) {
+  JOB_QUEUE = new JobQueue();
+  if (!JOB_QUEUE->init(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
   }
