@@ -36,8 +36,7 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
 
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  auto methodName = PyUnicode_DecodeFSDefault("call_soon");
-  auto asyncHandle = PyObject_CallMethodOneArg(loop, methodName, callback);
+  auto asyncHandle = PyObject_CallMethod(loop, "call_soon", "O", callback); // https://docs.python.org/3/c-api/arg.html#other-objects
   // TODO (Tom Tang): refactor python calls into its own method
 
   // Inform the JS runtime that the job queue is no longer empty
@@ -46,7 +45,6 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   // Clean up
   Py_DECREF(asyncio);
   Py_DECREF(loop);
-  Py_DECREF(methodName);
   Py_DECREF(asyncHandle);
 
   return true;
