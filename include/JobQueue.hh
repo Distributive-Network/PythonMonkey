@@ -49,6 +49,15 @@ public:
  * @return success
  */
 bool init(JSContext *cx);
+
+/**
+ * @brief The callback for dispatching an off-thread promise to the event loop
+ *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l580
+ *              https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/OffThreadPromiseRuntimeState.cpp#l160
+ * @param closure - closure, currently the javascript context
+ * @param dispatchable - Pointer to the Dispatchable to be called
+ */
+static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
 };
 
 #endif

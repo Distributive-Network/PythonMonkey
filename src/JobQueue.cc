@@ -17,9 +17,9 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
 
   // Convert the `job` JS function to a Python function for event-loop callback
   // TODO (Tom Tang): assert `job` is JS::Handle<JSFunction*> by JS::GetBuiltinClass(...) == js::ESClass::Function (17)
-  // FIXME (Tom Tang): objects not free-ed
+  // FIXME (Tom Tang): memory leak, objects not free-ed
   auto global = new JS::RootedObject(cx, getIncumbentGlobal(cx));
-  auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job.get()));
+  auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job));
   auto callback = pyTypeFactory(cx, global, jobv)->getPyObject();
 
   // Get the running Python event-loop
@@ -71,7 +71,12 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
-  // TODO (Tom Tang): JS::InitDispatchToEventLoop(...)
-  //       see inside js::UseInternalJobQueues(cx); (initInternalDispatchQueue)
+  JS::InitDispatchToEventLoop(cx, /* callback */ dispatchToEventLoop, /* closure */ cx);
+  return true;
+}
+
+bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable) {
+  JSContext *cx = (JSContext *)closure; // `closure` is provided in `JS::InitDispatchToEventLoop` call
+  // dispatchable->run(cx, JS::Dispatchable::NotShuttingDown);
   return true;
 }
