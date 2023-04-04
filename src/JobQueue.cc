@@ -27,7 +27,9 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   PyObject *asyncio = PyImport_ImportModule("asyncio");
   PyObject *loop = PyObject_CallMethod(asyncio, "get_running_loop", NULL);
   if (loop == nullptr) { // `get_running_loop` would raise a RuntimeError if there is no running event loop
-    // PyErr_SetString(PyExc_RuntimeError, "No running Python event-loop."); // override the error raised by `get_running_loop`
+    // Overwrite the error raised by `get_running_loop`
+    PyErr_SetString(PyExc_RuntimeError, "PythonMonkey cannot find a running Python event-loop to make asynchronous calls.");
+    // Clean up references
     Py_DECREF(asyncio);
     return false;
   }
