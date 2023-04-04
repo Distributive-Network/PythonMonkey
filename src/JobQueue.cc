@@ -18,36 +18,15 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   // Convert the `job` JS function to a Python function for event-loop callback
   // TODO (Tom Tang): assert `job` is JS::Handle<JSFunction*> by JS::GetBuiltinClass(...) == js::ESClass::Function (17)
   // FIXME (Tom Tang): memory leak, objects not free-ed
+  // FIXME (Tom Tang): `job` function is going to be GC-ed ???
   auto global = new JS::RootedObject(cx, getIncumbentGlobal(cx));
   auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job));
   auto callback = pyTypeFactory(cx, global, jobv)->getPyObject();
 
-  // Get the running Python event-loop
-  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_running_loop
-  PyObject *asyncio = PyImport_ImportModule("asyncio");
-  PyObject *loop = PyObject_CallMethod(asyncio, "get_running_loop", NULL);
-  if (loop == nullptr) { // `get_running_loop` would raise a RuntimeError if there is no running event loop
-    // Overwrite the error raised by `get_running_loop`
-    PyErr_SetString(PyExc_RuntimeError, "PythonMonkey cannot find a running Python event-loop to make asynchronous calls.");
-    // Clean up references
-    Py_DECREF(asyncio);
-    return false;
-  }
-
-  // Enqueue job to the Python event-loop
-  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  auto asyncHandle = PyObject_CallMethod(loop, "call_soon", "O", callback); // https://docs.python.org/3/c-api/arg.html#other-objects
-  // TODO (Tom Tang): refactor python calls into its own method
-
   // Inform the JS runtime that the job queue is no longer empty
   JS::JobQueueMayNotBeEmpty(cx);
 
-  // Clean up
-  Py_DECREF(asyncio);
-  Py_DECREF(loop);
-  Py_DECREF(asyncHandle);
-
-  return true;
+  return enqueueToPyEventLoop(callback);
 }
 
 void JobQueue::runJobs(JSContext *cx) {
@@ -75,6 +54,31 @@ bool JobQueue::init(JSContext *cx) {
   return true;
 }
 
+bool JobQueue::enqueueToPyEventLoop(PyObject *jobFn) {
+  // Get the running Python event-loop
+  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_running_loop
+  PyObject *asyncio = PyImport_ImportModule("asyncio");
+  PyObject *loop = PyObject_CallMethod(asyncio, "get_running_loop", NULL);
+  if (loop == nullptr) { // `get_running_loop` would raise a RuntimeError if there is no running event loop
+    // Overwrite the error raised by `get_running_loop`
+    PyErr_SetString(PyExc_RuntimeError, "PythonMonkey cannot find a running Python event-loop to make asynchronous calls.");
+    Py_DECREF(asyncio); // clean up
+    return false;
+  }
+
+  // Enqueue job to the Python event-loop
+  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
+  auto asyncHandle = PyObject_CallMethod(loop, "call_soon", "O", jobFn); // https://docs.python.org/3/c-api/arg.html#other-objects
+
+  // Clean up references to Python objects
+  Py_DECREF(asyncio);
+  Py_DECREF(loop);
+  Py_DECREF(asyncHandle);
+
+  return true;
+}
+
+/* static */
 bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable) {
   JSContext *cx = (JSContext *)closure; // `closure` is provided in `JS::InitDispatchToEventLoop` call
   // dispatchable->run(cx, JS::Dispatchable::NotShuttingDown);

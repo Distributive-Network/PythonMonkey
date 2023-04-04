@@ -15,6 +15,8 @@
 #include <jsapi.h>
 #include <js/Promise.h>
 
+#include <Python.h>
+
 class JobQueue : public JS::JobQueue {
 //
 // JS::JobQueue methods.
@@ -51,11 +53,21 @@ public:
 bool init(JSContext *cx);
 
 /**
+ * @brief Send job to the running Python event-loop, or
+ *        raise a Python RuntimeError if no event-loop running
+ * @param jobFn - The JS event-loop job converted to a Python function
+ * @return success
+ */
+bool enqueueToPyEventLoop(PyObject *jobFn);
+
+private:
+/**
  * @brief The callback for dispatching an off-thread promise to the event loop
  *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l580
  *              https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/OffThreadPromiseRuntimeState.cpp#l160
  * @param closure - closure, currently the javascript context
  * @param dispatchable - Pointer to the Dispatchable to be called
+ * @return not shutting down
  */
 static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
 };
