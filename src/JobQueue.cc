@@ -23,10 +23,14 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   auto callback = pyTypeFactory(cx, global, jobv)->getPyObject();
 
   // Get the running Python event-loop
-  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_event_loop
-  auto asyncio = PyImport_ImportModule("asyncio");
-  auto loop = PyObject_CallMethod(asyncio, "get_running_loop", NULL);
-  // FIXME (Tom Tang): assert `loop` is not None
+  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_running_loop
+  PyObject *asyncio = PyImport_ImportModule("asyncio");
+  PyObject *loop = PyObject_CallMethod(asyncio, "get_running_loop", NULL);
+  if (loop == nullptr) { // `get_running_loop` would raise a RuntimeError if there is no running event loop
+    // PyErr_SetString(PyExc_RuntimeError, "No running Python event-loop."); // override the error raised by `get_running_loop`
+    Py_DECREF(asyncio);
+    return false;
+  }
 
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
