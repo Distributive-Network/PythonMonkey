@@ -21,6 +21,9 @@
 #include <Python.h>
 
 void setSpiderMonkeyException(JSContext *cx) {
+  if (PyErr_Occurred()) { // Check if a Python exception has already been set, otherwise `PyErr_SetString` would overwrite the exception set
+    return;
+  }
   if (!JS_IsExceptionPending(cx)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey failed, but spidermonkey did not set an exception.");
     return;
