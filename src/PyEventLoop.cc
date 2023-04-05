@@ -2,17 +2,14 @@
 
 #include <Python.h>
 
-bool PyEventLoop::enqueue(PyObject *jobFn) {
+PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
   PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon", "O", jobFn); // https://docs.python.org/3/c-api/arg.html#other-objects
-  Py_DECREF(asyncHandle); // clean up
-  return true;
+  return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
-bool PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
-
-}
+PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {}
 
 /* static */
 PyEventLoop PyEventLoop::getRunningLoop() {
@@ -29,4 +26,10 @@ PyEventLoop PyEventLoop::getRunningLoop() {
   }
 
   return PyEventLoop(loop); // `loop` may be null
+}
+
+void PyEventLoop::AsyncHandle::cancel() {
+  // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancel
+  PyObject *ret = PyObject_CallMethod(_handle, "cancel", NULL); // returns None
+  Py_XDECREF(ret);
 }
