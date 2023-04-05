@@ -5,11 +5,16 @@
 PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon", "O", jobFn); // https://docs.python.org/3/c-api/arg.html#other-objects
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon", "O", jobFn); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
-PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {}
+PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
+  // Schedule job to the Python event-loop
+  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dO", delaySeconds, jobFn); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  return PyEventLoop::AsyncHandle(asyncHandle);
+}
 
 /* static */
 PyEventLoop PyEventLoop::getRunningLoop() {
