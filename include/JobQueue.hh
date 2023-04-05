@@ -52,14 +52,6 @@ public:
  */
 bool init(JSContext *cx);
 
-/**
- * @brief Send job to the running Python event-loop, or
- *        raise a Python RuntimeError if no event-loop running
- * @param jobFn - The JS event-loop job converted to a Python function
- * @return success
- */
-bool enqueueToPyEventLoop(PyObject *jobFn);
-
 private:
 /**
  * @brief The callback for dispatching an off-thread promise to the event loop

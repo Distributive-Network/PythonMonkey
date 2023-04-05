@@ -1,4 +1,5 @@
 #include "include/JobQueue.hh"
+#include "include/PyEventLoop.hh"
 #include "include/pyTypeFactory.hh"
 
 #include <Python.h>
@@ -26,7 +27,12 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   // Inform the JS runtime that the job queue is no longer empty
   JS::JobQueueMayNotBeEmpty(cx);
 
-  return enqueueToPyEventLoop(callback);
+  // Send job to the running Python event-loop
+  PyEventLoop loop = PyEventLoop::getRunningLoop();
+  if (!loop.initialized()) return false;
+  loop.enqueue(callback);
+
+  return true;
 }
 
 void JobQueue::runJobs(JSContext *cx) {
@@ -51,30 +57,6 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
   JS::InitDispatchToEventLoop(cx, /* callback */ dispatchToEventLoop, /* closure */ cx);
-  return true;
-}
-
-bool JobQueue::enqueueToPyEventLoop(PyObject *jobFn) {
-  // Get the running Python event-loop
-  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_running_loop
-  PyObject *asyncio = PyImport_ImportModule("asyncio");
-  PyObject *loop = PyObject_CallMethod(asyncio, "get_running_loop", NULL);
-  if (loop == nullptr) { // `get_running_loop` would raise a RuntimeError if there is no running event loop
-    // Overwrite the error raised by `get_running_loop`
-    PyErr_SetString(PyExc_RuntimeError, "PythonMonkey cannot find a running Python event-loop to make asynchronous calls.");
-    Py_DECREF(asyncio); // clean up
-    return false;
-  }
-
-  // Enqueue job to the Python event-loop
-  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  auto asyncHandle = PyObject_CallMethod(loop, "call_soon", "O", jobFn); // https://docs.python.org/3/c-api/arg.html#other-objects
-
-  // Clean up references to Python objects
-  Py_DECREF(asyncio);
-  Py_DECREF(loop);
-  Py_DECREF(asyncHandle);
-
   return true;
 }
 
