@@ -190,14 +190,13 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Get the function to be executed
   // TODO (Tom Tang): `setTimeout` should allow passing additional arguments to the callback
   // FIXME (Tom Tang): memory leak, not free-ed
-  JS::RootedObject *thisv = new JS::RootedObject(cx);
-  JS_ValueToObject(cx, args.thisv(), thisv);
+  JS::RootedObject *thisv = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee())); // HTML spec requires `thisArg` to be the global object
   JS::RootedValue *jobArg = new JS::RootedValue(cx, args[0]);
   PyObject *job = pyTypeFactory(cx, thisv, jobArg)->getPyObject();
 
   // Get the delay time
   //  JS `setTimeout` takes milliseconds, but Python takes seconds
-  double delayMs = args[1].toNumber();
+  double delayMs = args.hasDefined(1) ? args[1].toNumber() : 0; // use value of 0 if the delay parameter is omitted
   double delaySeconds = delayMs / 1000; // convert ms to s
 
   // Schedule job to the running Python event-loop
