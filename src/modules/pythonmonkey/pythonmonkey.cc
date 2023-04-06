@@ -188,10 +188,22 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   // Get the function to be executed
-  // TODO (Tom Tang): `setTimeout` should allow passing additional arguments to the callback
   // FIXME (Tom Tang): memory leak, not free-ed
   JS::RootedObject *thisv = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee())); // HTML spec requires `thisArg` to be the global object
   JS::RootedValue *jobArg = new JS::RootedValue(cx, args[0]);
+  // `setTimeout` allows passing additional arguments to the callback, as spec-ed
+  if (args.length() > 2) { // having additional arguments
+    // Wrap the job function into a bound function with the given additional arguments
+    //    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
+    JS::RootedVector<JS::Value> bindArgs(cx);
+    bindArgs.append(JS::ObjectValue(**thisv));
+    for (size_t i = 1, j = 2; j < args.length(); j++) {
+      bindArgs.append(args[j]);
+    }
+    JS::RootedObject jobArgObj = JS::RootedObject(cx, &args[0].toObject());
+    JS_CallFunctionName(cx, jobArgObj, "bind", JS::HandleValueArray(bindArgs), jobArg); // jobArg = jobArg.bind(thisv, ...bindArgs)
+  }
+  // Convert to a Python function
   PyObject *job = pyTypeFactory(cx, thisv, jobArg)->getPyObject();
 
   // Get the delay time
