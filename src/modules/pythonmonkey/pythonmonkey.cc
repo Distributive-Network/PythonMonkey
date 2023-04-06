@@ -196,7 +196,9 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Get the delay time
   //  JS `setTimeout` takes milliseconds, but Python takes seconds
-  double delayMs = args.hasDefined(1) ? args[1].toNumber() : 0; // use value of 0 if the delay parameter is omitted
+  double delayMs = 0; // use value of 0 if the delay parameter is omitted
+  if (args.hasDefined(1)) { JS::ToNumber(cx, args[1], &delayMs); } // implicitly do type coercion to a `number`
+  if (delayMs < 0) { delayMs = 0; } // as spec-ed
   double delaySeconds = delayMs / 1000; // convert ms to s
 
   // Schedule job to the running Python event-loop
