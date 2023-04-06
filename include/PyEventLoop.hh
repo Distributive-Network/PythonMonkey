@@ -46,12 +46,22 @@ public:
      * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#return_value
      */
     inline uint64_t getId() {
+      Py_INCREF(_handle); // otherwise the object would be GC-ed as the AsyncHandle destructs
       // Currently we use the address of the underlying `asyncio.Handle` object
       // FIXME (Tom Tang): JS stores the `timeoutID` in a `number` (float64), may overflow
       return (uint64_t)_handle;
     }
     static inline AsyncHandle fromId(uint64_t timeoutID) {
+      // FIXME (Tom Tang): `clearTimeout` can only be applied once on the same handle because the handle is GC-ed
       return AsyncHandle((PyObject *)timeoutID);
+    }
+
+    /**
+     * @brief Get the underlying `asyncio.Handle` Python object
+     */
+    inline PyObject *getHandleObject() const {
+      Py_INCREF(_handle); // otherwise the object would be GC-ed as the AsyncHandle destructor decreases the reference count
+      return _handle;
     }
   protected:
     PyObject *_handle;

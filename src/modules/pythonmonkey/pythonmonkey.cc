@@ -20,6 +20,7 @@
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
+#include "include/PyEventLoop.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -180,6 +181,59 @@ struct PyModuleDef pythonmonkey =
 
 PyObject *SpiderMonkeyError = NULL;
 
+// Implement the `setTimeout` global function
+//    https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
+//    https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-settimeout
+static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  // Get the function to be executed
+  // TODO (Tom Tang): `setTimeout` should allow passing additional arguments to the callback
+  // FIXME (Tom Tang): memory leak, not free-ed
+  JS::RootedObject *thisv = new JS::RootedObject(cx);
+  JS_ValueToObject(cx, args.thisv(), thisv);
+  JS::RootedValue *jobArg = new JS::RootedValue(cx, args[0]);
+  PyObject *job = pyTypeFactory(cx, thisv, jobArg)->getPyObject();
+
+  // Get the delay time
+  //  JS `setTimeout` takes milliseconds, but Python takes seconds
+  double delayMs = args[1].toNumber();
+  double delaySeconds = delayMs / 1000; // convert ms to s
+
+  // Schedule job to the running Python event-loop
+  PyEventLoop loop = PyEventLoop::getRunningLoop();
+  if (!loop.initialized()) return false;
+  PyEventLoop::AsyncHandle handle = loop.enqueueWithDelay(job, delaySeconds);
+
+  // Return the `timeoutID` to use in `clearTimeout`
+  args.rval().setDouble((double)handle.getId());
+
+  return true;
+}
+
+// Implement the `clearTimeout` global function
+//    https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout
+//    https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-cleartimeout
+static bool clearTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
+  using AsyncHandle = PyEventLoop::AsyncHandle;
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  // Retrieve the AsyncHandle by `timeoutID`
+  double timeoutID = args[0].toNumber();
+  AsyncHandle handle = AsyncHandle::fromId((uint64_t)timeoutID);
+
+  // Cancel this job on Python event-loop
+  handle.cancel();
+
+  return true;
+}
+
+static JSFunctionSpec jsGlobalFunctions[] = {
+  JS_FN("setTimeout", setTimeout, /* nargs */ 2, 0),
+  JS_FN("clearTimeout", clearTimeout, 1, 0),
+  JS_FS_END
+};
+
 PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
   PyDateTime_IMPORT;
@@ -217,6 +271,11 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   }
 
   autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
+
+  if (!JS_DefineFunctions(GLOBAL_CX, *global, jsGlobalFunctions)) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not define global functions.");
+    return NULL;
+  }
 
   JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
 
