@@ -14,13 +14,13 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   [[maybe_unused]] JS::HandleObject promise,
   JS::HandleObject job,
   [[maybe_unused]] JS::HandleObject allocationSite,
-  [[maybe_unused]] JS::HandleObject incumbentGlobal) {
+  JS::HandleObject incumbentGlobal) {
 
   // Convert the `job` JS function to a Python function for event-loop callback
   // TODO (Tom Tang): assert `job` is JS::Handle<JSFunction*> by JS::GetBuiltinClass(...) == js::ESClass::Function (17)
   // FIXME (Tom Tang): memory leak, objects not free-ed
   // FIXME (Tom Tang): `job` function is going to be GC-ed ???
-  auto global = new JS::RootedObject(cx, getIncumbentGlobal(cx));
+  auto global = new JS::RootedObject(cx, incumbentGlobal);
   auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job));
   auto callback = pyTypeFactory(cx, global, jobv)->getPyObject();
 
