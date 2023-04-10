@@ -52,7 +52,7 @@ void setSpiderMonkeyException(JSContext *cx) {
   std::stringstream outStrStream;
 
   JSErrorReport *errorReport = reportBuilder.report();
-  if (errorReport) {
+  if (errorReport && errorReport->filename) { // `errorReport->filename` (the source file name) can be null
     std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
     std::string linebuf; // the offending JS line of code (can be empty)
 
