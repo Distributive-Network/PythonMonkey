@@ -52,6 +52,7 @@ public:
       return (uint64_t)_handle;
     }
     static inline AsyncHandle fromId(uint64_t timeoutID) {
+      // FIXME: user can access arbitrary memory location
       // FIXME (Tom Tang): `clearTimeout` can only be applied once on the same handle because the handle is GC-ed
       return AsyncHandle((PyObject *)timeoutID);
     }
@@ -80,6 +81,47 @@ public:
    * @return a AsyncHandle, the value can be safely ignored
    */
   AsyncHandle enqueueWithDelay(PyObject *jobFn, double delaySeconds);
+
+  /**
+   * @brief C++ wrapper for Python `asyncio.Future` class
+   * @see https://docs.python.org/3/library/asyncio-future.html#asyncio.Future
+   */
+  struct Future {
+  public:
+    Future(PyObject *future) : _future(future) {};
+    ~Future() {
+      Py_XDECREF(_future);
+    }
+
+    /**
+     * @brief Mark the Future as done and set its result
+     * @see https://docs.python.org/3/library/asyncio-future.html#asyncio.Future.set_result
+     */
+    void setResult(PyObject *result);
+
+    /**
+     * @brief Mark the Future as done and set an exception
+     * @see https://docs.python.org/3/library/asyncio-future.html#asyncio.Future.set_exception
+     */
+    void setException(PyObject *exception);
+
+    /**
+     * @brief Get the underlying `asyncio.Future` Python object
+     */
+    inline PyObject *getFutureObject() const {
+      Py_INCREF(_future); // otherwise the object would be GC-ed as this `PyEventLoop::Future` destructs
+      return _future;
+    }
+  protected:
+    PyObject *_future;
+  };
+
+  /**
+   * @brief Create a Python `asyncio.Future` object attached to this Python event-loop.
+   * @see https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.create_future
+   * @return a `Future` wrapper for the Python `asyncio.Future` object
+   */
+  Future createFuture();
 
   /**
    * @brief Get the running Python event-loop, or

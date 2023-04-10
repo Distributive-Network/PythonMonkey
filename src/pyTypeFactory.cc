@@ -21,6 +21,7 @@
 #include "include/ListType.hh"
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
+#include "include/PromiseType.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -103,9 +104,11 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         break;
       }
     case js::ESClass::Date: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
         returnValue = new DateType(cx, obj);
+        break;
+      }
+    case js::ESClass::Promise: {
+        returnValue = new PromiseType(cx, obj);
         break;
       }
     case js::ESClass::Function: {

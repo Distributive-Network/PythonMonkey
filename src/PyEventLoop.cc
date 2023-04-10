@@ -16,6 +16,12 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double d
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
+PyEventLoop::Future PyEventLoop::createFuture() {
+  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.create_future
+  PyObject *futureObj = PyObject_CallMethod(_loop, "create_future", NULL);
+  return PyEventLoop::Future(futureObj);
+}
+
 /* static */
 PyEventLoop PyEventLoop::getRunningLoop() {
   // Get the running Python event-loop
@@ -36,5 +42,17 @@ PyEventLoop PyEventLoop::getRunningLoop() {
 void PyEventLoop::AsyncHandle::cancel() {
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancel
   PyObject *ret = PyObject_CallMethod(_handle, "cancel", NULL); // returns None
+  Py_XDECREF(ret);
+}
+
+void PyEventLoop::Future::setResult(PyObject *result) {
+  // https://docs.python.org/3/library/asyncio-future.html#asyncio.Future.set_result
+  PyObject *ret = PyObject_CallMethod(_future, "set_result", "O", result); // returns None
+  Py_XDECREF(ret);
+}
+
+void PyEventLoop::Future::setException(PyObject *exception) {
+  // https://docs.python.org/3/library/asyncio-future.html#asyncio.Future.set_exception
+  PyObject *ret = PyObject_CallMethod(_future, "set_exception", "O", exception); // returns None
   Py_XDECREF(ret);
 }

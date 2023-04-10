@@ -31,11 +31,13 @@ public:
    * @brief Construct a new PromiseType object from a JS::PromiseObject.
    *
    * @param cx - javascript context pointer
-   * @param promise - JS::PromiseObject pointer
+   * @param promise - JS::PromiseObject to be coerced
    */
-  PromiseType(JSContext *cx, JS::Handle<JSObject *> *promise);
+  PromiseType(JSContext *cx, JS::HandleObject promise);
 
   const TYPE returnType = TYPE::PYTHONMONKEY_PROMISE;
+protected:
+  virtual void print(std::ostream &os) const override;
 };
 
 #endif
