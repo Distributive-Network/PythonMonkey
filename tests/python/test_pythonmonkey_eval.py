@@ -408,9 +408,25 @@ def test_eval_exceptions():
     with pytest.raises(pm.SpiderMonkeyError, match="Error: abc"):
         # manually by the `throw` statement
         pm.eval('throw new Error("abc")')
+
+    # ANYTHING can be thrown in JS
+    with pytest.raises(pm.SpiderMonkeyError, match="uncaught exception: 9007199254740993"):
+        pm.eval('throw 9007199254740993n') # 2**53+1
+    with pytest.raises(pm.SpiderMonkeyError, match="uncaught exception: null"):
+        pm.eval('throw null')
+    with pytest.raises(pm.SpiderMonkeyError, match="uncaught exception: undefined"):
+        pm.eval('throw undefined')
     with pytest.raises(pm.SpiderMonkeyError, match="uncaught exception: something from toString"):
         # (side effect) calls the `toString` method if an object is thrown
         pm.eval('throw { toString() { return "something from toString" } }')
+
+    # convert JS Error object to a Python Exception object for later use (in a `raise` statement)
+    js_err = pm.eval("new RangeError('to be raised in Python')")
+    assert isinstance(js_err, BaseException)
+    assert isinstance(js_err, Exception)
+    assert type(js_err) == pm.SpiderMonkeyError
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: to be raised in Python"):
+        raise js_err
 
 def test_eval_undefined():
     x = pm.eval("undefined")

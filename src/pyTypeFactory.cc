@@ -14,6 +14,7 @@
 #include "include/BoolType.hh"
 #include "include/DateType.hh"
 #include "include/DictType.hh"
+#include "include/ExceptionType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
 #include "include/IntType.hh"
@@ -109,6 +110,10 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
       }
     case js::ESClass::Promise: {
         returnValue = new PromiseType(cx, obj);
+        break;
+      }
+    case js::ESClass::Error: {
+        returnValue = new ExceptionType(cx, obj);
         break;
       }
     case js::ESClass::Function: {
