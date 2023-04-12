@@ -109,24 +109,28 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
-  else if (PyFunction_Check(object)) {
+  else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
     /*
      * import inspect
      * args = (inspect.getfullargspec(object)).args
      */
-    PyObject *const inspect = PyImport_Import(PyUnicode_DecodeFSDefault("inspect"));
-    PyObject *const getfullargspec = PyObject_GetAttrString(inspect, "getfullargspec");
-    PyObject *const getfullargspecArgs = PyTuple_New(1);
-    PyTuple_SetItem(getfullargspecArgs, 0, object);
-    PyObject *const argspec = PyObject_CallObject(getfullargspec, getfullargspecArgs);
-    PyObject *const args = PyObject_GetAttrString(argspec, "args");
-    uint16_t nargs = PyList_Size(args);
-    Py_DECREF(inspect);
-    Py_DECREF(getfullargspec);
-    Py_DECREF(getfullargspecArgs);
-    Py_DECREF(argspec);
-    Py_DECREF(args);
-
+    // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
+    uint16_t nargs = 0;
+    if (PyFunction_Check(object)) {
+      PyObject *const inspect = PyImport_Import(PyUnicode_DecodeFSDefault("inspect"));
+      PyObject *const getfullargspec = PyObject_GetAttrString(inspect, "getfullargspec");
+      PyObject *const getfullargspecArgs = PyTuple_New(1);
+      PyTuple_SetItem(getfullargspecArgs, 0, object);
+      PyObject *const argspec = PyObject_CallObject(getfullargspec, getfullargspecArgs);
+      PyObject *const args = PyObject_GetAttrString(argspec, "args");
+      nargs = PyList_Size(args);
+      Py_DECREF(inspect);
+      Py_DECREF(getfullargspec);
+      Py_DECREF(getfullargspecArgs);
+      Py_DECREF(argspec);
+      Py_DECREF(args);
+    }
+    
     JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
     JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
 
@@ -134,17 +138,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
     returnType.setObject(*jsFuncObject);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
-  }
-  else if (PyCFunction_Check(object)) {
-    // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
-    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, 0, 0, NULL);
-    JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
-
-    // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
-    js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
-    returnType.setObject(*jsFuncObject);
-    memoizePyTypeAndGCThing(new FuncType(object), returnType);
-
   }
   else if (object == Py_None) {
     returnType.setUndefined();
