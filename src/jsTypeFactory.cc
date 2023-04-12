@@ -37,8 +37,8 @@ struct PythonExternalString : public JSExternalStringCallbacks {
 
 static constexpr PythonExternalString PythonExternalStringCallbacks;
 
-size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr) {
-  uint16_t utf16String[length*2];
+size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
+  uint16_t *utf16String = (uint16_t *)malloc(sizeof(uint16_t) * length*2);
   size_t utf16Length = 0;
 
   for (size_t i = 0; i < length; i++) {
@@ -54,8 +54,7 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr) {
       /* *INDENT-ON* */
     }
   }
-  outStr = (uint16_t *)malloc(sizeof(uint16_t) * utf16Length);
-  memcpy(outStr, utf16String, sizeof(uint16_t) * utf16Length);
+  *outStr = utf16String;
   return utf16Length;
 }
 
@@ -84,7 +83,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     case (PyUnicode_4BYTE_KIND): {
         uint32_t *u32Chars = PyUnicode_4BYTE_DATA(object);
         uint16_t *u16Chars;
-        size_t u16Length = UCS4ToUTF16(u32Chars, PyUnicode_GET_LENGTH(object), u16Chars);
+        size_t u16Length = UCS4ToUTF16(u32Chars, PyUnicode_GET_LENGTH(object), &u16Chars);
         JSString *str = JS_NewUCStringCopyN(cx, (char16_t *)u16Chars, u16Length);
         free(u16Chars);
         returnType.setString(str);
