@@ -577,3 +577,21 @@ def test_eval_functions_pyfunctions_strs():
             codepoint = random.randint(0x0000, 0xFFFF)
             string2 += chr(codepoint)
         assert caller(concatenate, string1, string2) == string1 + string2
+
+def test_eval_objects():
+    pyObj = pm.eval("Object({a:1.0})")
+    assert pyObj == {'a':1.0}
+
+def test_eval_objects_subobjects():
+    pyObj = pm.eval("Object({a:1.0, b:{c:2.0}})")
+
+    assert pyObj.a == 1.0
+    assert pyObj.b == {'c': 2.0}
+    assert pyObj.b.c == 2.0
+
+def test_eval_objects_cycle():
+    pyObj = pm.eval("Object({a:1.0, b:2.0, recursive: function() { this.recursive = this; return this; }}.recursive())")
+    
+    assert pyObj.a == 1.0
+    assert pyObj.b == 2.0
+    assert pyObj.recursive == pyObj
