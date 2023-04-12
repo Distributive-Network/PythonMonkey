@@ -120,8 +120,14 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     PyTuple_SetItem(getfullargspecArgs, 0, object);
     PyObject *const argspec = PyObject_CallObject(getfullargspec, getfullargspecArgs);
     PyObject *const args = PyObject_GetAttrString(argspec, "args");
+    uint16_t nargs = PyList_Size(args);
+    Py_DECREF(inspect);
+    Py_DECREF(getfullargspec);
+    Py_DECREF(getfullargspecArgs);
+    Py_DECREF(argspec);
+    Py_DECREF(args);
 
-    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, PyList_Size(args), 0, NULL);
+    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
     JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
 
     // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
