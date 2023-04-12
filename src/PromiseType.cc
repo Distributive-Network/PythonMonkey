@@ -9,6 +9,8 @@
  *
  */
 
+#include "include/modules/pythonmonkey/pythonmonkey.hh"
+
 #include "include/PromiseType.hh"
 #include "include/PyEventLoop.hh"
 
@@ -28,20 +30,27 @@
 static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
+  // Get the Promise state
+  JS::Value promiseObjVal = js::GetFunctionNativeReserved(&args.callee(), PROMISE_OBJ_SLOT);
+  JS::RootedObject promise = JS::RootedObject(cx, &promiseObjVal.toObject());
+  JS::PromiseState state = JS::GetPromiseState(promise);
+
   // Convert the Promise's result (either fulfilled resolution or rejection reason) to a Python object
   JS::RootedObject thisv(cx);
   // args.computeThis(cx, &thisv); // thisv is the global object, not the promise
   JS::RootedValue resultArg(cx, args[0]);
   PyObject *result = pyTypeFactory(cx, &thisv, &resultArg)->getPyObject();
+  if (state == JS::PromiseState::Rejected && !PyExceptionInstance_Check(result)) {
+    // Wrap the result object into a SpiderMonkeyError object
+    // because only *Exception objects can be thrown in Python `raise` statement and alike
+    PyObject *wrapped = PyObject_CallOneArg(SpiderMonkeyError, result); // wrapped = SpiderMonkeyError(result)
+    Py_XDECREF(result);
+    result = wrapped;
+  }
 
   // Get the `asyncio.Future` Python object from function's reserved slot
   JS::Value futureObjVal = js::GetFunctionNativeReserved(&args.callee(), PY_FUTURE_OBJ_SLOT);
   PyObject *futureObj = (PyObject *)(futureObjVal.toPrivate());
-
-  // Get the Promise state
-  JS::Value promiseObjVal = js::GetFunctionNativeReserved(&args.callee(), PROMISE_OBJ_SLOT);
-  JS::RootedObject promise = JS::RootedObject(cx, &promiseObjVal.toObject());
-  JS::PromiseState state = JS::GetPromiseState(promise);
 
   // Settle the Python asyncio.Future by the Promise's result
   PyEventLoop::Future future = PyEventLoop::Future(futureObj);
