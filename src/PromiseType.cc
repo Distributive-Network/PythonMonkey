@@ -81,3 +81,16 @@ PromiseType::PromiseType(JSContext *cx, JS::HandleObject promise) {
 }
 
 void PromiseType::print(std::ostream &os) const {}
+
+bool PythonAwaitable_Check(PyObject *obj) {
+  // result = inspect.isawaitable(obj)
+  //    see https://docs.python.org/3.9/library/inspect.html#inspect.isawaitable
+  //        https://github.com/python/cpython/blob/3.9/Lib/inspect.py#L230-L235
+  PyObject *inspect = PyImport_ImportModule("inspect");
+  PyObject *result = PyObject_CallMethod(inspect, "isawaitable", "O", obj); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  bool isAwaitable = result == Py_True;
+  // cleanup
+  Py_DECREF(inspect);
+  Py_DECREF(result);
+  return isAwaitable;
+}

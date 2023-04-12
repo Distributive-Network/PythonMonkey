@@ -40,4 +40,10 @@ protected:
   virtual void print(std::ostream &os) const override;
 };
 
+/**
+ * @brief Check if the object can be used in Python await expression.
+ * `PyAwaitable_Check` hasn't been and has no plan to be added to the Python C API as of CPython 3.9
+ */
+bool PythonAwaitable_Check(PyObject *obj);
+
 #endif
