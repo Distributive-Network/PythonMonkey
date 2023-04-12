@@ -54,28 +54,28 @@ PyType *pyTypeFactory(PyObject *object) {
 }
 
 PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<JS::Value> *rval) {
-  PyType *returnValue = NULL;
   if (rval->isUndefined()) {
-    returnValue = new NoneType();
+    return new NoneType();
   }
   else if (rval->isNull()) {
-    returnValue = new NullType();
+    return new NullType();
   }
   else if (rval->isBoolean()) {
-    returnValue = new BoolType(rval->toBoolean());
+    return new BoolType(rval->toBoolean());
   }
   else if (rval->isNumber()) {
-    returnValue = new FloatType(rval->toNumber());
+    return new FloatType(rval->toNumber());
   }
   else if (rval->isString()) {
-    returnValue = new StrType(cx, rval->toString());
-    memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
+    StrType *s = new StrType(cx, rval->toString());
+    memoizePyTypeAndGCThing(s, *rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
+    return s;
   }
   else if (rval->isSymbol()) {
     printf("symbol type is not handled by PythonMonkey yet");
   }
   else if (rval->isBigInt()) {
-    returnValue = new IntType(cx, rval->toBigInt());
+    return new IntType(cx, rval->toBigInt());
   }
   else if (rval->isObject()) {
     JS::Rooted<JSObject *> obj(cx);
@@ -88,40 +88,38 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         // TODO (Caleb Aikens): refactor using recursive call to `pyTypeFactory`
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new BoolType(unboxed.toBoolean());
-        break;
+        return new BoolType(unboxed.toBoolean());
       }
     case js::ESClass::Date: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        returnValue = new DateType(cx, obj);
-        break;
+        return new DateType(cx, obj);
       }
     case js::ESClass::Function: {
         PyObject *JSCxGlobalFuncTuple = Py_BuildValue("(lll)", (uint64_t)cx, (uint64_t)global, (uint64_t)rval);
         PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, JSCxGlobalFuncTuple);
-        returnValue = new FuncType(pyFunc);
-        memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
-        break;
+        FuncType *f = new FuncType(pyFunc);
+        memoizePyTypeAndGCThing(f, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
+        return f;
       }
     case js::ESClass::Number: {
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new FloatType(unboxed.toNumber());
-        break;
+        return new FloatType(unboxed.toNumber());
       }
     case js::ESClass::BigInt: {
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new IntType(cx, unboxed.toBigInt());
-        break;
+        return new IntType(cx, unboxed.toBigInt());
       }
     case js::ESClass::String: {
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new StrType(cx, unboxed.toString());
-        memoizePyTypeAndGCThing(returnValue, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
-        break;
+        StrType *s = new StrType(cx, unboxed.toString());
+        memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
+        return s;
+      }
+    case js::ESClass::Object: {
+        // this is a generic non-boxing object
+        return new DictType(cx, *global, *rval);
       }
     default: {
         printf("objects of this type are not handled by PythonMonkey yet");
@@ -131,8 +129,6 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
   else if (rval->isMagic()) {
     printf("magic type is not handled by PythonMonkey yet");
   }
-
-  return returnValue;
 }
 
 static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {

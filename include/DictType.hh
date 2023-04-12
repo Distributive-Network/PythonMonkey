@@ -15,6 +15,8 @@
 #include "PyType.hh"
 #include "TypeEnum.hh"
 
+#include <jsapi.h>
+
 #include <Python.h>
 
 #include <iostream>
@@ -26,7 +28,28 @@
  */
 struct DictType : public PyType {
 public:
+  DictType();
   DictType(PyObject *object);
+
+  /**
+   * @brief Construct a new DictType object from a JSObject.
+   *
+   * @param cx - pointer to the JSContext
+   * @param global - pointer to the global JSObject
+   * @param jsObject - pointer to the JSObject to be coerced
+   */
+  DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject);
+
+  /**
+   * @brief Construct a new DictType object from a JSObject, providing a map of JSObjects that have already been coerced to python dicts.
+   *
+   * @param cx - pointer to the JSContext
+   * @param global - pointer to the global JSObject
+   * @param jsObject - pointer to the JSObject to be coerced
+   * @param subObjectsMap - map of JSObjects that have been coerced to PyObjects
+   */
+  DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject, std::unordered_map<const JS::Value *, PyObject *> &subObjectsMap);
+
   const TYPE returnType = TYPE::DICT;
 /**
  * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
@@ -48,6 +71,17 @@ public:
 
 protected:
   virtual void print(std::ostream &os) const override;
+
+private:
+  /**
+   * @brief Helper function for DictType constructor that keeps track of reference cycles
+   *
+   * @param cx - pointer to the JSContext
+   * @param global - pointer to the global JSObject
+   * @param jsObject - pointer to the JSObject to be coerced
+   * @param subObjectsMap - map of JSObjects that have been coerced to PyObjects
+   */
+  void init(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject, std::unordered_map<const JS::Value *, PyObject *> &subObject);
 };
 
 #endif

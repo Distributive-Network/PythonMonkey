@@ -67,6 +67,20 @@ void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
   }
 }
 
+PyType *checkJSMemo(JS::Handle<JS::Value> GCThing) {
+  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(cx, GCThing);
+  PyToGCIterator pyIt = PyTypeToGCThing.begin();
+  while (pyIt != PyTypeToGCThing.end()) {
+    for (JS::PersistentRooted<JS::Value> *rval: pyIt->second) {
+      if (rval->address() == RootedGCThing->address()) {
+        return pyIt->first;
+      }
+    }
+    pyIt++;
+  }
+  return NULL;
+}
+
 void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_BEGIN) {
     PyToGCIterator pyIt = PyTypeToGCThing.begin();
