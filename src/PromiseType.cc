@@ -93,7 +93,10 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
   PyEventLoop::Future future = PyEventLoop::Future(futureObj);
 
   PyObject *exception = future.getException();
-  if (exception == Py_None) { // no exception set on this awaitable, safe to get result, otherwise the exception will be raised when calling `futureObj.result()`
+  if (exception == NULL || PyErr_Occurred()) { // awaitable is cancelled, `futureObj.exception()` raises a CancelledError
+    // TODO (Tom Tang): get bool future.isCancelled(), and reject the promise with a CancelledError
+    return NULL;
+  } else if (exception == Py_None) { // no exception set on this awaitable, safe to get result, otherwise the exception will be raised when calling `futureObj.result()`
     PyObject *result = future.getResult();
     JS::ResolvePromise(cx, promise, JS::RootedValue(cx, jsTypeFactory(cx, result)));
     Py_DECREF(result);
