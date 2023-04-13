@@ -17,6 +17,7 @@
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"
 #include "include/pyTypeFactory.hh"
+#include "include/jsTypeFactory.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -81,6 +82,47 @@ PromiseType::PromiseType(JSContext *cx, JS::HandleObject promise) {
 }
 
 void PromiseType::print(std::ostream &os) const {}
+
+// Callback to resolve or reject the JS Promise when the Future is done
+static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *args) {
+  JSContext *cx = (JSContext *)PyLong_AsLongLong(PyTuple_GetItem(futureCallbackTuple, 0));
+  JS::HandleObject promise = *(JS::RootedObject *)PyLong_AsLongLong(PyTuple_GetItem(futureCallbackTuple, 1));
+  PyObject *futureObj = PyTuple_GetItem(args, 0); // the callback is called with the Future object as its only argument
+                                                  // see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.add_done_callback
+  PyEventLoop::Future future = PyEventLoop::Future(futureObj);
+
+  PyObject *exception = future.getException();
+  if (exception == Py_None) { // no exception set on this awaitable, safe to get result, otherwise the exception will be raised when calling `futureObj.result()`
+    PyObject *result = future.getResult();
+    JS::ResolvePromise(cx, promise, JS::RootedValue(cx, jsTypeFactory(cx, result)));
+    Py_DECREF(result);
+  } else { // having exception set, to reject the promise
+    JS::RejectPromise(cx, promise, JS::RootedValue(cx, jsTypeFactory(cx, exception)));
+  }
+  Py_XDECREF(exception); // cleanup
+
+  // Py_DECREF(futureObj) // would cause bug, because `Future` constructor didn't increase futureObj's ref count, but the destructor will decrease it
+  Py_RETURN_NONE;
+}
+static PyMethodDef futureCallbackDef = {"futureOnDoneCallback", futureOnDoneCallback, METH_VARARGS, NULL};
+
+JSObject *PromiseType::toJsPromise(JSContext *cx) {
+  // Create a new JS Promise object
+  JSObject *promise = JS::NewPromiseObject(cx, nullptr);
+
+  // Convert the python awaitable to an asyncio.Future object
+  PyEventLoop loop = PyEventLoop::getRunningLoop();
+  if (!loop.initialized()) return nullptr;
+  PyEventLoop::Future future = loop.ensureFuture(pyObject);
+
+  // Resolve or Reject the JS Promise once the python awaitable is done
+  JS::RootedObject *rooted = new JS::RootedObject(cx, promise); // FIXME (Tom Tang): memory leak
+  PyObject *futureCallbackTuple = Py_BuildValue("(ll)", (uint64_t)cx, (uint64_t)rooted);
+  PyObject *onDoneCb = PyCFunction_New(&futureCallbackDef, futureCallbackTuple);
+  future.addDoneCallback(onDoneCb);
+
+  return promise;
+}
 
 bool PythonAwaitable_Check(PyObject *obj) {
   // result = inspect.isawaitable(obj)

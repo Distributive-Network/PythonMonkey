@@ -17,6 +17,7 @@
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
+#include "include/PromiseType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -144,6 +145,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   else if (object == PythonMonkey_Null) {
     returnType.setNull();
+  }
+  else if (PythonAwaitable_Check(object)) {
+    auto p = new PromiseType(object); // FIXME (Tom Tang): get rid of `new`. The real problem is that we don't want `~PromiseType` to be called because it decreases `object`'s ref count to 0
+    JSObject *promise = p->toJsPromise(cx);
+    returnType.setObject(*promise);
+    // FIXME (Tom Tang): how to tell Python to GC the object once JS is done with the Promise?
+    // memoizePyTypeAndGCThing(p, returnType);
   }
   else {
     PyErr_SetString(PyExc_TypeError, "Python types other than bool, function, int, pythonmonkey.bigint, pythonmonkey.null, float, str, and None are not supported by pythonmonkey yet.");

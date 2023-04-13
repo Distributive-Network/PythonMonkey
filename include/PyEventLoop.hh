@@ -106,6 +106,26 @@ public:
     void setException(PyObject *exception);
 
     /**
+     * @brief Add a callback to be run when the Future is done
+     * @see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.add_done_callback
+     */
+    void addDoneCallback(PyObject *cb);
+
+    /**
+     * @brief Get the result of the Future.
+     * Would raise exception if the Future is pending, cancelled, or having an exception set.
+     * @see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.result
+     */
+    PyObject *getResult();
+
+    /**
+     * @brief Get the exception object that was set on this Future, or `Py_None` if no exception was set.
+     * Would raise an exception if the Future is pending or cancelled.
+     * @see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.exception
+     */
+    PyObject *getException();
+
+    /**
      * @brief Get the underlying `asyncio.Future` Python object
      */
     inline PyObject *getFutureObject() const {
@@ -122,6 +142,12 @@ public:
    * @return a `Future` wrapper for the Python `asyncio.Future` object
    */
   Future createFuture();
+
+  /**
+   * @brief Convert a Python awaitable to `asyncio.Future` attached to this Python event-loop.
+   * @see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.ensure_future
+   */
+  Future ensureFuture(PyObject *awaitable);
 
   /**
    * @brief Get the running Python event-loop, or

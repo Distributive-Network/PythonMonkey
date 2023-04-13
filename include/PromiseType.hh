@@ -36,6 +36,13 @@ public:
   PromiseType(JSContext *cx, JS::HandleObject promise);
 
   const TYPE returnType = TYPE::PYTHONMONKEY_PROMISE;
+
+  /**
+   * @brief Convert a Python [awaitable](https://docs.python.org/3/library/asyncio-task.html#awaitables) object to JS Promise
+   *
+   * @param cx - javascript context pointer
+   */
+  JSObject *toJsPromise(JSContext *cx);
 protected:
   virtual void print(std::ostream &os) const override;
 };

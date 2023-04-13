@@ -143,12 +143,12 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         break;
       }
     default: {
-        printf("objects of this type are not handled by PythonMonkey yet");
+        printf("objects %d of this type are not handled by PythonMonkey yet\n", cls);
       }
     }
   }
   else if (rval->isMagic()) {
-    printf("magic type is not handled by PythonMonkey yet");
+    printf("magic type is not handled by PythonMonkey yet\n");
   }
 
   return returnValue;
