@@ -31,11 +31,11 @@ PyType *pyTypeFactory(PyObject *object);
  * @brief Function that takes a JS::Value and returns a corresponding PyType* object, doing shared memory management when necessary
  *
  * @param cx - Pointer to the javascript context of the JS::Value
- * @param global - Pointer to the javascript global object
+ * @param thisObj - Pointer to the JS `this` object for the value's scope
  * @param rval - Pointer to the JS::Value who's type and value we wish to encapsulate
  * @return PyType* - Pointer to a PyType object corresponding to the JS::Value
  */
-PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<JS::Value> *rval);
+PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval);
 
 /**
  * @brief Helper function for pyTypeFactory to create FuncTypes through PyCFunction_New
