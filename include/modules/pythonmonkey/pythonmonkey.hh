@@ -19,10 +19,12 @@
 
 #include <Python.h>
 
-#define PythonMonkey_Null PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null") /**< macro for python null object*/
+#define PythonMonkey_Null   PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null")   /**< macro for pythonmonkey.null object*/
+#define PythonMonkey_BigInt PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint") /**< macro for pythonmonkey.bigint class object */
 
 static JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
+static JSAutoRealm *autoRealm; /**< pointer to PythonMonkey's AutoRealm */
 
 /**
  * @brief Destroys the JSContext and deletes associated memory. Called when python quits or faces a fatal exception.

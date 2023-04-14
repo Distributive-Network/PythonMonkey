@@ -34,6 +34,8 @@ jobs:
       - name: Build-Library
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
+          # Get number of CPU cores
+          CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
           echo "Building SpiderMonkey"
           #install rust compiler
           curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
@@ -48,14 +50,14 @@ jobs:
           mkdir _build
           cd _build
           ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-optimize
-          make
+          make -j$CPUS
           sudo make install
           cd ../../../..
           echo "Building the library"
           mkdir build
           cd build
           cmake ..
-          cmake --build .
+          cmake --build . -j$CPUS
           echo "Build complete"
       - name: google-tests
         run: |

@@ -31,11 +31,11 @@ this package to execute our complex `dcp-client` library, which is written in JS
 - [done] JS exceptions propagate to Python
 - [done] Implement `eval()` function in Python which accepts JS code and returns JS->Python coerced values
 - [underway] NodeJS+NPM-compatible CommonJS module system
-- [underway] Python strings coerce to JS strings
+- [done] Python strings coerce to JS strings
 - [done] Python intrinsics coerce to JS intrinsics
 - Python dicts coerce to JS objects
 - Python `require` function, returns a coerced dict of module exports
-- Python functions coerce to JS function wrappers
+- [done] Python functions coerce to JS function wrappers
 - CommonJS module system .py loader, loads Python modules for use by JS
 - JS object->Python dict coercion supports inherited-property lookup (via __getattribute__?)
 - Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
@@ -64,7 +64,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
 2. In the build folder `cd` into the `tests` directory and run `ctest`.
     ```bash
     # From the root directory we do the following (after compiling the project)
-    $ cd buid/tests
+    $ cd build/tests
     $ ctest
     ```
     Alternatively, from the root directory, run ``./test_script.sh``
