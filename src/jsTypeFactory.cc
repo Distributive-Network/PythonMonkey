@@ -161,11 +161,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
 
 JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
   JS::Value v = jsTypeFactory(cx, object);
-  PyObject *err = PyErr_Occurred(); // borrowed reference, don't need Py_DECREF()
-  if (err) {
-    PyErr_Clear(); // guarantees no error would be set on Python's error stack
-    PyErr_WarnEx(PyExc_RuntimeWarning, "jsTypeFactory raises an error", 1);
+  if (PyErr_Occurred()) {
+    // Convert the Python error to a warning
+    PyObject *type, *value, *traceback;
+    PyErr_Fetch(&type, &value, &traceback); // also clears Python's error stack
+    PyErr_WarnEx(PyExc_RuntimeWarning, PyUnicode_AsUTF8(value), 1);
     v.setNull();
+    Py_XDECREF(type); Py_XDECREF(value); Py_XDECREF(traceback);
   }
   return v;
 }
