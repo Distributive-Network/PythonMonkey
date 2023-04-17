@@ -130,7 +130,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
       Py_DECREF(argspec);
       Py_DECREF(args);
     }
-    
+
     JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
     JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
 
@@ -157,6 +157,17 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   return returnType;
 
+}
+
+JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
+  JS::Value v = jsTypeFactory(cx, object);
+  PyObject *err = PyErr_Occurred(); // borrowed reference, don't need Py_DECREF()
+  if (err) {
+    PyErr_Clear(); // guarantees no error would be set on Python's error stack
+    PyErr_WarnEx(PyExc_RuntimeWarning, "jsTypeFactory raises an error", 1);
+    v.setNull();
+  }
+  return v;
 }
 
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {

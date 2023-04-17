@@ -98,10 +98,10 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
     return NULL;
   } else if (exception == Py_None) { // no exception set on this awaitable, safe to get result, otherwise the exception will be raised when calling `futureObj.result()`
     PyObject *result = future.getResult();
-    JS::ResolvePromise(cx, promise, JS::RootedValue(cx, jsTypeFactory(cx, result)));
+    JS::ResolvePromise(cx, promise, JS::RootedValue(cx, jsTypeFactorySafe(cx, result)));
     Py_DECREF(result);
   } else { // having exception set, to reject the promise
-    JS::RejectPromise(cx, promise, JS::RootedValue(cx, jsTypeFactory(cx, exception)));
+    JS::RejectPromise(cx, promise, JS::RootedValue(cx, jsTypeFactorySafe(cx, exception)));
   }
   Py_XDECREF(exception); // cleanup
 
