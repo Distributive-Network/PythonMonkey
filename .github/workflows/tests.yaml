@@ -30,40 +30,15 @@ jobs:
           path: |
             ./build/*
             ./firefox-102.2.0/*
+            ./_spidermonkey_install
           key: ${{ runner.os }}-spidermonkey
       - name: Build-Library
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        run: |
-          # Get number of CPU cores
-          CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
-          echo "Building SpiderMonkey"
-          #install rust compiler
-          curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
-          wget -q https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
-          tar xf firefox-102.2.0esr.source.tar.xz
-          cd firefox-102.2.0/js
-          sed -i 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
-          sed -i 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./src/vm/JSObject.cpp  # same here
-          cd src
-          cp ./configure.in ./configure
-          chmod +x ./configure
-          mkdir _build
-          cd _build
-          ../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-optimize
-          make -j$CPUS
-          sudo make install
-          cd ../../../..
-          echo "Building the library"
-          mkdir build
-          cd build
-          cmake ..
-          cmake --build . -j$CPUS
-          echo "Build complete"
+        run: ./setup.sh
       - name: google-tests
         run: |
-          cd firefox-102.2.0/js/src/_build
-          sudo make install
-          cd ../../../../build
+          mkdir -p ./build
+          cd build
           make && make tests
           gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
           cd tests && ctest
