@@ -170,9 +170,12 @@ JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
     // Convert the Python error to a warning
     PyObject *type, *value, *traceback;
     PyErr_Fetch(&type, &value, &traceback); // also clears Python's error stack
-    PyErr_WarnEx(PyExc_RuntimeWarning, PyUnicode_AsUTF8(value), 1);
-    v.setNull();
+    PyObject *msg = PyObject_Str(value);
+    PyErr_WarnEx(PyExc_RuntimeWarning, PyUnicode_AsUTF8(msg), 1);
+    Py_DECREF(msg);
     Py_XDECREF(type); Py_XDECREF(value); Py_XDECREF(traceback);
+    // Return JS `null` on error
+    v.setNull();
   }
   return v;
 }
