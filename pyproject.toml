@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "pythonmonkey"
+version = "0.1.0"
+description = ""
+authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>"]
+readme = "README.md"
+packages = [
+  { include = "pythonmonkey", from = "python" },
+]
+
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[tool.poetry.build]
+script = "build.py"
+generate-setup-file = false 
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0a9"]
+build-backend = "poetry.core.masonry.api"
+
