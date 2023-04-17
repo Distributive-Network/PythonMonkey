@@ -30,14 +30,13 @@ jobs:
           path: |
             ./build/*
             ./firefox-102.2.0/*
-            ./_spidermonkey_install
+            ./_spidermonkey_install/*
           key: ${{ runner.os }}-spidermonkey
       - name: Build-Library
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        run: ./setup.sh
+        run: ./setup.sh && ./build_script.sh
       - name: google-tests
         run: |
-          mkdir -p ./build
           cd build
           make && make tests
           gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
