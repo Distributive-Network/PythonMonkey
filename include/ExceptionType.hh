@@ -35,6 +35,13 @@ public:
   ExceptionType(JSContext *cx, JS::HandleObject error);
 
   const TYPE returnType = TYPE::EXCEPTION;
+
+  /**
+   * @brief Convert a python [*Exception object](https://docs.python.org/3/c-api/exceptions.html#standard-exceptions) to JS Error object
+   *
+   * @param cx - javascript context pointer
+   */
+  JSObject *toJsError(JSContext *cx);
 protected:
   virtual void print(std::ostream &os) const override;
 };

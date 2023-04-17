@@ -23,3 +23,27 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
 }
 
 void ExceptionType::print(std::ostream &os) const {}
+
+// TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
+JSObject *ExceptionType::toJsError(JSContext *cx) {
+  PyObject *pyErrType = PyObject_Type(pyObject);
+  const char *pyErrTypeName = _PyType_Name((PyTypeObject *)pyErrType);
+  PyObject *pyErrMsg = PyObject_Str(pyObject);
+  // TODO (Tom Tang): Convert Python traceback and set it as the `stack` property on JS Error object
+  // PyObject *traceback = PyException_GetTraceback(pyObject);
+
+  std::stringstream msgStream;
+  msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg);
+  std::string msg = msgStream.str();
+
+  JS::RootedValue rval(cx);
+  JS::RootedObject stack(cx);
+  JS::RootedString filename(cx, JS_GetEmptyString(cx));
+  JS::RootedString message(cx, JS_NewStringCopyZ(cx, msg.c_str()));
+  JS::CreateError(cx, JSExnType::JSEXN_ERR, stack, filename, 0, 0, nullptr, message, JS::NothingHandleValue, &rval);
+
+  Py_DECREF(pyErrType);
+  Py_DECREF(pyErrMsg);
+
+  return rval.toObjectOrNull();
+}

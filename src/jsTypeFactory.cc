@@ -18,6 +18,7 @@
 #include "include/StrType.hh"
 #include "include/IntType.hh"
 #include "include/PromiseType.hh"
+#include "include/ExceptionType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -138,6 +139,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
     returnType.setObject(*jsFuncObject);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
+  }
+  else if (PyExceptionInstance_Check(object)) {
+    JSObject *error = ExceptionType(object).toJsError(cx);
+    returnType.setObject(*error);
   }
   else if (object == Py_None) {
     returnType.setUndefined();
