@@ -4,6 +4,7 @@ import gc
 import random
 from datetime import datetime, timedelta
 import math
+import asyncio
 
 def test_passes():
     assert True
@@ -641,3 +642,41 @@ def test_eval_functions_pyfunctions_strs():
             codepoint = random.randint(0x0000, 0xFFFF)
             string2 += chr(codepoint)
         assert caller(concatenate, string1, string2) == string1 + string2
+
+def test_set_clear_timeout():
+    async def async_fn():
+        # standalone `setTimeout`
+        loop = asyncio.get_running_loop()
+        f0 = loop.create_future()
+        def add(a, b, c):
+          f0.set_result(a + b + c)
+        pm.eval("setTimeout")(add, 0, 1, 2, 3)
+        assert 6.0 == await f0
+
+        # test `clearTimeout`
+        f1 = loop.create_future()
+        def to_raise(msg):
+            f1.set_exception(TypeError(msg))
+        timeout_id0 = pm.eval("setTimeout")(to_raise, 100, "going to be there")
+        assert type(timeout_id0) == float
+        assert timeout_id0 > 0                  # `setTimeout` should return a positive integer value
+        assert int(timeout_id0) == timeout_id0
+        with pytest.raises(TypeError, match="going to be there"):
+            await f1                                # `clearTimeout` not called
+        f1 = loop.create_future()
+        timeout_id1 = pm.eval("setTimeout")(to_raise, 100, "shouldn't be here")
+        pm.eval("clearTimeout")(timeout_id1)
+        with pytest.raises(asyncio.exceptions.TimeoutError):
+            await asyncio.wait_for(f1, timeout=0.5) # `clearTimeout` is called
+
+        # `this` value in `setTimeout` callback should be the global object, as spec-ed
+        assert await pm.eval("new Promise(function (resolve) { setTimeout(function(){ resolve(this == globalThis) }) })")
+        # `setTimeout` should allow passing additional arguments to the callback, as spec-ed
+        assert 3.0 == await pm.eval("new Promise((resolve) => setTimeout(function(){ resolve(arguments.length) }, 100, 90, 91, 92))")
+        assert 92.0 == await pm.eval("new Promise((resolve) => setTimeout((...args) => { resolve(args[2]) }, 100, 90, 91, 92))")
+        # TODO (Tom Tang): test `setTimeout` setting delay to 0 if < 0
+        # TODO (Tom Tang): test `setTimeout` accepting string as the delay, coercing to a number like parseFloat
+
+        # making sure the async_fn is run
+        return True
+    assert asyncio.run(async_fn())
