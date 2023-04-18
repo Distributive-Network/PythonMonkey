@@ -429,6 +429,13 @@ def test_eval_exceptions():
     with pytest.raises(pm.SpiderMonkeyError, match="RangeError: to be raised in Python"):
         raise js_err
 
+    # convert Python Exception object to a JS Error object
+    get_err_msg = pm.eval("(err) => err.message")
+    assert "Python BufferError: ttt" == get_err_msg(BufferError("ttt"))
+    js_rethrow = pm.eval("(err) => { throw err }")
+    with pytest.raises(pm.SpiderMonkeyError, match="Error: Python BaseException: 123"):
+        js_rethrow(BaseException("123"))
+
 def test_eval_undefined():
     x = pm.eval("undefined")
     assert x == None
