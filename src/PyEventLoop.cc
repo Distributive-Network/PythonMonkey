@@ -85,6 +85,14 @@ void PyEventLoop::Future::addDoneCallback(PyObject *cb) {
   Py_XDECREF(ret);
 }
 
+bool PyEventLoop::Future::isCancelled() {
+  // https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.cancelled
+  PyObject *ret = PyObject_CallMethod(_future, "cancelled", NULL); // returns Python bool
+  bool cancelled = ret == Py_True;
+  Py_XDECREF(ret);
+  return cancelled;
+}
+
 PyObject *PyEventLoop::Future::getResult() {
   // https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.result
   return PyObject_CallMethod(_future, "result", NULL);

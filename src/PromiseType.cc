@@ -95,8 +95,12 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
 
   PyObject *exception = future.getException();
   if (exception == NULL || PyErr_Occurred()) { // awaitable is cancelled, `futureObj.exception()` raises a CancelledError
-    // TODO (Tom Tang): get bool future.isCancelled(), and reject the promise with a CancelledError
-    return NULL;
+    // Reject the promise with the CancelledError, or very unlikely, an InvalidStateError exception if the Future isn’t done yet
+    //    see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.exception
+    PyObject *errType, *errValue, *traceback;
+    PyErr_Fetch(&errType, &errValue, &traceback); // also clears the Python error stack
+    JS::RejectPromise(cx, promise, JS::RootedValue(cx, jsTypeFactorySafe(cx, errValue)));
+    Py_XDECREF(errType); Py_XDECREF(errValue); Py_XDECREF(traceback);
   } else if (exception == Py_None) { // no exception set on this awaitable, safe to get result, otherwise the exception will be raised when calling `futureObj.result()`
     PyObject *result = future.getResult();
     JS::ResolvePromise(cx, promise, JS::RootedValue(cx, jsTypeFactorySafe(cx, result)));

@@ -38,7 +38,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx) {
 
   JS::RootedValue rval(cx);
   JS::RootedObject stack(cx);
-  JS::RootedString filename(cx, JS_GetEmptyString(cx));
+  JS::RootedString filename(cx, JS_NewStringCopyZ(cx, "[python code]"));
   JS::RootedString message(cx, JS_NewStringCopyZ(cx, msg.c_str()));
   JS::CreateError(cx, JSExnType::JSEXN_ERR, stack, filename, 0, 0, nullptr, message, JS::NothingHandleValue, &rval);
 

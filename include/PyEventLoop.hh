@@ -112,6 +112,12 @@ public:
     void addDoneCallback(PyObject *cb);
 
     /**
+     * @brief Return True if the Future is cancelled.
+     * @see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.cancelled
+     */
+    bool isCancelled();
+
+    /**
      * @brief Get the result of the Future.
      * Would raise exception if the Future is pending, cancelled, or having an exception set.
      * @see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.result
@@ -156,7 +162,6 @@ public:
    */
   static PyEventLoop getRunningLoop();
 
-protected:
   PyObject *_loop;
 
   PyEventLoop() = delete;
