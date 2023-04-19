@@ -99,10 +99,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     case (PyUnicode_1BYTE_KIND): {
 
         JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
-        /* @TODO (Caleb Aikens) this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
+        /* TODO (Caleb Aikens): this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
          * Ideally we submit a patch to Spidermonkey to make this part of their API with the following signature:
          * JS_NewExternalString(JSContext *cx, const char *chars, size_t length, const JSExternalStringCallbacks *callbacks)
          */
+        // FIXME: JSExternalString are all treated as two-byte strings when GCed
+        //    see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/StringType-inl.h#l514
+        //        https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/StringType.h#l1808
         *(std::atomic<unsigned long> *)str |= 512;
         returnType.setString(str);
         break;
@@ -151,11 +154,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else if (PythonAwaitable_Check(object)) {
-    auto p = new PromiseType(object); // FIXME (Tom Tang): get rid of `new`. The real problem is that we don't want `~PromiseType` to be called because it decreases `object`'s ref count to 0
+    PromiseType *p = new PromiseType(object);
     JSObject *promise = p->toJsPromise(cx);
     returnType.setObject(*promise);
-    // FIXME (Tom Tang): how to tell Python to GC the object once JS is done with the Promise?
-    // memoizePyTypeAndGCThing(p, returnType);
+    memoizePyTypeAndGCThing(p, returnType);
   }
   else {
     PyErr_SetString(PyExc_TypeError, "Python types other than bool, function, int, pythonmonkey.bigint, pythonmonkey.null, float, str, and None are not supported by pythonmonkey yet.");

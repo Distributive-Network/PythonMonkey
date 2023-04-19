@@ -81,6 +81,7 @@ void setSpiderMonkeyException(JSContext *cx) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
     return;
   }
+  JS_ClearPendingException(cx);
 
   // `PyErr_SetString` uses `PyErr_SetObject` with `PyUnicode_FromString` under the hood
   //    see https://github.com/python/cpython/blob/3.9/Python/errors.c#L234-L236

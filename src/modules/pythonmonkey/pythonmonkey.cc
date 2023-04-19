@@ -61,11 +61,11 @@ static PyTypeObject BigIntType = {
 };
 
 static void cleanup() {
+  delete autoRealm;
+  delete global;
+  delete JOB_QUEUE;
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
-  delete global;
-  delete autoRealm;
-  delete JOB_QUEUE;
 }
 
 void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
@@ -144,6 +144,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
+  delete code;
 
   // evaluate source code
   JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
@@ -154,6 +155,9 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
   // translate to the proper python type
   PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, rval);
+
+  // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
+  // delete rval; // rval may be a JS function which must be kept alive.
 
   if (returnValue) {
     return returnValue->getPyObject();
