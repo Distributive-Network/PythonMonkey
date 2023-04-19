@@ -157,8 +157,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     PromiseType *p = new PromiseType(object);
     JSObject *promise = p->toJsPromise(cx);
     returnType.setObject(*promise);
-    // nested awaitables would have already been GCed if finished
-    // memoizePyTypeAndGCThing(p, returnType);
+    memoizePyTypeAndGCThing(p, returnType);
   }
   else {
     PyErr_SetString(PyExc_TypeError, "Python types other than bool, function, int, pythonmonkey.bigint, pythonmonkey.null, float, str, and None are not supported by pythonmonkey yet.");
