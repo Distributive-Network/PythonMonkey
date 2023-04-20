@@ -194,6 +194,9 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
 
   if (!callargs.length()) {
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
+    if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
+      return false;
+    }
     // @TODO (Caleb Aikens) need to check for python exceptions here
     callargs.rval().set(jsTypeFactory(cx, pyRval));
     return true;
@@ -208,6 +211,9 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
+  if (PyErr_Occurred()) {
+    return false;
+  }
   // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
 
