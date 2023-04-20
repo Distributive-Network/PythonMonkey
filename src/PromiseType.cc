@@ -38,10 +38,12 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::PromiseState state = JS::GetPromiseState(promise);
 
   // Convert the Promise's result (either fulfilled resolution or rejection reason) to a Python object
-  JS::RootedObject thisv(cx);
-  // args.computeThis(cx, &thisv); // thisv is the global object, not the promise
-  JS::RootedValue resultArg(cx, args[0]);
-  PyObject *result = pyTypeFactory(cx, &thisv, &resultArg)->getPyObject();
+  // FIXME (Tom Tang): memory leak, not free-ed
+  //  The result might be another JS function, so we must keep them alive
+  JS::RootedObject *thisv = new JS::RootedObject(cx);
+  args.computeThis(cx, thisv); // thisv is the global object, not the promise
+  JS::RootedValue *resultArg = new JS::RootedValue(cx, args[0]);
+  PyObject *result = pyTypeFactory(cx, thisv, resultArg)->getPyObject();
   if (state == JS::PromiseState::Rejected && !PyExceptionInstance_Check(result)) {
     // Wrap the result object into a SpiderMonkeyError object
     // because only *Exception objects can be thrown in Python `raise` statement and alike
