@@ -71,11 +71,13 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
+      - name: Setup poetry
+        uses: snok/install-poetry@v1
       - name: Download wheel artifacts
         uses: actions/download-artifact@v3
         with:
           name: pythonmonkey-wheel-${{ github.sha }}
-      - name: Install pythonmonkey wheel
-        run: echo ls -lah ./* && python -m pip install ./*.whl
+      - name: Install pythonmonkey wheel and poetry dependencies
+        run: python -m pip install ./*.whl && poetry install --no-root
       - name: Run pytests
-        run: python -m pytest tests/python
+        run: poetry run pytest tests/python
