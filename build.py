@@ -19,7 +19,7 @@ def execute(cmd: str):
 def build():
     build_script_sh = os.path.join( dir_path, 'build_script.sh' )
     execute(f"bash {build_script_sh}")
-    execute(f"cp ./build/src/pythonmonkey.so ./python/pythonmonkey/_pythonmonkey.so")
+    execute(f"cp ./build/src/pythonmonkey.so ./python/pythonmonkey/pythonmonkey.so")
 
 if __name__ == "__main__":
     build()
