@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ 'ubuntu-latest' ] # , 'windows-latest', 'macos-latest' ]
-        python_version: [ '3.10' ]
+        python_version: [ '3.9', '3.10', '3.11' ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -39,4 +39,4 @@ jobs:
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
       - name: Buid and Publish package
-        run: poetry publish --build --username __token__ --password $PYPI_API_TOKEN
+        run: poetry publish --no-interaction --build --username __token__ --password $PYPI_API_TOKEN
