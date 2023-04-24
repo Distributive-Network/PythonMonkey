@@ -239,12 +239,12 @@ static bool clearTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   args.rval().setUndefined();
 
   // silently does nothing when an invalid timeoutID is passed in
-  if (!timeoutIdArg.isNumber()) {
+  if (!timeoutIdArg.isInt32()) {
     return true;
   }
 
   // Retrieve the AsyncHandle by `timeoutID`
-  double timeoutID = timeoutIdArg.toNumber();
+  int32_t timeoutID = timeoutIdArg.toInt32();
   AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
   if (!handle) return true; // does nothing on invalid timeoutID
 
