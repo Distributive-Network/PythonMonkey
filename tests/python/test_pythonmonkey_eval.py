@@ -685,6 +685,14 @@ def test_set_clear_timeout():
         pm.eval("clearTimeout(undefined)")
         pm.eval("clearTimeout()")
 
+        # should throw a TypeError when the first parameter to `setTimeout` is not a function
+        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
+            pm.eval("setTimeout()")
+        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
+            pm.eval("setTimeout(undefined)")
+        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
+            pm.eval("setTimeout(1)")
+
         # making sure the async_fn is run
         return True
     assert asyncio.run(async_fn())

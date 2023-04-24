@@ -24,6 +24,7 @@
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
+#include <js/friend/ErrorMessages.h>
 #include <js/CompilationAndEvaluation.h>
 #include <js/Class.h>
 #include <js/Date.h>
@@ -191,10 +192,19 @@ PyObject *SpiderMonkeyError = NULL;
 static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
+  // Ensure the first parameter is a function
+  // We don't support passing a `code` string to `setTimeout` (yet)
+  JS::HandleValue jobArgVal = args.get(0);
+  bool jobArgIsFunction = jobArgVal.isObject() && js::IsFunctionObject(&jobArgVal.toObject());
+  if (!jobArgIsFunction) {
+    JS_ReportErrorNumberASCII(cx, nullptr, nullptr, JSErrNum::JSMSG_NOT_FUNCTION, "The first parameter to setTimeout()");
+    return false;
+  }
+
   // Get the function to be executed
   // FIXME (Tom Tang): memory leak, not free-ed
   JS::RootedObject *thisv = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee())); // HTML spec requires `thisArg` to be the global object
-  JS::RootedValue *jobArg = new JS::RootedValue(cx, args[0]);
+  JS::RootedValue *jobArg = new JS::RootedValue(cx, jobArgVal);
   // `setTimeout` allows passing additional arguments to the callback, as spec-ed
   if (args.length() > 2) { // having additional arguments
     // Wrap the job function into a bound function with the given additional arguments
@@ -204,7 +214,7 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
     for (size_t i = 1, j = 2; j < args.length(); j++) {
       bindArgs.append(args[j]);
     }
-    JS::RootedObject jobArgObj = JS::RootedObject(cx, &args[0].toObject());
+    JS::RootedObject jobArgObj = JS::RootedObject(cx, &jobArgVal.toObject());
     JS_CallFunctionName(cx, jobArgObj, "bind", JS::HandleValueArray(bindArgs), jobArg); // jobArg = jobArg.bind(thisv, ...bindArgs)
   }
   // Convert to a Python function
