@@ -677,6 +677,14 @@ def test_set_clear_timeout():
         # TODO (Tom Tang): test `setTimeout` setting delay to 0 if < 0
         # TODO (Tom Tang): test `setTimeout` accepting string as the delay, coercing to a number like parseFloat
 
+        # passing an invalid ID to `clearTimeout` should silently do nothing; no exception is thrown.
+        pm.eval("clearTimeout(NaN)")
+        pm.eval("clearTimeout(999)")
+        pm.eval("clearTimeout(-1)")
+        pm.eval("clearTimeout('a')")
+        pm.eval("clearTimeout(undefined)")
+        pm.eval("clearTimeout()")
+
         # making sure the async_fn is run
         return True
     assert asyncio.run(async_fn())

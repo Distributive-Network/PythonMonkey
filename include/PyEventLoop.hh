@@ -55,8 +55,12 @@ public:
       _timeoutIdMap.push_back(std::move(handle));
       return _timeoutIdMap.size() - 1; // the index in `_timeoutIdMap`
     }
-    static inline AsyncHandle &fromId(uint32_t timeoutID) {
-      return _timeoutIdMap.at(timeoutID);
+    static inline AsyncHandle *fromId(uint32_t timeoutID) {
+      try {
+        return &_timeoutIdMap.at(timeoutID);
+      } catch (...) { // std::out_of_range&
+        return nullptr; // invalid timeoutID
+      }
     }
 
     /**

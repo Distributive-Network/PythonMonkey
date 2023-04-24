@@ -234,13 +234,22 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
 static bool clearTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   using AsyncHandle = PyEventLoop::AsyncHandle;
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  JS::HandleValue timeoutIdArg = args.get(0);
+
+  args.rval().setUndefined();
+
+  // silently does nothing when an invalid timeoutID is passed in
+  if (!timeoutIdArg.isNumber()) {
+    return true;
+  }
 
   // Retrieve the AsyncHandle by `timeoutID`
-  double timeoutID = args[0].toNumber();
-  AsyncHandle &handle = AsyncHandle::fromId((uint32_t)timeoutID);
+  double timeoutID = timeoutIdArg.toNumber();
+  AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
+  if (!handle) return true; // does nothing on invalid timeoutID
 
   // Cancel this job on Python event-loop
-  handle.cancel();
+  handle->cancel();
 
   return true;
 }
