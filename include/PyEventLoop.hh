@@ -14,6 +14,7 @@
 
 #include <Python.h>
 #include <vector>
+#include <utility>
 
 struct PyEventLoop {
 public:
