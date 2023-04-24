@@ -223,7 +223,7 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   PyEventLoop::AsyncHandle handle = loop.enqueueWithDelay(job, delaySeconds);
 
   // Return the `timeoutID` to use in `clearTimeout`
-  args.rval().setDouble((double)handle.getId());
+  args.rval().setDouble((double)PyEventLoop::AsyncHandle::getUniqueId(std::move(handle)));
 
   return true;
 }
@@ -237,7 +237,7 @@ static bool clearTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Retrieve the AsyncHandle by `timeoutID`
   double timeoutID = args[0].toNumber();
-  AsyncHandle handle = AsyncHandle::fromId((uint64_t)timeoutID);
+  AsyncHandle &handle = AsyncHandle::fromId((uint32_t)timeoutID);
 
   // Cancel this job on Python event-loop
   handle.cancel();

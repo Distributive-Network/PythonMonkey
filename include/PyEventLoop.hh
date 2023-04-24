@@ -13,6 +13,7 @@
 #define PythonMonkey_PyEventLoop_
 
 #include <Python.h>
+#include <vector>
 
 struct PyEventLoop {
 public:
@@ -30,9 +31,13 @@ public:
    */
   struct AsyncHandle {
   public:
-    AsyncHandle(PyObject *handle) : _handle(handle) {};
+    explicit AsyncHandle(PyObject *handle) : _handle(handle) {};
+    AsyncHandle(const AsyncHandle &old) = delete; // forbid copy-initialization
+    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)) {}; // clear the moved-from object
     ~AsyncHandle() {
-      Py_XDECREF(_handle);
+      if (Py_IsInitialized()) { // the Python runtime has already been finalized when `_timeoutIdMap` is cleared at exit
+        Py_XDECREF(_handle);
+      }
     }
 
     /**
@@ -45,16 +50,13 @@ public:
      * @brief Get the unique `timeoutID` for JS `setTimeout`/`clearTimeout` methods
      * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#return_value
      */
-    inline uint64_t getId() {
-      Py_INCREF(_handle); // otherwise the object would be GC-ed as the AsyncHandle destructs
-      // Currently we use the address of the underlying `asyncio.Handle` object
-      // FIXME (Tom Tang): JS stores the `timeoutID` in a `number` (float64), may overflow
-      return (uint64_t)_handle;
+    static inline uint32_t getUniqueId(AsyncHandle &&handle) {
+      // TODO (Tom Tang): mutex lock
+      _timeoutIdMap.push_back(std::move(handle));
+      return _timeoutIdMap.size() - 1; // the index in `_timeoutIdMap`
     }
-    static inline AsyncHandle fromId(uint64_t timeoutID) {
-      // FIXME: user can access arbitrary memory location
-      // FIXME (Tom Tang): `clearTimeout` can only be applied once on the same handle because the handle is GC-ed
-      return AsyncHandle((PyObject *)timeoutID);
+    static inline AsyncHandle &fromId(uint32_t timeoutID) {
+      return _timeoutIdMap.at(timeoutID);
     }
 
     /**
@@ -66,6 +68,9 @@ public:
     }
   protected:
     PyObject *_handle;
+
+    // TODO (Tom Tang): use separate pools of IDs for different global objects
+    static inline std::vector<AsyncHandle> _timeoutIdMap;
   };
 
   /**
@@ -88,7 +93,9 @@ public:
    */
   struct Future {
   public:
-    Future(PyObject *future) : _future(future) {};
+    explicit Future(PyObject *future) : _future(future) {};
+    Future(const Future &old) = delete; // forbid copy-initialization
+    Future(Future &&old) : _future(std::exchange(old._future, nullptr)) {}; // clear the moved-from object
     ~Future() {
       Py_XDECREF(_future);
     }
