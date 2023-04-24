@@ -162,6 +162,7 @@ public:
    */
   static PyEventLoop getRunningLoop();
 
+protected:
   PyObject *_loop;
 
   PyEventLoop() = delete;
