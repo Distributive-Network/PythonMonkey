@@ -708,7 +708,14 @@ def test_set_clear_timeout():
         pm.eval("setTimeout")(print)
 
 def test_promises():
+    # should throw RuntimeError if Promises are created outside a coroutine
+    create_promise = pm.eval("() => Promise.resolve(1)")
+    with pytest.raises(RuntimeError, match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
+        create_promise()
+
     async def async_fn():
+        create_promise() # inside a coroutine, no error
+
         # Python awaitables to JS Promise coercion
         # 1. Python asyncio.Future to JS promise
         loop = asyncio.get_running_loop()
@@ -853,6 +860,10 @@ def test_promises():
         # making sure the async_fn is run
         return True
     assert asyncio.run(async_fn())
+
+    # should throw a RuntimeError if created outside a coroutine (the event-loop has ended)
+    with pytest.raises(RuntimeError, match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
+        pm.eval("new Promise(() => { })")
 
 def test_webassembly():
     async def async_fn():
