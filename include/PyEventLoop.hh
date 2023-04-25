@@ -168,17 +168,28 @@ public:
   Future ensureFuture(PyObject *awaitable);
 
   /**
-   * @brief Get the running Python event-loop, or
+   * @brief Get the running Python event-loop on the current thread, or
    *        raise a Python RuntimeError if no event-loop running
    * @return an instance of `PyEventLoop`
    */
   static PyEventLoop getRunningLoop();
+
+  /**
+   * @brief Get the running Python event-loop on main thread, or
+   *        raise a Python RuntimeError if no event-loop running
+   * @return an instance of `PyEventLoop`
+   */
+  static PyEventLoop getMainLoop();
 
 protected:
   PyObject *_loop;
 
   PyEventLoop() = delete;
   PyEventLoop(PyObject *loop) : _loop(loop) {};
+private:
+  static PyEventLoop _mainLoopNotFound();
+  static PyEventLoop _getLoopOnThread(PyThreadState *tstate);
+  static PyThreadState *_getMainThread();
 };
 
 #endif

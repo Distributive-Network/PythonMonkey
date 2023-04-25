@@ -692,6 +692,8 @@ def test_set_clear_timeout():
             pm.eval("setTimeout(undefined)")
         with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
             pm.eval("setTimeout(1)")
+        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
+            pm.eval("setTimeout('a', 100)")
 
         # making sure the async_fn is run
         return True
@@ -839,6 +841,28 @@ def test_promises():
         await asyncio.wait_for(both_sleep(0.1), timeout=0.21)
         with pytest.raises(asyncio.exceptions.TimeoutError):
             await asyncio.wait_for(both_sleep(0.1), timeout=0.19)
+
+        # making sure the async_fn is run
+        return True
+    assert asyncio.run(async_fn())
+
+def test_webassembly():
+    async def async_fn():
+        # off-thread promises can run
+        assert 'instantiated' == await pm.eval("""
+        // https://github.com/mdn/webassembly-examples/blob/main/js-api-examples/simple.wasm
+        var code = new Uint8Array([
+            0,  97, 115, 109,   1,   0,   0,   0,   1,   8,   2,  96,
+            1, 127,   0,  96,   0,   0,   2,  25,   1,   7, 105, 109,
+        112, 111, 114, 116, 115,  13, 105, 109, 112, 111, 114, 116,
+        101, 100,  95, 102, 117, 110,  99,   0,   0,   3,   2,   1,
+            1,   7,  17,   1,  13, 101, 120, 112, 111, 114, 116, 101,
+        100,  95, 102, 117, 110,  99,   0,   1,  10,   8,   1,   6,
+            0,  65,  42,  16,   0,  11
+        ]);
+
+        WebAssembly.instantiate(code, { imports: { imported_func() {} } }).then(() => 'instantiated')
+        """)
 
         # making sure the async_fn is run
         return True
