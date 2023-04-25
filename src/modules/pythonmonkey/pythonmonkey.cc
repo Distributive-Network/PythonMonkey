@@ -156,6 +156,9 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
   // translate to the proper python type
   PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, rval);
+  if (PyErr_Occurred()) {
+    return NULL;
+  }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
   // delete rval; // rval may be a JS function which must be kept alive.
