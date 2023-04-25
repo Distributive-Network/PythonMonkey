@@ -187,8 +187,18 @@ protected:
   PyEventLoop() = delete;
   PyEventLoop(PyObject *loop) : _loop(loop) {};
 private:
-  static PyEventLoop _mainLoopNotFound();
+  /**
+   * @brief Convenient method to raise Python RuntimeError for no event-loop running, and
+   *        create a null instance of `PyEventLoop`
+   */
+  static PyEventLoop _loopNotFound();
+
+  /**
+   * @brief Get the running Python event-loop on a specific thread, or
+   *        raise a Python RuntimeError if no event-loop running on that thread
+   */
   static PyEventLoop _getLoopOnThread(PyThreadState *tstate);
+
   static PyThreadState *_getMainThread();
 };
 

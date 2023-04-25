@@ -48,8 +48,8 @@ PyEventLoop::Future PyEventLoop::ensureFuture(PyObject *awaitable) {
 }
 
 /* static */
-PyEventLoop PyEventLoop::_mainLoopNotFound() {
-  PyErr_SetString(PyExc_RuntimeError, "PythonMonkey cannot find a running Python event-loop on the main thread.");
+PyEventLoop PyEventLoop::_loopNotFound() {
+  PyErr_SetString(PyExc_RuntimeError, "PythonMonkey cannot find a running Python event-loop to make asynchronous calls.");
   return PyEventLoop(nullptr);
 }
 
@@ -58,12 +58,12 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
   // Modified from Python 3.9 `get_running_loop` https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L241-L278
   PyObject *ts_dict = _PyThreadState_GetDict(tstate);  // borrowed reference
   if (ts_dict == NULL) {
-    return _mainLoopNotFound();
+    return _loopNotFound();
   }
 
   PyObject *rl = PyDict_GetItemString(ts_dict, "__asyncio_running_event_loop__");  // borrowed reference
   if (rl == NULL) {
-    return _mainLoopNotFound();
+    return _loopNotFound();
   }
 
   using PyRunningLoopHolder = struct {
@@ -73,7 +73,7 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
 
   PyObject *running_loop = ((PyRunningLoopHolder *)rl)->rl_loop;
   if (running_loop == Py_None) {
-    return _mainLoopNotFound();
+    return _loopNotFound();
   }
 
   Py_INCREF(running_loop);
