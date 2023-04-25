@@ -644,6 +644,10 @@ def test_eval_functions_pyfunctions_strs():
         assert caller(concatenate, string1, string2) == string1 + string2
 
 def test_set_clear_timeout():
+    # throw RuntimeError outside a coroutine
+    with pytest.raises(RuntimeError, match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
+        pm.eval("setTimeout")(print)
+
     async def async_fn():
         # standalone `setTimeout`
         loop = asyncio.get_running_loop()
@@ -698,6 +702,10 @@ def test_set_clear_timeout():
         # making sure the async_fn is run
         return True
     assert asyncio.run(async_fn())
+
+    # throw RuntimeError outside a coroutine (the event-loop has ended)
+    with pytest.raises(RuntimeError, match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
+        pm.eval("setTimeout")(print)
 
 def test_promises():
     async def async_fn():

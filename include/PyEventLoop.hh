@@ -170,12 +170,13 @@ public:
   /**
    * @brief Get the running Python event-loop on the current thread, or
    *        raise a Python RuntimeError if no event-loop running
+   * @see https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_running_loop
    * @return an instance of `PyEventLoop`
    */
   static PyEventLoop getRunningLoop();
 
   /**
-   * @brief Get the running Python event-loop on main thread, or
+   * @brief Get the running Python event-loop on **main thread**, or
    *        raise a Python RuntimeError if no event-loop running
    * @return an instance of `PyEventLoop`
    */
@@ -200,6 +201,7 @@ private:
   static PyEventLoop _getLoopOnThread(PyThreadState *tstate);
 
   static PyThreadState *_getMainThread();
+  static inline PyThreadState *_getCurrentThread();
 };
 
 #endif

@@ -61,6 +61,8 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
     return _loopNotFound();
   }
 
+  // TODO: Python `get_running_loop` caches the PyRunningLoopHolder, should we do it as well for the main thread?
+  //    see https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L234-L239
   PyObject *rl = PyDict_GetItemString(ts_dict, "__asyncio_running_event_loop__");  // borrowed reference
   if (rl == NULL) {
     return _loopNotFound();
@@ -92,6 +94,13 @@ PyThreadState *PyEventLoop::_getMainThread() {
   return tstate;
 }
 
+/* static inline */
+PyThreadState *PyEventLoop::_getCurrentThread() {
+  // `PyThreadState_Get` is used under the hood of the Python `asyncio.get_running_loop` method,
+  // see https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L234
+  return PyThreadState_Get(); // https://docs.python.org/3/c-api/init.html#c.PyThreadState_Get
+}
+
 /* static */
 PyEventLoop PyEventLoop::getMainLoop() {
   return _getLoopOnThread(_getMainThread());
@@ -99,23 +108,7 @@ PyEventLoop PyEventLoop::getMainLoop() {
 
 /* static */
 PyEventLoop PyEventLoop::getRunningLoop() {
-  // TODO: refactor into the C API `_getLoopOnThread(PyThreadState_Get())`
-  // We don't use the C API here yet because the Python method caches the PyRunningLoopHolder (Is it worth caching?),
-  //    see https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L234-L239
-
-  // Get the running Python event-loop
-  //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.get_running_loop
-  PyObject *asyncio = PyImport_ImportModule("asyncio");
-  PyObject *loop = PyObject_CallMethod(asyncio, "get_running_loop", NULL);
-
-  Py_DECREF(asyncio); // clean up
-
-  if (loop == nullptr) { // `get_running_loop` would raise a RuntimeError if there is no running event loop
-    // Overwrite the error raised by `get_running_loop`
-    PyErr_SetString(PyExc_RuntimeError, "PythonMonkey cannot find a running Python event-loop to make asynchronous calls.");
-  }
-
-  return PyEventLoop(loop); // `loop` may be null
+  return _getLoopOnThread(_getCurrentThread());
 }
 
 void PyEventLoop::AsyncHandle::cancel() {
