@@ -148,7 +148,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   delete code;
 
   // evaluate source code
-  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  JS::PersistentRootedValue *rval = new JS::PersistentRootedValue(GLOBAL_CX);
   if (!JS::Evaluate(GLOBAL_CX, options, source, rval)) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
@@ -207,7 +207,7 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Get the function to be executed
   // FIXME (Tom Tang): memory leak, not free-ed
   JS::RootedObject *thisv = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee())); // HTML spec requires `thisArg` to be the global object
-  JS::RootedValue *jobArg = new JS::RootedValue(cx, jobArgVal);
+  JS::PersistentRootedValue *jobArg = new JS::PersistentRootedValue(cx, jobArgVal);
   // `setTimeout` allows passing additional arguments to the callback, as spec-ed
   if (args.length() > 2) { // having additional arguments
     // Wrap the job function into a bound function with the given additional arguments

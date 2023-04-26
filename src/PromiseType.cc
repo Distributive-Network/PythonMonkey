@@ -42,7 +42,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   //  The result might be another JS function, so we must keep them alive
   JS::RootedObject *thisv = new JS::RootedObject(cx);
   args.computeThis(cx, thisv); // thisv is the global object, not the promise
-  JS::RootedValue *resultArg = new JS::RootedValue(cx, args[0]);
+  JS::PersistentRootedValue *resultArg = new JS::PersistentRootedValue(cx, args[0]);
   PyObject *result = pyTypeFactory(cx, thisv, resultArg)->getPyObject();
   if (state == JS::PromiseState::Rejected && !PyExceptionInstance_Check(result)) {
     // Wrap the result object into a SpiderMonkeyError object

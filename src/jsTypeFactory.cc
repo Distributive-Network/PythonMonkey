@@ -206,8 +206,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   // populate python args tuple
   PyObject *pyArgs = PyTuple_New(callargs.length());
   for (size_t i = 0; i < callargs.length(); i++) {
-    JS::RootedValue jsArg = JS::RootedValue(cx, callargs[i]);
-    PyType *pyArg = (pyTypeFactory(cx, &thisv, &jsArg));
+    JS::PersistentRootedValue jsArg = JS::PersistentRootedValue(cx, callargs[i]);
+    PyType *pyArg = pyTypeFactory(cx, &thisv, &jsArg);
     PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
   }
 

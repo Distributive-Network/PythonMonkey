@@ -35,7 +35,7 @@ PyType *pyTypeFactory(PyObject *object);
  * @param rval - Pointer to the JS::Value who's type and value we wish to encapsulate
  * @return PyType* - Pointer to a PyType object corresponding to the JS::Value
  */
-PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval);
+PyType *pyTypeFactory(JSContext *cx, JS::RootedObject *thisObj, JS::PersistentRootedValue *rval);
 
 /**
  * @brief Helper function for pyTypeFactory to create FuncTypes through PyCFunction_New

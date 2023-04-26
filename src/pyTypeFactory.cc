@@ -66,7 +66,7 @@ PyType *pyTypeFactory(PyObject *object) {
   return pyType;
 }
 
-PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
+PyType *pyTypeFactory(JSContext *cx, JS::RootedObject *thisObj, JS::PersistentRootedValue *rval) {
   PyType *returnValue = NULL;
   if (rval->isUndefined()) {
     returnValue = new NoneType();
@@ -158,7 +158,7 @@ static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
   JSContext *cx = (JSContext *)PyLong_AsLongLong(PyTuple_GetItem(jsCxThisFuncTuple, 0));
   JS::RootedObject *thisObj = (JS::RootedObject *)PyLong_AsLongLong(PyTuple_GetItem(jsCxThisFuncTuple, 1));
-  JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsLongLong(PyTuple_GetItem(jsCxThisFuncTuple, 2));
+  JS::PersistentRootedValue *jsFunc = (JS::PersistentRootedValue *)PyLong_AsLongLong(PyTuple_GetItem(jsCxThisFuncTuple, 2));
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
   for (size_t i = 0; i < PyTuple_Size(args); i++) {
@@ -170,7 +170,7 @@ static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   }
 
   JS::HandleValueArray jsArgs(jsArgsVector);
-  JS::Rooted<JS::Value> *jsReturnVal = new JS::Rooted<JS::Value>(cx);
+  JS::PersistentRootedValue *jsReturnVal = new JS::PersistentRootedValue(cx);
   if (!JS_CallFunctionValue(cx, *thisObj, *jsFunc, jsArgs, jsReturnVal)) {
     setSpiderMonkeyException(cx);
     return NULL;
