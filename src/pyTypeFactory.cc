@@ -154,7 +154,9 @@ static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
   for (size_t i = 0; i < PyTuple_Size(args); i++) {
-    JS::Value jsValue = jsTypeFactory(cx, PyTuple_GetItem(args, i));
+    PyObject *pyObj = PyTuple_GetItem(args, i);
+    Py_INCREF(pyObj);
+    JS::Value jsValue = jsTypeFactory(cx, pyObj);
     if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
       return NULL; // Fail-fast
     }
