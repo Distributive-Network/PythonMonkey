@@ -1,3 +1,14 @@
+/**
+ * @file PyProxyHandler.cc
+ * @author Caleb Aikens (caleb@distributive.network)
+ * @brief Struct for creating JS proxy objects. Used by DictType for object coercion
+ * @version 0.1
+ * @date 2023-04-20
+ *
+ * Copyright (c) 2023 Distributive Corp.
+ *
+ */
+
 #include "include/PyProxyHandler.hh"
 
 #include "include/jsTypeFactory.hh"
@@ -13,70 +24,78 @@ PyProxyHandler::PyProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(NULL), py
 
 bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
   JS::MutableHandleIdVector props) const {
-    PyObject *keys = PyDict_Keys(pyObject);
-    for (size_t i = 0; i < PyList_Size(keys); i++) {
-      props.append(jsTypeFactory(cx, PyList_GetItem(pyObject, i)));
+  PyObject *keys = PyDict_Keys(pyObject);
+  for (size_t i = 0; i < PyList_Size(keys); i++) {
+    PyObject *key = PyList_GetItem(pyObject, i);
+    JS::RootedValue jsKey(cx, jsTypeFactory(cx, key));
+    JS::RootedId jsId(cx);
+    if (!JS_ValueToId(cx, jsKey, &jsId)) {
+      // @TODO raise exception
     }
-    return true;
+    props.append(jsId);
   }
+  return true;
+}
 
 bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::ObjectOpResult &result) const {
-    PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
-    if (PyObject_DelAttr(pyObject, attrName) < 0) {
-      // @TODO (Caleb Aikens) raise exception
-      return false;
-    }
-    return true;
+  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  if (PyObject_DelAttr(pyObject, attrName) < 0) {
+    // @TODO (Caleb Aikens) raise exception
+    return false;
   }
+  return true;
+}
 
 bool PyProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
-    return hasOwn(cx, proxy, id, bp);
-  }
+  return hasOwn(cx, proxy, id, bp);
+}
 
 bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   JS::HandleValue receiver, JS::HandleId id,
   JS::MutableHandleValue vp) const {
-    PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
-    PyObject *p = PyObject_GetAttr(pyObject, attrName);
-    if (!p) {
-      // @TODO (Caleb Aikens) raise exception
-      return false;
-    }
-    vp.set(jsTypeFactory(cx, p));
-    return true;
+  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  PyObject *p = PyDict_GetItem(pyObject, attrName);
+  if (!p) {
+    // @TODO (Caleb Aikens) raise exception
+    return false;
   }
+  vp.set(jsTypeFactory(cx, p));
+  return true;
+}
 
 bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
-    JS::RootedValue *rootedV = new JS::RootedValue(v);
-    PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
-    JS::RootedObject *global = new JS::RootedObject(JS::GetNonCCWObjectGlobal(proxy));
-    if (PyObject_SetAttr(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
-      // @TODO (Caleb Aikens) raise exception
-      return false;
-    }
-    // @TODO (Caleb Aikens) read about what you're supposed to do with receiver and result
-    return true;
+  JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
+  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  if (PyDict_SetItem(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+    // @TODO (Caleb Aikens) raise exception
+    return false;
   }
+  // @TODO (Caleb Aikens) read about what you're supposed to do with receiver and result
+  return true;
+}
 
-// @TODO (Caleb Aikens) implement this
 bool PyProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
-  JS::MutableHandleIdVector props) const {}
+  JS::MutableHandleIdVector props) const {
+  return this->ownPropertyKeys(cx, proxy, props);
+}
 
 bool PyProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
-    PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
-    *bp = PyObject_HasAttr(pyObject, attrName);
-    return true;
-  }
+  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  *bp = PyDict_Contains(pyObject, attrName) == 1;
+  return true;
+}
 
-// @TODO (Caleb Aikens) implement this
 bool PyProxyHandler::getOwnEnumerablePropertyKeys(
   JSContext *cx, JS::HandleObject proxy,
-  JS::MutableHandleIdVector props) const {}
+  JS::MutableHandleIdVector props) const {
+  return this->ownPropertyKeys(cx, proxy, props);
+}
 
 // @TODO (Caleb Aikens) implement this
 void PyProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}

@@ -29,48 +29,48 @@ public:
   /**
    * @brief [[OwnPropertyKeys]]
    *
-   * @param cx
-   * @param proxy
-   * @param props
-   * @return true
-   * @return false
+   * @param cx - pointer to JSContext
+   * @param proxy - The proxy object who's keys we output
+   * @param props - out-parameter of object IDs
+   * @return true - call succeeded
+   * @return false - call failed and an exception has been raised
    */
   bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
     JS::MutableHandleIdVector props) const override;
   /**
    * @brief [[Delete]]
    *
-   * @param cx
-   * @param proxy
-   * @param id
-   * @param result
-   * @return true
-   * @return false
+   * @param cx - pointer to JSContext
+   * @param proxy - The proxy object who's property we wish to delete
+   * @param id - The key we wish to delete
+   * @param result - @TODO (Caleb Aikens) read up on JS::ObjectOpResult
+   * @return true - call succeeded
+   * @return false - call failed and an exception has been raised
    */
   bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     JS::ObjectOpResult &result) const override;
   /**
    * @brief [[HasProperty]]
    *
-   * @param cx
-   * @param proxy
-   * @param id
-   * @param bp
-   * @return true
-   * @return false
+   * @param cx - pointer to JSContext
+   * @param proxy - The proxy object who's propery we wish to check
+   * @param id - key value of the property to check
+   * @param bp - out-paramter: true if object has property, false if not
+   * @return true - call succeeded
+   * @return false - call failed and an exception has been raised
    */
   bool has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     bool *bp) const override;
   /**
    * @brief [[Get]]
    *
-   * @param cx
-   * @param proxy
-   * @param receiver
-   * @param id
-   * @param vp
-   * @return true
-   * @return false
+   * @param cx pointer to JSContext
+   * @param proxy - The proxy object who's property we wish to check
+   * @param receiver @TODO (Caleb Aikens) read ECMAScript docs about this
+   * @param id - Key of the property we wish to get
+   * @param vp - out-paramter for the gotten property
+   * @return true - call succeeded
+   * @return false - call failed and an exception has been raised
    */
   bool get(JSContext *cx, JS::HandleObject proxy,
     JS::HandleValue receiver, JS::HandleId id,
@@ -78,14 +78,14 @@ public:
   /**
    * @brief [[Set]]
    *
-   * @param cx
-   * @param proxy
-   * @param id
-   * @param v
-   * @param receiver
-   * @param result
-   * @return true
-   * @return false
+   * @param cx pointer to JSContext
+   * @param proxy The proxy object who's property we wish to set
+   * @param id Key of the property we wish to set
+   * @param v Value that we wish to set the property to
+   * @param receiver @TODO (Caleb Aikens) read ECMAScript docs about this
+   * @param result @TODO (Caleb Aikens) read ECMAScript docs about this
+   * @return true call succeed
+   * @return false call failed and an exception has been raised
    */
   bool set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     JS::HandleValue v, JS::HandleValue receiver,
@@ -93,23 +93,65 @@ public:
   /**
    * @brief [[Enumerate]]
    *
-   * @param cx
-   * @param proxy
-   * @param props
-   * @return true
-   * @return false
+   * @param cx - pointer to JSContext
+   * @param proxy - The proxy object who's keys we output
+   * @param props - out-parameter of object IDs
+   * @return true - call succeeded
+   * @return false - call failed and an exception has been raised
    */
   bool enumerate(JSContext *cx, JS::HandleObject proxy,
     JS::MutableHandleIdVector props) const override;
 
   // @TODO (Caleb Aikens) The following are Spidermonkey-unique extensions, need to read into them more
+  /**
+   * @brief @TODO (Caleb Aikens) read up on what this trap does exactly
+   *
+   * @param cx pointer to JSContext
+   * @param proxy The proxy object who's property we wish to check
+   * @param id  Key of the property we wish to check
+   * @param bp out-paramter: true if object has property, false if not
+   * @return true call succeeded
+   * @return false call failed and an exception has been raised
+   */
   bool hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     bool *bp) const override;
+  /**
+   * @brief @TODO (Caleb Aikens) read up on what this trap does exactly
+   *
+   * @param cx - pointer to JSContext
+   * @param proxy - The proxy object who's keys we output
+   * @param props - out-parameter of object IDs
+   * @return true - call succeeded
+   * @return false - call failed and an exception has been raised
+   */
   bool getOwnEnumerablePropertyKeys(
     JSContext *cx, JS::HandleObject proxy,
     JS::MutableHandleIdVector props) const override;
-  void trace(JSTracer *trc, JSObject *proxy) const override;
+  /**
+   * @brief Handles python object reference count when JS Proxy object is finalized
+   *
+   * @param gcx pointer to JS::GCContext
+   * @param proxy the proxy object being finalized
+   */
   void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
+
+  bool getOwnPropertyDescriptor(
+    JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) const override {};
+
+  bool defineProperty(JSContext *cx, JS::HandleObject proxy,
+    JS::HandleId id,
+    JS::Handle<JS::PropertyDescriptor> desc,
+    JS::ObjectOpResult &result) const override {};
+
+  bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
+    bool *isOrdinary,
+    JS::MutableHandleObject protop) const override {};
+
+  bool preventExtensions(JSContext *cx, JS::HandleObject proxy,
+    JS::ObjectOpResult &result) const override {};
+  bool isExtensible(JSContext *cx, JS::HandleObject proxy,
+    bool *extensible) const override {};
 };
 
 #endif

@@ -14,12 +14,14 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
+#include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
+#include <js/Proxy.h>
 
 #include <Python.h>
 
@@ -139,6 +141,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(*jsFuncObject);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
 
+  }
+  else if (PyDict_Check(object)) {
+    PyProxyHandler *proxyHandler = new PyProxyHandler(object);
+    JS::RootedValue v(cx);
+    JSObject *proxy = js::NewProxyObject(cx, proxyHandler, v, NULL);
+    returnType.setObject(*proxy);
   }
   else if (object == Py_None) {
     returnType.setUndefined();
