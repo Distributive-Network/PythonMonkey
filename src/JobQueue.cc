@@ -17,7 +17,7 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   JS::HandleObject incumbentGlobal) {
 
   // Convert the `job` JS function to a Python function for event-loop callback
-  // TODO (Tom Tang): assert `job` is JS::Handle<JSFunction*> by JS::GetBuiltinClass(...) == js::ESClass::Function (17)
+  MOZ_RELEASE_ASSERT(js::IsFunctionObject(job));
   // FIXME (Tom Tang): memory leak, objects not free-ed
   // FIXME (Tom Tang): `job` function is going to be GC-ed ???
   auto global = new JS::RootedObject(cx, incumbentGlobal);
