@@ -600,6 +600,15 @@ def test_eval_functions_pyfunctions_ints():
         int2 = random.randint(0x0000, 0xFFFF)
         assert caller(add, int1, int2) == int1 + int2
 
+def test_eval_functions_pyfunction_in_closure():
+    # BF-58 https://github.com/Distributive-Network/PythonMonkey/pull/19
+    def fn1():
+        def fn0(n):
+            return n + 100
+        return fn0
+    assert 101.9 == fn1()(1.9)
+    assert 101.9 == pm.eval("(fn1) => { return fn1 }")(fn1())(1.9)
+
 def test_eval_functions_pyfunctions_strs():
     caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
     def concatenate(a, b):
