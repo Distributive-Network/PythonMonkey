@@ -608,6 +608,8 @@ def test_eval_functions_pyfunction_in_closure():
         return fn0
     assert 101.9 == fn1()(1.9)
     assert 101.9 == pm.eval("(fn1) => { return fn1 }")(fn1())(1.9)
+    assert 101.9 == pm.eval("(fn1, x) => { return fn1()(x) }")(fn1, 1.9)
+    assert 101.9 == pm.eval("(fn1) => { return fn1() }")(fn1)(1.9)
 
 def test_eval_functions_pyfunctions_strs():
     caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
