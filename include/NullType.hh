@@ -24,9 +24,6 @@ struct NullType : public PyType {
 public:
   NullType();
   const TYPE returnType = TYPE::NIL;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

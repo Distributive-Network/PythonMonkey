@@ -9,8 +9,6 @@
 #include "include/StrType.hh"
 #include "include/IntType.hh"
 
-#include "include/utilities.hh"
-
 class ListTypeTests : public ::testing::Test {
 protected:
 PyObject *list_type;
@@ -32,7 +30,7 @@ TEST_F(ListTypeTests, test_list_type_instance_of_pytype) {
 
   ListType list = ListType(list_type);
 
-  EXPECT_TRUE(instanceof<PyType>(&list));
+  EXPECT_TRUE(dynamic_cast<const PyType *>(&list) != nullptr);
 
 }
 
@@ -90,34 +88,4 @@ TEST_F(ListTypeTests, test_getLength_returns_correct_length) {
   ListType my_list = ListType(test_list);
 
   EXPECT_EQ(my_list.len(), 3);
-}
-
-TEST_F(ListTypeTests, test_prints_basic_list_correctly) {
-
-  PyObject *test_list = Py_BuildValue("[i,s,i]", 10, (char *)"hello", 12);
-
-  ListType my_list = ListType(test_list);
-
-  std::string expected = "[\n  10,\n  'hello',\n  12\n]";
-  testing::internal::CaptureStdout();
-  std::cout << my_list;
-  std::string output = testing::internal::GetCapturedStdout();
-
-  EXPECT_EQ(expected, output);
-
-}
-
-TEST_F(ListTypeTests, test_sorts_list) {
-  PyObject *test_list = Py_BuildValue("[i,i,i]", 12, 11, 10);
-
-  ListType my_list = ListType(test_list);
-  my_list.sort();
-
-  std::string expected = "[\n  10,\n  11,\n  12\n]";
-  testing::internal::CaptureStdout();
-  std::cout << my_list;
-  std::string output = testing::internal::GetCapturedStdout();
-
-  EXPECT_EQ(expected, output);
-
 }

@@ -19,7 +19,3 @@
 
 
 NullType::NullType() : PyType(PythonMonkey_Null) {}
-
-void NullType::print(std::ostream &os) const {
-  os << "pythonmonkey.null";
-}

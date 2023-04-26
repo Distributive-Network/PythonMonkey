@@ -37,5 +37,3 @@ DateType::DateType(JSContext *cx, JS::Handle<JSObject *> dateObj) {
     hour.toNumber(), minute.toNumber(), second.toNumber(),
     usecond.toNumber() * 1000);
 }
-
-void DateType::print(std::ostream &os) const {}

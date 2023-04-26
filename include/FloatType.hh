@@ -29,9 +29,6 @@ public:
   FloatType(double n);
   const TYPE returnType = TYPE::FLOAT;
   double getValue() const;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

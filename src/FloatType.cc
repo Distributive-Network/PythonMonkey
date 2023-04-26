@@ -17,7 +17,3 @@ FloatType::FloatType(double n) : PyType(Py_BuildValue("d", n)) {}
 double FloatType::getValue() const {
   return PyFloat_AS_DOUBLE(pyObject);
 }
-
-void FloatType::print(std::ostream &os) const {
-  os << this->getValue();
-}

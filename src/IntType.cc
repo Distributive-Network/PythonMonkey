@@ -137,11 +137,3 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
 
   return bigint;
 }
-
-void IntType::print(std::ostream &os) const {
-  // Making sure the value does not overflow even if the int has millions of bits of precision
-  PyObject *str = PyObject_Str(pyObject);
-  os << PyUnicode_AsUTF8(str);
-  // https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html#new-references
-  Py_DECREF(str); // free
-}

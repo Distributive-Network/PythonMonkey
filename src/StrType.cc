@@ -136,7 +136,3 @@ PyObject *StrType::asUCS4() {
 
   return PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, ucs4String, ucs4Length);
 }
-
-void StrType::print(std::ostream &os) const {
-  os << "'" << this->getValue() << "'";
-}

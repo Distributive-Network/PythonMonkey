@@ -5,7 +5,6 @@
 
 #include "include/TypeEnum.hh"
 #include "include/StrType.hh"
-#include "include/utilities.hh"
 
 class StrTypeTest : public ::testing::Test {
 protected:
@@ -25,7 +24,7 @@ virtual void TearDown() {
 TEST_F(StrTypeTest, test_can_create_string_type_from_pyobject) {
   StrType str = StrType(s_type);
 
-  EXPECT_TRUE(instanceof<PyType>(&str));
+  EXPECT_TRUE(dynamic_cast<const PyType *>(&str) != nullptr);
 }
 
 TEST_F(StrTypeTest, test_returns_correct_return_type_for_str) {
@@ -40,17 +39,4 @@ TEST_F(StrTypeTest, test_getPyObject_returns_correct_PyObject) {
   StrType x = StrType(s_type);
 
   EXPECT_EQ(x.getPyObject(), s_type);
-}
-
-TEST_F(StrTypeTest, test_cout_type_correctly) {
-
-  StrType my_str = StrType(s_type);
-
-  std::string expected = "'something'";
-  testing::internal::CaptureStdout();
-  std::cout << my_str;
-  std::string output = testing::internal::GetCapturedStdout();
-
-  EXPECT_EQ(expected, output);
-
 }

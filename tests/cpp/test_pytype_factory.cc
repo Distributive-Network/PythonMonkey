@@ -4,7 +4,7 @@
 #include "include/StrType.hh"
 #include "include/DictType.hh"
 #include "include/pyTypeFactory.hh"
-#include "include/utilities.hh"
+#include "include/TypeEnum.hh"
 
 class PyTypeFactoryTests : public ::testing::Test {
 protected:
@@ -29,19 +29,19 @@ TEST_F(PyTypeFactoryTests, test_makes_int_type_correctly) {
 
   PyType *obj = pyTypeFactory(i_type);
 
-  EXPECT_TRUE(instanceof<IntType>(&*obj));
+  EXPECT_TRUE(obj->returnType == TYPE::INT);
 
 }
 
 TEST_F(PyTypeFactoryTests, test_makes_str_type_correctly) {
   PyType *obj = pyTypeFactory(s_type);
 
-  EXPECT_TRUE(instanceof<StrType>(&*obj));
+  EXPECT_TRUE(obj->returnType == TYPE::STRING);
 }
 
 TEST_F(PyTypeFactoryTests, test_makes_dict_type_correctly) {
   PyType *obj = pyTypeFactory(dict_type);
 
-  EXPECT_TRUE(instanceof<DictType>(&*obj));
+  EXPECT_TRUE(obj->returnType == TYPE::DICT);
 }
 

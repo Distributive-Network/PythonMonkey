@@ -67,11 +67,6 @@ public:
  */
   PyType *get(PyType *key) const;
 
-  void print_helper(std::ostream &os, int depth = 0) const;
-
-protected:
-  virtual void print(std::ostream &os) const override;
-
 private:
   /**
    * @brief Helper function for DictType constructor that keeps track of reference cycles

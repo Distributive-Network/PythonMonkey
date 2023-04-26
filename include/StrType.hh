@@ -54,9 +54,6 @@ public:
    */
   PyObject *asUCS4();
 
-protected:
-  virtual void print(std::ostream &os) const override;
-
 private:
   /**
    * @brief check if this.pyObject contains a surrogate pair

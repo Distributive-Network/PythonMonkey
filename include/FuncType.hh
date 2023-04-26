@@ -26,9 +26,6 @@ public:
   FuncType(PyObject *object);
   const TYPE returnType = TYPE::FUNC;
   const char *getValue() const;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

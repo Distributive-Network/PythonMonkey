@@ -30,9 +30,6 @@ public:
   DateType(PyObject *object);
   DateType(JSContext *cx, JS::Handle<JSObject *> dateObj);
   const TYPE returnType = TYPE::DATE;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

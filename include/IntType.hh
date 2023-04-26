@@ -45,9 +45,6 @@ public:
    * @param cx - javascript context pointer
    */
   JS::BigInt *toJsBigInt(JSContext *cx);
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

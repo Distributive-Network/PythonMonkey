@@ -28,9 +28,6 @@ public:
   BoolType(long n);
   const TYPE returnType = TYPE::BOOL;
   long getValue() const;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

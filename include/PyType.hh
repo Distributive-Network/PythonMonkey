@@ -25,16 +25,11 @@ struct PyType {
 public:
   PyType();
   PyType(PyObject *object);
-  friend std::ostream &operator <<(std::ostream &str, const PyType &data) {
-    data.print(str);
-    return str;
-  }
-  const TYPE returnType = TYPE::DEFAULT;
+  const TYPE returnType;
   PyObject *getPyObject();
   ~PyType();
 
 protected:
-  virtual void print(std::ostream &os) const = 0;
   PyObject *pyObject;
 };
 #endif

@@ -5,9 +5,6 @@
 
 #include "include/IntType.hh"
 #include "include/TypeEnum.hh"
-#include "include/utilities.hh"
-
-
 class IntTypeTests : public ::testing::Test {
 protected:
 PyObject *i_type;
@@ -28,7 +25,7 @@ TEST_F(IntTypeTests, test_can_create_IntType) {
   // If this test passes than the constructor works
   IntType x = IntType(i_type);
 
-  EXPECT_TRUE(instanceof<PyType>(&x));
+  EXPECT_TRUE(dynamic_cast<const PyType *>(&x) != nullptr);
 }
 
 TEST_F(IntTypeTests, test_returns_correct_return_type_for_int) {
@@ -43,17 +40,4 @@ TEST_F(IntTypeTests, test_getPyObject_returns_correct_PyObject) {
   IntType x = IntType(i_type);
 
   EXPECT_EQ(x.getPyObject(), i_type);
-}
-
-TEST_F(IntTypeTests, test_cout_type_correctly) {
-
-  IntType my_int = IntType(i_type);
-
-  std::string expected = "10";
-  testing::internal::CaptureStdout();
-  std::cout << my_int;
-  std::string output = testing::internal::GetCapturedStdout();
-
-  EXPECT_EQ(expected, output);
-
 }

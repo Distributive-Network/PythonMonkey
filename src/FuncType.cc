@@ -11,7 +11,3 @@ FuncType::FuncType(PyObject *object) : PyType(object) {}
 const char *FuncType::getValue() const {
   return PyUnicode_AsUTF8(PyObject_GetAttrString(pyObject, "__name__"));
 }
-
-void FuncType::print(std::ostream &os) const {
-  os << this->getValue();
-}

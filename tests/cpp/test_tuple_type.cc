@@ -11,7 +11,6 @@
 #include "include/TupleType.hh"
 
 #include "include/PyType.hh"
-#include "include/utilities.hh"
 
 #include <gtest/gtest.h>
 #include <Python.h>
@@ -40,7 +39,7 @@ TEST_F(TupleTypeTests, test_tuple_type_instance_of_pytype) {
 
   TupleType tuple = TupleType(tuple_type);
 
-  EXPECT_TRUE(instanceof<PyType>(&tuple));
+  EXPECT_TRUE(dynamic_cast<const PyType *>(&tuple) != nullptr);
 
 }
 
@@ -61,18 +60,4 @@ TEST_F(TupleTypeTests, test_getLength_returns_correct_length) {
   TupleType my_tuple = TupleType(test_tuple);
 
   EXPECT_EQ(my_tuple.len(), 3);
-}
-
-TEST_F(TupleTypeTests, test_prints_basic_tuple_correctly) {
-
-  PyObject *test_tuple = Py_BuildValue("(i,s,i)", 10, (char *)"hello", 12);
-
-  TupleType my_tuple = TupleType(test_tuple);
-
-  std::string expected = "(\n  10,\n  'hello',\n  12\n)";
-  testing::internal::CaptureStdout();
-  std::cout << my_tuple;
-  std::string output = testing::internal::GetCapturedStdout();
-
-  EXPECT_EQ(expected, output);
 }

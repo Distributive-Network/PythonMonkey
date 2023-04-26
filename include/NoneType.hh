@@ -24,9 +24,6 @@ struct NoneType : public PyType {
 public:
   NoneType();
   const TYPE returnType = TYPE::NONE;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

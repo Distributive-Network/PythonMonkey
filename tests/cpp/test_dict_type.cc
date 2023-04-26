@@ -9,8 +9,6 @@
 #include "include/StrType.hh"
 #include "include/IntType.hh"
 
-#include "include/utilities.hh"
-
 class DictTypeTests : public ::testing::Test {
 protected:
 PyObject *dict_type;
@@ -40,7 +38,7 @@ TEST_F(DictTypeTests, test_dict_type_instance_of_pytype) {
 
   DictType dict = DictType(dict_type);
 
-  EXPECT_TRUE(instanceof<PyType>(&dict));
+  EXPECT_TRUE(dynamic_cast<const PyType *>(&dict) != nullptr);
 
 }
 
@@ -74,7 +72,6 @@ TEST_F(DictTypeTests, test_gets_existing_values_appropriately) {
   PyObject *get_value_object = get_value->getPyObject();
 
   EXPECT_EQ(get_value_object, default_value);
-  // EXPECT_TRUE(instanceof<PyType>(get_value_object));
 }
 
 TEST_F(DictTypeTests, test_get_returns_null_when_getting_non_existent_value) {
@@ -85,38 +82,4 @@ TEST_F(DictTypeTests, test_get_returns_null_when_getting_non_existent_value) {
 
   EXPECT_EQ(dict.get(key), nullptr);
 
-}
-
-TEST_F(DictTypeTests, test_print_overload_prints_basic_types_correctly) {
-  PyObject *dict_with_standard_types = Py_BuildValue("{s:i, s:s, s:i}",
-    (char *)"a", 10, (char *)"b",
-    (char *)"c", (char *)"d", 12);
-
-  DictType my_dict = DictType(dict_with_standard_types);
-
-  std::string expected = "{\n  'a':10,\n  'b':'c',\n  'd':12\n}";
-  testing::internal::CaptureStdout();
-  std::cout << my_dict;
-  std::string output = testing::internal::GetCapturedStdout();
-
-  EXPECT_EQ(expected, output);
-}
-
-TEST_F(DictTypeTests, test_print_overload_prints_nested_dictionaries_correctly) {
-  PyObject *dict_with_standard_types = Py_BuildValue("{s:i, s:s, s:i}",
-    (char *)"a", 10, (char *)"b",
-    (char *)"c", (char *)"d", 12);
-
-  PyObject *dict_to_nest = Py_BuildValue("{s:i, s:i}", (char *)"nested_a", 13, (char *)"nested_b", 14);
-
-  PyDict_SetItemString(dict_with_standard_types, (char *)"nested_dict", dict_to_nest);
-
-  DictType my_dict = DictType(dict_with_standard_types);
-
-  std::string expected = "{\n  'a':10,\n  'b':'c',\n  'd':12,\n  'nested_dict':{\n    'nested_a':13,\n    'nested_b':14\n  }\n}";
-  testing::internal::CaptureStdout();
-  std::cout << my_dict;
-  std::string output = testing::internal::GetCapturedStdout();
-
-  EXPECT_EQ(expected, output);
 }
