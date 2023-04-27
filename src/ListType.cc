@@ -11,6 +11,9 @@
 ListType::ListType() : PyType(PyList_New(0)) {}
 ListType::ListType(PyObject *object) : PyType(object) {}
 
+TYPE ListType::getReturnType() {
+  return TYPE::LIST;
+}
 PyType *ListType::get(int index) const {
   return pyTypeFactory(PyList_GetItem(this->pyObject, index));
 }

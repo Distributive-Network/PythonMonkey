@@ -27,7 +27,7 @@ struct TupleType : public PyType {
 
 public:
   TupleType(PyObject *obj);
-  const TYPE returnType = TYPE::TUPLE;
+  TYPE getReturnType() override;
 
 /**
  * @brief Gets the tuple item at the given index

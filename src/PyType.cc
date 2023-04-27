@@ -4,9 +4,9 @@
 
 #include <Python.h>
 
-PyType::PyType() : returnType(TYPE::DEFAULT) {}
+PyType::PyType() {}
 
-PyType::PyType(PyObject *object) : returnType(TYPE::DEFAULT) {
+PyType::PyType(PyObject *object) {
   Py_XINCREF(object);
   pyObject = object;
 }

@@ -25,7 +25,7 @@ struct PyType {
 public:
   PyType();
   PyType(PyObject *object);
-  const TYPE returnType;
+  virtual TYPE getReturnType() = 0;
   PyObject *getPyObject();
   ~PyType();
 

@@ -79,6 +79,10 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   Py_SET_TYPE(pyObject, (PyTypeObject *)(PythonMonkey_BigInt));
 }
 
+TYPE IntType::getReturnType() {
+  return TYPE::INT;
+}
+
 JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
   // Figure out how many 64-bit "digits" we would have for JS BigInt
   //    see https://github.com/python/cpython/blob/3.9/Modules/_randommodule.c#L306

@@ -595,3 +595,7 @@ def test_eval_objects_cycle():
     assert pyObj.a == 1.0
     assert pyObj.b == 2.0
     assert pyObj.recursive == pyObj
+
+def test_eval_objects_proxy_get():
+    f = pm.eval("(obj) => { return obj.a}")
+    assert f({'a':42.0} == 42.0)

@@ -21,6 +21,9 @@
 
 TupleType::TupleType(PyObject *object) : PyType(object) {}
 
+TYPE TupleType::getReturnType() {
+  return TYPE::TUPLE;
+}
 PyType *TupleType::get(int index) const {
   return pyTypeFactory(PyTuple_GetItem(this->pyObject, index));
 }

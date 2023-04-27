@@ -26,7 +26,7 @@ struct BoolType : public PyType {
 public:
   BoolType(PyObject *object);
   BoolType(long n);
-  const TYPE returnType = TYPE::BOOL;
+  TYPE getReturnType() override;
   long getValue() const;
 };
 

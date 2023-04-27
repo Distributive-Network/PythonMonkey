@@ -43,7 +43,7 @@ public:
    */
   StrType(JSContext *cx, JSString *str);
 
-  const TYPE returnType = TYPE::STRING;
+  TYPE getReturnType() override;
   const char *getValue() const;
 
   /**

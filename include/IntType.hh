@@ -37,7 +37,7 @@ public:
    */
   IntType(JSContext *cx, JS::BigInt *bigint);
 
-  const TYPE returnType = TYPE::INT;
+  TYPE getReturnType() override;
 
   /**
    * @brief Convert the IntType object to a JS::BigInt

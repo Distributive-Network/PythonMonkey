@@ -50,7 +50,7 @@ public:
    */
   DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject, std::unordered_map<const JS::Value *, PyObject *> &subObjectsMap);
 
-  const TYPE returnType = TYPE::DICT;
+  TYPE getReturnType() override;
 /**
  * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
  *

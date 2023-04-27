@@ -23,7 +23,7 @@
 struct NoneType : public PyType {
 public:
   NoneType();
-  const TYPE returnType = TYPE::NONE;
+  TYPE getReturnType() override;
 };
 
 #endif

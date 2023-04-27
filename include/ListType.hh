@@ -28,7 +28,7 @@ struct ListType : public PyType {
 public:
   ListType();
   ListType(PyObject *object);
-  const TYPE returnType = TYPE::LIST;
+  TYPE getReturnType() override;
 /**
  * @brief
  *

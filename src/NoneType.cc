@@ -18,3 +18,7 @@
 
 
 NoneType::NoneType() : PyType(Py_None) {}
+
+TYPE NoneType::getReturnType() {
+  return TYPE::NONE;
+}

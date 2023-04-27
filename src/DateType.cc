@@ -37,3 +37,7 @@ DateType::DateType(JSContext *cx, JS::Handle<JSObject *> dateObj) {
     hour.toNumber(), minute.toNumber(), second.toNumber(),
     usecond.toNumber() * 1000);
 }
+
+TYPE DateType::getReturnType() {
+  return TYPE::DATE;
+}

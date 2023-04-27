@@ -19,3 +19,7 @@
 
 
 NullType::NullType() : PyType(PythonMonkey_Null) {}
+
+TYPE NullType::getReturnType() {
+  return TYPE::NIL;
+}

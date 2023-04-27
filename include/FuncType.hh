@@ -24,7 +24,7 @@
 struct FuncType : public PyType {
 public:
   FuncType(PyObject *object);
-  const TYPE returnType = TYPE::FUNC;
+  TYPE getReturnType() override;
   const char *getValue() const;
 };
 

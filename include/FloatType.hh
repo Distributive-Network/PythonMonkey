@@ -27,7 +27,7 @@ public:
   FloatType(PyObject *object);
   FloatType(long n);
   FloatType(double n);
-  const TYPE returnType = TYPE::FLOAT;
+  TYPE getReturnType() override;
   double getValue() const;
 };
 

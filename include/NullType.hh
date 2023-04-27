@@ -23,7 +23,7 @@
 struct NullType : public PyType {
 public:
   NullType();
-  const TYPE returnType = TYPE::NIL;
+  TYPE getReturnType() override;
 };
 
 #endif

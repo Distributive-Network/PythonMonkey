@@ -74,6 +74,10 @@ StrType::StrType(JSContext *cx, JSString *str) {
   }
 }
 
+TYPE StrType::getReturnType() {
+  return TYPE::STRING;
+}
+
 const char *StrType::getValue() const {
   return PyUnicode_AsUTF8(pyObject);
 }

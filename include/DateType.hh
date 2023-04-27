@@ -29,7 +29,7 @@ struct DateType : public PyType {
 public:
   DateType(PyObject *object);
   DateType(JSContext *cx, JS::Handle<JSObject *> dateObj);
-  const TYPE returnType = TYPE::DATE;
+  TYPE getReturnType() override;
 };
 
 #endif

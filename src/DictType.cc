@@ -92,6 +92,10 @@ void DictType::init(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS:
   }
 }
 
+TYPE DictType::getReturnType() {
+  return TYPE::DICT;
+}
+
 void DictType::set(PyType *key, PyType *value) {
   PyDict_SetItem(this->pyObject, key->getPyObject(), value->getPyObject());
 }
