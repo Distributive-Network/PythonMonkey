@@ -19,6 +19,7 @@
 #include "include/IntType.hh"
 #include "include/PromiseType.hh"
 #include "include/ExceptionType.hh"
+#include "include/BufferType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -147,6 +148,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     JSObject *error = ExceptionType(object).toJsError(cx);
     returnType.setObject(*error);
   }
+  else if (PyObject_CheckBuffer(object)) {
+    JSObject *arrayBuffer = BufferType(object).toJsArrayBuffer(cx); // may return null
+    returnType.setObjectOrNull(arrayBuffer);
+  }
   else if (object == Py_None) {
     returnType.setUndefined();
   }
@@ -155,8 +160,8 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   else if (PythonAwaitable_Check(object)) {
     PromiseType *p = new PromiseType(object);
-    JSObject *promise = p->toJsPromise(cx);
-    returnType.setObject(*promise);
+    JSObject *promise = p->toJsPromise(cx); // may return null
+    returnType.setObjectOrNull(promise);
     // nested awaitables would have already been GCed if finished
     // memoizePyTypeAndGCThing(p, returnType);
   }
