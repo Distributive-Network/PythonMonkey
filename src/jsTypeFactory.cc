@@ -149,8 +149,8 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(*error);
   }
   else if (PyObject_CheckBuffer(object)) {
-    JSObject *arrayBuffer = BufferType(object).toJsArrayBuffer(cx); // may return null
-    returnType.setObjectOrNull(arrayBuffer);
+    JSObject *typedArray = BufferType(object).toJsTypedArray(cx); // may return null
+    returnType.setObjectOrNull(typedArray);
   }
   else if (object == Py_None) {
     returnType.setUndefined();
