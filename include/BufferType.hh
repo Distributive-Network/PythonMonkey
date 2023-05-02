@@ -24,6 +24,14 @@ struct BufferType : public PyType {
 public:
   BufferType(PyObject *object);
 
+  /**
+   * @brief Construct a new BufferType object from a JS TypedArray or ArrayBuffer, as a Python [memoryview](https://docs.python.org/3.9/c-api/memoryview.html) object
+   *
+   * @param cx - javascript context pointer
+   * @param bufObj - JS object to be coerced
+   */
+  BufferType(JSContext *cx, JS::HandleObject bufObj);
+
   const TYPE returnType = TYPE::BUFFER;
 
   /**
@@ -33,12 +41,23 @@ public:
    * @param cx - javascript context pointer
    */
   JSObject *toJsTypedArray(JSContext *cx);
+
+  /**
+   * @returns Is the given JS object either a TypedArray or an ArrayBuffer?
+   */
+  static bool isSupportedJsTypes(JSObject *obj);
+
 protected:
   virtual void print(std::ostream &os) const override;
 
+  static PyObject *fromJsTypedArray(JSContext *cx, JS::HandleObject typedArray);
+  static PyObject *fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuffer);
+
+private:
   static void _releasePyBuffer(void *, void *bufView); // JS::BufferContentsFreeFunc
 
   static JS::Scalar::Type _getPyBufferType(Py_buffer *bufView);
+  static const char *_toPyBufferFormatCode(JS::Scalar::Type subtype);
 
   /**
    * @brief Create a new typed array using up the given ArrayBuffer or SharedArrayBuffer for storage.

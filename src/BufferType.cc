@@ -23,6 +23,76 @@
 
 BufferType::BufferType(PyObject *object) : PyType(object) {}
 
+BufferType::BufferType(JSContext *cx, JS::HandleObject bufObj) {
+  if (JS_IsTypedArrayObject(bufObj)) {
+    pyObject = fromJsTypedArray(cx, bufObj);
+  } else if (JS::IsArrayBufferObject(bufObj)) {
+    pyObject = fromJsArrayBuffer(cx, bufObj);
+  } else {
+    // TODO (Tom Tang): Add support for JS [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView)
+    PyErr_SetString(PyExc_TypeError, "`bufObj` is neither a TypedArray object nor an ArraryBuffer object.");
+    pyObject = nullptr;
+  }
+}
+
+/* static */
+bool BufferType::isSupportedJsTypes(JSObject *obj) {
+  return JS::IsArrayBufferObject(obj) || JS_IsTypedArrayObject(obj);
+}
+
+/* static */
+PyObject *BufferType::fromJsTypedArray(JSContext *cx, JS::HandleObject typedArray) {
+  JS::Scalar::Type subtype = JS_GetArrayBufferViewType(typedArray);
+  auto byteLength = JS_GetTypedArrayByteLength(typedArray);
+
+  // Retrieve/Create the underlying ArrayBuffer object for side-effect.
+  //
+  // If byte length is less than `JS_MaxMovableTypedArraySize()`,
+  // the ArrayBuffer object would be created lazily and the data is stored inline in the TypedArray.
+  // We don't want inline data because the data pointer would be invalidated during a GC as the TypedArray object is moved.
+  bool isSharedMemory;
+  if (!JS_GetArrayBufferViewBuffer(cx, typedArray, &isSharedMemory)) return nullptr;
+
+  uint8_t __destBuf[0] = {}; // we don't care about its value as it's used only if the TypedArray still having inline data
+  uint8_t *data = JS_GetArrayBufferViewFixedData(typedArray, __destBuf, 0 /* making sure we don't copy inline data */);
+  if (data == nullptr) { // shared memory or still having inline data
+    PyErr_SetString(PyExc_TypeError, "PythonMonkey cannot coerce TypedArrays backed by shared memory.");
+    return nullptr;
+  }
+
+  Py_buffer bufInfo = {
+    .buf = data,
+    .obj = NULL /* the exporter PyObject */,
+    .len = (Py_ssize_t)byteLength,
+    .itemsize = (uint8_t)JS::Scalar::byteSize(subtype),
+    .readonly = false,
+    .ndim = 1 /* 1-dimensional array */,
+    .format = (char *)_toPyBufferFormatCode(subtype),
+  };
+  return PyMemoryView_FromBuffer(&bufInfo);
+}
+
+/* static */
+PyObject *BufferType::fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuffer) {
+  auto byteLength = JS::GetArrayBufferByteLength(arrayBuffer);
+
+  // TODO (Tom Tang): handle SharedArrayBuffers or disallow them completely
+  bool isSharedMemory; // `JS::GetArrayBufferData` always sets this to `false`
+  JS::AutoCheckCannotGC autoNoGC(cx); // we don't really care about this
+  uint8_t *data = JS::GetArrayBufferData(arrayBuffer, &isSharedMemory, autoNoGC);
+
+  Py_buffer bufInfo = {
+    .buf = data,
+    .obj = NULL /* the exporter PyObject */,
+    .len = (Py_ssize_t)byteLength,
+    .itemsize = 1 /* each element is 1 byte */,
+    .readonly = false,
+    .ndim = 1 /* 1-dimensional array */,
+    .format = "B" /* uint8 array */,
+  };
+  return PyMemoryView_FromBuffer(&bufInfo);
+}
+
 void BufferType::print(std::ostream &os) const {}
 
 JSObject *BufferType::toJsTypedArray(JSContext *cx) {
@@ -30,7 +100,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx) {
   Py_buffer *view = new Py_buffer{};
   if (PyObject_GetBuffer(pyObject, view, PyBUF_WRITABLE /* C-contiguous and writable 1-dimensional array */ | PyBUF_FORMAT) < 0) {
     // The exporter (pyObject) cannot provide a contiguous 1-dimensional buffer, or
-    // the buffer is immutable (read-only)
+    // the buffer is immutable (Python `bytes` type is read-only)
     return nullptr; // raises a PyExc_BufferError
   }
 
@@ -93,11 +163,43 @@ JS::Scalar::Type BufferType::_getPyBufferType(Py_buffer *bufView) {
   }
 }
 
+/* static */
+const char *BufferType::_toPyBufferFormatCode(JS::Scalar::Type subtype) {
+  // floating point types
+  if (subtype == JS::Scalar::Float32) {
+    return "f";
+  } else if (subtype == JS::Scalar::Float64) {
+    return "d";
+  }
+
+  // integer types
+  bool isSigned = JS::Scalar::isSignedIntType(subtype);
+  uint8_t byteSize = JS::Scalar::byteSize(subtype);
+  // Python `array` type codes are strictly mapped to basic C types (e.g., `int`), widths may vary on different architectures,
+  // but JS TypedArray uses fixed-width integer types (e.g., `uint32_t`)
+  switch (byteSize) {
+  case sizeof(char):
+    return isSigned ? "b" : "B";
+  case sizeof(short):
+    return isSigned ? "h" : "H";
+  case sizeof(int):
+    return isSigned ? "i" : "I";
+  // case sizeof(long): // compile error: duplicate case value
+  //                    // And this is usually where the bit widths on 32/64-bit systems don't agree,
+  //                    //    see https://en.wikipedia.org/wiki/64-bit_computing#64-bit_data_models
+  //   return isSigned ? "l" : "L";
+  case sizeof(long long):
+    return isSigned ? "q" : "Q";
+  default: // invalid
+    return "x"; // type code for pad bytes, no value
+  }
+}
+
 JSObject *BufferType::_newTypedArrayWithBuffer(JSContext *cx, JS::Scalar::Type subtype, JS::HandleObject arrayBuffer) {
   switch (subtype) {
 #define NEW_TYPED_ARRAY_WITH_BUFFER(ExternalType, NativeType, Name) \
 case JS::Scalar::Name: \
-  return JS_New ## Name ## ArrayWithBuffer(cx, arrayBuffer, 0, -1 /* use up the ArrayBuffer */);
+  return JS_New ## Name ## ArrayWithBuffer(cx, arrayBuffer, 0 /* byteOffset */, -1 /* use up the ArrayBuffer */);
 
     JS_FOR_EACH_TYPED_ARRAY(NEW_TYPED_ARRAY_WITH_BUFFER)
 #undef NEW_TYPED_ARRAY_WITH_BUFFER
@@ -106,5 +208,3 @@ case JS::Scalar::Name: \
     return nullptr;
   }
 }
-
-

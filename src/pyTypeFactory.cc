@@ -12,6 +12,7 @@
 #include "include/pyTypeFactory.hh"
 
 #include "include/BoolType.hh"
+#include "include/BufferType.hh"
 #include "include/DateType.hh"
 #include "include/DictType.hh"
 #include "include/ExceptionType.hh"
@@ -143,7 +144,13 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         break;
       }
     default: {
-        printf("objects %d of this type are not handled by PythonMonkey yet\n", cls);
+        if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
+          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::String
+          returnValue = new BufferType(cx, obj);
+          if (returnValue->getPyObject() != nullptr) memoizePyTypeAndGCThing(returnValue, *rval);
+        } else {
+          printf("objects of this type (%d) are not handled by PythonMonkey yet\n", cls);
+        }
       }
     }
   }
