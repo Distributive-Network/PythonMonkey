@@ -98,10 +98,13 @@ void BufferType::print(std::ostream &os) const {}
 JSObject *BufferType::toJsTypedArray(JSContext *cx) {
   // Get the pyObject's underlying buffer pointer and size
   Py_buffer *view = new Py_buffer{};
-  if (PyObject_GetBuffer(pyObject, view, PyBUF_WRITABLE /* C-contiguous and writable 1-dimensional array */ | PyBUF_FORMAT) < 0) {
-    // The exporter (pyObject) cannot provide a contiguous 1-dimensional buffer, or
-    // the buffer is immutable (Python `bytes` type is read-only)
+  if (PyObject_GetBuffer(pyObject, view, PyBUF_ND | PyBUF_WRITABLE /* C-contiguous and writable */ | PyBUF_FORMAT) < 0) {
+    // the buffer is immutable (e.g., Python `bytes` type is read-only)
     return nullptr; // raises a PyExc_BufferError
+  }
+  if (view->ndim != 1) {
+    PyErr_SetString(PyExc_BufferError, "multidimensional arrays are not allowed");
+    return nullptr;
   }
 
   // Determine the TypedArray's subtype (Uint8Array, Float64Array, ...)
