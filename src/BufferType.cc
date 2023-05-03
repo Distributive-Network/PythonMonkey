@@ -104,17 +104,24 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx) {
     return nullptr; // raises a PyExc_BufferError
   }
 
-  // Create a new ExternalArrayBuffer object
-  // Note: data will be copied instead of transferring the ownership when this external ArrayBuffer is "transferred" to a worker thread.
-  //    see https://hg.mozilla.org/releases/mozilla-esr102/file/a03fde6/js/public/ArrayBuffer.h#l86
-  JSObject *arrayBuffer = JS::NewExternalArrayBuffer(cx,
-    view->len /* byteLength */, view->buf /* data pointer */,
-    BufferType::_releasePyBuffer, view /* the `bufView` argument to `_releasePyBuffer` */
-  );
-  JS::RootedObject arrayBufferRooted(cx, arrayBuffer);
-
   // Determine the TypedArray's subtype (Uint8Array, Float64Array, ...)
   JS::Scalar::Type subtype = _getPyBufferType(view);
+
+  JSObject *arrayBuffer = nullptr;
+  if (view->len > 0) {
+    // Create a new ExternalArrayBuffer object
+    // Note: data will be copied instead of transferring the ownership when this external ArrayBuffer is "transferred" to a worker thread.
+    //    see https://hg.mozilla.org/releases/mozilla-esr102/file/a03fde6/js/public/ArrayBuffer.h#l86
+    arrayBuffer = JS::NewExternalArrayBuffer(cx,
+      view->len /* byteLength */, view->buf /* data pointer */,
+      BufferType::_releasePyBuffer, view /* the `bufView` argument to `_releasePyBuffer` */
+    );
+  } else { // empty buffer
+    arrayBuffer = JS::NewArrayBuffer(cx, 0);
+    BufferType::_releasePyBuffer(nullptr /* data pointer */, view); // the buffer is no longer needed since we are creating a brand new empty ArrayBuffer
+  }
+  JS::RootedObject arrayBufferRooted(cx, arrayBuffer);
+
   return _newTypedArrayWithBuffer(cx, subtype, arrayBufferRooted);
 }
 
