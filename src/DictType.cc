@@ -22,8 +22,16 @@ DictType::DictType() {
 DictType::DictType(PyObject *object) : PyType(object) {}
 
 DictType::DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject) {
-  std::unordered_map<const JS::Value *, PyObject *> subObjectMap;
-  init(cx, global, jsObject, subObjectMap);
+  // @TODO (Caleb Aikens) WIP, delete these comments once proxy objects are done
+  // std::unordered_map<const JS::Value *, PyObject *> subObjectMap;
+  // init(cx, global, jsObject, subObjectMap);
+
+  // https://stackoverflow.com/questions/47503566/overriding-object-method-with-the-python3-c-api
+  // this is a very useful reference
+  this->pyObject = PyDict_New();
+
+  
+
 }
 
 DictType::DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject, std::unordered_map<const JS::Value *, PyObject *> &subObjectsMap) {

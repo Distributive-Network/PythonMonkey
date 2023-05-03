@@ -26,7 +26,7 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
   JS::MutableHandleIdVector props) const {
   PyObject *keys = PyDict_Keys(pyObject);
   for (size_t i = 0; i < PyList_Size(keys); i++) {
-    PyObject *key = PyList_GetItem(pyObject, i);
+    PyObject *key = PyList_GetItem(keys, i);
     JS::RootedValue jsKey(cx, jsTypeFactory(cx, key));
     JS::RootedId jsId(cx);
     if (!JS_ValueToId(cx, jsKey, &jsId)) {
@@ -40,7 +40,7 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
 bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::ObjectOpResult &result) const {
   PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
-  if (PyObject_DelAttr(pyObject, attrName) < 0) {
+  if (PyDict_DelItem(pyObject, attrName) < 0) {
     // @TODO (Caleb Aikens) raise exception
     return false;
   }
