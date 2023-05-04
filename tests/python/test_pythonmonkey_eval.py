@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta
 import math
 import asyncio
+import numpy
 
 def test_passes():
     assert True
@@ -886,3 +887,26 @@ def test_webassembly():
         # making sure the async_fn is run
         return True
     assert asyncio.run(async_fn())
+
+def test_py_buffer_to_js_typed_array():
+    # should work for simple 1-D numpy array as well
+    numpy_int16_array = numpy.array([0, 1, 2, 3], dtype=numpy.int16)
+    assert "0,1,2,3" == pm.eval("(typedArray) => typedArray.toString()")(numpy_int16_array)
+    assert 3.0 == pm.eval("(typedArray) => typedArray[3]")(numpy_int16_array)
+    assert True == pm.eval("(typedArray) => typedArray instanceof Int16Array")(numpy_int16_array)
+    numpy_memoryview = pm.eval("(typedArray) => typedArray")(numpy_int16_array)
+    assert 2 == numpy_memoryview[2]
+    assert 4 * 2 == numpy_memoryview.nbytes # 4 elements * sizeof(int16_t)
+    assert "h" == numpy_memoryview.format # the type code for int16 is 'h', see https://docs.python.org/3.9/library/array.html
+    with pytest.raises(IndexError, match="index out of bounds on dimension 1"):
+        numpy_memoryview[4]
+
+    # buffer should be in C order (row major)
+    fortran_order_arr = numpy.array([[1, 2], [3, 4]], order="F") # 1-D array is always considered C-contiguous because it doesn't matter if it's row or column major in 1-D
+    with pytest.raises(ValueError, match="ndarray is not C-contiguous"):
+        pm.eval("(typedArray) => {}")(fortran_order_arr)
+
+    # disallow multidimensional array
+    numpy_2d_array = numpy.array([[1, 2], [3, 4]], order="C")
+    with pytest.raises(BufferError, match="multidimensional arrays are not allowed"):
+        pm.eval("(typedArray) => {}")(numpy_2d_array)
