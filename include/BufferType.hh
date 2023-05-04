@@ -54,7 +54,8 @@ protected:
   static PyObject *fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuffer);
 
 private:
-  static void _releasePyBuffer(void *, void *bufView); // JS::BufferContentsFreeFunc
+  static void _releasePyBuffer(Py_buffer *bufView);
+  static void _releasePyBuffer(void *, void *bufView); // JS::BufferContentsFreeFunc callback for JS::NewExternalArrayBuffer
 
   static JS::Scalar::Type _getPyBufferType(Py_buffer *bufView);
   static const char *_toPyBufferFormatCode(JS::Scalar::Type subtype);

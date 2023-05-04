@@ -104,6 +104,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx) {
   }
   if (view->ndim != 1) {
     PyErr_SetString(PyExc_BufferError, "multidimensional arrays are not allowed");
+    BufferType::_releasePyBuffer(view);
     return nullptr;
   }
 
@@ -121,7 +122,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx) {
     );
   } else { // empty buffer
     arrayBuffer = JS::NewArrayBuffer(cx, 0);
-    BufferType::_releasePyBuffer(nullptr /* data pointer */, view); // the buffer is no longer needed since we are creating a brand new empty ArrayBuffer
+    BufferType::_releasePyBuffer(view); // the buffer is no longer needed since we are creating a brand new empty ArrayBuffer
   }
   JS::RootedObject arrayBufferRooted(cx, arrayBuffer);
 
@@ -129,10 +130,14 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx) {
 }
 
 /* static */
+void BufferType::_releasePyBuffer(Py_buffer *bufView) {
+  PyBuffer_Release(bufView);
+  delete bufView;
+}
+
+/* static */
 void BufferType::_releasePyBuffer(void *, void *bufView) {
-  Py_buffer *view = (Py_buffer *)bufView;
-  PyBuffer_Release(view);
-  delete view;
+  return _releasePyBuffer((Py_buffer *)bufView);
 }
 
 /* static */
