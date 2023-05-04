@@ -88,7 +88,7 @@ PyObject *BufferType::fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuf
     .itemsize = 1 /* each element is 1 byte */,
     .readonly = false,
     .ndim = 1 /* 1-dimensional array */,
-    .format = "B" /* uint8 array */,
+    .format = (char *)"B" /* uint8 array */,
   };
   return PyMemoryView_FromBuffer(&bufInfo);
 }
