@@ -977,6 +977,32 @@ def test_py_buffer_to_js_typed_array():
     # TODO (Tom Tang): the 0th element in the underlying buffer is still accessible after GC, even is not referenced by the JS TypedArray with byteOffset
     del arr2
 
+    # mutation
+    mut_arr_original = bytearray(4)
+    pm.eval("""
+    (/* @type Uint8Array */ arr) => {
+        // 2.25 in float32 little endian
+        arr[2] = 0x10
+        arr[3] = 0x40
+    }
+    """)(mut_arr_original)
+    assert 0x10 == mut_arr_original[2]
+    assert 0x40 == mut_arr_original[3]
+    # mutation to a different TypedArray accessing the same underlying data block will also change the original buffer
+    def do_mutation(mut_arr_js):
+        assert 2.25 == mut_arr_js[0]
+        mut_arr_js[0] = 225.50048828125 # float32 little endian: 0x 20 80 61 43 
+        assert "20806143" == mut_arr_original.hex()
+        assert 225.50048828125 == array.array("f", mut_arr_original)[0]
+    mut_arr_new = pm.eval("""
+    (/* @type Uint8Array */ arr, do_mutation) => {
+        const mut_arr_js = new Float32Array(arr.buffer)
+        do_mutation(mut_arr_js)
+        return arr
+    }
+    """)(mut_arr_original, do_mutation)
+    assert [0x20, 0x80, 0x61, 0x43] == mut_arr_new.tolist()
+
     # simple 1-D numpy array should just work as well
     numpy_int16_array = numpy.array([0, 1, 2, 3], dtype=numpy.int16)
     assert "0,1,2,3" == pm.eval("(typedArray) => typedArray.toString()")(numpy_int16_array)
