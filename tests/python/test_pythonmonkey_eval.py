@@ -894,7 +894,7 @@ def test_py_buffer_to_js_typed_array():
         assert type(buf) is memoryview
         assert None == buf.obj # https://docs.python.org/3.9/c-api/buffer.html#c.Py_buffer.obj
         assert 2 * 4 == buf.nbytes # 2 elements * sizeof(int32_t)
-        assert "02000000ffffffff" == buf.hex() # little endian
+        assert "02000000ffffffff" == buf.hex() # native (little) endian
     buf1 = pm.eval("new Int32Array([2,-1])")
     buf2 = pm.eval("new Int32Array([2,-1]).buffer")
     assert_js_to_py_memoryview(buf1)
@@ -907,6 +907,17 @@ def test_py_buffer_to_js_typed_array():
         buf1[2]
     with pytest.raises(IndexError, match="index out of bounds on dimension 1"):
         buf2[8]
+    del buf1, buf2
+
+    # test element value ranges
+    buf3 = pm.eval("new Uint8Array(1)")
+    with pytest.raises(ValueError, match="memoryview: invalid value for format 'B'"):
+        buf3[0] = 256
+    with pytest.raises(ValueError, match="memoryview: invalid value for format 'B'"):
+        buf3[0] = -1
+    with pytest.raises(IndexError, match="index out of bounds on dimension 1"): # no automatic resize
+        buf3[1] = 0
+    del buf3
 
     # Python buffers should coerce to JS TypedArray
     # and the typecode maps to TypedArray subtype (Uint8Array, Float64Array, ...)
@@ -931,6 +942,40 @@ def test_py_buffer_to_js_typed_array():
     assert pm.eval("new BigInt64Array([1n])").format == "q"
     assert pm.eval("new Float32Array([1])").format == "f"
     assert pm.eval("new Float64Array([1])").format == "d"
+
+    # not enough bytes to populate an element of the TypedArray
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: buffer length for BigInt64Array should be a multiple of 8"):
+        pm.eval("(arr) => new BigInt64Array(arr.buffer)")(array.array('i', [-11111111]))
+
+    # TypedArray with `byteOffset` and `length`
+    arr1 = array.array('i', [-11111111, 22222222, -33333333, 44444444])
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: invalid or out-of-range index"):
+        pm.eval("(arr) => new Int32Array(arr.buffer, /*byteOffset*/ -4)")(arr1)
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: start offset of Int32Array should be a multiple of 4"):
+        pm.eval("(arr) => new Int32Array(arr.buffer, /*byteOffset*/ 1)")(arr1)
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: size of buffer is too small for Int32Array with byteOffset"):
+        pm.eval("(arr) => new Int32Array(arr.buffer, /*byteOffset*/ 20)")(arr1)
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: invalid or out-of-range index"):
+        pm.eval("(arr) => new Int32Array(arr.buffer, /*byteOffset*/ 4, /*length*/ -1)")(arr1)
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: attempting to construct out-of-bounds Int32Array on ArrayBuffer"):
+        pm.eval("(arr) => new Int32Array(arr.buffer, /*byteOffset*/ 4, /*length*/ 4)")(arr1)
+    arr2 = pm.eval("(arr) => new Int32Array(arr.buffer, /*byteOffset*/ 4, /*length*/ 2)")(arr1)
+    assert 2 * 4 == arr2.nbytes # 2 elements * sizeof(int32_t)
+    assert [22222222, -33333333] == arr2.tolist()
+    assert "8e155301ab5f03fe" == arr2.hex() # native (little) endian
+    assert 22222222 == arr2[0] # offset 1 int32
+    with pytest.raises(IndexError, match="index out of bounds on dimension 1"):
+        arr2[2]
+    arr3 = pm.eval("(arr) => new Int32Array(arr.buffer, 16 /* byteOffset */)")(arr1) # empty Int32Array
+    assert 0 == arr3.nbytes
+    del arr3
+
+    # test GC
+    del arr1
+    gc.collect(), pm.collect()
+    gc.collect(), pm.collect()
+    # TODO (Tom Tang): the 0th element in the underlying buffer is still accessible after GC, even is not referenced by the JS TypedArray with byteOffset
+    del arr2
 
     # simple 1-D numpy array should just work as well
     numpy_int16_array = numpy.array([0, 1, 2, 3], dtype=numpy.int16)
