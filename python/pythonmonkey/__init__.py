@@ -1,2 +1,2 @@
-from .pythonmonkey import *
-
+# Export public PythonMonkey APIs
+from .public import *
