@@ -14,3 +14,5 @@ def register_globals(js_file: str, *python_bindings) -> None:
     """ + js_code + """
   }
   """)(None, *python_bindings) # FIXME (Tom Tang): `pm._internalBinding` requires object coercion
+
+register_globals("./timers.js")
