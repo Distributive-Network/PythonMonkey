@@ -7,9 +7,10 @@ def register_globals(js_file: str, *python_bindings) -> None:
     js_code = f.read()
   pm.eval("""
   (internalBinding, ...pythonBindings) => {
+    internalBinding = globalThis._internalBinding
     function defineGlobal(name, value) {
       Reflect.defineProperty(globalThis, name, { value })
     }
     """ + js_code + """
   }
-  """)(pm._internalBinding, *python_bindings)
+  """)(None, *python_bindings) # FIXME (Tom Tang): `pm._internalBinding` requires object coercion

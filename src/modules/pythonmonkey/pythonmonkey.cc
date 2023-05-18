@@ -347,12 +347,15 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  PyObject *internalBindingFn = getInternalBindingPyFn(GLOBAL_CX);
-  if (PyModule_AddObject(pyModule, "_internalBinding", internalBindingFn) < 0) {
-    Py_DECREF(internalBindingFn);
-    Py_DECREF(pyModule);
-    return NULL;
-  }
+  // FIXME (Tom Tang): `pm._internalBinding` still requires object coercion support
+  // PyObject *internalBindingFn = getInternalBindingPyFn(GLOBAL_CX);
+  // if (PyModule_AddObject(pyModule, "_internalBinding", internalBindingFn) < 0) {
+  //   Py_DECREF(internalBindingFn);
+  //   Py_DECREF(pyModule);
+  //   return NULL;
+  // }
+  JS::RootedObject internalBindingFn(GLOBAL_CX, (JSObject *)createInternalBinding(GLOBAL_CX));
+  JS_DefineProperty(GLOBAL_CX, *global, "_internalBinding", internalBindingFn, 0);
 
   return pyModule;
 }
