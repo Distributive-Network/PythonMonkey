@@ -27,7 +27,7 @@ function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
   set(PYTHONMONKEY_EXTERNAL_FILES ${PYTHONMONKEY_EXTERNAL_FILES} PARENT_SCOPE)
 endfunction()
 
-file (GLOB SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory
+file (GLOB SOURCE_FILES "src/*.cc" "src/internalBinding/*.cc") # Find all C++ files in the src directory
 file (GLOB HEADER_FILES "include/*.hh") # Find all header files in the include directory
 file (GLOB PYTHON_FILES "python/*.cc" "python/*.hh") # Find all the python bindings in the python directory
 file (GLOB TEST_FILES "tests/cpp/*.cc") # Find all the test files in the test directory

@@ -21,6 +21,7 @@
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/PyEventLoop.hh"
+#include "include/internalBinding.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -345,5 +346,13 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     Py_DECREF(pyModule);
     return NULL;
   }
+
+  PyObject *internalBindingFn = getInternalBindingPyFn(GLOBAL_CX);
+  if (PyModule_AddObject(pyModule, "_internalBinding", internalBindingFn) < 0) {
+    Py_DECREF(internalBindingFn);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
   return pyModule;
 }
