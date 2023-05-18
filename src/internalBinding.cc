@@ -31,12 +31,19 @@ static bool internalBindingFn(JSContext *cx, unsigned argc, JS::Value *vp) {
 }
 
 /**
+ * @brief Create the JS `internalBinding` function
+ */
+JSFunction *createInternalBinding(JSContext *cx) {
+  return JS_NewFunction(cx, internalBindingFn, 1, 0, "internalBinding");
+}
+
+/**
  * @brief Convert the `internalBinding(namespace)` function to a Python function
  */
 // TODO (Tom Tang): refactor once we get object coercion support
 PyObject *getInternalBindingPyFn(JSContext *cx) {
   // Create the JS `internalBinding` function
-  JSObject *jsFn = (JSObject *)JS_NewFunction(cx, internalBindingFn, 1, 0, "internalBinding");
+  JSObject *jsFn = (JSObject *)createInternalBinding(cx);
 
   // Convert to a Python function
   // FIXME (Tom Tang): memory leak, not free-ed

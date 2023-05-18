@@ -17,4 +17,5 @@ JSObject *createTimersInternalBinding(JSContext *cx);
 
 JSObject *getInternalBindingsByNamespace(JSContext *cx, JSLinearString *namespaceStr);
 
+JSFunction *createInternalBinding(JSContext *cx);
 PyObject *getInternalBindingPyFn(JSContext *cx);
