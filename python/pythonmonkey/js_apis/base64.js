@@ -1,6 +1,8 @@
 // @ts-check
 ///<reference path="./global.d.ts"/>
 
+const { defineGlobal } = internalBinding("utils")
+
 /*!
  * Modified from https://github.com/zloirock/core-js/blob/44cf9e8/packages/core-js/modules/web.atob.js and
  *               https://github.com/zloirock/core-js/blob/44cf9e8/packages/core-js/modules/web.btoa.js

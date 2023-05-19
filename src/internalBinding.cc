@@ -16,6 +16,8 @@ JSObject *createInternalBindingsForNamespace(JSContext *cx, JSFunctionSpec *meth
 JSObject *getInternalBindingsByNamespace(JSContext *cx, JSLinearString *namespaceStr) {
   if (JS_LinearStringEqualsLiteral(namespaceStr, "timers")) {
     return createInternalBindingsForNamespace(cx, InternalBinding::timers);
+  } else if (JS_LinearStringEqualsLiteral(namespaceStr, "utils")) {
+    return createInternalBindingsForNamespace(cx, InternalBinding::utils);
   } else { // not found
     return nullptr;
   }

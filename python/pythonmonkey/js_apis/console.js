@@ -1,6 +1,8 @@
 // @ts-check
 ///<reference path="./global.d.ts"/>
 
+const { defineGlobal } = internalBinding("utils")
+
 /** @typedef {(str: string) => void} WriteFn */
 
 /**

@@ -9,9 +9,6 @@ def install_globals(js_file: str, *python_bindings) -> None:
   pm.eval("""
   (internalBinding, ...pythonBindings) => {
     internalBinding = globalThis._internalBinding
-    function defineGlobal(name, value) {
-      Reflect.defineProperty(globalThis, name, { value })
-    }
     """ + js_code + """
   }
   """)(None, *python_bindings) # FIXME (Tom Tang): `pm._internalBinding` requires object coercion

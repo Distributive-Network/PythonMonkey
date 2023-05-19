@@ -18,6 +18,8 @@ declare function internalBinding(namespace: "timers"): {
     cancelByTimeoutId(timeoutId: number): void;
 };
 
-declare const pythonBindings: ReadonlyArray<any>;
+declare function internalBinding(namespace: "utils"): {
+    defineGlobal(name: string, value: any): void;
+};
 
-declare function defineGlobal(name: string, value: any): void;
+declare const pythonBindings: ReadonlyArray<any>;

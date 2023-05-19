@@ -2,6 +2,7 @@
 ///<reference path="./global.d.ts"/>
 
 const { enqueueWithDelay, cancelByTimeoutId } = internalBinding("timers")
+const { defineGlobal } = internalBinding("utils")
 
 /**
  * Implement the `setTimeout` global function
