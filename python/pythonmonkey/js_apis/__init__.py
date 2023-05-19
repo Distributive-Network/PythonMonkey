@@ -1,6 +1,7 @@
 
 from .. import pythonmonkey as pm
 from os import path
+import sys
 
 def register_globals(js_file: str, *python_bindings) -> None:
   with open(path.join(path.dirname(__file__), js_file), encoding="utf-8") as f:
@@ -16,3 +17,4 @@ def register_globals(js_file: str, *python_bindings) -> None:
   """)(None, *python_bindings) # FIXME (Tom Tang): `pm._internalBinding` requires object coercion
 
 register_globals("./timers.js")
+register_globals("./console.js", sys.stdout.write, sys.stderr.write)
