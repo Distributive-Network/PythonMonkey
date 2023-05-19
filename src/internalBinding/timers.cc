@@ -50,14 +50,8 @@ static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-static JSFunctionSpec internalBindingTimers[] = {
+JSFunctionSpec internalBindingTimers[] = {
   JS_FN("enqueueWithDelay", enqueueWithDelay, /* nargs */ 2, 0),
   JS_FN("cancelByTimeoutId", cancelByTimeoutId, 1, 0),
   JS_FS_END
 };
-
-JSObject *createTimersInternalBinding(JSContext *cx) {
-  JS::RootedObject timers(cx, JS_NewObjectWithGivenProto(cx, nullptr, nullptr)); // timers = Object.create(null)
-  if (!JS_DefineFunctions(cx, timers, internalBindingTimers)) { return nullptr; }
-  return timers;
-}

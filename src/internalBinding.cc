@@ -6,10 +6,16 @@
 #include <js/String.h>
 #include <Python.h>
 
+JSObject *createInternalBindingsForNamespace(JSContext *cx, JSFunctionSpec *methodSpecs) {
+  JS::RootedObject namespaceObj(cx, JS_NewObjectWithGivenProto(cx, nullptr, nullptr)); // namespaceObj = Object.create(null)
+  if (!JS_DefineFunctions(cx, namespaceObj, methodSpecs)) { return nullptr; }
+  return namespaceObj;
+}
+
 // TODO (Tom Tang): figure out a better way to register InternalBindings to namespace
 JSObject *getInternalBindingsByNamespace(JSContext *cx, JSLinearString *namespaceStr) {
   if (JS_LinearStringEqualsLiteral(namespaceStr, "timers")) {
-    return createTimersInternalBinding(cx);
+    return createInternalBindingsForNamespace(cx, internalBindingTimers);
   } else { // not found
     return nullptr;
   }

@@ -12,9 +12,9 @@
 #include <jsapi.h>
 #include <Python.h>
 
-JSObject *createTimersInternalBinding(JSContext *cx);
-// JSObject *createXXXInternalBinding(JSContext *cx);
+extern JSFunctionSpec internalBindingTimers[];
 
+JSObject *createInternalBindingsForNamespace(JSContext *cx, JSFunctionSpec *methodSpecs);
 JSObject *getInternalBindingsByNamespace(JSContext *cx, JSLinearString *namespaceStr);
 
 JSFunction *createInternalBinding(JSContext *cx);
