@@ -690,15 +690,13 @@ def test_set_clear_timeout():
         pm.eval("clearTimeout(undefined)")
         pm.eval("clearTimeout()")
 
-        # should throw a TypeError when the first parameter to `setTimeout` is not a function
-        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
-            pm.eval("setTimeout()")
-        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
-            pm.eval("setTimeout(undefined)")
-        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
-            pm.eval("setTimeout(1)")
-        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: The first parameter to setTimeout\\(\\) is not a function"):
-            pm.eval("setTimeout('a', 100)")
+        # passing a `code` string to `setTimeout` as the callback function
+        assert "code string" == await pm.eval("""
+        new Promise((resolve) => {
+            globalThis._resolve = resolve
+            setTimeout("globalThis._resolve('code string'); delete globalThis._resolve", 100)
+        })
+        """)
 
         # making sure the async_fn is run
         return True
