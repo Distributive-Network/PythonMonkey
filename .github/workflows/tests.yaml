@@ -30,7 +30,6 @@ jobs:
           echo "Installing python deps"
           poetry install --no-root
           echo "Installed Dependencies"
-          python3 --version
       - name: Cache spidermonkey build
         id: cache-spidermonkey
         uses: actions/cache@v3
@@ -45,22 +44,21 @@ jobs:
         run: ./setup.sh #&& ./build_script.sh
       - name: Build wheel
         run: |
-          echo $(poetry run python --version) && sleep 15
+          echo $(poetry run python --version)
           poetry build --format=wheel
           ls -lah ./dist/
-          #- name: google-tests
-          #  run: |
-          #    cd build
-          #    make && make tests
-          #    gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
-          #    cd tests && ctest
-          #    cd ../../
-          #    poetry run -m pip install ./dist/*.whl
-          #    poetry install --no-root
-          #    python -m pytest tests/python
-          #- name: google-tests-artifacts
-          #  uses: actions/upload-artifact@v3
-          #  with:
-          #    name: ${{ github.job }}-${{ github.run_id }}-${{ github.sha }}
-          #    path: ./build/coverage.xml
+      - name: google-tests
+        run: |
+          cd build
+          make && make tests
+          gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
+          cd tests && ctest
+          cd ../../
+          poetry run python -m pip install ./dist/*.whl
+          poetry run python -m pytest tests/python
+      - name: google-tests-artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job }}-${{ github.run_id }}-${{ github.sha }}
+          path: ./build/coverage.xml
   
