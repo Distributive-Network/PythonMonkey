@@ -68,11 +68,11 @@ public:
   PyType *get(PyType *key) const;
 
   /**
-   * @brief 
-   * 
-   * @param cx 
-   * @param jsObject 
-   * @return PyObject* 
+   * @brief
+   *
+   * @param cx
+   * @param jsObject
+   * @return PyObject*
    */
   static PyObject *getJSObjectPyProxy(JSContext *cx, JS::HandleObject jsObject);
 

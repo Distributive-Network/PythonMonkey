@@ -6,6 +6,7 @@
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
@@ -218,6 +219,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   if (PyType_Ready(&BigIntType) < 0)
     return NULL;
+  if (PyType_Ready(&JSObjectProxyType) < 0)
+    return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
@@ -232,6 +235,13 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&BigIntType);
   if (PyModule_AddObject(pyModule, "bigint", (PyObject *)&BigIntType) < 0) {
     Py_DECREF(&BigIntType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectProxy", (PyObject *)&JSObjectProxyType) < 0) {
+    Py_DECREF(&JSObjectProxyType);
     Py_DECREF(pyModule);
     return NULL;
   }
