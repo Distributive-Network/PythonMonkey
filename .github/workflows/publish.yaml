@@ -39,4 +39,7 @@ jobs:
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
       - name: Buid and Publish package
-        run: poetry publish --no-interaction --build --username __token__ --password $PYPI_API_TOKEN
+        run: |
+          poetry build
+          ls -lah ./dist/
+          #poetry publish --no-interaction --build --username __token__ --password $PYPI_API_TOKEN
