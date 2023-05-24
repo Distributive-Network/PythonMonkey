@@ -45,4 +45,4 @@ jobs:
       - name: Buid and Publish package
         run: | 
           echo $(poetry run python --version)
-          poetry publish --no-interaction --build --username __token__ --password $PYPI_API_TOKEN
+          poetry publish --no-interaction --skip-existing --build --username __token__ --password $PYPI_API_TOKEN 
