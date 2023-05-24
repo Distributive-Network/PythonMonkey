@@ -896,7 +896,14 @@ class Console {
   // TODO (Tom Tang): implement more methods
 
   /**
-   * Export the `nodejs.util.inspect.custom` symbol as a static property of Console
+   * Re-export the `Console` constructor as global `console.Console`, like in Node.js
+   */
+  get Console() {
+    return Console
+  }
+
+  /**
+   * Export the `nodejs.util.inspect.custom` symbol as a static property of `Console`
    */
   static customInspectSymbol = customInspectSymbol;
 }
@@ -910,5 +917,3 @@ defineGlobal("console", new Console(
   pythonBindings[0] /* sys.stdout.write */,
   pythonBindings[1] /* sys.stderr.write */
 ))
-
-defineGlobal("Console", Console)
