@@ -896,10 +896,9 @@ class Console {
   // TODO (Tom Tang): implement more methods
 
   /**
-   * Add the `inspect` symbol as a static property of Console, so that
-   * we don't need to load the `utils` module just to be able to register `thing[inspect]` functions.
+   * Export the `nodejs.util.inspect.custom` symbol as a static property of Console
    */
-  static inspect = customInspectSymbol;
+  static customInspectSymbol = customInspectSymbol;
 }
 
 // https://github.com/nodejs/node/blob/v20.1.0/lib/internal/console/constructor.js#L681-L685
