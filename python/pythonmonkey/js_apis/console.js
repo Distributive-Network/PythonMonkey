@@ -11,7 +11,7 @@ const {
   getProxyDetails,
 } = internalBinding("utils")
 
-const customInspectSymbol = Symbol.for('util.inspect.custom')
+const customInspectSymbol = Symbol.for('nodejs.util.inspect.custom')
 
 // Keep this in sync with both SpiderMonkey and V8
 /** @type {PromiseState.Pending} */
