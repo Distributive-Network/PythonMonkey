@@ -30,7 +30,7 @@ DictType::DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::
   // this is a very useful reference
   this->pyObject = PyDict_New();
 
-  
+
 
 }
 
@@ -61,7 +61,7 @@ void DictType::init(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS:
      Python keys can be any immutable type
    */
   JS::RootedIdVector props(cx);
-  if (!js::GetPropertyKeys(cx, jsObjectObj, JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, &props)) {
+  if (!js::GetPropertyKeys(cx, jsObjectObj, JSITER_OWNONLY | JSITER_HIDDEN, &props)) {
     Py_DECREF(this->pyObject);
     this->pyObject = NULL;
     return;
