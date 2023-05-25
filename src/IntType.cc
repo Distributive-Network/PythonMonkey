@@ -58,14 +58,13 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // If the native endianness is also little-endian,
   // we now have consecutive bytes of 8-bit "digits" in little-endian order
   const uint8_t *bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);
-  if (jsDigitCount == 0) {
-    // Create a new object instead of reusing the object for int 0
-    //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L862
-    //        https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L310
-    pyObject = (PyObject *)_PyLong_New(0);
-  } else {
-    pyObject = _PyLong_FromByteArray(bytes, jsDigitCount * JS_DIGIT_BYTE, true, false);
-  }
+  PyObject *pyIntObj = _PyLong_FromByteArray(bytes, jsDigitCount * JS_DIGIT_BYTE, true, false);
+
+  // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
+  //  allowing Py<->JS two-way BigInt conversion.
+  // We don't do `Py_SET_TYPE` because `_PyLong_FromByteArray` may cache and reuse objects for small ints
+  pyObject = PyObject_CallOneArg(PythonMonkey_BigInt, pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
+  Py_DECREF(pyIntObj);
 
   // Set the sign bit
   //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L956
@@ -73,10 +72,6 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
     ssize_t pyDigitCount = Py_SIZE(pyObject);
     Py_SET_SIZE(pyObject, -pyDigitCount);
   }
-
-  // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
-  //  allowing Py<->JS two-way BigInt conversion
-  Py_SET_TYPE(pyObject, (PyTypeObject *)(PythonMonkey_BigInt));
 }
 
 JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
