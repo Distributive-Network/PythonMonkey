@@ -10,3 +10,6 @@ fi
 cd build
 cmake ..
 cmake --build . -j$CPUS
+
+# npm is used to load JS components, see package.json
+npm i

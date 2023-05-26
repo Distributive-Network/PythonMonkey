@@ -1,0 +1,26 @@
+{
+  "name": "pythonmonkey",
+  "version": "0.0.1",
+  "description": "PythonMonkey - JS Components",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Distributive-Network/PythonMonkey.git"
+  },
+  "author": "Distributive Corp.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Distributive-Network/PythonMonkey/issues"
+  },
+  "homepage": "https://github.com/Distributive-Network/PythonMonkey#readme",
+  "dependencies": {
+    "ctx-module": "^1.0.8"
+  }
+}
