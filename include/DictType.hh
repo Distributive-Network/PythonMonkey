@@ -35,20 +35,9 @@ public:
    * @brief Construct a new DictType object from a JSObject.
    *
    * @param cx - pointer to the JSContext
-   * @param global - pointer to the global JSObject
    * @param jsObject - pointer to the JSObject to be coerced
    */
-  DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject);
-
-  /**
-   * @brief Construct a new DictType object from a JSObject, providing a map of JSObjects that have already been coerced to python dicts.
-   *
-   * @param cx - pointer to the JSContext
-   * @param global - pointer to the global JSObject
-   * @param jsObject - pointer to the JSObject to be coerced
-   * @param subObjectsMap - map of JSObjects that have been coerced to PyObjects
-   */
-  DictType(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject, std::unordered_map<const JS::Value *, PyObject *> &subObjectsMap);
+  DictType(JSContext *cx, JS::Handle<JS::Value> jsObject);
 
   TYPE getReturnType() override;
 /**
@@ -66,26 +55,6 @@ public:
  * @return PyType* Returns a pointer to the appropriate PyType object
  */
   PyType *get(PyType *key) const;
-
-  /**
-   * @brief
-   *
-   * @param cx
-   * @param jsObject
-   * @return PyObject*
-   */
-  static PyObject *getJSObjectPyProxy(JSContext *cx, JS::HandleObject jsObject);
-
-private:
-  /**
-   * @brief Helper function for DictType constructor that keeps track of reference cycles
-   *
-   * @param cx - pointer to the JSContext
-   * @param global - pointer to the global JSObject
-   * @param jsObject - pointer to the JSObject to be coerced
-   * @param subObjectsMap - map of JSObjects that have been coerced to PyObjects
-   */
-  void init(JSContext *cx, JS::Handle<JSObject *> global, JS::Handle<JS::Value> jsObject, std::unordered_map<const JS::Value *, PyObject *> &subObject);
 };
 
 #endif

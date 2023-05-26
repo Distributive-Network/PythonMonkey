@@ -18,7 +18,7 @@
  *
  */
 typedef struct {
-  PyObject_HEAD
+  PyDictObject dict;
   JS::RootedObject jsObject;
 } JSObjectProxy;
 
@@ -137,16 +137,55 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
  *
  */
 static PyTypeObject JSObjectProxyType = {
+  .ob_base = {{1, &PyType_Type}, 0},
   .tp_name = "pythonmonkey.JSObjectProxy",
   .tp_basicsize = sizeof(JSObjectProxy),
+  .tp_itemsize = NULL,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
+  .tp_vectorcall_offset = NULL,
+  .tp_getattr = NULL,
+  .tp_setattr = NULL,
+  .tp_as_async = NULL,
+  .tp_repr = NULL,
+  .tp_as_number = NULL,
+  .tp_as_sequence = NULL,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
+  .tp_hash = NULL,
+  .tp_call = NULL,
+  .tp_str = NULL,
+  .tp_getattro = NULL,
+  .tp_setattro = NULL,
+  .tp_as_buffer = NULL,
   .tp_flags = Py_TPFLAGS_DEFAULT
   | Py_TPFLAGS_DICT_SUBCLASS  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
   | Py_TPFLAGS_BASETYPE,      // can be subclassed
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
+  .tp_traverse = NULL,
+  .tp_clear = NULL,
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
+  .tp_weaklistoffset = NULL,
+  .tp_iter = NULL,
+  .tp_iternext = NULL,
+  .tp_methods = NULL,
+  .tp_members = NULL,
+  .tp_getset = NULL,
   .tp_base = &PyDict_Type,    // extending the builtin dict type
+  .tp_dict = NULL,
+  .tp_descr_get = NULL,
+  .tp_descr_set = NULL,
+  .tp_dictoffset = NULL,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
+  .tp_alloc = NULL,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+  .tp_free = NULL,
+  .tp_is_gc = NULL,
+  .tp_bases = NULL,
+  .tp_mro = NULL,
+  .tp_cache = NULL,
+  .tp_subclasses = NULL,
+  .tp_weaklist = NULL,
+  .tp_del = NULL,
+  .tp_version_tag = NULL,
+  .tp_finalize = NULL,
+  .tp_vectorcall = NULL
 };

@@ -20,9 +20,10 @@
 
 #include <Python.h>
 
+JSContext *cx; /**< pointer to PythonMonkey's JSContext */
+
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
-  delete self->jsObject;
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -41,18 +42,28 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, 
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
+  if (PyDict_Type.tp_init((PyObject *)self, PyTuple_New(0), kwds) < 0) {
+    return -1;
+  }
+
   PyObject *dict = NULL;
+  if (PyTuple_Size(args) == 0) {
+    // make fresh JSObject for proxy
+    self->jsObject.set(JS_NewObject(cx, NULL));
+    return 0;
+  }
+
   if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, dict))
   {
     return -1;
   }
 
-  // make fresh JSObject for proxy
-  delete self->jsObject;
-  self->jsObject = JS::RootedObject(cx);
 
+  // make fresh JSObject for proxy
+  self->jsObject.set(JS_NewObject(cx, NULL));
   std::unordered_map<PyObject *, JS::RootedValue *> subValsMap;
   JSObjectProxy_init_helper(self->jsObject, dict, subValsMap);
+  return 0;
 }
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_init_helper(JS::HandleObject jsObject, PyObject *dict, std::unordered_map<PyObject *, JS::RootedValue *> &subValsMap)
@@ -121,7 +132,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
     // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_GetUCProperty
     break;
   }
-
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
   return pyTypeFactory(cx, global, value)->getPyObject();
 }
 
@@ -213,6 +224,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObj
     JS::HandleId id = props[i];
     JS::RootedValue *key = new JS::RootedValue(cx);
     key->setString(id.toString());
+    JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
     PyObject *pyKey = pyTypeFactory(cx, global, key)->getPyObject();
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);

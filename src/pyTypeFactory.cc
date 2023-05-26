@@ -119,7 +119,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
       }
     case js::ESClass::Object: {
         // this is a generic non-boxing object
-        return new DictType(cx, *global, *rval);
+        return new DictType(cx, *rval);
       }
     default: {
         printf("objects of this type are not handled by PythonMonkey yet");
