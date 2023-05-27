@@ -147,6 +147,17 @@ moduleWrapper()
 # dict->jsObject in createRequire for every require we create.
 pm.eval('const __builtinModules = {}; true');
 
+def load(filename):
+    __file__ = filename
+    if (path.exists(__file__)):
+        exports = {}
+        fileHnd = open(__file__, "r")
+        exec(fileHnd.read())
+        return exports
+    else:
+        raise Exception('file not found: ' + __file__)
+propSet('python', 'load', load)
+
 # API - createRequire
 # returns a require function that resolves modules relative to the filename argument. 
 # Conceptually the same as node:module.createRequire().
@@ -159,9 +170,15 @@ pm.eval('const __builtinModules = {}; true');
 createRequire = pm.eval("""(
 function createRequire(filename)
 {
+  function loadPythonModule(module, filename)
+  {
+    module.exports = python.load(filename);
+  }
+
   const module = new CtxModule(globalThis, filename, __builtinModules);
   for (let path of python.paths)
     module.paths.push(path + '/node_modules');
+  module.require.extensions['.py'] = loadPythonModule;
   return module.require;
 }
 )""")
