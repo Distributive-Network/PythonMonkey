@@ -18,5 +18,4 @@ pmr = include(path.dirname(__file__), '../pythonmonkey_require.py');
 
 ### Actual test below
 require = pmr['createRequire'](__file__)
-require('./use-python-module/index');
-
+require('./use-python-module');

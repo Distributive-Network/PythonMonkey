@@ -98,9 +98,10 @@ pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports 
 
 # Implement enough of require('fs') so that ctx-module can find/load files
 def statSync_inner(filename):
+    from os import stat
     if (path.exists(filename)):
         sb = stat(filename)
-        return { 'mode': 0 }
+        return { 'mode': sb.st_mode }
     else:
         return False
 
