@@ -23,13 +23,15 @@
 # @date         May 2023
 #
 
-import sys
-sys.path.append(path.dirname(__file__) + '/build/src');
+import sys, warnings
+sys.path.append(path.dirname(__file__) + '/build/src')
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import pythonmonkey as pm
-from os import stat, path, getcwd
+from os import stat, path, getcwd, getenv
 
 pm.eval("""
+globalThis.python = {};
 globalThis.global = globalThis;
 globalThis.vmModule = { runInContext: eval };
 globalThis.require = function outerRequire(mid) {
@@ -38,10 +40,38 @@ globalThis.require = function outerRequire(mid) {
     return module;
   throw new Error('module not found: ' + mid);
 };
-globalThis.debugModule = function debug() {
-  return function debugInner() {
-    debugPrint('DEBUG: ' + Array.from(arguments).join(' '))
+globalThis.debugModule = function debug(selector) {
+  var idx, colour;
+  const esc = String.fromCharCode(27);
+  const noColour = `${esc}[0m`;
+
+  debug.selectors = debug.selectors || [];
+  idx = debug.selectors.indexOf(selector);
+  if (idx === -1)
+  {
+    idx = debug.selectors.length;
+    debug.selectors.push(selector);
   }
+
+  colour = `${esc}[${91 + ((idx + 1) % 6)}m`;
+  const debugEnv = python.getenv('DEBUG');
+
+  if (debugEnv)
+  {
+    for (let sym of debugEnv.split(' '))
+    {
+      const re = new RegExp('^' + sym.replace('*', '.*') + '$');
+      if (re.test(selector))
+      {
+        return (function debugInner() {
+          python.print(`${colour}${selector}${noColour} ` + Array.from(arguments).join(' '))
+        });
+      }
+    }
+  }
+
+  /* no match => silent */
+  return (function debugDummy() {});
 };
 
 function globalSet(name, prop)
@@ -60,8 +90,9 @@ function propSet(objName, propName, propValue)
 globalSet = pm.eval("globalSet");
 propSet = pm.eval("propSet")
 
-# Make global.debugPrint equivalent to Python's print() function
-globalSet('debugPrint', print);
+# Add some python functions to the global python object for code in this file to use.
+propSet('python', 'print', print);
+propSet('python', 'getenv', getenv);
 
 # Implement enough of require('fs') so that ctx-module can find/load files
 def statSync_inner(filename):
