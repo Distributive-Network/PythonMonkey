@@ -93,6 +93,8 @@ propSet = pm.eval("propSet")
 # Add some python functions to the global python object for code in this file to use.
 propSet('python', 'print', print);
 propSet('python', 'getenv', getenv);
+propSet('python', 'paths', ':'.join(sys.path));
+pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
 
 # Implement enough of require('fs') so that ctx-module can find/load files
 def statSync_inner(filename):
@@ -154,6 +156,12 @@ pm.eval('const __builtinModules = {}; true');
 #   require = createRequire(__file__)
 #   require('./my-javascript-module')
 #
-def createRequire(filename):
-    import pythonmonkey as pm
-    return (pm.eval("((new CtxModule(globalThis, '" + filename + "', __builtinModules)).require)"))
+createRequire = pm.eval("""(
+function createRequire(filename)
+{
+  const module = new CtxModule(globalThis, filename, __builtinModules);
+  for (let path of python.paths)
+    module.paths.push(path + '/node_modules');
+  return module.require;
+}
+)""")
