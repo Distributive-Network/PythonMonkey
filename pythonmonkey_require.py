@@ -28,12 +28,37 @@ sys.path.append(path.dirname(__file__) + '/build/src');
 
 import pythonmonkey as pm
 from os import stat, path, getcwd
-    
-pm.eval("globalThis.vmModule = { runInContext: eval }; true")
-pm.eval("globalThis.require = function outerRequire(mid) { const module = globalThis[mid + 'Module']; if (module) return module; throw new Error('module not found: ' + mid) }");
-pm.eval("globalThis.debugModule = function debug() { return function debugInner() { debugPrint('DEBUG: ' + Array.from(arguments).join(' ')) }}; true");
-globalSet = pm.eval('(function globalSet(name, prop) { globalThis[name] = prop; })')
-propSet = pm.eval('(function propSet(objName, propName, propValue) { globalThis[objName] = globalThis[objName] || {}; globalThis[objName][propName] = propValue; })')
+
+pm.eval("""
+globalThis.global = globalThis;
+globalThis.vmModule = { runInContext: eval };
+globalThis.require = function outerRequire(mid) {
+  const module = globalThis[mid + 'Module'];
+  if (module)
+    return module;
+  throw new Error('module not found: ' + mid);
+};
+globalThis.debugModule = function debug() {
+  return function debugInner() {
+    debugPrint('DEBUG: ' + Array.from(arguments).join(' '))
+  }
+};
+
+function globalSet(name, prop)
+{
+  globalThis[name] = prop;
+}
+
+function propSet(objName, propName, propValue)
+{
+  globalThis[objName] = globalThis[objName] || {}; globalThis[objName][propName] = propValue;
+}
+
+""")
+
+# globalSet and propSet are work-arounds until PythonMonkey correctly proxies objects.
+globalSet = pm.eval("globalSet");
+propSet = pm.eval("propSet")
 
 # Make global.debugPrint equivalent to Python's print() function
 globalSet('debugPrint', print);
@@ -90,13 +115,13 @@ moduleWrapper()
 pm.eval('const __builtinModules = {}; true');
 
 # API - createRequire
-# returns a require function which returns a require function that resolves modules relative to the
-# filename argument. Conceptually the same as node:module.createRequire().
+# returns a require function that resolves modules relative to the filename argument. 
+# Conceptually the same as node:module.createRequire().
 #
 # example:
 #   from pythonmonkey import createRequire
 #   require = createRequire(__file__)
-#   require('./my-module')
+#   require('./my-javascript-module')
 #
 def createRequire(filename):
     import pythonmonkey as pm
