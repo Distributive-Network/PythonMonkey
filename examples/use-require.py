@@ -3,11 +3,13 @@ from os import path
 from pathlib import Path
 
 def include(relative, filename):
-    if (path.exists(filename)): 
-        fileHnd = open(filename, "r")
-        __file__ = str(Path(relative, filename).resolve())
+    __file__ = str(Path(relative, filename).resolve())
+    if (path.exists(__file__)):
+        fileHnd = open(__file__, "r")
         exec(fileHnd.read())
         return locals()
+    else:
+        raise Exception('file not found: ' + __file__)
 
 import sys
 sys.path.append(path.dirname(__file__) + '/..');
