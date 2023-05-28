@@ -5,9 +5,7 @@ bin/
 lib/*
 .pytest_cache
 .DS_Store
-firefox-102.2.0*
-firefox-102.2.0/*
-firefox-*/*
+firefox-*.tar.xz
 firefox-*/
 tests/__pycache__/*
 tests/python/__pycache__/*

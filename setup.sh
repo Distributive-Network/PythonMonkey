@@ -15,11 +15,12 @@ echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
 wget -c -q https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
-tar xf firefox-102.2.0esr.source.tar.xz
+mkdir -p firefox-source
+tar xf firefox-102.2.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
-cd firefox-102.2.0/js
+cd firefox-source/js
 sed -i 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./src/vm/JSObject.cpp  # same here
 cd src
