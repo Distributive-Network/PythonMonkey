@@ -14,9 +14,9 @@ sudo curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y #in
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
-wget -c -q https://ftp.mozilla.org/pub/firefox/releases/102.2.0esr/source/firefox-102.2.0esr.source.tar.xz
+wget -c -q https://ftp.mozilla.org/pub/firefox/releases/102.11.0esr/source/firefox-102.11.0esr.source.tar.xz
 mkdir -p firefox-source
-tar xf firefox-102.2.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
+tar xf firefox-102.11.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
