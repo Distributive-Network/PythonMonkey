@@ -19,10 +19,6 @@ tar xf firefox-102.2.0esr.source.tar.xz
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
-cd firefox-102.2.0/python/mozbuild/mozbuild
-# the build system breaks on Python 3.11 (`io.open()` no longer accepts 'U' in the file mode)
-sed -i 's/"rU"/"r"/g' util.py preprocessor.py action/process_define_files.py backend/base.py
-cd -
 cd firefox-102.2.0/js
 sed -i 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./src/vm/JSObject.cpp  # same here
