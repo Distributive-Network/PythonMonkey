@@ -13,3 +13,6 @@ tests/__pycache__/*
 tests/python/__pycache__/*
 Testing/Temporary
 _spidermonkey_install
+__pycache__
+dist
+*.so
