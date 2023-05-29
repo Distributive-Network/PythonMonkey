@@ -61,7 +61,7 @@ jobs:
           name: ${{ github.job }}-${{ github.run_id }}-${{ github.sha }}
           path: ./build/coverage.xml
       - name: Buid and Publish package
-        if: ${{ success() }} && github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+        if: ${{ success()  && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
         run: | 
           echo $(poetry run python --version)
           poetry publish --no-interaction --skip-existing --build --username __token__ --password $PYPI_API_TOKEN  
