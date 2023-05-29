@@ -179,10 +179,11 @@ def load(filename: str) -> Dict:
     """
 
     name = path.basename(filename)
-    if name in sys.modules:
-        return sys.modules[name]
-    sourceFileLoader = machinery.SourceFileLoader(name, filename)
-    module = sourceFileLoader.load_module(name)
+    if name not in sys.modules:
+        sourceFileLoader = machinery.SourceFileLoader(name, filename)
+        module = sourceFileLoader.load_module(name)
+    else:
+        module = sys.modules[name]
     module_exports = {}
     for key in dir(module):
         module_exports[key] = getattr(module, key)
