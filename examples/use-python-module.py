@@ -1,17 +1,17 @@
 ### Loader because Python is awkward
+import sys
 from os import path
+import importlib
 from pathlib import Path
 
 def include(relative, filename):
     __file__ = str(Path(relative, filename).resolve())
-    if (path.exists(__file__)):
-        exports = {}
-        exports['__file__'] = __file__
-        with open(__file__, "r") as fileHnd:
-            exec(fileHnd.read(), exports)
-        return exports 
-    else:
-        raise Exception('file not found: ' + __file__)
+    name = path.basename(__file__)
+    if name in sys.modules:
+        return sys.modules[name]
+    sourceFileLoader = importlib.machinery.SourceFileLoader(name, __file__)
+    module = sourceFileLoader.load_module(name)
+    return module
 
 import sys
 sys.path.append(path.dirname(__file__) + '/..');
@@ -19,5 +19,5 @@ sys.path.append(path.dirname(__file__) + '/..');
 pmr = include(path.dirname(__file__), '../pythonmonkey_require.py');
 
 ### Actual test below
-require = pmr['createRequire'](__file__)
+require = pmr.createRequire(__file__)
 require('./use-python-module');

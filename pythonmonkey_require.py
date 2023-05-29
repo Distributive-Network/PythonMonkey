@@ -24,6 +24,8 @@
 #
 
 import sys, warnings
+import types
+from typing import Union, Dict, Callable
 import importlib
 from os import stat, path, getcwd, getenv
 
@@ -99,7 +101,14 @@ propSet('python', 'paths', ':'.join(sys.path));
 pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
 
 # Implement enough of require('fs') so that ctx-module can find/load files
-def statSync_inner(filename):
+
+def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
+    """
+    Inner function for statSync.
+
+    Returns:
+        Union[Dict[str, int], False]: The mode of the file or False if the file doesn't exist.
+    """
     from os import stat
     if (path.exists(filename)):
         sb = stat(filename)
@@ -107,7 +116,12 @@ def statSync_inner(filename):
     else:
         return False
 
-def readFileSync(filename, charset):
+def readFileSync(filename, charset) -> str:
+    """
+    Utility function for reading files.
+    Returns:
+        str: The contents of the file
+    """
     with open(filename, "r") as fileHnd:
         return fileHnd.read()
 
@@ -151,7 +165,18 @@ moduleWrapper()
 # dict->jsObject in createRequire for every require we create.
 pm.eval('const __builtinModules = {}; true');
 
-def load(filename):
+def load(filename: str) -> types.ModuleType:
+    """
+    Loads a python module using the importlib machinery sourcefileloader and returns it.
+    If the module is already loaded, returns it.
+
+    Args:
+        filename (str): The filename of the python module to load.
+
+    Returns:
+        types.ModuleType: The loaded python module
+    """
+
     name = path.basename(filename)
     if name in sys.modules:
         return sys.modules[name]
@@ -161,16 +186,17 @@ def load(filename):
 
 propSet('python', 'load', load)
 
-# API - createRequire
-# returns a require function that resolves modules relative to the filename argument. 
-# Conceptually the same as node:module.createRequire().
-#
-# example:
-#   from pythonmonkey import createRequire
-#   require = createRequire(__file__)
-#   require('./my-javascript-module')
-#
-createRequire = pm.eval("""(
+"""
+API - createRequire
+returns a require function that resolves modules relative to the filename argument. 
+Conceptually the same as node:module.createRequire().
+
+example:
+  from pythonmonkey import createRequire
+  require = createRequire(__file__)
+  require('./my-javascript-module')
+"""
+createRequire: Callable = pm.eval("""(
 function createRequire(filename)
 {
   function loadPythonModule(module, filename)
