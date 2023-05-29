@@ -38,7 +38,6 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ./build/*
             ./firefox-source/*
             ./_spidermonkey_install/*
           key: ${{ runner.os }}-spidermonkey
