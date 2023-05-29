@@ -2,6 +2,7 @@
 import sys
 from os import path
 import importlib
+from importlib import machinery
 from pathlib import Path
 
 def include(relative, filename):
@@ -9,7 +10,7 @@ def include(relative, filename):
     name = path.basename(__file__)
     if name in sys.modules:
         return sys.modules[name]
-    sourceFileLoader = importlib.machinery.SourceFileLoader(name, __file__)
+    sourceFileLoader = machinery.SourceFileLoader(name, __file__)
     module = sourceFileLoader.load_module(name)
     return module
 

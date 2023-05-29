@@ -1,7 +1,7 @@
 ### Loader because Python is awkward
 import sys
 from os import path
-import importlib
+from importlib import machinery
 from pathlib import Path
 
 def include(relative, filename):
@@ -9,15 +9,14 @@ def include(relative, filename):
     name = path.basename(__file__)
     if name in sys.modules:
         return sys.modules[name]
-    sourceFileLoader = importlib.machinery.SourceFileLoader(name, __file__)
+    sourceFileLoader = machinery.SourceFileLoader(name, __file__)
     module = sourceFileLoader.load_module(name)
     return module
 
 import sys
 sys.path.append(path.dirname(__file__) + '/..');
 
-#pmr = include(path.dirname(__file__), '../pythonmonkey_require.py');
-import pythonmonkey_require as pmr
+pmr = include(path.dirname(__file__), '../pythonmonkey_require.py');
 
 ### Actual test below
 require = pmr.createRequire(__file__)

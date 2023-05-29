@@ -27,6 +27,7 @@ import sys, warnings
 import types
 from typing import Union, Dict, Callable
 import importlib
+from importlib import machinery
 from os import stat, path, getcwd, getenv
 
 sys.path.append(path.dirname(__file__) + '/build/src')
@@ -165,7 +166,7 @@ moduleWrapper()
 # dict->jsObject in createRequire for every require we create.
 pm.eval('const __builtinModules = {}; true');
 
-def load(filename: str) -> types.ModuleType:
+def load(filename: str) -> Dict:  
     """
     Loads a python module using the importlib machinery sourcefileloader and returns it.
     If the module is already loaded, returns it.
@@ -174,15 +175,18 @@ def load(filename: str) -> types.ModuleType:
         filename (str): The filename of the python module to load.
 
     Returns:
-        types.ModuleType: The loaded python module
+        : The loaded python module
     """
 
     name = path.basename(filename)
     if name in sys.modules:
         return sys.modules[name]
-    sourceFileLoader = importlib.machinery.SourceFileLoader(name, filename)
+    sourceFileLoader = machinery.SourceFileLoader(name, filename)
     module = sourceFileLoader.load_module(name)
-    return module
+    exports = {}
+    for key in dir(module):
+        exports[key] = getattr(module, key)
+    return exports 
 
 propSet('python', 'load', load)
 
