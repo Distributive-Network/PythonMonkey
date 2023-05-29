@@ -183,10 +183,10 @@ def load(filename: str) -> Dict:
         return sys.modules[name]
     sourceFileLoader = machinery.SourceFileLoader(name, filename)
     module = sourceFileLoader.load_module(name)
-    exports = {}
+    module_exports = {}
     for key in dir(module):
-        exports[key] = getattr(module, key)
-    return exports 
+        module_exports[key] = getattr(module, key)
+    return module_exports 
 
 propSet('python', 'load', load)
 
