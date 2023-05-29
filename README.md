@@ -6,7 +6,7 @@
 PythonMonkey is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
 using the Python engine to provide the JS host environment.
 
-This product is in an early stage, approximately 65% to MVP as of March 2023. It is under active development by Distributive Corp.,
+This product is in an early stage, approximately 75% to MVP as of May 2023. It is under active development by Distributive Corp.,
 https://distributive.network/. External contributions and feedback are welcome and encouraged.
 
 The goal is to make writing code in either JS or Python a developer preference, with libraries commonly used in either language
@@ -30,13 +30,13 @@ this package to execute our complex `dcp-client` library, which is written in JS
 - [done] JS functions coerce to Python function wrappers
 - [done] JS exceptions propagate to Python
 - [done] Implement `eval()` function in Python which accepts JS code and returns JS->Python coerced values
-- [underway] NodeJS+NPM-compatible CommonJS module system
+- [done] NodeJS+NPM-compatible CommonJS module system
 - [done] Python strings coerce to JS strings
 - [done] Python intrinsics coerce to JS intrinsics
 - Python dicts coerce to JS objects
-- Python `require` function, returns a coerced dict of module exports
+- [done] Python `require` function, returns a coerced dict of module exports
 - [done] Python functions coerce to JS function wrappers
-- CommonJS module system .py loader, loads Python modules for use by JS
+- [done] CommonJS module system .py loader, loads Python modules for use by JS
 - JS object->Python dict coercion supports inherited-property lookup (via __getattribute__?)
 - Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
 - Python host environment supplies XMLHttpRequest (other project?)
@@ -56,6 +56,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
     - rust
     - python3.9 or later
     - spidermonkey 102.2.0 or later
+    - npm (nodejs)
 
 2. Compile pythonmonkey in ``/build`` (which can be done automatically by running ``./build_script.sh``)
 
@@ -70,6 +71,8 @@ this package to execute our complex `dcp-client` library, which is written in JS
     Alternatively, from the root directory, run ``./test_script.sh``
 
 ## Using the library
+
+See also: examples/
 
 ### Method 1
 After compiling the project in the `build/src` folder you will find a `.so` file named `pythonmonkey.so`. This is the shared object file that contains the pythonmonkey module.
