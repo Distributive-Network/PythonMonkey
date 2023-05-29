@@ -5,9 +5,11 @@ from pathlib import Path
 def include(relative, filename):
     __file__ = str(Path(relative, filename).resolve())
     if (path.exists(__file__)):
-        fileHnd = open(__file__, "r")
-        exec(fileHnd.read())
-        return locals()
+        exports = {}
+        exports['__file__'] = __file__
+        with open(__file__, "r") as fileHnd:
+            exec(fileHnd.read(), exports)
+        return exports 
     else:
         raise Exception('file not found: ' + __file__)
 

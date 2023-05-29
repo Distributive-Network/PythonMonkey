@@ -24,11 +24,13 @@
 #
 
 import sys, warnings
+import importlib
+from os import stat, path, getcwd, getenv
+
 sys.path.append(path.dirname(__file__) + '/build/src')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import pythonmonkey as pm
-from os import stat, path, getcwd, getenv
 
 pm.eval("""
 globalThis.python = {};
@@ -106,8 +108,8 @@ def statSync_inner(filename):
         return False
 
 def readFileSync(filename, charset):
-    fileHnd = open(filename, "r")
-    return fileHnd.read()
+    with open(filename, "r") as fileHnd:
+        return fileHnd.read()
 
 propSet('fsModule', 'statSync_inner', statSync_inner);
 propSet('fsModule', 'readFileSync', readFileSync)
@@ -130,8 +132,9 @@ function statSync(filename)
 # because PythonMonkey current segfaults when return objects. Once that is fixed, we will pass moduleIIFE
 # parameters which are a python implementation of top-level require(for fs, vm - see top) and an exports
 # dict to decorate.
-ctxModuleSource = open(path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r")
-moduleWrapper = pm.eval("""'use strict';
+
+with open(path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r") as ctxModuleSource:
+    moduleWrapper = pm.eval("""'use strict';
 (function moduleWrapper(require, exports)
 {
   exports=exports || globalThis; 
@@ -149,14 +152,13 @@ moduleWrapper()
 pm.eval('const __builtinModules = {}; true');
 
 def load(filename):
-    __file__ = filename
-    if (path.exists(__file__)):
-        exports = {}
-        fileHnd = open(__file__, "r")
-        exec(fileHnd.read())
-        return exports
-    else:
-        raise Exception('file not found: ' + __file__)
+    name = path.basename(filename)
+    if name in sys.modules:
+        return sys.modules[name]
+    sourceFileLoader = importlib.machinery.SourceFileLoader(name, filename)
+    module = sourceFileLoader.load_module(name)
+    return module
+
 propSet('python', 'load', load)
 
 # API - createRequire
