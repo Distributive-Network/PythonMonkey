@@ -2,6 +2,10 @@ name: 'Test and Publish Suite'
 
 on:
   push:
+    branches:
+      - main
+    tags:
+      - '*'
   workflow_call:
   workflow_dispatch:
   pull_request:
