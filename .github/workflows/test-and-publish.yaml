@@ -64,4 +64,4 @@ jobs:
         if: ${{ success()  && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
         run: | 
           echo $(poetry run python --version)
-          poetry publish --no-interaction --skip-existing --build --username __token__ --password $PYPI_API_TOKEN  
+          poetry publish --no-interaction --skip-existing --build --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
