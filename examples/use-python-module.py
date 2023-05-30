@@ -6,11 +6,11 @@ from importlib import machinery
 from pathlib import Path
 
 def include(relative, filename):
-    __file__ = str(Path(relative, filename).resolve())
-    name = path.basename(__file__)
+    filename = str(Path(relative, filename).resolve())
+    name = path.basename(filename)
     if name in sys.modules:
         return sys.modules[name]
-    sourceFileLoader = machinery.SourceFileLoader(name, __file__)
+    sourceFileLoader = machinery.SourceFileLoader(name, filename)
     module = sourceFileLoader.load_module(name)
     return module
 

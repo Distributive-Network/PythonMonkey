@@ -123,7 +123,7 @@ def readFileSync(filename, charset) -> str:
     Returns:
         str: The contents of the file
     """
-    with open(filename, "r", encoding=charset) as fileHnd:
+    with open(filename, "r") as fileHnd:
         return fileHnd.read()
 
 propSet('fsModule', 'statSync_inner', statSync_inner);
