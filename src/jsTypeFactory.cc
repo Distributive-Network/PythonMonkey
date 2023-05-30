@@ -143,6 +143,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
     returnType.setObject(*jsFuncObject);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
+    Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
   }
   else if (PyExceptionInstance_Check(object)) {
     JSObject *error = ExceptionType(object).toJsError(cx);

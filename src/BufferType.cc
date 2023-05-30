@@ -165,13 +165,13 @@ JS::Scalar::Type BufferType::_getPyBufferType(Py_buffer *bufView) {
   bool isSigned = std::islower(typeCode); // e.g. 'b' for signed char, 'B' for unsigned char
   uint8_t byteSize = bufView->itemsize;
   switch (byteSize) {
-  case 1:
+  case sizeof(int8_t):
     return isSigned ? JS::Scalar::Int8 : JS::Scalar::Uint8; // TODO (Tom Tang): Uint8Clamped
-  case 2:
+  case sizeof(int16_t):
     return isSigned ? JS::Scalar::Int16 : JS::Scalar::Uint16;
-  case 4:
+  case sizeof(int32_t):
     return isSigned ? JS::Scalar::Int32 : JS::Scalar::Uint32;
-  case 8:
+  case sizeof(int64_t):
     return isSigned ? JS::Scalar::BigInt64 : JS::Scalar::BigUint64;
   default:
     return JS::Scalar::MaxTypedArrayViewType; // invalid byteSize

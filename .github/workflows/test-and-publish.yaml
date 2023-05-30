@@ -1,0 +1,70 @@
+name: 'Test and Publish Suite'
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  test-and-publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest' ] # , 'windows-latest', 'macos-latest' ]
+        python_version: [ '3.9', '3.10', '3.11' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+      - name: Setup cmake
+        run: |
+          echo "Installing Dependencies"
+          sudo apt-get update -y
+          sudo apt-get install -y cmake doxygen graphviz gcovr llvm
+          echo "Installing python deps"
+          poetry install --no-root
+          echo "Installed Dependencies"
+      - name: Cache spidermonkey build
+        id: cache-spidermonkey
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./firefox-source/*
+            ./_spidermonkey_install/*
+          key: ${{ runner.os }}-spidermonkey
+      - name: Build-Library
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: ./setup.sh #&& ./build_script.sh
+      - name: Build wheel
+        run: |
+          echo $(poetry run python --version)
+          poetry build --format=wheel
+          ls -lah ./dist/
+      - name: google-tests
+        run: |
+          cd build
+          make && make tests
+          gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
+          cd tests && ctest
+          cd ../../
+          poetry run python -m pip install ./dist/*.whl
+          poetry run python -m pytest tests/python
+      - name: google-tests-artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job }}-${{ github.run_id }}-${{ github.sha }}
+          path: ./build/coverage.xml
+      - name: Buid and Publish package
+        if: ${{ success()  && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
+        run: | 
+          echo $(poetry run python --version)
+          poetry publish --no-interaction --skip-existing --build --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
