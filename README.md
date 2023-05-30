@@ -61,13 +61,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 ## Running tests
 1. Compile the project 
-2. In the build folder `cd` into the `tests` directory and run `ctest`.
-    ```bash
-    # From the root directory we do the following (after compiling the project)
-    $ cd build/tests
-    $ ctest
-    ```
-    Alternatively, from the root directory, run ``./test_script.sh``
+2. From the root directory, run `./test_script.sh`
 
 ## Using the library
 
