@@ -3,5 +3,6 @@ cmake ..
 cmake --build .
 cd tests
 ctest --rerun-failed --output-on-failure
-cd ../src
-python -m pytest ../../tests/python
+cd ../../tests/python
+ln -sf ../../python/pythonmonkey .
+python -m pytest .
