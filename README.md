@@ -56,12 +56,13 @@ this package to execute our complex `dcp-client` library, which is written in JS
     - rust
     - python3.9 or later
     - spidermonkey 102.2.0 or later
+    - [Poetry](https://python-poetry.org/docs/#installation)
 
-2. Compile pythonmonkey in ``/build`` (which can be done automatically by running ``./build_script.sh``)
+2. Run `poetry install`. This command automatically compiles the project and installs the project as well as all Python dependencies to the poetry virtualenv.
 
 ## Running tests
 1. Compile the project 
-2. From the root directory, run `./test_script.sh`
+2. From the root directory, run `poetry run pytest ./tests/python`
 
 ## Using the library
 
