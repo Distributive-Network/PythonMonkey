@@ -79,8 +79,7 @@ pip install pythonmonkey
 `pythonmonkey` is available in the poetry virtualenv once you compiled the project using poetry.
 
 ```bash
-# In the directory containg pythonmonkey.so
-$ poetry run python
+poetry run python
 ```
 ```py
 Python 3.10.6 (main, Nov 14 2022, 16:10:14) [GCC 11.3.0] on linux
