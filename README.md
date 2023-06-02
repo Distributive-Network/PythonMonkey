@@ -66,13 +66,21 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 ## Using the library
 
-### Method 1
-After compiling the project in the `build/src` folder you will find a `.so` file named `pythonmonkey.so`. This is the shared object file that contains the pythonmonkey module.
+### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
 
-If you wish to use the library you can simply copy the `.so` file into the directory that you wish to use python in.
+> PythonMonkey is not release-ready yet. Our first public release is scheduled for mid-June 2023.
+
+```bash
+pip install pythonmonkey
+```
+
+### Use local version
+
+`pythonmonkey` is available in the poetry virtualenv once you compiled the project using poetry.
+
 ```bash
 # In the directory containg pythonmonkey.so
-$ python
+$ poetry run python
 ```
 ```py
 Python 3.10.6 (main, Nov 14 2022, 16:10:14) [GCC 11.3.0] on linux
@@ -82,3 +90,5 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> hello()
 'Hello from Spidermonkey!'
 ```
+
+Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`.
