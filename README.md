@@ -90,4 +90,4 @@ Type "help", "copyright", "credits" or "license" for more information.
 'Hello from Spidermonkey!'
 ```
 
-Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`.
+Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.
