@@ -71,7 +71,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
 > PythonMonkey is not release-ready yet. Our first public release is scheduled for mid-June 2023.
 
 ```bash
-pip install pythonmonkey
+$ pip install pythonmonkey
 ```
 
 ### Use local version
@@ -79,7 +79,7 @@ pip install pythonmonkey
 `pythonmonkey` is available in the poetry virtualenv once you compiled the project using poetry.
 
 ```bash
-poetry run python
+$ poetry run python
 ```
 ```py
 Python 3.10.6 (main, Nov 14 2022, 16:10:14) [GCC 11.3.0] on linux
