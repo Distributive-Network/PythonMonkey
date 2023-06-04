@@ -23,6 +23,8 @@
 // https://github.com/python/cpython/blob/8de607a/Objects/unicodeobject.c#L130-L154
 #define PY_UNICODE_OBJECT_DATA_ANY(op)    (PY_UNICODE_OBJECT_CAST(op)->data.any)
 #define PY_UNICODE_OBJECT_DATA_UCS2(op)   (PY_UNICODE_OBJECT_CAST(op)->data.ucs2)
+#define PY_UNICODE_OBJECT_HASH(op)        (PY_ASCII_OBJECT_CAST(op)->hash)
+#define PY_UNICODE_OBJECT_STATE(op)       (PY_ASCII_OBJECT_CAST(op)->state)
 #define PY_UNICODE_OBJECT_KIND(op)        (PY_ASCII_OBJECT_CAST(op)->state.kind)
 #define PY_UNICODE_OBJECT_LENGTH(op)      (PY_ASCII_OBJECT_CAST(op)->length)
 #if PY_UNICODE_HAS_WSTR
@@ -30,6 +32,28 @@
   #define PY_UNICODE_OBJECT_WSTR_LENGTH(op) (PY_COMPACT_UNICODE_OBJECT_CAST(op)->wstr_length)
   #define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
 #endif
+
+static PyObject *PyLegacyUnicode_New(Py_ssize_t length) {
+#if PY_UNICODE_HAS_WSTR
+  return _PyUnicode_New(length);
+#else
+  PyUnicodeObject *unicode = PyObject_New(PyUnicodeObject, &PyUnicode_Type);
+  if (unicode == NULL)
+    return NULL;
+
+  // _PyUnicode_WSTR_LENGTH(unicode) = length;
+  PY_UNICODE_OBJECT_HASH(unicode) = -1;
+  PY_UNICODE_OBJECT_STATE(unicode).interned = 0;
+  PY_UNICODE_OBJECT_STATE(unicode).kind = 0;
+  PY_UNICODE_OBJECT_STATE(unicode).compact = 0;
+  // PY_UNICODE_OBJECT_STATE(unicode).ready = 0;
+  PY_UNICODE_OBJECT_STATE(unicode).ascii = 0;
+  PY_UNICODE_OBJECT_DATA_ANY(unicode) = NULL;
+  PY_UNICODE_OBJECT_LENGTH(unicode) = 0;
+
+  return (PyObject *)unicode;
+#endif
+}
 
 StrType::StrType(PyObject *object) : PyType(object) {}
 
@@ -41,7 +65,7 @@ StrType::StrType(JSContext *cx, JSString *str) {
   PyObject *p;
 
   size_t length = JS::GetLinearStringLength(lstr);
-  pyObject = PyUnicode_FromStringAndSize(NULL, length);
+  pyObject = PyLegacyUnicode_New(length);
 
   Py_XINCREF(pyObject);
 
