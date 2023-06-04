@@ -20,7 +20,9 @@
 #define PY_COMPACT_UNICODE_OBJECT_CAST(op) ((PyCompactUnicodeObject *)(op))
 #define PY_UNICODE_OBJECT_CAST(op) ((PyUnicodeObject *)(op))
 
-// https://github.com/python/cpython/blob/8de607a/Objects/unicodeobject.c#L130-L154
+// https://github.com/python/cpython/blob/8de607a/Objects/unicodeobject.c#L114-L154
+#define PY_UNICODE_OBJECT_UTF8(op)        (PY_COMPACT_UNICODE_OBJECT_CAST(op)->utf8)
+#define PY_UNICODE_OBJECT_UTF8_LENGTH(op) (PY_COMPACT_UNICODE_OBJECT_CAST(op)->utf8_length)
 #define PY_UNICODE_OBJECT_DATA_ANY(op)    (PY_UNICODE_OBJECT_CAST(op)->data.any)
 #define PY_UNICODE_OBJECT_DATA_UCS2(op)   (PY_UNICODE_OBJECT_CAST(op)->data.ucs2)
 #define PY_UNICODE_OBJECT_HASH(op)        (PY_ASCII_OBJECT_CAST(op)->hash)
@@ -41,15 +43,14 @@ static PyObject *PyLegacyUnicode_New(Py_ssize_t length) {
   if (unicode == NULL)
     return NULL;
 
-  // _PyUnicode_WSTR_LENGTH(unicode) = length;
+  // Initialize as legacy string
+  // https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L1230-L1245
   PY_UNICODE_OBJECT_HASH(unicode) = -1;
   PY_UNICODE_OBJECT_STATE(unicode).interned = 0;
-  PY_UNICODE_OBJECT_STATE(unicode).kind = 0;
   PY_UNICODE_OBJECT_STATE(unicode).compact = 0;
-  // PY_UNICODE_OBJECT_STATE(unicode).ready = 0;
   PY_UNICODE_OBJECT_STATE(unicode).ascii = 0;
-  PY_UNICODE_OBJECT_DATA_ANY(unicode) = NULL;
-  PY_UNICODE_OBJECT_LENGTH(unicode) = 0;
+  PY_UNICODE_OBJECT_UTF8(unicode) = NULL;
+  PY_UNICODE_OBJECT_UTF8_LENGTH(unicode) = 0;
 
   return (PyObject *)unicode;
 #endif
