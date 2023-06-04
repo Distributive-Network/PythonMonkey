@@ -47,6 +47,8 @@ StrType::StrType(JSContext *cx, JSString *str) {
   size_t length = JS::GetLinearStringLength(lstr);
 
   pyObject = (PyObject *)PyObject_New(PyUnicodeObject, &PyUnicode_Type); // new reference
+  Py_INCREF(pyObject); // XXX: Why?
+
   // Initialize as legacy string (https://github.com/python/cpython/blob/v3.12.0b1/Include/cpython/unicodeobject.h#L78-L93)
   // see https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L1230-L1245
   PY_UNICODE_OBJECT_HASH(pyObject) = -1;
