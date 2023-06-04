@@ -35,27 +35,6 @@
   #define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
 #endif
 
-static PyObject *PyLegacyUnicode_New(Py_ssize_t length) {
-#if PY_UNICODE_HAS_WSTR
-  return _PyUnicode_New(length);
-#else
-  PyUnicodeObject *unicode = PyObject_New(PyUnicodeObject, &PyUnicode_Type);
-  if (unicode == NULL)
-    return NULL;
-
-  // Initialize as legacy string
-  // https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L1230-L1245
-  PY_UNICODE_OBJECT_HASH(unicode) = -1;
-  PY_UNICODE_OBJECT_STATE(unicode).interned = 0;
-  PY_UNICODE_OBJECT_STATE(unicode).compact = 0;
-  PY_UNICODE_OBJECT_STATE(unicode).ascii = 0;
-  PY_UNICODE_OBJECT_UTF8(unicode) = NULL;
-  PY_UNICODE_OBJECT_UTF8_LENGTH(unicode) = 0;
-
-  return (PyObject *)unicode;
-#endif
-}
-
 StrType::StrType(PyObject *object) : PyType(object) {}
 
 StrType::StrType(char *string) : PyType(Py_BuildValue("s", string)) {}
@@ -66,13 +45,16 @@ StrType::StrType(JSContext *cx, JSString *str) {
   PyObject *p;
 
   size_t length = JS::GetLinearStringLength(lstr);
-  pyObject = PyLegacyUnicode_New(length);
 
-  Py_XINCREF(pyObject);
-
-  // need to free memory malloc'd by PyUnicodeObject, otherwise when we change the pointer,
-  // python will eventually attempt to free our new pointer that was never malloc'd
-  free(PY_UNICODE_OBJECT_DATA_ANY(pyObject));
+  pyObject = (PyObject *)PyObject_New(PyUnicodeObject, &PyUnicode_Type); // new reference
+  // Initialize as legacy string (https://github.com/python/cpython/blob/v3.12.0b1/Include/cpython/unicodeobject.h#L78-L93)
+  // see https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L1230-L1245
+  PY_UNICODE_OBJECT_HASH(pyObject) = -1;
+  PY_UNICODE_OBJECT_STATE(pyObject).interned = 0;
+  PY_UNICODE_OBJECT_STATE(pyObject).compact = 0;
+  PY_UNICODE_OBJECT_STATE(pyObject).ascii = 0;
+  PY_UNICODE_OBJECT_UTF8(pyObject) = NULL;
+  PY_UNICODE_OBJECT_UTF8_LENGTH(pyObject) = 0;
 
   if (JS::LinearStringHasLatin1Chars(lstr)) { // latin1 spidermonkey, latin1 python
     const JS::Latin1Char *chars = JS::GetLatin1LinearStringChars(nogc, lstr);
