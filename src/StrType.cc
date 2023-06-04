@@ -78,22 +78,6 @@ const char *StrType::getValue() const {
   return PyUnicode_AsUTF8(pyObject);
 }
 
-bool StrType::containsSurrogatePair() {
-  if (PY_UNICODE_OBJECT_KIND(pyObject) != PyUnicode_2BYTE_KIND) { // if the string is not UCS2-encoded
-    return false;
-  }
-
-  Py_UCS2 *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
-  ssize_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
-
-  for (size_t i = 0; i < length; i++) {
-    if (chars[i] >= HIGH_SURROGATE_START && chars[i] <= HIGH_SURROGATE_END && chars[i+1] >= LOW_SURROGATE_START && chars[i+1] <= LOW_SURROGATE_END) {
-      return true;
-    }
-    return false;
-  }
-}
-
 PyObject *StrType::asUCS4() {
   uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
   ssize_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
