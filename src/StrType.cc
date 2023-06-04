@@ -14,13 +14,18 @@
 #define LOW_SURROGATE_START 0xDC00
 #define LOW_SURROGATE_END 0xDFFF
 
-#define PY_UNICODE_OBJECT_DATA_ANY(op)    (*(PyUnicodeObject *)op).data.any
-#define PY_UNICODE_OBJECT_DATA_UCS2(op)   (*(PyUnicodeObject *)op).data.ucs2
-#define PY_UNICODE_OBJECT_KIND(op)        (*(PyUnicodeObject *)op)._base._base.state.kind
-#define PY_UNICODE_OBJECT_LENGTH(op)      (*(PyUnicodeObject *)op)._base._base.length
-#define PY_UNICODE_OBJECT_WSTR(op)        (*(PyUnicodeObject *)op)._base._base.wstr
-#define PY_UNICODE_OBJECT_WSTR_LENGTH(op) (*(PyUnicodeObject *)op)._base.wstr_length
-#define PY_UNICODE_OBJECT_READY(op)       (*(PyUnicodeObject *)op)._base._base.state.ready
+#define PY_ASCII_OBJECT_CAST(op) ((PyASCIIObject *)(op))
+#define PY_COMPACT_UNICODE_OBJECT_CAST(op) ((PyCompactUnicodeObject *)(op))
+#define PY_UNICODE_OBJECT_CAST(op) ((PyUnicodeObject *)(op))
+
+// https://github.com/python/cpython/blob/8de607a/Objects/unicodeobject.c#L130-L154
+#define PY_UNICODE_OBJECT_DATA_ANY(op)    (PY_UNICODE_OBJECT_CAST(op)->data.any)
+#define PY_UNICODE_OBJECT_DATA_UCS2(op)   (PY_UNICODE_OBJECT_CAST(op)->data.ucs2)
+#define PY_UNICODE_OBJECT_KIND(op)        (PY_ASCII_OBJECT_CAST(op)->state.kind)
+#define PY_UNICODE_OBJECT_LENGTH(op)      (PY_ASCII_OBJECT_CAST(op)->length)
+#define PY_UNICODE_OBJECT_WSTR(op)        (PY_ASCII_OBJECT_CAST(op)->wstr)
+#define PY_UNICODE_OBJECT_WSTR_LENGTH(op) (PY_COMPACT_UNICODE_OBJECT_CAST(op)->wstr_length)
+#define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
 
 StrType::StrType(PyObject *object) : PyType(object) {}
 
