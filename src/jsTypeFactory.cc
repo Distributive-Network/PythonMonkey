@@ -109,27 +109,14 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
-    /*
-     * import inspect
-     * args = (inspect.getfullargspec(object)).args
-     */
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
     if (PyFunction_Check(object)) {
-      PyObject *const inspect = PyImport_Import(PyUnicode_DecodeFSDefault("inspect"));
-      PyObject *const getfullargspec = PyObject_GetAttrString(inspect, "getfullargspec");
-      PyObject *const getfullargspecArgs = PyTuple_New(1);
-      PyTuple_SetItem(getfullargspecArgs, 0, object);
-      PyObject *const argspec = PyObject_CallObject(getfullargspec, getfullargspecArgs);
-      PyObject *const args = PyObject_GetAttrString(argspec, "args");
-      nargs = PyList_Size(args);
-      Py_DECREF(inspect);
-      Py_DECREF(getfullargspec);
-      Py_DECREF(getfullargspecArgs);
-      Py_DECREF(argspec);
-      Py_DECREF(args);
+      // https://docs.python.org/3.11/reference/datamodel.html?highlight=co_argcount
+      PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(object); // borrowed reference
+      nargs = bytecode->co_argcount;
     }
-    
+
     JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
     JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
 
