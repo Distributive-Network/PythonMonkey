@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+#define PY_UNICODE_HAS_WSTR (PY_VERSION_HEX < 0x030c0000) // Python version is less than 3.12
+
 #define HIGH_SURROGATE_START 0xD800
 #define HIGH_SURROGATE_END 0xDBFF
 #define LOW_SURROGATE_START 0xDC00
@@ -23,9 +25,11 @@
 #define PY_UNICODE_OBJECT_DATA_UCS2(op)   (PY_UNICODE_OBJECT_CAST(op)->data.ucs2)
 #define PY_UNICODE_OBJECT_KIND(op)        (PY_ASCII_OBJECT_CAST(op)->state.kind)
 #define PY_UNICODE_OBJECT_LENGTH(op)      (PY_ASCII_OBJECT_CAST(op)->length)
-#define PY_UNICODE_OBJECT_WSTR(op)        (PY_ASCII_OBJECT_CAST(op)->wstr)
-#define PY_UNICODE_OBJECT_WSTR_LENGTH(op) (PY_COMPACT_UNICODE_OBJECT_CAST(op)->wstr_length)
-#define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
+#if PY_UNICODE_HAS_WSTR
+  #define PY_UNICODE_OBJECT_WSTR(op)        (PY_ASCII_OBJECT_CAST(op)->wstr)
+  #define PY_UNICODE_OBJECT_WSTR_LENGTH(op) (PY_COMPACT_UNICODE_OBJECT_CAST(op)->wstr_length)
+  #define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
+#endif
 
 StrType::StrType(PyObject *object) : PyType(object) {}
 
@@ -51,9 +55,11 @@ StrType::StrType(JSContext *cx, JSString *str) {
     PY_UNICODE_OBJECT_DATA_ANY(pyObject) = (void *)chars;
     PY_UNICODE_OBJECT_KIND(pyObject) = PyUnicode_1BYTE_KIND;
     PY_UNICODE_OBJECT_LENGTH(pyObject) = length;
+  #if PY_UNICODE_HAS_WSTR
     PY_UNICODE_OBJECT_WSTR(pyObject) = NULL;
     PY_UNICODE_OBJECT_WSTR_LENGTH(pyObject) = 0;
     PY_UNICODE_OBJECT_READY(pyObject) = 1;
+  #endif
   }
   else { // utf16 spidermonkey, ucs2 python
     const char16_t *chars = JS::GetTwoByteLinearStringChars(nogc, lstr);
@@ -62,6 +68,7 @@ StrType::StrType(JSContext *cx, JSString *str) {
     PY_UNICODE_OBJECT_KIND(pyObject) = PyUnicode_2BYTE_KIND;
     PY_UNICODE_OBJECT_LENGTH(pyObject) = length;
 
+  #if PY_UNICODE_HAS_WSTR
     // python unicode objects take advantage of a possible performance gain on systems where
     // sizeof(wchar_t) == 2, i.e. Windows systems if the string is using UCS2 encoding by setting the
     // wstr pointer to point to the same data as the data.any pointer.
@@ -76,6 +83,7 @@ StrType::StrType(JSContext *cx, JSString *str) {
       PY_UNICODE_OBJECT_WSTR_LENGTH(pyObject) = 0;
     }
     PY_UNICODE_OBJECT_READY(pyObject) = 1;
+  #endif
   }
 }
 
