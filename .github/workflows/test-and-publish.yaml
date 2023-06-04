@@ -31,6 +31,8 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y cmake doxygen graphviz gcovr llvm
           echo "Installing python deps"
+          poetry run pip install numpy # errors with `Backend 'setuptools.build_meta:__legacy__' is not available` 
+                                       # on Python 3.12 if installs by `poetry install`
           poetry install --no-root
           echo "Installed Dependencies"
       - name: Cache spidermonkey build
