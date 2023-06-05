@@ -26,6 +26,41 @@
 
 static const char HEX_CHAR_LOOKUP_TABLE[] = "0123456789ABCDEF";
 
+/**
+ * @brief Set the sign bit of a Python int
+ * PyLongObject is no longer an extension of PyVarObject struct in Python 3.12+, so we have to handle them differently.
+ * @see Compare https://github.com/python/cpython/blob/v3.12.0b1/Include/cpython/longintrepr.h#L82-L90 and https://github.com/python/cpython/blob/v3.11.3/Include/cpython/longintrepr.h#L82-L85
+ * @param op - the Python int object
+ * @param sign - -1 (negative), 0 (zero), or 1 (positive)
+ */
+static inline void PythonLong_SetSign(PyLongObject *op, int sign) {
+#ifdef _PyLong_SIGN_MASK // Python 3.12+
+  // see https://github.com/python/cpython/blob/v3.12.0b1/Include/internal/pycore_long.h#L214-L239
+  op->long_value.lv_tag &= ~_PyLong_SIGN_MASK; // clear sign bits
+  op->long_value.lv_tag |= (1-sign) & _PyLong_SIGN_MASK; // set the new sign bits value
+#else // Python version is less than 3.12
+  // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L956
+  ssize_t pyDigitCount = Py_SIZE(op);
+  Py_SET_SIZE(op, sign * pyDigitCount);
+#endif
+}
+
+/**
+ * @brief Test if the Python int is negative
+ */
+static inline bool PythonLong_IsNegative(const PyLongObject *op) {
+#ifdef _PyLong_SIGN_MASK // Python 3.12+
+  // see https://github.com/python/cpython/blob/v3.12.0b1/Include/internal/pycore_long.h#L163-L167
+  #define _PyLong_SIGN_NEGATIVE 2; // Sign bits value = (1-sign), ie. negative=2, positive=0, zero=1.
+                                   // https://github.com/python/cpython/blob/v3.12.0b1/Include/internal/pycore_long.h#L111-L118
+  return (op->long_value.lv_tag & _PyLong_SIGN_MASK) == _PyLong_SIGN_NEGATIVE;
+#else // Python version is less than 3.12
+  // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L977
+  ssize_t pyDigitCount = Py_SIZE(pyObject); // negative on negative numbers
+  return pyDigitCount < 0;
+#endif
+}
+
 IntType::IntType(PyObject *object) : PyType(object) {}
 
 IntType::IntType(long n) : PyType(Py_BuildValue("i", n)) {}
@@ -67,10 +102,8 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   Py_DECREF(pyIntObj);
 
   // Set the sign bit
-  //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L956
   if (isNegative) {
-    ssize_t pyDigitCount = Py_SIZE(pyObject);
-    Py_SET_SIZE(pyObject, -pyDigitCount);
+    PythonLong_SetSign((PyLongObject *)pyObject, -1);
   }
 }
 
@@ -82,13 +115,10 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
     return nullptr;
   uint32_t jsDigitCount = bitCount == 0 ? 1 : (bitCount - 1) / JS_DIGIT_BIT + 1;
   // Get the sign bit
-  //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L977
-  ssize_t pyDigitCount = Py_SIZE(pyObject); // negative on negative numbers
-  bool isNegative = pyDigitCount < 0;
+  bool isNegative = PythonLong_IsNegative((PyLongObject *)pyObject);
   // Force to make the number positive otherwise _PyLong_AsByteArray would complain
-  //    see https://github.com/python/cpython/blob/3.9/Objects/longobject.c#L980
   if (isNegative) {
-    Py_SET_SIZE(pyObject, /*abs()*/ -pyDigitCount);
+    PythonLong_SetSign((PyLongObject *)pyObject, 1);
   }
 
   JS::BigInt *bigint = nullptr;
@@ -122,8 +152,7 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
 
   if (isNegative) {
     // Make negative number back negative
-    // TODO (Tom Tang): use _PyLong_Copy to create a new object. Not thread-safe here
-    Py_SET_SIZE(pyObject, pyDigitCount);
+    PythonLong_SetSign((PyLongObject *)pyObject, -1);
 
     // Set the sign bit
     // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l1801
