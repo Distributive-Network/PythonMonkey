@@ -24,7 +24,8 @@ pytest = "^7.3.1"
 pip = "^23.1.2"
 numpy = [
   # numpy hasn't packaged for Python 3.12 yet
-  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-linux_x86_64.whl", python = "^3.12.0b1"},
+  # TODO: remove this once numpy releases for Python 3.12
+  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-linux_x86_64.whl", python = "3.12.*"},
   {version = "^1.24.3", python = "<3.12"},
 ]
 
