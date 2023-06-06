@@ -5,13 +5,12 @@ stub file for type hints & documentations for the native module
 
 import typing as _typing
 
-@_typing.overload
+# pylint: disable=redefined-builtin
 def eval(code: str) -> _typing.Any:
     """
     JavaScript evaluator in Python
     """
 
-@_typing.overload
 def collect() -> None:
     """
     Calls the spidermonkey garbage collector
