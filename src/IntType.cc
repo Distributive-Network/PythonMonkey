@@ -56,7 +56,7 @@ static inline bool PythonLong_IsNegative(const PyLongObject *op) {
   return (op->long_value.lv_tag & _PyLong_SIGN_MASK) == _PyLong_SIGN_NEGATIVE;
 #else // Python version is less than 3.12
   // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L977
-  ssize_t pyDigitCount = Py_SIZE(pyObject); // negative on negative numbers
+  ssize_t pyDigitCount = Py_SIZE(op); // negative on negative numbers
   return pyDigitCount < 0;
 #endif
 }
