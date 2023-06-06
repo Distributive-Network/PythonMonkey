@@ -41,7 +41,7 @@ static inline void PythonLong_SetSign(PyLongObject *op, int sign) {
 #else // Python version is less than 3.12
   // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L956
   ssize_t pyDigitCount = Py_SIZE(op);
-  Py_SET_SIZE(op, sign * pyDigitCount);
+  Py_SET_SIZE(op, sign * std::abs(pyDigitCount));
 #endif
 }
 
