@@ -30,6 +30,8 @@ void setSpiderMonkeyException(JSContext *cx) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
     return;
   }
+  JS_ClearPendingException(cx);
+
   JS::ErrorReportBuilder reportBuilder(cx);
   if (!reportBuilder.init(cx, exceptionStack, JS::ErrorReportBuilder::WithSideEffects /* may call the `toString` method if an object is thrown */)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but could not initialize the error report.");
