@@ -23,6 +23,8 @@ def asUCS4(utf16_str: str) -> str:
     Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4.
     Undefined behaviour if the string is not in UTF16.
     """
+@_typing.overload
+def asUCS4(anything_else: _typing.Any) -> _typing.NoReturn: ...
 
 class bigint(int):
     """
