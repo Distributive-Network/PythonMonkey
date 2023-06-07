@@ -28,7 +28,13 @@ cp ./configure.in ./configure
 chmod +x ./configure
 mkdir -p _build
 cd _build
-../configure --disable-jemalloc --with-system-zlib --with-intl-api --enable-optimize --prefix=$(realpath $PWD/../../../../_spidermonkey_install)
+../configure \
+  --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
+  --with-intl-api \
+  --with-system-zlib \
+  --disable-jemalloc \
+  --disable-debug-symbols \
+  --enable-optimize 
 make -j$CPUS
 echo "Done building spidermonkey"
 
