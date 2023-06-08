@@ -80,6 +80,10 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
   else if (rval->isObject()) {
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
+    if (JS::GetClass(obj)->isProxyObject()) {
+      // @TODO (Caleb Aikens) need to determine if this is one of OUR ProxyObjects somehow
+      // consider putting a special value in one of the private slots when creating a PyProxyHandler
+    }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
     switch (cls) {
@@ -117,18 +121,17 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *global, JS::Rooted<
         memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
         return s;
       }
-    case js::ESClass::Object: {
-        // this is a generic non-boxing object
-        return new DictType(cx, *rval);
-      }
-    default: {
-        printf("objects of this type are not handled by PythonMonkey yet");
-      }
     }
+    return new DictType(cx, *rval);
   }
   else if (rval->isMagic()) {
     printf("magic type is not handled by PythonMonkey yet");
   }
+
+  std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");
+  JS::RootedString str(cx, rval->toString());
+  errorString += JS_EncodeStringToUTF8(cx, str).get();
+  PyErr_SetString(PyExc_TypeError, errorString.c_str());
 }
 
 static PyObject *callJSFunc(PyObject *JSCxGlobalFuncTuple, PyObject *args) {

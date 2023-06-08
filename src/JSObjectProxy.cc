@@ -24,13 +24,19 @@ JSContext *cx; /**< pointer to PythonMonkey's JSContext */
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
-  Py_TYPE(self)->tp_free((PyObject *)self);
+  if (Py_TYPE(self)->tp_free) {
+    Py_TYPE(self)->tp_free((PyObject *)self);
+  }
+  else {
+    Py_TYPE(self)->tp_base->tp_free((PyObject *)self);
+  }
+
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
   JSObjectProxy *self;
-  self = (JSObjectProxy *)type->tp_alloc(type, 0);
+  self = (JSObjectProxy *)type->tp_base->tp_alloc(type, 0);
   if (!self)
   {
     Py_DECREF(self);
@@ -47,7 +53,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
   }
 
   PyObject *dict = NULL;
-  if (PyTuple_Size(args) == 0) {
+  if (PyTuple_Size(args) == 0 || Py_IsNone(PyTuple_GetItem(args, 0))) {
     // make fresh JSObject for proxy
     self->jsObject.set(JS_NewObject(cx, NULL));
     return 0;
@@ -188,14 +194,13 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_set_helper(JS::HandleObject j
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare(JSObjectProxy *self, PyObject *other, int op)
 {
-
-  bool isEqual = true;
+  if (op != Py_EQ && op != Py_NE) {
+    Py_RETURN_NOTIMPLEMENTED;
+  }
 
   std::unordered_map<PyObject *, PyObject *> visited;
-  visited.insert({{(PyObject *)self, other}});
 
-  isEqual = Py_IsTrue(JSObjectProxy_richcompare_helper(self, other, op, visited));
-
+  bool isEqual = JSObjectProxy_richcompare_helper(self, other, visited);
   switch (op)
   {
   case Py_EQ:
@@ -203,14 +208,24 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare(JSObjectProx
   case Py_NE:
     return PyBool_FromLong(!isEqual);
   default:
-    Py_RETURN_NOTIMPLEMENTED;
+    return NULL;
   }
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, int op, std::unordered_map<PyObject *, PyObject *> &visited)
+bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited)
 {
-  bool isEqual = true;
+  if (!(Py_TYPE(other)->tp_iter) && !PySequence_Check(other) & !PyMapping_Check(other)) { // if other is not a container
+    return false;
+  }
 
+  if ((visited.find((PyObject *)self) != visited.end() && visited[(PyObject *)self] == other) ||
+      (visited.find((PyObject *)other) != visited.end() && visited[other] == (PyObject *)self)
+  ) // if we've already compared these before, skip
+  {
+    return true;
+  }
+
+  visited.insert({{(PyObject *)self, other}});
   JS::RootedIdVector props(cx);
   if (!js::GetPropertyKeys(cx, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
   {
@@ -224,79 +239,39 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObj
     JS::HandleId id = props[i];
     JS::RootedValue *key = new JS::RootedValue(cx);
     key->setString(id.toString());
+
     JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
     PyObject *pyKey = pyTypeFactory(cx, global, key)->getPyObject();
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
-
-    auto pair = visited.find(pyVal1);
-    if (pair->first == (PyObject *)self && pair->second == other)
-    {
-      continue;
+    if (!pyVal2) { // if other.key is NULL then not equal
+      return false;
     }
-    visited.insert({{pyVal1, pyVal2}});
-
-    if (Py_TYPE(pyVal1) == &JSObjectProxyType)
-    {
-      if (Py_IsFalse(JSObjectProxy_richcompare_helper((JSObjectProxy *)pyVal1, pyVal2, op, visited)))
+    if (pyVal1 && Py_TYPE(pyVal1) == &JSObjectProxyType) { // if either subvalue is a JSObjectProxy, we need to pass around our visited map
+      if (!JSObjectProxy_richcompare_helper((JSObjectProxy *)pyVal1, pyVal2, visited))
       {
-        isEqual = false;
-        break;
+        return false;
       }
     }
-    else if (Py_TYPE(pyVal2) == &JSObjectProxyType) {
-      if (Py_IsFalse(JSObjectProxy_richcompare_helper((JSObjectProxy *)pyVal2, pyVal1, op, visited)))
+    else if (pyVal2 && Py_TYPE(pyVal2) == &JSObjectProxyType) {
+      if (!JSObjectProxy_richcompare_helper((JSObjectProxy *)pyVal2, pyVal1, visited))
       {
-        isEqual = false;
-        break;
+        return false;
       }
     }
-    else if (Py_IsFalse(PyObject_RichCompare(pyVal1, pyVal2, Py_EQ)))
-    {
-      isEqual = false;
-      break;
+    else if (Py_IsFalse(PyObject_RichCompare(pyVal1, pyVal2, Py_EQ))) {
+      return false;
     }
   }
 
-  switch (op)
-  {
-  case Py_EQ:
-    return PyBool_FromLong(isEqual);
-  case Py_NE:
-    return PyBool_FromLong(!isEqual);
-  default:
-    Py_RETURN_NOTIMPLEMENTED;
-  }
+  return true;
 }
 
-/* @TODO (Caleb Aikens)
-   DONE '__delitem__', # mp_ass_subscript, Deletes Key if present, raises KeyError otherwise
-   DONE '__doc__', # tp_doc, class documentation string
-   DONE '__eq__', #  tp_richcompare, returns whether this is equal to argument
-   DONE '__ne__', # tp_richcompare, inverse of __eq__
-   DONE '__getitem__', #  mp_subscript, Gets value of given Key if present, raises KeyError otherwise
-   DONE '__init__', # tp_init, initialization function, don't think we need this
-   '__iter__', # tp_iter, returns an iterator object for this dict
-   DONE '__len__', # mp_length, returns number of keys
-   DONE '__new__', # tp_new, constructor
-   '__ior__', # nb_inplace_or, returns union of this and argument if argument is a dict
-   '__or__', # nb_or, same as above(?)
-   '__ror__', # same as above
-   '__repr__', #tp_repr, returns unambiguous string representation of this
-   DONE '__setitem__', # mp_ass_subscript, Sets given key and value
-   '__str__', # tp_str, returns human readable string representation of this
+int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg) {
+  // @TODO (Caleb Aikens) currently python segfaults on exit if there are any JSObjectProxys yet to be deleted, this needs to be fixed
+  return Py_TYPE(self)->tp_base->tp_traverse((PyObject *)self, visit, arg);
+}
 
- # These may already internally call the __dunder__ methods above, so dont implement unless you have to
-   'clear', # Deletes all key-value pairs
-   'copy', # Returns a copy of this
-   'fromkeys', # First arg is iterable specifying keys of the new dictionary, second arg is the value all of the keys will have (None by default). Creates a new dict
-   'get', # Returns value of given key
-   'items', # Returns a list containing a tuple for each key-value pair
-   'keys', # Returns a list of keys
-   'pop', # Deletes the given key
-   'popitem', # Deletes the most recently added key
-   'setdefault', # Sets the key-value if it doesn't exist, and returns the value of the given key
-   'update', # Takes a dict or iterable containing key-value pairs, and sets the keys of this
-   'values' # Returns a list of values
- */
-// https://docs.python.org/3/c-api/typeobj.html
+int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self) {
+  return Py_TYPE(self)->tp_base->tp_clear((PyObject *)self);
+}

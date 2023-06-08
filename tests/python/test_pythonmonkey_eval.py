@@ -621,3 +621,33 @@ def test_eval_objects_proxy_has():
     f = pm.eval("(obj) => { return 'a' in obj }")
     pyObj = {'a': 42.0}
     assert(f(pyObj))
+
+def test_eval_objects_jsproxy_get():
+  proxy = pm.eval("({a: 1})")
+  assert 1.0 == proxy['a']
+  assert 1.0 == proxy.a
+
+def test_eval_objects_jsproxy_set():
+  proxy = pm.eval("({a: 1})")
+  proxy.a = 2.0
+  assert 2.0 == proxy['a']
+  proxy['a'] = 3.0
+  assert 3.0 == proxy.a
+  proxy.b = 1.0
+  assert 1.0 == proxy['b']
+  proxy['b'] = 2.0
+  assert 2.0 == proxy.b
+
+def test_eval_objects_jsproxy_length():
+  proxy = pm.eval("({a: 1, b:2})")
+  assert 2 == len(proxy)
+
+def test_eval_objects_jsproxy_delete():
+  proxy = pm.eval("({a: 1})")
+  del proxy.a
+  assert None == proxy.a
+  assert None == proxy['a']
+
+def test_eval_objects_jsproxy_compare():
+  proxy = pm.eval("({a: 1, b:2})")
+  assert proxy == {'a': 1.0, 'b': 2.0}

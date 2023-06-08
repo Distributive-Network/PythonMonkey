@@ -14,6 +14,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
+#include "include/JSObjectProxy.hh"
 #include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
@@ -142,6 +143,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
 
   }
+  else if (Py_TYPE(object) == &JSObjectProxyType) {
+    returnType.setObject(*((JSObjectProxy *)object)->jsObject);
+  }
   else if (PyDict_Check(object)) {
     PyProxyHandler *proxyHandler = new PyProxyHandler(object);
     JS::RootedValue v(cx);
@@ -155,7 +159,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, function, int, pythonmonkey.bigint, pythonmonkey.null, float, str, and None are not supported by pythonmonkey yet.");
+    std::string errorString("pythonmonkey cannot yet convert python objects of type: ");
+    errorString += Py_TYPE(object)->tp_name;
+    PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
 
