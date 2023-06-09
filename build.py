@@ -1,7 +1,9 @@
 import subprocess
 import os, sys
+import platform
 
 dir_path = os.path.dirname( os.path.realpath(__file__) )
+system = platform.system()
 
 
 def execute(cmd: str):
@@ -20,7 +22,12 @@ def build():
     build_script_sh = os.path.join( dir_path, 'build_script.sh' )
     execute(f"bash {build_script_sh}")
     execute("cp ./build/src/pythonmonkey.so ./python/pythonmonkey/")
-    execute("cp ./_spidermonkey_install/lib/libmozjs-102.so ./python/pythonmonkey/")
+    if system == "Linux":
+        execute("cp ./_spidermonkey_install/lib/libmozjs-102.so ./python/pythonmonkey/")
+    elif system == "Darwin":
+        execute("cp ./_spidermonkey_install/lib/libmozjs-102.dylib ./python/pythonmonkey/")
+    else: # system == "Windows"
+        raise NotImplementedError("Windows is not supported yet.")
 
 if __name__ == "__main__":
     build()
