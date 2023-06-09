@@ -7,8 +7,17 @@ IFS=$'\n\t'
 CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
 
 echo "Installing dependencies"
-sudo apt-get update --yes
-sudo apt-get install cmake doxygen graphviz gcovr llvm g++ pkg-config m4 --yes
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
+  sudo apt-get update --yes
+  sudo apt-get install cmake doxygen graphviz gcovr llvm g++ pkg-config m4 --yes
+elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+  brew update
+  brew install cmake doxygen graphviz gcovr llvm pkg-config coreutils # `coreutils` installs the `realpath` command
+  brew unlink python # don't use brew-installed python, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
+else
+  echo "Unsupported OS"
+  exit 1
+fi
 sudo curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
 echo "Done installing dependencies"
 
