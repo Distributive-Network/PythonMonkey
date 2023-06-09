@@ -8,7 +8,6 @@ CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/
 
 echo "Installing dependencies"
 sudo apt-get update --yes
-sudo apt-get upgrade --yes
 sudo apt-get install cmake doxygen graphviz gcovr llvm g++ pkg-config m4 --yes
 sudo curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
 echo "Done installing dependencies"
