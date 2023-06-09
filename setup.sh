@@ -19,11 +19,11 @@ tar xf firefox-102.11.0esr.source.tar.xz -C firefox-source --strip-components=1 
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
-cd firefox-source/js
+cd firefox-source
 # making it work for both GNU and BSD (macOS) versions of sed
-sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
-sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./src/vm/JSObject.cpp  # same here
-cd src
+sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
+sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
+cd js/src
 cp ./configure.in ./configure
 chmod +x ./configure
 mkdir -p _build
