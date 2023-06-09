@@ -34,7 +34,7 @@ cd _build
   --with-system-zlib \
   --disable-jemalloc \
   --disable-debug-symbols \
-  --disable-js-shell --disable-tests \
+  --disable-tests \
   --enable-optimize 
 make -j$CPUS
 echo "Done building spidermonkey"
