@@ -20,8 +20,9 @@ echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
 cd firefox-source/js
-sed -i 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
-sed -i 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./src/vm/JSObject.cpp  # same here
+# making it work for both GNU and BSD (macOS) versions of sed
+sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
+sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./src/vm/JSObject.cpp  # same here
 cd src
 cp ./configure.in ./configure
 chmod +x ./configure
