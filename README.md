@@ -48,12 +48,11 @@ this package to execute our complex `dcp-client` library, which is written in JS
 1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
     - cmake
     - doxygen 
-    - python3-dev (python-dev)
     - graphviz
     - gcovr
     - llvm
     - rust
-    - python3.8 or later
+    - python3.8 or later with header files (python3-dev)
     - spidermonkey 102.2.0 or later
     - [Poetry](https://python-poetry.org/docs/#installation)
 
