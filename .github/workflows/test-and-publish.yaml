@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8
-        os: [ 'ubuntu-20.04' ] # , 'windows-latest', 'macos-latest' ]
+        os: [ 'ubuntu-20.04', 'macos-12' ] # , 'windows-latest' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -29,8 +29,14 @@ jobs:
       - name: Setup cmake
         run: |
           echo "Installing Dependencies"
-          sudo apt-get update -y
-          sudo apt-get install -y cmake doxygen graphviz gcovr llvm
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
+            sudo apt-get update -y
+            sudo apt-get install -y cmake doxygen graphviz gcovr llvm
+          elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+            brew update
+            brew install cmake doxygen graphviz gcovr llvm pkg-config wget coreutils
+            brew unlink python # don't use brew-installed python, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
+          fi
           echo "Installing python deps"
           poetry install --no-root
           echo "Installed Dependencies"
