@@ -46,7 +46,6 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 ## Build Instructions
 1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
-    - pytest
     - cmake
     - doxygen 
     - python3-dev (python-dev)
