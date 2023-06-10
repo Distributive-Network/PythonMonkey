@@ -13,6 +13,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update
   export HOMEBREW_NO_INSTALL_UPGRADE=1 # don't upgrade outdated brew packages because it might be too slow
+  export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
   brew install cmake doxygen graphviz gcovr llvm pkg-config wget coreutils # `coreutils` installs the `realpath` command
   brew unlink python # don't use brew-installed python, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
 else
