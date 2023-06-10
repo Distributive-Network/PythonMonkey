@@ -162,7 +162,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS_ValueToObject(cx, callargs.thisv(), &thisv);
 
   if (!callargs.length()) {
-    PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
+    PyObject *pyRval = PyObject_CallObject(pyFunc, NULL /* no args */); // PyObject_CallNoArgs is not available in Python 3.8
     // @TODO (Caleb Aikens) need to check for python exceptions here
     callargs.rval().set(jsTypeFactory(cx, pyRval));
     return true;
