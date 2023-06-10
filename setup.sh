@@ -31,6 +31,8 @@ echo "Building spidermonkey"
 cd firefox-source
 # making it work for both GNU and BSD (macOS) versions of sed
 sed -i'' -e 's/os not in ("WINNT", "OSX", "Android")/os not in ("WINNT", "Android")/' ./build/moz.configure/pkg.configure # use pkg-config on macOS
+sed -i'' -e 's/import distutils\.util/class distutils: util = __import__("sysconfig")/' ./third_party/python/packaging/packaging/tags.py # alias distutils.util.get_platform = sysconfig.get_platform, https://stackoverflow.com/a/71665051
+                                                                                                                                         # The `distutils` module is removed in Python 3.12, see https://bugzilla.mozilla.org/show_bug.cgi?id=1774569
 sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
 cd js/src
