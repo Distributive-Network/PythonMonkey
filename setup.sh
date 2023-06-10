@@ -12,8 +12,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   sudo apt-get install cmake doxygen graphviz gcovr llvm g++ pkg-config m4 wget --yes
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update
-  export HOMEBREW_NO_INSTALL_UPGRADE=1 # don't upgrade outdated brew packages because it might be too slow
-  export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
   brew install cmake doxygen graphviz gcovr llvm pkg-config wget coreutils # `coreutils` installs the `realpath` command
   brew unlink python # don't use brew-installed python, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
 else
@@ -33,8 +31,6 @@ echo "Building spidermonkey"
 cd firefox-source
 # making it work for both GNU and BSD (macOS) versions of sed
 sed -i'' -e 's/os not in ("WINNT", "OSX", "Android")/os not in ("WINNT", "Android")/' ./build/moz.configure/pkg.configure # use pkg-config on macOS
-sed -i'' -e 's/import distutils\.util/class distutils: util = __import__("sysconfig")/' ./third_party/python/packaging/packaging/tags.py # alias distutils.util.get_platform = sysconfig.get_platform, https://stackoverflow.com/a/71665051
-                                                                                                                                         # The `distutils` module is removed in Python 3.12, see https://bugzilla.mozilla.org/show_bug.cgi?id=1774569
 sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
 cd js/src

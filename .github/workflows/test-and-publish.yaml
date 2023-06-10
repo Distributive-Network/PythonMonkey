@@ -10,8 +10,38 @@ on:
   workflow_dispatch:
   pull_request:
 
+env:
+  # don't upgrade outdated brew packages because it's too slow
+  HOMEBREW_NO_INSTALL_UPGRADE: 1
+  HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+
 jobs:
+  build-spidermonkey:
+    strategy:
+      matrix:
+        # Use Ubuntu 20.04 / macOS 11 + Python 3.8 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'macos-11' ] # , 'windows-latest' ]
+        python_version: [ '3.8' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+      - name: Cache spidermonkey build
+        id: cache-spidermonkey
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./firefox-source/*
+            ./_spidermonkey_install/*
+          key: ${{ runner.os }}-spidermonkey
+          lookup-only: true # skip download
+      - name: Build spidermonkey
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: ./setup.sh
   test-and-publish:
+    needs: build-spidermonkey
     strategy:
       fail-fast: false
       matrix:
@@ -34,25 +64,20 @@ jobs:
             sudo apt-get install -y cmake doxygen graphviz gcovr llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update
-            export HOMEBREW_NO_INSTALL_UPGRADE=1 # don't upgrade outdated packages because it's too slow
-            export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
             brew install cmake doxygen graphviz gcovr llvm pkg-config wget coreutils
             brew unlink python # don't use brew-installed python, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
           fi
           echo "Installing python deps"
           poetry install --no-root
           echo "Installed Dependencies"
-      - name: Cache spidermonkey build
-        id: cache-spidermonkey
+      - name: Use cached spidermonkey build
         uses: actions/cache@v3
         with:
           path: |
             ./firefox-source/*
             ./_spidermonkey_install/*
           key: ${{ runner.os }}-spidermonkey
-      - name: Build-Library
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        run: ./setup.sh #&& ./build_script.sh
+          fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build wheel
         run: |
           echo $(poetry run python --version)
