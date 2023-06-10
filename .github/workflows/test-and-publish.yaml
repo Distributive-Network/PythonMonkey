@@ -52,7 +52,7 @@ jobs:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
           # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12
           - os: 'macos-12'
-            version: '3.8'
+            python_version: '3.8'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
