@@ -9,8 +9,7 @@ packages = [
 ]
 include = [
   "python/pythonmonkey/pythonmonkey.so",
-  "python/pythonmonkey/libmozjs-102.so",
-  "python/pythonmonkey/libmozjs-102.dylib",
+  "python/pythonmonkey/libmozjs*",
 ]
 
 
