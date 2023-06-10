@@ -33,6 +33,8 @@ jobs:
             sudo apt-get update -y
             sudo apt-get install -y cmake doxygen graphviz gcovr llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+            brew update
+            export HOMEBREW_NO_INSTALL_UPGRADE=1 # don't upgrade outdated packages because it's too slow
             brew install cmake doxygen graphviz gcovr llvm pkg-config wget coreutils
             brew unlink python # don't use brew-installed python, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
           fi
