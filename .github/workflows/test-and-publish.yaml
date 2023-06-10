@@ -11,7 +11,7 @@ on:
   pull_request:
 
 env:
-  # don't upgrade outdated brew packages because it's too slow
+  # don't upgrade outdated brew packages because the process is too slow
   HOMEBREW_NO_INSTALL_UPGRADE: 1
   HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
@@ -64,7 +64,7 @@ jobs:
             sudo apt-get install -y cmake doxygen graphviz gcovr llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update
-            brew install cmake doxygen graphviz gcovr llvm pkg-config wget coreutils
+            brew install cmake doxygen graphviz gcovr pkg-config wget coreutils
             brew unlink python # don't use brew-installed python, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
           fi
           echo "Installing python deps"
