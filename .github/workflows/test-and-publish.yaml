@@ -19,8 +19,8 @@ jobs:
   build-spidermonkey:
     strategy:
       matrix:
-        # Use Ubuntu 20.04 / macOS 11 + Python 3.8 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-11' ] # , 'windows-latest' ]
+        # Use Ubuntu 20.04 / macOS 12 + Python 3.8 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'macos-12' ] # , 'windows-latest' ]
         python_version: [ '3.8' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -45,8 +45,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The lowest supported version is Ubuntu 20.04 / macOS 11 + Python 3.8
-        os: [ 'ubuntu-20.04', 'macos-11' ] # , 'windows-latest' ]
+        # The lowest supported version is Ubuntu 20.04 / macOS 12 + Python 3.8
+        os: [ 'ubuntu-20.04', 'macos-12' ] # , 'windows-latest' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
     runs-on: ${{ matrix.os }}
     steps:
