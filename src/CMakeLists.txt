@@ -34,7 +34,9 @@ elseif(UNIX)
   )
 endif()
 
-target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+# Don't link against `libpython`, see https://peps.python.org/pep-0513/#libpythonx-y-so-1
+# target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+
 target_link_libraries(pythonmonkey ${SPIDERMONKEY_LIBRARIES})
 
 target_include_directories(pythonmonkey PRIVATE ${PYTHON_INCLUDE_DIR})
