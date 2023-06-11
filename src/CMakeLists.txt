@@ -39,6 +39,12 @@ endif()
 # Don't link against `libpython`, see https://peps.python.org/pep-0513/#libpythonx-y-so-1
 # target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
 
+# Stop complaining about missing symbols
+# see https://blog.tim-smith.us/2015/09/python-extension-modules-os-x/
+if(APPLE)
+  target_link_options(pythonmonkey PRIVATE "SHELL:-undefined dynamic_lookup")
+endif()
+
 target_link_libraries(pythonmonkey ${SPIDERMONKEY_LIBRARIES})
 
 target_include_directories(pythonmonkey PRIVATE ${PYTHON_INCLUDE_DIR})
