@@ -13,7 +13,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update
   brew install cmake doxygen graphviz gcovr pkg-config wget coreutils # `coreutils` installs the `realpath` command
-  brew unlink python # don't use brew-installed python, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
+  brew unlink python || true # don't use brew-installed python, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
 else
   echo "Unsupported OS"
   exit 1
