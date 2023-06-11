@@ -53,4 +53,9 @@ echo "Done building spidermonkey"
 echo "Installing spidermonkey"
 # install to ../../../../_spidermonkey_install/
 make install 
+if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+  # Set the `install_name` field to use RPATH instead of an absolute path
+  # overrides https://hg.mozilla.org/releases/mozilla-esr102/file/89d799cb/js/src/build/Makefile.in#l83
+  install_name_tool -id @rpath/libmozjs-102.dylib ../../../../_spidermonkey_install/lib/libmozjs-102.dylib
+else
 echo "Done installing spidermonkey"
