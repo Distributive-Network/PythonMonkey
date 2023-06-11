@@ -38,6 +38,7 @@ cp ./configure.in ./configure
 chmod +x ./configure
 mkdir -p _build
 cd _build
+mkdir -p ../../../../_spidermonkey_install/
 ../configure \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
@@ -50,6 +51,6 @@ make -j$CPUS
 echo "Done building spidermonkey"
 
 echo "Installing spidermonkey"
-mkdir -p ../../../../_spidermonkey_install/
+# install to ../../../../_spidermonkey_install/
 make install 
 echo "Done installing spidermonkey"
