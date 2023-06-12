@@ -12,8 +12,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   sudo apt-get install cmake doxygen graphviz gcovr llvm g++ pkg-config m4 wget --yes
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update
-  brew install cmake doxygen graphviz gcovr pkg-config wget coreutils # `coreutils` installs the `realpath` command
-  brew unlink python || true # don't use brew-installed python, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
+  brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
+  brew install --ignore-dependencies gcovr # don't install extra python@3.11, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
 else
   echo "Unsupported OS"
   exit 1
