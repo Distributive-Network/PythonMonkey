@@ -33,7 +33,6 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ./firefox-source/*
             ./_spidermonkey_install/*
           key: ${{ runner.os }}-spidermonkey
           lookup-only: true # skip download
@@ -79,7 +78,6 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ./firefox-source/*
             ./_spidermonkey_install/*
           key: ${{ runner.os }}-spidermonkey
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
