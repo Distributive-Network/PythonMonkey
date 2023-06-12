@@ -111,7 +111,7 @@ jobs:
   publish:
     needs: build-and-test
     runs-on: ubuntu-20.04
-    # if: ${{ success()  && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
+    if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -124,9 +124,9 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
-      - run: ls ./dist/
+      - run: ls -lah ./dist/
       - name: Publish package
         run: |
-          poetry publish --dry-run \
+          poetry publish \
             --no-interaction --skip-existing \
             --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
