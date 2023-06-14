@@ -15,6 +15,11 @@ env:
   HOMEBREW_NO_INSTALL_UPGRADE: 1
   HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
+defaults:
+  run:
+    # run with Git Bash on Windows
+    shell: bash
+
 jobs:
   build-spidermonkey:
     strategy:
