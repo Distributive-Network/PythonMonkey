@@ -43,7 +43,6 @@ mkdir -p ../../../../_spidermonkey_install/
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
   --without-system-zlib \
-  --disable-jemalloc \
   --disable-debug-symbols \
   --disable-tests \
   --enable-optimize 
