@@ -102,12 +102,12 @@ const char *StrType::getValue() const {
 
 PyObject *StrType::asUCS4() {
   uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
-  ssize_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
+  size_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
 
   uint32_t ucs4String[length];
   size_t ucs4Length = 0;
 
-  for (ssize_t i = 0; i < length; i++) {
+  for (size_t i = 0; i < length; i++) {
     if (chars[i] >= LOW_SURROGATE_START && chars[i] <= LOW_SURROGATE_END) // character is an unpaired low surrogate
     {
       char hexString[5];
