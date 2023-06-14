@@ -18,6 +18,11 @@ target_include_directories(tests PRIVATE ${PYTHON_INCLUDE_DIR} ${SPIDERMONKEY_IN
 target_include_directories(tests PRIVATE ../include/)
 target_link_libraries(tests PRIVATE pythonmonkey gtest_main ${PYTHON_LIBRARIES} ${SPIDERMONKEY_LIBRARIES})
 
+# Tell macOS where to find and load '@rpath/Python3.framework/Versions/3.9/Python3'
+if(APPLE)
+  target_link_options(tests PRIVATE "SHELL:-rpath /Library/Developer/CommandLineTools/Library/Frameworks/")
+endif()
+
 include(GoogleTest)
 gtest_discover_tests(tests)
 
