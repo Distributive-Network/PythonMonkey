@@ -49,6 +49,9 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-debug-symbols \
   --disable-tests \
   --enable-optimize 
+ls -alh 
+mkdir -p .cargo
+touch .cargo/config
 make -j$CPUS
 echo "Done building spidermonkey"
 
