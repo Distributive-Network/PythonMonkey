@@ -8,5 +8,9 @@ if [  ! -d "$DIR" ]; then
 fi
 
 cd build
-cmake ..
+if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  cmake .. -T ClangCL # use Clang/LLVM toolset for Visual Studio
+else
+  cmake .. 
+fi
 cmake --build . -j$CPUS
