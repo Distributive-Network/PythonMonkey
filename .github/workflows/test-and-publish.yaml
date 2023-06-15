@@ -61,7 +61,7 @@ jobs:
         shell: powershell
         run: |
           choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
-          choco install -y make llvm gnuwin32-m4 wget
+          choco install -y make wget
       - name: Install MozillaBuild
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
