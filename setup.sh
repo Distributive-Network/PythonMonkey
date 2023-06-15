@@ -14,6 +14,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update
   brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
   brew install --ignore-dependencies gcovr # don't install extra python@3.11, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
+elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  echo "Dependencies are not going to be installed automatically on Windows."
 else
   echo "Unsupported OS"
   exit 1

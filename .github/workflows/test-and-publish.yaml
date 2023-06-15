@@ -21,11 +21,11 @@ defaults:
     shell: bash
 
 jobs:
-  build-spidermonkey:
+  build-spidermonkey-unix:
     strategy:
       matrix:
         # Use Ubuntu 20.04 / macOS 12 + Python 3.8 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-12' ] # , 'windows-latest' ]
+        os: [ 'ubuntu-20.04', 'macos-12' ]
         python_version: [ '3.8' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -44,13 +44,40 @@ jobs:
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
+  build-spidermonkey-win:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache spidermonkey build
+        id: cache-spidermonkey
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./_spidermonkey_install/*
+          key: ${{ runner.os }}-spidermonkey
+          lookup-only: true # skip download
+      - name: Install dependencies
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        shell: powershell
+        run: |
+          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
+          choco install -y make llvm gnuwin32-m4 wget
+      - name: Install MozillaBuild
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: |
+          wget -c -q https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-Latest.exe
+          powershell -command 'Start-Process -Wait -FilePath "./MozillaBuildSetup-Latest.exe" -ArgumentList "/S"'
+      - name: Build spidermonkey in MozillaBuild environment
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        shell: C:\mozilla-build\start-shell.bat -use-full-path -here {0}
+        run: ./setup.sh
   build-and-test:
-    needs: build-spidermonkey
+    needs: [build-spidermonkey-unix, build-spidermonkey-win]
     strategy:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12' ] # , 'windows-latest' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
         exclude:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
