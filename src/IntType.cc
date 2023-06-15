@@ -11,7 +11,6 @@
 #include <Python.h>
 
 #include <iostream>
-#include <bit>
 #include <vector>
 
 #define SIGN_BIT_MASK 0b1000 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l40
@@ -86,11 +85,11 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // The digit storage starts with the least significant digit (little-endian digit order).
   // Byte order within a digit is native-endian.
 
-  if constexpr (std::endian::native == std::endian::big) { // C++20
+  #if not (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)) // gcc extensions (also supported by clang)
+    #error "Big-endian cpu is not supported by PythonMonkey yet"
     // @TODO (Tom Tang): use C++23 std::byteswap?
-    printf("big-endian cpu is not supported by PythonMonkey yet");
-    return;
-  }
+  #endif
+
   // If the native endianness is also little-endian,
   // we now have consecutive bytes of 8-bit "digits" in little-endian order
   const uint8_t *bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);
