@@ -52,6 +52,8 @@ mkdir -p ../../../../_spidermonkey_install/
   --enable-optimize 
 ls -alh 
 mkdir -p .cargo
+mkdir -p .deps
+mkdir -p build/rust/mozbuild/.deps/
 touch .cargo/config
 make -j$CPUS
 echo "Done building spidermonkey"
