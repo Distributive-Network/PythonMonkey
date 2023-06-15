@@ -18,7 +18,8 @@ else
   echo "Unsupported OS"
   exit 1
 fi
-sudo curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y #install rust compiler
+# Install rust compiler
+curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.69 # force to use Rust 1.69 because 1.70 has linking issues on Windows
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
