@@ -125,12 +125,14 @@ jobs:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
       - name: Run C++ tests (google-tests)
+        if: runner.os != 'Windows'
         run: |
           cd build
           make && make tests
           gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
           cd tests && ctest
       - name: Upload C++ coverage report
+        if: runner.os != 'Windows'
         uses: actions/upload-artifact@v3
         with:
           name: coverage-${{ github.run_id }}-${{ github.sha }}

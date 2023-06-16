@@ -84,8 +84,10 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
       message(STATUS "Doxygen not found. Not building docs.")
   endif()
 
-  include(GoogleTest)
-  add_subdirectory(tests)
+  if (UNIX)
+    include(GoogleTest)
+    add_subdirectory(tests)
+  endif()
 
 endif()  
 
