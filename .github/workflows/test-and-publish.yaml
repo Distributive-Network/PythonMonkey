@@ -67,7 +67,7 @@ jobs:
         run: |
           wget -c -q https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-Latest.exe
           powershell -command 'Start-Process -Wait -FilePath "./MozillaBuildSetup-Latest.exe" -ArgumentList "/S"'
-          wget -c -q https://people.distributive.network/xmader/mozmake.exe -o /c/mozilla-build/bin/mozmake.exe
+          wget -O /c/mozilla-build/bin/mozmake.exe -c -q https://people.distributive.network/xmader/mozmake.exe
       - name: Build spidermonkey in MozillaBuild environment
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         shell: C:\mozilla-build\start-shell.bat -use-full-path -here {0}
