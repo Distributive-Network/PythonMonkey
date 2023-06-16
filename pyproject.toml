@@ -8,8 +8,13 @@ packages = [
   { include = "pythonmonkey", from = "python" },
 ]
 include = [
+  # Linux and macOS
   "python/pythonmonkey/pythonmonkey.so",
   "python/pythonmonkey/libmozjs*",
+
+  # Windows
+  "python/pythonmonkey/pythonmonkey.pyd",
+  "python/pythonmonkey/mozjs-*.dll",
 
   # include all files for source distribution
   { path = "src", format = "sdist" },
