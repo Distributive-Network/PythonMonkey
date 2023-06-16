@@ -14,7 +14,6 @@
 
 #include <jsapi.h>
 
-#include <Python.h>
 
 /**
  * @brief This function sets a python error under the assumption that a JS_* function call has failed. Do not call this function if that is not the case.

@@ -16,8 +16,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief Abstract struct that serves as a base for the different type relations in C++/Python
  */
@@ -25,7 +23,7 @@ struct PyType {
 public:
   PyType();
   PyType(PyObject *object);
-  virtual TYPE getReturnType() = 0;
+  const TYPE returnType = TYPE::DEFAULT;
   PyObject *getPyObject();
   ~PyType();
 

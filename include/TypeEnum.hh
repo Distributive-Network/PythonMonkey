@@ -24,7 +24,7 @@ enum class TYPE {
   TUPLE,
   DATE,
   NONE,
-  NIL,
+  PYTHONMONKEY_NULL,
 };
 
 #endif

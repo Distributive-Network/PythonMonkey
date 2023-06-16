@@ -19,8 +19,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'int' type (arbitrary-precision) in Python. It inherits from the PyType struct
  */
@@ -37,7 +35,7 @@ public:
    */
   IntType(JSContext *cx, JS::BigInt *bigint);
 
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::INT;
 
   /**
    * @brief Convert the IntType object to a JS::BigInt

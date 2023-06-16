@@ -17,8 +17,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'bool' type in Python, which is represented as a 'long' in C++. It inherits from the PyType struct
  */
@@ -26,7 +24,7 @@ struct BoolType : public PyType {
 public:
   BoolType(PyObject *object);
   BoolType(long n);
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::BOOL;
   long getValue() const;
 };
 

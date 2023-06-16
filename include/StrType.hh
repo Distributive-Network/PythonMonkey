@@ -19,8 +19,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'string' type in Python, which is represented as a 'char*' in C++. It inherits from the PyType struct
  */
@@ -43,7 +41,7 @@ public:
    */
   StrType(JSContext *cx, JSString *str);
 
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::STRING;
   const char *getValue() const;
 
   /**
@@ -53,15 +51,6 @@ public:
    *
    */
   PyObject *asUCS4();
-
-private:
-  /**
-   * @brief check if this.pyObject contains a surrogate pair
-   *
-   * @return true  - pyObject is UCS2-encoded and contains a surrogate pair
-   * @return false - pyObject is not UCS2-encoded or does not contain a surrogate pair
-   */
-  bool containsSurrogatePair();
 };
 
 #endif

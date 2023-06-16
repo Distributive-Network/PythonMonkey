@@ -12,7 +12,6 @@
 #include <Python.h>
 
 #include <string>
-#include <iostream>
 
 typedef std::unordered_map<const JS::Value *, PyObject *>::iterator subObjectIterator;
 
@@ -28,10 +27,6 @@ DictType::DictType(JSContext *cx, JS::Handle<JS::Value> jsObject) {
   JS_ValueToObject(cx, jsObject, &obj);
   proxy->jsObject.set(obj);
   this->pyObject = (PyObject *)proxy;
-}
-
-TYPE DictType::getReturnType() {
-  return TYPE::DICT;
 }
 
 void DictType::set(PyType *key, PyType *value) {

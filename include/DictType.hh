@@ -19,8 +19,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents a dictionary in python. It derives from the PyType struct
  *
@@ -39,7 +37,7 @@ public:
    */
   DictType(JSContext *cx, JS::Handle<JS::Value> jsObject);
 
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::DICT;
 /**
  * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
  *

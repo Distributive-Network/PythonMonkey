@@ -29,19 +29,19 @@ TEST_F(PyTypeFactoryTests, test_makes_int_type_correctly) {
 
   PyType *obj = pyTypeFactory(i_type);
 
-  EXPECT_TRUE(obj->getReturnType() == TYPE::INT);
+  EXPECT_TRUE(obj->returnType == TYPE::INT);
 
 }
 
 TEST_F(PyTypeFactoryTests, test_makes_str_type_correctly) {
   PyType *obj = pyTypeFactory(s_type);
 
-  EXPECT_TRUE(obj->getReturnType() == TYPE::STRING);
+  EXPECT_TRUE(obj->returnType == TYPE::STRING);
 }
 
 TEST_F(PyTypeFactoryTests, test_makes_dict_type_correctly) {
   PyType *obj = pyTypeFactory(dict_type);
 
-  EXPECT_TRUE(obj->getReturnType() == TYPE::DICT);
+  EXPECT_TRUE(obj->returnType == TYPE::DICT);
 }
 

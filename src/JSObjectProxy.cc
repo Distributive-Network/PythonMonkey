@@ -20,7 +20,7 @@
 
 #include <Python.h>
 
-JSContext *cx; /**< pointer to PythonMonkey's JSContext */
+JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
@@ -42,7 +42,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, 
     Py_DECREF(self);
     return NULL;
   }
-  self->jsObject.set(JS_NewObject(cx, NULL));
+  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
   return (PyObject *)self;
 }
 
@@ -55,7 +55,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
   PyObject *dict = NULL;
   if (PyTuple_Size(args) == 0 || Py_IsNone(PyTuple_GetItem(args, 0))) {
     // make fresh JSObject for proxy
-    self->jsObject.set(JS_NewObject(cx, NULL));
+    self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
     return 0;
   }
 
@@ -66,7 +66,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
 
 
   // make fresh JSObject for proxy
-  self->jsObject.set(JS_NewObject(cx, NULL));
+  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
   std::unordered_map<PyObject *, JS::RootedValue *> subValsMap;
   JSObjectProxy_init_helper(self->jsObject, dict, subValsMap);
   return 0;
@@ -99,7 +99,7 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_init_helper(JS::HandleObject 
       continue;
     }
 
-    JS::RootedValue *jsVal = new JS::RootedValue(cx, jsTypeFactory(cx, value));
+    JS::RootedValue *jsVal = new JS::RootedValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
     subValsMap.insert({{value, jsVal}});
     JSObjectProxy_set_helper(jsObject, key, *jsVal);
   }
@@ -107,8 +107,8 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_init_helper(JS::HandleObject 
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
 {
-  JS::RootedIdVector props(cx);
-  if (!js::GetPropertyKeys(cx, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  JS::RootedIdVector props(GLOBAL_CX);
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return -1;
@@ -125,21 +125,21 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
     return NULL;
   }
 
-  JS::RootedValue *value = new JS::RootedValue(cx);
+  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
   switch (PyUnicode_KIND(key))
   {
   case PyUnicode_1BYTE_KIND:
-    JS_GetProperty(cx, self->jsObject, (char *)PyUnicode_1BYTE_DATA(key), value);
+    JS_GetProperty(GLOBAL_CX, self->jsObject, (char *)PyUnicode_1BYTE_DATA(key), value);
     break;
   case PyUnicode_2BYTE_KIND:
-    JS_GetUCProperty(cx, self->jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), value);
+    JS_GetUCProperty(GLOBAL_CX, self->jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), value);
     break;
   case PyUnicode_4BYTE_KIND:
     // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_GetUCProperty
     break;
   }
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
-  return pyTypeFactory(cx, global, value)->getPyObject();
+  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+  return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
@@ -152,7 +152,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
 
   if (value)
   { // we are setting a value
-    JS::RootedValue jValue(cx, jsTypeFactory(cx, value));
+    JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
     JSObjectProxy_set_helper(self->jsObject, key, jValue);
   }
   else
@@ -161,11 +161,11 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
     switch (PyUnicode_KIND(key))
     {
     case PyUnicode_1BYTE_KIND:
-      JS_DeleteProperty(cx, self->jsObject, (char *)PyUnicode_1BYTE_DATA(key));
+      JS_DeleteProperty(GLOBAL_CX, self->jsObject, (char *)PyUnicode_1BYTE_DATA(key));
       break;
     case PyUnicode_2BYTE_KIND:
       // @TODO (Caleb Aikens) make a ticket for mozilla to make an override for the below function that doesn't require an ObjectOpResult arg
-      JS_DeleteUCProperty(cx, self->jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), opResult);
+      JS_DeleteUCProperty(GLOBAL_CX, self->jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), opResult);
       break;
     case PyUnicode_4BYTE_KIND:
       // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_SetUCProperty
@@ -181,10 +181,10 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_set_helper(JS::HandleObject j
   switch (PyUnicode_KIND(key))
   {
   case PyUnicode_1BYTE_KIND:
-    JS_SetProperty(cx, jsObject, (char *)PyUnicode_1BYTE_DATA(key), value);
+    JS_SetProperty(GLOBAL_CX, jsObject, (char *)PyUnicode_1BYTE_DATA(key), value);
     break;
   case PyUnicode_2BYTE_KIND:
-    JS_SetUCProperty(cx, jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), value);
+    JS_SetUCProperty(GLOBAL_CX, jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), value);
     break;
   case PyUnicode_4BYTE_KIND:
     // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_SetUCProperty
@@ -226,8 +226,8 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   visited.insert({{(PyObject *)self, other}});
-  JS::RootedIdVector props(cx);
-  if (!js::GetPropertyKeys(cx, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  JS::RootedIdVector props(GLOBAL_CX);
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return NULL;
@@ -237,11 +237,11 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   for (size_t i = 0; i < props.length(); i++)
   {
     JS::HandleId id = props[i];
-    JS::RootedValue *key = new JS::RootedValue(cx);
+    JS::RootedValue *key = new JS::RootedValue(GLOBAL_CX);
     key->setString(id.toString());
 
-    JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
-    PyObject *pyKey = pyTypeFactory(cx, global, key)->getPyObject();
+    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, global, key)->getPyObject();
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
     if (!pyVal2) { // if other.key is NULL then not equal

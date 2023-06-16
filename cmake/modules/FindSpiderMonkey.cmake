@@ -38,7 +38,9 @@ endif()
 
 # SpiderMonkey search paths
 set(SPIDERMONKEY_PATHS
-	${SPIDERMONKEY_ROOT}
+  "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install"
+  "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install/lib"
+  ${SPIDERMONKEY_ROOT}
 	$ENV{SPIDERMONKEY_ROOT}
 	~/Library/Frameworks
 	/Library/Frameworks
@@ -60,11 +62,12 @@ set(SPIDERMONKEY_HEADERS jsapi.h js/RequiredDefines.h)
 set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS dist/include js/src include include/js include/mozjs-48a1 include/mozjs-102/)
 
 # Find SpiderMonkey include path
-  find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
-    PATHS ${SPIDERMONKEY_PATHS}
-    PATH_SUFFIXES ${SPIDERMONKEY_INCLUDE_SUFFIX_PATHS}
-    DOC "Mozilla SpiderMonkey JavaScript Engine Headers"
-  )
+find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
+  PATHS ${SPIDERMONKEY_PATHS}
+  PATH_SUFFIXES ${SPIDERMONKEY_INCLUDE_SUFFIX_PATHS}
+  DOC "Mozilla SpiderMonkey JavaScript Engine Headers"
+  NO_DEFAULT_PATH
+)
 
 # SpiderMonkey libs
 set(SPIDERMONKEY_LIBRARY_NAMES mozjs-107a1.lib libmozjs-102.so mozjs185 mozjs-1.9.2 mozjs-48a1 mozjs js185 js js32 js3250)

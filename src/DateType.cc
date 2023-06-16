@@ -9,9 +9,6 @@
 #include <Python.h>
 #include <datetime.h>
 
-#include <iostream>
-
-
 DateType::DateType(PyObject *object) : PyType(object) {}
 
 DateType::DateType(JSContext *cx, JS::Handle<JSObject *> dateObj) {
@@ -36,8 +33,4 @@ DateType::DateType(JSContext *cx, JS::Handle<JSObject *> dateObj) {
     year.toNumber(), month.toNumber() + 1, day.toNumber(),
     hour.toNumber(), minute.toNumber(), second.toNumber(),
     usecond.toNumber() * 1000);
-}
-
-TYPE DateType::getReturnType() {
-  return TYPE::DATE;
 }

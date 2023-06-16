@@ -1,6 +1,0 @@
-# [submodule "cpython"]
-# 	path = cpython
-# 	url = git@github.com:python/cpython.git
-# [submodule "extern/cpython"]
-# 	path = extern/cpython
-# 	url = git@github.com:python/cpython.git

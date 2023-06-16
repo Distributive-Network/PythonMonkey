@@ -3,6 +3,7 @@ import pythonmonkey as pm
 import gc
 import random
 from datetime import datetime, timedelta
+import math
 
 def test_passes():
     assert True
@@ -44,7 +45,7 @@ def test_eval_latin1_string_fuzztest():
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for i in range(length):
+        for j in range(length):
             codepoint = random.randint(0x00, 0xFF)
             string1 += chr(codepoint) # add random chr in latin1 range
         
@@ -76,7 +77,7 @@ def test_eval_ucs2_string_fuzztest():
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for i in range(length):
+        for j in range(length):
             codepoint = random.randint(0x00, 0xFFFF)
             string1 += chr(codepoint) # add random chr in ucs2 range
         
@@ -108,7 +109,7 @@ def test_eval_ucs4_string_fuzztest():
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for i in range(length):
+        for j in range(length):
             codepoint = random.randint(0x010000, 0x10FFFF)
             string1 += chr(codepoint) # add random chr outside BMP
         
@@ -140,6 +141,23 @@ def test_eval_numbers_floats():
         py_number = random.uniform(-1000000,1000000)
         js_number = pm.eval(repr(py_number))
         assert py_number == js_number
+
+def test_eval_numbers_floats_nan():
+    jsNaN = pm.eval("NaN")
+    assert math.isnan(jsNaN)
+
+def test_eval_numbers_floats_negative_zero():
+    jsNegZero = pm.eval("-0")
+    assert jsNegZero == 0
+    assert jsNegZero == 0.0 # expected that -0.0 == 0.0 == 0
+    # https://docs.python.org/3/library/math.html#math.copysign
+    assert math.copysign(1.0, jsNegZero) == -1.0
+
+def test_eval_numbers_floats_inf():
+    jsPosInf = pm.eval("Infinity")
+    jsNegInf = pm.eval("-Infinity")
+    assert jsPosInf == float("+inf")
+    assert jsNegInf == float("-inf")
 
 def test_eval_numbers_integers():
     for i in range(10):
@@ -199,15 +217,16 @@ def test_eval_booleans():
     assert py_bool == js_bool
 
 def test_eval_dates():
-    MIN_YEAR = 100
+    MIN_YEAR = 1 # https://docs.python.org/3/library/datetime.html#datetime.MINYEAR
     MAX_YEAR = 2023
     start = datetime(MIN_YEAR, 1, 1, 00, 00, 00)
     years = MAX_YEAR - MIN_YEAR + 1
     end = start + timedelta(days=365 * years)
     for i in range(10):
         py_date = start + (end - start) * random.random()
-        py_date = py_date.replace(microsecond=0)
-        js_date = pm.eval(f'new Date({py_date.year}, {py_date.month - 1}, {py_date.day}, {py_date.hour}, {py_date.minute}, {py_date.second}, {py_date.microsecond / 1000})')
+        # round to milliseconds precision because the smallest unit for js Date is 1ms
+        py_date = py_date.replace(microsecond=round(py_date.microsecond, -3))
+        js_date = pm.eval(f'new Date("{py_date.isoformat()}")')
         assert py_date == js_date
 
 def test_eval_boxed_booleans():
@@ -284,7 +303,7 @@ def test_eval_boxed_latin1_string_fuzztest():
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for i in range(length):
+        for j in range(length):
             codepoint = random.randint(0x00, 0xFF)
             string1 += chr(codepoint) # add random chr in latin1 range
         
@@ -316,7 +335,7 @@ def test_eval_boxed_ucs2_string_fuzztest():
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for i in range(length):
+        for j in range(length):
             codepoint = random.randint(0x00, 0xFFFF)
             string1 += chr(codepoint) # add random chr in ucs2 range
         
@@ -348,7 +367,7 @@ def test_eval_boxed_ucs4_string_fuzztest():
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for i in range(length):
+        for j in range(length):
             codepoint = random.randint(0x010000, 0x10FFFF)
             string1 += chr(codepoint) # add random chr outside BMP
         
@@ -375,6 +394,25 @@ def test_eval_boxed_ucs4_string_fuzztest():
             string1 = string2
         assert INITIAL_STRING == string1 #strings should still match after a bunch of iterations through JS
         
+def test_eval_exceptions():
+    # should print out the correct error messages
+    with pytest.raises(pm.SpiderMonkeyError, match='SyntaxError: "" literal not terminated before end of script'):
+        pm.eval('"123')
+    with pytest.raises(pm.SpiderMonkeyError, match="SyntaxError: missing } in compound statement"):
+        pm.eval('{')
+    with pytest.raises(pm.SpiderMonkeyError, match="TypeError: can't convert BigInt to number"):
+        pm.eval('1n + 1')
+    with pytest.raises(pm.SpiderMonkeyError, match="ReferenceError: RANDOM_VARIABLE is not defined"):
+        pm.eval('RANDOM_VARIABLE')
+    with pytest.raises(pm.SpiderMonkeyError, match="RangeError: invalid array length"):
+        pm.eval('new Array(-1)')
+    with pytest.raises(pm.SpiderMonkeyError, match="Error: abc"):
+        # manually by the `throw` statement
+        pm.eval('throw new Error("abc")')
+    with pytest.raises(pm.SpiderMonkeyError, match="uncaught exception: something from toString"):
+        # (side effect) calls the `toString` method if an object is thrown
+        pm.eval('throw { toString() { return "something from toString" } }')
+
 def test_eval_undefined():
     x = pm.eval("undefined")
     assert x == None
@@ -393,14 +431,17 @@ def test_eval_functions():
     h = pm.eval("(a, b) => {return a + b}")
     n = 10
     for i in range(n):
-        a = random.randint(0, 1000)
-        b = random.randint(0, 1000)
+        a = random.randint(-1000, 1000)
+        b = random.randint(-1000, 1000)
         assert h(a, b) == (a + b)
     
     for i in range (n):
         a = random.uniform(-1000.0, 1000.0)
         b = random.uniform(-1000.0, 1000.0)
         assert h(a, b) == (a + b)
+    
+    assert math.isnan(h(float("nan"), 1))
+    assert math.isnan(h(float("+inf"), float("-inf")))
 
 def test_eval_functions_latin1_string_args():
     concatenate = pm.eval("(a, b) => { return a + b}")
@@ -549,6 +590,14 @@ def test_eval_functions_ucs2_string_args():
         
 #         assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
 
+def test_eval_functions_roundtrip():
+    # BF-60 https://github.com/Distributive-Network/PythonMonkey/pull/18
+    def ident(x):
+        return x
+    js_fn_back = pm.eval("(py_fn) => py_fn(()=>{ return 'YYZ' })")(ident)
+    # pm.collect() # TODO: to be fixed in BF-59
+    assert "YYZ" == js_fn_back()
+
 def test_eval_functions_pyfunctions_ints():
     caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
     def add(a, b):
@@ -591,7 +640,6 @@ def test_eval_objects_subobjects():
 
 def test_eval_objects_cycle():
     pyObj = pm.eval("Object({a:1.0, b:2.0, recursive: function() { this.recursive = this; return this; }}.recursive())")
-    print("CURRENT PYTHON OBJECT IS: ", pyObj)
     
     assert pyObj['a'] == 1.0
     assert pyObj['b'] == 2.0

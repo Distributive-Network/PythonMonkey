@@ -16,15 +16,13 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'function' type in Python. It inherits from the PyType struct
  */
 struct FuncType : public PyType {
 public:
   FuncType(PyObject *object);
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::FUNC;
   const char *getValue() const;
 };
 

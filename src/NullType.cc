@@ -15,11 +15,4 @@
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"
 
-#include <iostream>
-
-
 NullType::NullType() : PyType(PythonMonkey_Null) {}
-
-TYPE NullType::getReturnType() {
-  return TYPE::NIL;
-}
