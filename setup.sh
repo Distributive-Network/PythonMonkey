@@ -47,7 +47,7 @@ mkdir -p ../../../../_spidermonkey_install/
   --with-intl-api \
   --without-system-zlib \
   --disable-debug-symbols \
-  $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--disable-jemalloc"; fi) \
+  --disable-jemalloc \
   --disable-tests \
   --enable-optimize 
 make -j$CPUS
