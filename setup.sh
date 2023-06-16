@@ -49,11 +49,7 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-debug-symbols \
   --disable-tests \
   --enable-optimize 
-if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  mozmake -j$CPUS
-else
-  make -j$CPUS
-fi
+make -j$CPUS
 echo "Done building spidermonkey"
 
 echo "Installing spidermonkey"

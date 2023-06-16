@@ -61,13 +61,12 @@ jobs:
         shell: powershell
         run: |
           choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
-          choco install -y wget
+          choco install -y wget make
       - name: Install MozillaBuild
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           wget -c -q https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-Latest.exe
           powershell -command 'Start-Process -Wait -FilePath "./MozillaBuildSetup-Latest.exe" -ArgumentList "/S"'
-          wget -O /c/mozilla-build/bin/mozmake.exe -c -q https://people.distributive.network/xmader/mozmake.exe
       - name: Build spidermonkey in MozillaBuild environment
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: /c/mozilla-build/start-shell.bat -use-full-path -here ./setup.sh
