@@ -624,6 +624,14 @@ def test_eval_functions_ucs4_string_args():
         
         assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
 
+def test_eval_functions_roundtrip():
+    # BF-60 https://github.com/Distributive-Network/PythonMonkey/pull/18
+    def ident(x):
+        return x
+    js_fn_back = pm.eval("(py_fn) => py_fn(()=>{ return 'YYZ' })")(ident)
+    # pm.collect() # TODO: to be fixed in BF-59
+    assert "YYZ" == js_fn_back()
+
 def test_eval_functions_pyfunctions_ints():
     caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
     def add(a, b):

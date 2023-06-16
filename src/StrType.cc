@@ -9,18 +9,31 @@
 
 #include <iostream>
 
+#define PY_UNICODE_HAS_WSTR (PY_VERSION_HEX < 0x030c0000) // Python version is less than 3.12
+
 #define HIGH_SURROGATE_START 0xD800
 #define HIGH_SURROGATE_END 0xDBFF
 #define LOW_SURROGATE_START 0xDC00
 #define LOW_SURROGATE_END 0xDFFF
 
-#define PY_UNICODE_OBJECT_DATA_ANY(op)    (*(PyUnicodeObject *)op).data.any
-#define PY_UNICODE_OBJECT_DATA_UCS2(op)   (*(PyUnicodeObject *)op).data.ucs2
-#define PY_UNICODE_OBJECT_KIND(op)        (*(PyUnicodeObject *)op)._base._base.state.kind
-#define PY_UNICODE_OBJECT_LENGTH(op)      (*(PyUnicodeObject *)op)._base._base.length
-#define PY_UNICODE_OBJECT_WSTR(op)        (*(PyUnicodeObject *)op)._base._base.wstr
-#define PY_UNICODE_OBJECT_WSTR_LENGTH(op) (*(PyUnicodeObject *)op)._base.wstr_length
-#define PY_UNICODE_OBJECT_READY(op)       (*(PyUnicodeObject *)op)._base._base.state.ready
+#define PY_ASCII_OBJECT_CAST(op) ((PyASCIIObject *)(op))
+#define PY_COMPACT_UNICODE_OBJECT_CAST(op) ((PyCompactUnicodeObject *)(op))
+#define PY_UNICODE_OBJECT_CAST(op) ((PyUnicodeObject *)(op))
+
+// https://github.com/python/cpython/blob/8de607a/Objects/unicodeobject.c#L114-L154
+#define PY_UNICODE_OBJECT_UTF8(op)        (PY_COMPACT_UNICODE_OBJECT_CAST(op)->utf8)
+#define PY_UNICODE_OBJECT_UTF8_LENGTH(op) (PY_COMPACT_UNICODE_OBJECT_CAST(op)->utf8_length)
+#define PY_UNICODE_OBJECT_DATA_ANY(op)    (PY_UNICODE_OBJECT_CAST(op)->data.any)
+#define PY_UNICODE_OBJECT_DATA_UCS2(op)   (PY_UNICODE_OBJECT_CAST(op)->data.ucs2)
+#define PY_UNICODE_OBJECT_HASH(op)        (PY_ASCII_OBJECT_CAST(op)->hash)
+#define PY_UNICODE_OBJECT_STATE(op)       (PY_ASCII_OBJECT_CAST(op)->state)
+#define PY_UNICODE_OBJECT_KIND(op)        (PY_ASCII_OBJECT_CAST(op)->state.kind)
+#define PY_UNICODE_OBJECT_LENGTH(op)      (PY_ASCII_OBJECT_CAST(op)->length)
+#if PY_UNICODE_HAS_WSTR
+  #define PY_UNICODE_OBJECT_WSTR(op)        (PY_ASCII_OBJECT_CAST(op)->wstr)
+  #define PY_UNICODE_OBJECT_WSTR_LENGTH(op) (PY_COMPACT_UNICODE_OBJECT_CAST(op)->wstr_length)
+  #define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
+#endif
 
 StrType::StrType(PyObject *object) : PyType(object) {}
 
@@ -32,13 +45,18 @@ StrType::StrType(JSContext *cx, JSString *str) {
   PyObject *p;
 
   size_t length = JS::GetLinearStringLength(lstr);
-  pyObject = PyUnicode_FromStringAndSize(NULL, length);
 
-  Py_XINCREF(pyObject);
+  pyObject = (PyObject *)PyObject_New(PyUnicodeObject, &PyUnicode_Type); // new reference
+  Py_INCREF(pyObject); // XXX: Why?
 
-  // need to free memory malloc'd by PyUnicodeObject, otherwise when we change the pointer,
-  // python will eventually attempt to free our new pointer that was never malloc'd
-  free(PY_UNICODE_OBJECT_DATA_ANY(pyObject));
+  // Initialize as legacy string (https://github.com/python/cpython/blob/v3.12.0b1/Include/cpython/unicodeobject.h#L78-L93)
+  // see https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L1230-L1245
+  PY_UNICODE_OBJECT_HASH(pyObject) = -1;
+  PY_UNICODE_OBJECT_STATE(pyObject).interned = 0;
+  PY_UNICODE_OBJECT_STATE(pyObject).compact = 0;
+  PY_UNICODE_OBJECT_STATE(pyObject).ascii = 0;
+  PY_UNICODE_OBJECT_UTF8(pyObject) = NULL;
+  PY_UNICODE_OBJECT_UTF8_LENGTH(pyObject) = 0;
 
   if (JS::LinearStringHasLatin1Chars(lstr)) { // latin1 spidermonkey, latin1 python
     const JS::Latin1Char *chars = JS::GetLatin1LinearStringChars(nogc, lstr);
@@ -46,9 +64,11 @@ StrType::StrType(JSContext *cx, JSString *str) {
     PY_UNICODE_OBJECT_DATA_ANY(pyObject) = (void *)chars;
     PY_UNICODE_OBJECT_KIND(pyObject) = PyUnicode_1BYTE_KIND;
     PY_UNICODE_OBJECT_LENGTH(pyObject) = length;
+  #if PY_UNICODE_HAS_WSTR
     PY_UNICODE_OBJECT_WSTR(pyObject) = NULL;
     PY_UNICODE_OBJECT_WSTR_LENGTH(pyObject) = 0;
     PY_UNICODE_OBJECT_READY(pyObject) = 1;
+  #endif
   }
   else { // utf16 spidermonkey, ucs2 python
     const char16_t *chars = JS::GetTwoByteLinearStringChars(nogc, lstr);
@@ -57,6 +77,7 @@ StrType::StrType(JSContext *cx, JSString *str) {
     PY_UNICODE_OBJECT_KIND(pyObject) = PyUnicode_2BYTE_KIND;
     PY_UNICODE_OBJECT_LENGTH(pyObject) = length;
 
+  #if PY_UNICODE_HAS_WSTR
     // python unicode objects take advantage of a possible performance gain on systems where
     // sizeof(wchar_t) == 2, i.e. Windows systems if the string is using UCS2 encoding by setting the
     // wstr pointer to point to the same data as the data.any pointer.
@@ -71,27 +92,12 @@ StrType::StrType(JSContext *cx, JSString *str) {
       PY_UNICODE_OBJECT_WSTR_LENGTH(pyObject) = 0;
     }
     PY_UNICODE_OBJECT_READY(pyObject) = 1;
+  #endif
   }
 }
 
 const char *StrType::getValue() const {
   return PyUnicode_AsUTF8(pyObject);
-}
-
-bool StrType::containsSurrogatePair() {
-  if (PY_UNICODE_OBJECT_KIND(pyObject) != PyUnicode_2BYTE_KIND) { // if the string is not UCS2-encoded
-    return false;
-  }
-
-  Py_UCS2 *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
-  ssize_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
-
-  for (size_t i = 0; i < length; i++) {
-    if (chars[i] >= HIGH_SURROGATE_START && chars[i] <= HIGH_SURROGATE_END && chars[i+1] >= LOW_SURROGATE_START && chars[i+1] <= LOW_SURROGATE_END) {
-      return true;
-    }
-    return false;
-  }
 }
 
 PyObject *StrType::asUCS4() {
