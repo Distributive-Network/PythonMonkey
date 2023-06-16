@@ -68,12 +68,18 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
     return _loopNotFound();
   }
 
+#if PY_VERSION_HEX < 0x030c0000 // Python version is less than 3.12
   using PyRunningLoopHolder = struct {
     PyObject_HEAD
     PyObject *rl_loop;
   };
 
   PyObject *running_loop = ((PyRunningLoopHolder *)rl)->rl_loop;
+#else
+  // The running loop is simply the `rl` object in Python 3.12+
+  //    see https://github.com/python/cpython/blob/v3.12.0b2/Modules/_asynciomodule.c#L301
+  PyObject *running_loop = rl;
+#endif
   if (running_loop == Py_None) {
     return _loopNotFound();
   }
