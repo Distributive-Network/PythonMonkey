@@ -60,7 +60,9 @@ jobs:
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         shell: powershell
         run: |
-          choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
+          # Already installed in Github Actions runner
+          # choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
+          # choco install -y llvm gnuwin32-m4
           choco install -y wget make
       - name: Install MozillaBuild
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
