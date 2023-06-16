@@ -49,13 +49,11 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-debug-symbols \
   --disable-tests \
   --enable-optimize 
-ls -alh 
-mkdir -p .cargo
-mkdir -p .deps
-mkdir -p build/rust/mozbuild/.deps/
-touch .cargo/config
-touch build/rust/mozbuild/.deps/buildconfig.rs.stub
-make -j$CPUS
+if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  mozmake -j$CPUS
+else
+  make -j$CPUS
+fi
 echo "Done building spidermonkey"
 
 echo "Installing spidermonkey"
