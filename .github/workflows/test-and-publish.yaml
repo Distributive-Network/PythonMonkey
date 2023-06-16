@@ -70,8 +70,7 @@ jobs:
           wget -O /c/mozilla-build/bin/mozmake.exe -c -q https://people.distributive.network/xmader/mozmake.exe
       - name: Build spidermonkey in MozillaBuild environment
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        shell: C:\mozilla-build\start-shell.bat -use-full-path -here {0}
-        run: ./setup.sh
+        run: /c/mozilla-build/start-shell.bat -use-full-path -here ./setup.sh
   build-and-test:
     needs: [build-spidermonkey-unix, build-spidermonkey-win]
     strategy:
