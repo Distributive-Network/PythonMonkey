@@ -13,4 +13,4 @@ if [[ "$OSTYPE" == "msys"* ]]; then # Windows
 else
   cmake .. 
 fi
-cmake --build . -j$CPUS
+cmake --build . -j$CPUS --config Release
