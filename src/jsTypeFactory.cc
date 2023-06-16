@@ -162,7 +162,11 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS_ValueToObject(cx, callargs.thisv(), &thisv);
 
   if (!callargs.length()) {
-    PyObject *pyRval = PyObject_CallObject(pyFunc, NULL /* no args */); // PyObject_CallNoArgs is not available in Python 3.8
+    #if PY_VERSION_HEX >= 0x03090000
+    PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
+    #else
+    PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
+    #endif
     // @TODO (Caleb Aikens) need to check for python exceptions here
     callargs.rval().set(jsTypeFactory(cx, pyRval));
     return true;
