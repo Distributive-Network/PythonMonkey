@@ -87,7 +87,7 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
 
   #if not (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)) // gcc extensions (also supported by clang)
     #error "Big-endian cpu is not supported by PythonMonkey yet"
-    // @TODO (Tom Tang): use C++23 std::byteswap?
+  // @TODO (Tom Tang): use C++23 std::byteswap?
   #endif
 
   // If the native endianness is also little-endian,
