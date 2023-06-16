@@ -45,7 +45,7 @@ jobs:
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
   build-spidermonkey-win:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v3
       - name: Cache spidermonkey build
@@ -78,7 +78,7 @@ jobs:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2022' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
         exclude:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
