@@ -888,12 +888,6 @@ def test_promises():
         pm.eval("new Promise(() => { })")
 
 def test_webassembly():
-    import sys
-    if sys.version_info < (3, 9):
-        # Don't test on Python 3.8 for now because this never finishes
-        # FIXME (Tom Tang): deadlock?
-        return
-
     async def async_fn():
         # off-thread promises can run
         assert 'instantiated' == await pm.eval("""
