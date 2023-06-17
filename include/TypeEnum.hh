@@ -1,11 +1,11 @@
 /**
  * @file TypeEnum.hh
- * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network) & Tom Tang (xmader@distributive.network)
  * @brief Enum for every PyType
  * @version 0.1
- * @date 2022-0-08
+ * @date 2022-08-08
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -24,6 +24,7 @@ enum class TYPE {
   TUPLE,
   DATE,
   PYTHONMONKEY_PROMISE,
+  BUFFER,
   EXCEPTION,
   NONE,
   PYTHONMONKEY_NULL,

@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "pythonmonkey"
+version = "0.1.0"
+description = ""
+authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>"]
+readme = "README.md"
+packages = [
+  { include = "pythonmonkey", from = "python" },
+]
+include = [ "python/pythonmonkey/pythonmonkey.so" ]
+
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+
+[tool.poetry.build]
+script = "build.py"
+generate-setup-file = false 
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.1"
+pip = "^23.1.2"
+numpy = [
+  # numpy hasn't packaged for Python 3.12 yet
+  # TODO: remove this once numpy releases for Python 3.12
+  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-linux_x86_64.whl", python = "3.12.*"},
+  {version = "^1.24.3", python = "<3.12"},
+]
+
+[build-system]
+requires = ["poetry-core>=1.0.0a9"]
+build-backend = "poetry.core.masonry.api"
+
