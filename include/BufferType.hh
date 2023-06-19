@@ -48,8 +48,6 @@ public:
   static bool isSupportedJsTypes(JSObject *obj);
 
 protected:
-  virtual void print(std::ostream &os) const override;
-
   static PyObject *fromJsTypedArray(JSContext *cx, JS::HandleObject typedArray);
   static PyObject *fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuffer);
 

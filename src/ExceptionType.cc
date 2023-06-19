@@ -22,8 +22,6 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
   Py_XDECREF(errStr);
 }
 
-void ExceptionType::print(std::ostream &os) const {}
-
 // TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
 JSObject *ExceptionType::toJsError(JSContext *cx) {
   PyObject *pyErrType = PyObject_Type(pyObject);

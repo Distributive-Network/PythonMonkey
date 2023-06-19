@@ -93,8 +93,6 @@ PyObject *BufferType::fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuf
   return PyMemoryView_FromBuffer(&bufInfo);
 }
 
-void BufferType::print(std::ostream &os) const {}
-
 JSObject *BufferType::toJsTypedArray(JSContext *cx) {
   // Get the pyObject's underlying buffer pointer and size
   Py_buffer *view = new Py_buffer{};
