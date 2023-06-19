@@ -162,7 +162,10 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
-  // delete rval; // rval may be a JS function which must be kept alive.
+  bool rvalIsFunction = rval->isObject() && js::IsFunctionObject(&rval->toObject());
+  if (!rvalIsFunction) {  // rval may be a JS function which must be kept alive.
+    delete rval;
+  }
 
   if (returnValue) {
     return returnValue->getPyObject();
