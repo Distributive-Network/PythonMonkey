@@ -53,4 +53,18 @@ protected:
  */
 bool PythonAwaitable_Check(PyObject *obj);
 
+/**
+ * @brief Callback to resolve or reject the JS Promise when the Future is done
+ * @see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.add_done_callback
+ *
+ * @param futureCallbackTuple - tuple( javascript context pointer, rooted JS Promise object )
+ * @param args - Args tuple. The callback is called with the Future object as its only argument
+ */
+static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *args);
+
+/**
+ * @brief Callbacks to settle the Python asyncio.Future once the JS Promise is resolved
+ */
+static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp);
+
 #endif
