@@ -12,8 +12,10 @@
 #include "include/pyTypeFactory.hh"
 
 #include "include/BoolType.hh"
+#include "include/BufferType.hh"
 #include "include/DateType.hh"
 #include "include/DictType.hh"
+#include "include/ExceptionType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
 #include "include/IntType.hh"
@@ -21,6 +23,7 @@
 #include "include/ListType.hh"
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
+#include "include/PromiseType.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -108,6 +111,12 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     case js::ESClass::Date: {
         return new DateType(cx, obj);
       }
+    case js::ESClass::Promise: {
+        return new PromiseType(cx, obj);
+      }
+    case js::ESClass::Error: {
+        return new ExceptionType(cx, obj);
+      }
     case js::ESClass::Function: {
         PyObject *jsCxThisFuncTuple = Py_BuildValue("(lll)", (uint64_t)cx, (uint64_t)thisObj, (uint64_t)rval);
         PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
@@ -132,11 +141,17 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
         return s;
       }
+    default: {
+        if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
+          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::String
+          return new BufferType(cx, obj);
+        }
+      }
     }
     return new DictType(cx, *rval);
   }
   else if (rval->isMagic()) {
-    printf("magic type is not handled by PythonMonkey yet");
+    printf("magic type is not handled by PythonMonkey yet\n");
   }
 
   std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");

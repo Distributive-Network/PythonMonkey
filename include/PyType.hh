@@ -28,6 +28,6 @@ public:
   ~PyType();
 
 protected:
-  PyObject *pyObject;
+  PyObject *pyObject = nullptr;
 };
 #endif

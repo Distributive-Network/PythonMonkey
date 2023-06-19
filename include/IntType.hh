@@ -31,7 +31,7 @@ public:
    * @brief Construct a new IntType object from a JS::BigInt.
    *
    * @param cx - javascript context pointer
-   * @param str - JS::BigInt pointer
+   * @param bigint - JS::BigInt pointer
    */
   IntType(JSContext *cx, JS::BigInt *bigint);
 
