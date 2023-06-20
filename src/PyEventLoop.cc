@@ -98,7 +98,7 @@ PyThreadState *PyEventLoop::_getMainThread() {
   // (The first element is the current thread, see https://github.com/python/cpython/blob/7cb3a44/Python/pystate.c#L291-L293)
   PyInterpreterState *interp = PyInterpreterState_Main();
   PyThreadState *tstate = PyInterpreterState_ThreadHead(interp); // https://docs.python.org/3/c-api/init.html#c.PyInterpreterState_ThreadHead
-  while (tstate->id != 1 && PyThreadState_Next(tstate) != nullptr) { // main ThreadState has the id of 1
+  while (PyThreadState_Next(tstate) != nullptr) {
     tstate = PyThreadState_Next(tstate);
   }
   return tstate;
