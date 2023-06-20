@@ -61,8 +61,8 @@ bool JobQueue::init(JSContext *cx) {
 }
 
 static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUSED(unused)) {
-  JSContext *cx = (JSContext *)PyLong_AsLongLong(PyTuple_GetItem(dispatchFuncTuple, 0));
-  JS::Dispatchable *dispatchable = (JS::Dispatchable *)PyLong_AsLongLong(PyTuple_GetItem(dispatchFuncTuple, 1));
+  JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(dispatchFuncTuple, 0));
+  JS::Dispatchable *dispatchable = (JS::Dispatchable *)PyLong_AsVoidPtr(PyTuple_GetItem(dispatchFuncTuple, 1));
   dispatchable->run(cx, JS::Dispatchable::NotShuttingDown);
   Py_RETURN_NONE;
 }
@@ -78,7 +78,7 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
   PyGILState_STATE gstate;
   gstate = PyGILState_Ensure();
 
-  PyObject *dispatchFuncTuple = Py_BuildValue("(ll)", (uint64_t)cx, (uint64_t)dispatchable);
+  PyObject *dispatchFuncTuple = Py_BuildValue("(KK)", (uint64_t)cx, (uint64_t)dispatchable);
   PyObject *pyFunc = PyCFunction_New(&callDispatchFuncDef, dispatchFuncTuple);
 
   // Send job to the running Python event-loop on `cx`'s thread (the main thread)
