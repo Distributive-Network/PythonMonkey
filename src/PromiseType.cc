@@ -134,7 +134,7 @@ JSObject *PromiseType::toJsPromise(JSContext *cx) {
 
   // Resolve or Reject the JS Promise once the python awaitable is done
   JS::PersistentRooted<JSObject *> *rootedPtr = new JS::PersistentRooted<JSObject *>(cx, promise); // `promise` is required to be rooted from here to the end of onDoneCallback
-  PyObject *futureCallbackTuple = Py_BuildValue("(KK)", (uint64_t)cx, (uint64_t)rootedPtr);
+  PyObject *futureCallbackTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(rootedPtr));
   PyObject *onDoneCb = PyCFunction_New(&futureCallbackDef, futureCallbackTuple);
   future.addDoneCallback(onDoneCb);
 

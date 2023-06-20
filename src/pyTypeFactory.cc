@@ -118,7 +118,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         break;
       }
     case js::ESClass::Function: {
-        PyObject *jsCxThisFuncTuple = Py_BuildValue("(KKK)", (uint64_t)cx, (uint64_t)thisObj, (uint64_t)rval);
+        // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
+        PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
         PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
         returnValue = new FuncType(pyFunc);
         memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor

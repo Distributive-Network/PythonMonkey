@@ -78,7 +78,7 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
   PyGILState_STATE gstate;
   gstate = PyGILState_Ensure();
 
-  PyObject *dispatchFuncTuple = Py_BuildValue("(KK)", (uint64_t)cx, (uint64_t)dispatchable);
+  PyObject *dispatchFuncTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(dispatchable));
   PyObject *pyFunc = PyCFunction_New(&callDispatchFuncDef, dispatchFuncTuple);
 
   // Send job to the running Python event-loop on `cx`'s thread (the main thread)
