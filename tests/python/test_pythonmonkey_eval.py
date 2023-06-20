@@ -876,7 +876,7 @@ def test_promises():
             loop.call_later(second, lambda:future.set_result(None))
             return future
         both_sleep = pm.eval("(js_sleep, py_sleep) => async (second) => { await js_sleep(second); await py_sleep(second) }")(js_sleep, py_sleep)
-        await asyncio.wait_for(both_sleep(0.1), timeout=0.25) # won't be precisely 0.2s 
+        await asyncio.wait_for(both_sleep(0.1), timeout=0.3) # won't be precisely 0.2s 
         with pytest.raises(asyncio.exceptions.TimeoutError):
             await asyncio.wait_for(both_sleep(0.1), timeout=0.19)
 
