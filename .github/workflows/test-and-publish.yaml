@@ -29,7 +29,7 @@ jobs:
         run: |
           echo "Installing Dependencies"
           sudo apt-get update -y
-          sudo apt-get install -y cmake doxygen graphviz gcovr llvm
+          sudo apt-get install -y cmake doxygen graphviz llvm
           echo "Installing python deps"
           poetry install --no-root
           echo "Installed Dependencies"

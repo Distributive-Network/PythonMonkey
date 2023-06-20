@@ -51,7 +51,6 @@ this package to execute our complex `dcp-client` library, which is written in JS
     - doxygen 
     - python3-dev (python-dev)
     - graphviz
-    - gcovr
     - llvm
     - rust
     - python3.9 or later
