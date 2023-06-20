@@ -863,9 +863,10 @@ def test_promises():
             await pm.eval("Promise.resolve().then(()=>{ (undefined).prop })")
 
         # TODO (Tom Tang): Modify this testcase once we support ES2020-style dynamic import
-        pm.eval("import('some_module')") # dynamic import returns a Promise, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import
+        # pm.eval("import('some_module')") # dynamic import returns a Promise, see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import
         with pytest.raises(pm.SpiderMonkeyError, match="\nError: Dynamic module import is disabled or not supported in this context"):
             await pm.eval("import('some_module')")
+        # TODO (Tom Tang): properly test unhandled rejection
 
         # await scheduled jobs on the Python event-loop
         js_sleep = pm.eval("(second) => new Promise((resolve) => setTimeout(resolve, second*1000))")
