@@ -891,7 +891,7 @@ def test_promises():
 def test_webassembly():
     async def async_fn():
         # off-thread promises can run
-        assert 'instantiated' == await pm.eval("""
+        assert 'instantiated' == await asyncio.wait_for(pm.eval("""
         // https://github.com/mdn/webassembly-examples/blob/main/js-api-examples/simple.wasm
         var code = new Uint8Array([
             0,  97, 115, 109,   1,   0,   0,   0,   1,   8,   2,  96,
@@ -904,7 +904,7 @@ def test_webassembly():
         ]);
 
         WebAssembly.instantiate(code, { imports: { imported_func() {} } }).then(() => 'instantiated')
-        """)
+        """), timeout=10) # avoid hanging
 
         # making sure the async_fn is run
         return True
