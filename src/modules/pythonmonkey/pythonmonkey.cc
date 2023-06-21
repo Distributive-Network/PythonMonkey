@@ -165,8 +165,10 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
+  js::ESClass cls;
   bool rvalIsFunction = rval->isObject() && js::IsFunctionObject(&rval->toObject());
-  if (!rvalIsFunction) {  // rval may be a JS function which must be kept alive.
+  bool rvalIsString = rval->isString() || (rval->isObject() && JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls) && cls == js::ESClass::String); // string primitive or boxed string
+  if (!rvalIsFunction && !rvalIsString) {  // rval may be a JS function or string which must be kept alive.
     delete rval;
   }
 
