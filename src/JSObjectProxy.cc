@@ -17,6 +17,7 @@
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
+#include <js/Equality.h>
 
 #include <Python.h>
 
@@ -218,6 +219,16 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   visited.insert({{(PyObject *)self, other}});
+
+  if (Py_TYPE((PyObject *)self) == Py_TYPE(other)) {
+    JS::RootedValue selfVal(GLOBAL_CX, JS::ObjectValue(*self->jsObject));
+    JS::RootedValue otherVal(GLOBAL_CX, JS::ObjectValue(*(*(JSObjectProxy *)other).jsObject));
+    if (selfVal.asRawBits() == otherVal.asRawBits()) {
+      return true;
+    }
+    bool *isEqual;
+  }
+
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
   {
