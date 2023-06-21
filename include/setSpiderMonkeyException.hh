@@ -14,7 +14,13 @@
 
 #include <jsapi.h>
 
-#include <Python.h>
+/**
+ * @brief Convert the given SpiderMonkey exception stack to a Python string
+ *
+ * @param cx - pointer to the JS context
+ * @param exceptionStack - reference to the SpiderMonkey exception stack
+ */
+PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionStack);
 
 /**
  * @brief This function sets a python error under the assumption that a JS_* function call has failed. Do not call this function if that is not the case.

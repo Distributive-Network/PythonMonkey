@@ -28,6 +28,7 @@ struct PythonExternalString;
  * @return size_t - length of outStr (counting surrogate pairs as 2)
  */
 size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr);
+
 /**
  * @brief Function that takes a PyObject and returns a corresponding JS::Value, doing shared memory management when necessary
  *
@@ -36,6 +37,11 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr);
  * @return JS::Value - A JS::Value corresponding to the PyType
  */
 JS::Value jsTypeFactory(JSContext *cx, PyObject *object);
+/**
+ * @brief same to jsTypeFactory, but it's guaranteed that no error would be set on the Python error stack, instead
+ * return JS `null` on error, and output a warning in Python-land
+ */
+JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object);
 
 /**
  * @brief Helper function for jsTypeFactory to create a JSFunction* through JS_NewFunction that knows how to call a python function.

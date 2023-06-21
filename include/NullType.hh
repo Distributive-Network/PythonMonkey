@@ -15,15 +15,13 @@
 #include "PyType.hh"
 #include "TypeEnum.hh"
 
-#include <iostream>
-
 /**
  * @brief This struct represents the JS null type in Python using a singleton object on the pythonmonkey module. It inherits from the PyType struct
  */
 struct NullType : public PyType {
 public:
   NullType();
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::PYTHONMONKEY_NULL;
 };
 
 #endif

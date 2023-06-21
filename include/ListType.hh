@@ -17,8 +17,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents a list in python. It derives from the PyType struct
  *
@@ -28,7 +26,7 @@ struct ListType : public PyType {
 public:
   ListType();
   ListType(PyObject *object);
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::LIST;
 /**
  * @brief
  *

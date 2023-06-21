@@ -14,10 +14,14 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
+#include "include/JSObjectProxy.hh"
 #include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
+#include "include/PromiseType.hh"
+#include "include/ExceptionType.hh"
+#include "include/BufferType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -39,8 +43,8 @@ struct PythonExternalString : public JSExternalStringCallbacks {
 
 static constexpr PythonExternalString PythonExternalStringCallbacks;
 
-size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr) {
-  uint16_t utf16String[length*2];
+size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
+  uint16_t *utf16String = (uint16_t *)malloc(sizeof(uint16_t) * length*2);
   size_t utf16Length = 0;
 
   for (size_t i = 0; i < length; i++) {
@@ -56,8 +60,7 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t *outStr) {
       /* *INDENT-ON* */
     }
   }
-  outStr = (uint16_t *)malloc(sizeof(uint16_t) * utf16Length);
-  memcpy(outStr, utf16String, sizeof(uint16_t) * utf16Length);
+  *outStr = utf16String;
   return utf16Length;
 }
 
@@ -72,7 +75,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
       JS::BigInt *bigint = IntType(object).toJsBigInt(cx);
       returnType.setBigInt(bigint);
     } else if (_PyLong_NumBits(object) <= 53) { // num <= JS Number.MAX_SAFE_INTEGER, the mantissa of a float64 is 53 bits (with 52 explicitly stored and the highest bit always being 1)
-      uint64_t num = PyLong_AsLongLong(object);
+      int64_t num = PyLong_AsLongLong(object);
       returnType.setNumber(num);
     } else {
       PyErr_SetString(PyExc_OverflowError, "Absolute value of the integer exceeds JS Number.MAX_SAFE_INTEGER. Use pythonmonkey.bigint instead.");
@@ -86,7 +89,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     case (PyUnicode_4BYTE_KIND): {
         uint32_t *u32Chars = PyUnicode_4BYTE_DATA(object);
         uint16_t *u16Chars;
-        size_t u16Length = UCS4ToUTF16(u32Chars, PyUnicode_GET_LENGTH(object), u16Chars);
+        size_t u16Length = UCS4ToUTF16(u32Chars, PyUnicode_GET_LENGTH(object), &u16Chars);
         JSString *str = JS_NewUCStringCopyN(cx, (char16_t *)u16Chars, u16Length);
         free(u16Chars);
         returnType.setString(str);
@@ -100,10 +103,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     case (PyUnicode_1BYTE_KIND): {
 
         JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
-        /* @TODO (Caleb Aikens) this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
+        /* TODO (Caleb Aikens): this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
          * Ideally we submit a patch to Spidermonkey to make this part of their API with the following signature:
          * JS_NewExternalString(JSContext *cx, const char *chars, size_t length, const JSExternalStringCallbacks *callbacks)
          */
+        // FIXME: JSExternalString are all treated as two-byte strings when GCed
+        //    see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/StringType-inl.h#l514
+        //        https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/StringType.h#l1808
         *(std::atomic<unsigned long> *)str |= 512;
         returnType.setString(str);
         break;
@@ -111,36 +117,36 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
-  else if (PyFunction_Check(object)) {
-    /*
-     * import inspect
-     * args = (inspect.getfullargspec(object)).args
-     */
-    PyObject *const inspect = PyImport_Import(PyUnicode_DecodeFSDefault("inspect"));
-    PyObject *const getfullargspec = PyObject_GetAttrString(inspect, "getfullargspec");
-    PyObject *const getfullargspecArgs = PyTuple_New(1);
-    PyTuple_SetItem(getfullargspecArgs, 0, object);
-    PyObject *const argspec = PyObject_CallObject(getfullargspec, getfullargspecArgs);
-    PyObject *const args = PyObject_GetAttrString(argspec, "args");
-
-    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, PyList_Size(args), 0, NULL);
-    JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
-
-    // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
-    js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
-    returnType.setObject(*jsFuncObject);
-    memoizePyTypeAndGCThing(new FuncType(object), returnType);
-  }
-  else if (PyCFunction_Check(object)) {
+  else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
-    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, 0, 0, NULL);
+    uint16_t nargs = 0;
+    if (PyFunction_Check(object)) {
+      // https://docs.python.org/3.11/reference/datamodel.html?highlight=co_argcount
+      PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(object); // borrowed reference
+      nargs = bytecode->co_argcount;
+    }
+
+    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
     JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
 
     // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
     js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
     returnType.setObject(*jsFuncObject);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
-
+    Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
+  }
+  else if (PyExceptionInstance_Check(object)) {
+    JSObject *error = ExceptionType(object).toJsError(cx);
+    returnType.setObject(*error);
+  }
+  else if (PyObject_CheckBuffer(object)) {
+    BufferType *pmBuffer = new BufferType(object);
+    JSObject *typedArray = pmBuffer->toJsTypedArray(cx); // may return null
+    returnType.setObjectOrNull(typedArray);
+    memoizePyTypeAndGCThing(pmBuffer, returnType);
+  }
+  else if (Py_TYPE(object) == &JSObjectProxyType) {
+    returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
   else if (PyDict_Check(object)) {
     PyProxyHandler *proxyHandler = new PyProxyHandler(object);
@@ -154,11 +160,36 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (object == PythonMonkey_Null) {
     returnType.setNull();
   }
+  else if (PythonAwaitable_Check(object)) {
+    PromiseType *p = new PromiseType(object);
+    JSObject *promise = p->toJsPromise(cx); // may return null
+    returnType.setObjectOrNull(promise);
+    // nested awaitables would have already been GCed if finished
+    // memoizePyTypeAndGCThing(p, returnType);
+  }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, function, int, pythonmonkey.bigint, pythonmonkey.null, float, str, and None are not supported by pythonmonkey yet.");
+    std::string errorString("pythonmonkey cannot yet convert python objects of type: ");
+    errorString += Py_TYPE(object)->tp_name;
+    PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
 
+}
+
+JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
+  JS::Value v = jsTypeFactory(cx, object);
+  if (PyErr_Occurred()) {
+    // Convert the Python error to a warning
+    PyObject *type, *value, *traceback;
+    PyErr_Fetch(&type, &value, &traceback); // also clears Python's error stack
+    PyObject *msg = PyObject_Str(value);
+    PyErr_WarnEx(PyExc_RuntimeWarning, PyUnicode_AsUTF8(msg), 1);
+    Py_DECREF(msg);
+    Py_XDECREF(type); Py_XDECREF(value); Py_XDECREF(traceback);
+    // Return JS `null` on error
+    v.setNull();
+  }
+  return v;
 }
 
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
@@ -168,11 +199,18 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
   PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
 
-  JS::RootedObject thisv(cx);
-  JS_ValueToObject(cx, callargs.thisv(), &thisv);
+  JS::RootedObject *thisv = new JS::RootedObject(cx);
+  JS_ValueToObject(cx, callargs.thisv(), thisv);
 
   if (!callargs.length()) {
+    #if PY_VERSION_HEX >= 0x03090000
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
+    #else
+    PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
+    #endif
+    if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
+      return false;
+    }
     // @TODO (Caleb Aikens) need to check for python exceptions here
     callargs.rval().set(jsTypeFactory(cx, pyRval));
     return true;
@@ -181,14 +219,20 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   // populate python args tuple
   PyObject *pyArgs = PyTuple_New(callargs.length());
   for (size_t i = 0; i < callargs.length(); i++) {
-    JS::RootedValue jsArg = JS::RootedValue(cx, callargs[i]);
-    PyType *pyArg = (pyTypeFactory(cx, &thisv, &jsArg));
+    JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
+    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
     PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
   }
 
   PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
+  if (PyErr_Occurred()) {
+    return false;
+  }
   // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
+  if (PyErr_Occurred()) {
+    return false;
+  }
 
   return true;
 }

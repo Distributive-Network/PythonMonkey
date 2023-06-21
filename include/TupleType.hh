@@ -17,8 +17,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief A struct to represent the tuple type in python
  *
@@ -27,7 +25,7 @@ struct TupleType : public PyType {
 
 public:
   TupleType(PyObject *obj);
-  TYPE getReturnType() override;
+  const TYPE returnType = TYPE::TUPLE;
 
 /**
  * @brief Gets the tuple item at the given index
@@ -39,8 +37,6 @@ public:
 
 /**
  * @brief
- *
- *
  *
  * @returns int length of the tuple
  */

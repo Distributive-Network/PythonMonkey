@@ -30,9 +30,11 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
     JS::RootedValue jsKey(cx, jsTypeFactory(cx, key));
     JS::RootedId jsId(cx);
     if (!JS_ValueToId(cx, jsKey, &jsId)) {
-      // @TODO raise exception
+      // @TODO (Caleb Aikens) raise exception
     }
-    props.append(jsId);
+    if (!props.append(jsId)) {
+      // @TODO (Caleb Aikens) raise exception
+    }
   }
   return true;
 }

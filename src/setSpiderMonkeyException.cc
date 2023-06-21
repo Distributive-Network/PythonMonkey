@@ -14,23 +14,15 @@
 #include "include/StrType.hh"
 
 #include <jsapi.h>
+#include <Python.h>
 
 #include <codecvt>
 #include <locale>
 
-#include <Python.h>
-
-void setSpiderMonkeyException(JSContext *cx) {
-  if (!JS_IsExceptionPending(cx)) {
-    PyErr_SetString(SpiderMonkeyError, "Spidermonkey failed, but spidermonkey did not set an exception.");
-  }
-  JS::ExceptionStack exceptionStack(cx);
-  if (!JS::GetPendingExceptionStack(cx, &exceptionStack)) {
-    PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
-  }
-  JS::RootedObject exceptionObject(cx);
-  if (!JS_ValueToObject(cx, exceptionStack.exception(), &exceptionObject)) {
-    PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but the exception could not be converted to an object.");
+PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionStack) {
+  JS::ErrorReportBuilder reportBuilder(cx);
+  if (!reportBuilder.init(cx, exceptionStack, JS::ErrorReportBuilder::WithSideEffects /* may call the `toString` method if an object is thrown */)) {
+    return PyUnicode_FromString("Spidermonkey set an exception, but could not initialize the error report.");
   }
 
   /**
@@ -43,32 +35,56 @@ void setSpiderMonkeyException(JSContext *cx) {
    * <stack trace>"
    *
    */
-
-  JSErrorReport *errorReport = JS_ErrorFromException(cx, exceptionObject);
   std::stringstream outStrStream;
 
-  std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
-  std::string linebuf; // the offending JS line of code (can be empty)
+  JSErrorReport *errorReport = reportBuilder.report();
+  if (errorReport && errorReport->filename) { // `errorReport->filename` (the source file name) can be null
+    std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
+    std::string linebuf; // the offending JS line of code (can be empty)
 
-  outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ":\n";
-  if (errorReport->linebuf()) {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    std::u16string u16linebuf(errorReport->linebuf());
-    linebuf = convert.to_bytes(u16linebuf);
-  }
-  if (linebuf.size()) {
-    outStrStream << linebuf << "\n";
-    outStrStream << offsetSpaces << "^\n";
-  }
-  outStrStream << errorReport->message().c_str() << "\n";
-
-  if (exceptionStack.stack()) {
-    JS::Rooted<JS::ValueArray<0>> args(cx);
-    JS::RootedValue stackString(cx);
-    JS_CallFunctionName(cx, exceptionStack.stack(), "toString", args, &stackString);
-    StrType stackStr(cx, stackString.toString());
-    outStrStream << "Stack Trace: \n" << stackStr.getValue();
+    outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ":\n";
+    if (errorReport->linebuf()) {
+      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+      std::u16string u16linebuf(errorReport->linebuf());
+      linebuf = convert.to_bytes(u16linebuf);
+    }
+    if (linebuf.size()) {
+      outStrStream << linebuf << "\n";
+      outStrStream << offsetSpaces << "^\n";
+    }
   }
 
-  PyErr_SetString(SpiderMonkeyError, outStrStream.str().c_str());
+  // print out the SpiderMonkey error message
+  outStrStream << reportBuilder.toStringResult().c_str() << "\n";
+
+  JS::HandleObject stackObj = exceptionStack.stack();
+  if (stackObj) { // stack can be null
+    JS::RootedString stackStr(cx);
+    BuildStackString(cx, nullptr, stackObj, &stackStr, /* indent */ 2, js::StackFormat::SpiderMonkey);
+    outStrStream << "Stack Trace: \n" << StrType(cx, stackStr).getValue();
+  }
+
+  return PyUnicode_FromString(outStrStream.str().c_str());
+}
+
+void setSpiderMonkeyException(JSContext *cx) {
+  if (PyErr_Occurred()) { // Check if a Python exception has already been set, otherwise `PyErr_SetString` would overwrite the exception set
+    return;
+  }
+  if (!JS_IsExceptionPending(cx)) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey failed, but spidermonkey did not set an exception.");
+    return;
+  }
+  JS::ExceptionStack exceptionStack(cx);
+  if (!JS::GetPendingExceptionStack(cx, &exceptionStack)) {
+    PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
+    return;
+  }
+  JS_ClearPendingException(cx);
+
+  // `PyErr_SetString` uses `PyErr_SetObject` with `PyUnicode_FromString` under the hood
+  //    see https://github.com/python/cpython/blob/3.9/Python/errors.c#L234-L236
+  PyObject *errStr = getExceptionString(cx, exceptionStack);
+  PyErr_SetObject(SpiderMonkeyError, errStr);
+  Py_XDECREF(errStr);
 }
