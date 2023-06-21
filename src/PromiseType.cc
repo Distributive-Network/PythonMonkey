@@ -12,8 +12,8 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include "include/PromiseType.hh"
-#include "include/PyEventLoop.hh"
 
+#include "include/PyEventLoop.hh"
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"
 #include "include/pyTypeFactory.hh"
@@ -47,7 +47,11 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   if (state == JS::PromiseState::Rejected && !PyExceptionInstance_Check(result)) {
     // Wrap the result object into a SpiderMonkeyError object
     // because only *Exception objects can be thrown in Python `raise` statement and alike
+    #if PY_VERSION_HEX >= 0x03090000
     PyObject *wrapped = PyObject_CallOneArg(SpiderMonkeyError, result); // wrapped = SpiderMonkeyError(result)
+    #else
+    PyObject *wrapped = PyObject_CallFunction(SpiderMonkeyError, "O", result); // PyObject_CallOneArg is not available in Python < 3.9
+    #endif
     Py_XDECREF(result);
     result = wrapped;
   }

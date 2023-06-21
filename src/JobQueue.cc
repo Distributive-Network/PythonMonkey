@@ -1,10 +1,13 @@
+
 #include "include/JobQueue.hh"
+
 #include "include/PyEventLoop.hh"
 #include "include/pyTypeFactory.hh"
 
 #include <Python.h>
-
 #include <jsfriendapi.h>
+
+#include <stdexcept>
 
 JSObject *JobQueue::getIncumbentGlobal(JSContext *cx) {
   return JS::CurrentGlobalOrNull(cx);
@@ -37,21 +40,18 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
 
 void JobQueue::runJobs(JSContext *cx) {
   // TODO (Tom Tang):
-  printf("JobQueue::runJobs is unimplemented\n");
-  return;
+  throw std::logic_error("JobQueue::runJobs is not implemented.");
 }
 
 // is empty
 bool JobQueue::empty() const {
   // TODO (Tom Tang): implement using `get_running_loop` and getting job count on loop???
-  printf("JobQueue::empty is unimplemented\n");
-  return false;
+  throw std::logic_error("JobQueue::empty is not implemented\n");
 }
 
 js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx) {
   // TODO (Tom Tang): implement this method way later
-  printf("JobQueue::saveJobQueue is unimplemented\n");
-  return nullptr;
+  throw std::logic_error("JobQueue::saveJobQueue is not implemented\n");
 }
 
 bool JobQueue::init(JSContext *cx) {

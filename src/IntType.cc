@@ -40,7 +40,11 @@ static inline void PythonLong_SetSign(PyLongObject *op, int sign) {
 #else // Python version is less than 3.12
   // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L956
   ssize_t pyDigitCount = Py_SIZE(op);
+  #if PY_VERSION_HEX >= 0x03090000
   Py_SET_SIZE(op, sign * std::abs(pyDigitCount));
+  #else
+  ((PyVarObject *)op)->ob_size = sign * std::abs(pyDigitCount); // Py_SET_SIZE is not available in Python < 3.9
+  #endif
 #endif
 }
 
@@ -97,7 +101,11 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
   //  allowing Py<->JS two-way BigInt conversion.
   // We don't do `Py_SET_TYPE` because `_PyLong_FromByteArray` may cache and reuse objects for small ints
+  #if PY_VERSION_HEX >= 0x03090000
   pyObject = PyObject_CallOneArg(PythonMonkey_BigInt, pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
+  #else
+  pyObject = PyObject_CallFunction(PythonMonkey_BigInt, "O", pyIntObj); // PyObject_CallOneArg is not available in Python < 3.9
+  #endif
   Py_DECREF(pyIntObj);
 
   // Set the sign bit
