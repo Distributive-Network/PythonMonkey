@@ -24,19 +24,14 @@ JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
-  if (Py_TYPE(self)->tp_free) {
-    Py_TYPE(self)->tp_free((PyObject *)self);
-  }
-  else {
-    Py_TYPE(self)->tp_base->tp_free((PyObject *)self);
-  }
+  Py_TYPE(self)->tp_free((PyObject *)self);
 
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
   JSObjectProxy *self;
-  self = (JSObjectProxy *)type->tp_base->tp_alloc(type, 0);
+  self = (JSObjectProxy *)type->tp_alloc(type, 0);
   if (!self)
   {
     Py_DECREF(self);
@@ -48,9 +43,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, 
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
-  if (PyDict_Type.tp_init((PyObject *)self, PyTuple_New(0), kwds) < 0) {
-    return -1;
-  }
 
   PyObject *dict = NULL;
   if (PyTuple_Size(args) == 0 || Py_IsNone(PyTuple_GetItem(args, 0))) {
@@ -265,13 +257,4 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   return true;
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg) {
-  // @TODO (Caleb Aikens) currently python segfaults on exit if there are any JSObjectProxys yet to be deleted, this needs to be fixed
-  return Py_TYPE(self)->tp_base->tp_traverse((PyObject *)self, visit, arg);
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self) {
-  return Py_TYPE(self)->tp_base->tp_clear((PyObject *)self);
 }

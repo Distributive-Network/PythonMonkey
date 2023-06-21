@@ -18,7 +18,7 @@
  *
  */
 typedef struct {
-  PyDictObject dict;
+  PyObject_HEAD
   JS::RootedObject jsObject;
 } JSObjectProxy;
 
@@ -119,24 +119,6 @@ public:
    * @return bool - Whether the compared objects are equal or not
    */
   static bool JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited);
-
-  /**
-   * @brief Trivial traversal function to satisfy the python GC protocol
-   *
-   * @param self
-   * @param visit
-   * @param arg
-   * @return int
-   */
-  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
-
-  /**
-   * @brief Trivial clear function to satisfy the python GC protocol
-   *
-   * @param self
-   * @return int
-   */
-  static int JSObjectProxy_clear(JSObjectProxy *self);
 };
 
 
@@ -175,12 +157,12 @@ static PyTypeObject JSObjectProxyType = {
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
   .tp_as_buffer = NULL,
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_DICT_SUBCLASS  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
+  // | Py_TPFLAGS_DICT_SUBCLASS  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
   // | Py_TPFLAGS_HAVE_GC     // @TODO (Caleb Aikens) need to figure out how to make GC work cross-language
   | Py_TPFLAGS_MAPPING,
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
-  .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
-  .tp_clear = (inquiry)JSObjectProxyMethodDefinitions::JSObjectProxy_clear,
+  .tp_traverse = NULL,
+  .tp_clear = NULL,
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_weaklistoffset = 0,
   .tp_iter = NULL,
@@ -188,15 +170,15 @@ static PyTypeObject JSObjectProxyType = {
   .tp_methods = NULL,
   .tp_members = NULL,
   .tp_getset = NULL,
-  .tp_base = &PyDict_Type,    // extending the builtin dict type
+  .tp_base = NULL,
   .tp_dict = NULL,
   .tp_descr_get = NULL,
   .tp_descr_set = NULL,
   .tp_dictoffset = 0,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
-  .tp_alloc = NULL,
+  .tp_alloc = PyType_GenericAlloc,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
-  .tp_free = NULL,
+  .tp_free = PyObject_Free,
   .tp_is_gc = NULL,
   .tp_bases = NULL,
   .tp_mro = NULL,
