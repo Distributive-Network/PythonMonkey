@@ -10,6 +10,18 @@ packages = [
 include = [
   "python/pythonmonkey/pythonmonkey.so",
   "python/pythonmonkey/libmozjs*",
+
+  # include all files for source distribution
+  { path = "src", format = "sdist" },
+  { path = "include", format = "sdist" },
+  { path = "cmake", format = "sdist" },
+  { path = "docs", format = "sdist" }, # TODO: organize files
+  { path = "externals", format = "sdist" },
+  { path = "format", format = "sdist" },
+  { path = "tests", format = "sdist" },
+  { path = "CMakeLists.txt", format = "sdist" },
+  { path = "*.sh", format = "sdist" },
+  { path = "version.txt", format = "sdist" }, # FIXME: Do we really need this?
 ]
 
 
