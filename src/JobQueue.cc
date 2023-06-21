@@ -68,6 +68,20 @@ static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUS
 }
 static PyMethodDef callDispatchFuncDef = {"JsDispatchCallable", callDispatchFunc, METH_NOARGS, NULL};
 
+void sendJobToMainLoop(void *pyFunc) {
+  PyGILState_STATE gstate = PyGILState_Ensure();
+
+  // Send job to the running Python event-loop on `cx`'s thread (the main thread)
+  PyEventLoop loop = PyEventLoop::getMainLoop();
+  if (!loop.initialized()) {
+    PyGILState_Release(gstate);
+    return;
+  }
+  loop.enqueue((PyObject *)pyFunc);
+
+  PyGILState_Release(gstate);
+}
+
 /* static */
 bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable) {
   JSContext *cx = (JSContext *)closure; // `closure` is provided in `JS::InitDispatchToEventLoop` call
@@ -75,20 +89,13 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
   // The `dispatchToEventLoop` function is running in a helper thread, so
   // we must acquire the Python GIL (global interpreter lock)
   //    see https://docs.python.org/3/c-api/init.html#non-python-created-threads
-  PyGILState_STATE gstate;
-  gstate = PyGILState_Ensure();
+  PyGILState_STATE gstate = PyGILState_Ensure();
 
   PyObject *dispatchFuncTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(dispatchable));
   PyObject *pyFunc = PyCFunction_New(&callDispatchFuncDef, dispatchFuncTuple);
 
-  // Send job to the running Python event-loop on `cx`'s thread (the main thread)
-  PyEventLoop loop = PyEventLoop::getMainLoop();
-  if (!loop.initialized()) {
-    PyErr_Print(); // Python RuntimeError is thrown if no event-loop running on main thread
-    PyGILState_Release(gstate);
-    return false;
-  }
-  loop.enqueue(pyFunc);
+  // Avoid using the JS helper thread to send jobs to event-loop as it may cause deadlock
+  PyThread_start_new_thread(&sendJobToMainLoop, pyFunc);
 
   PyGILState_Release(gstate);
   return true; // dispatchable must eventually run

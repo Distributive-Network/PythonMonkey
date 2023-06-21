@@ -64,4 +64,11 @@ private:
 static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
 };
 
+/**
+ * @brief Send job to the Python event-loop on main thread
+ * (Thread-Safe)
+ * @param pyFunc - the Python job function
+ */
+void sendJobToMainLoop(void *pyFunc);
+
 #endif
