@@ -19,7 +19,8 @@ def execute(cmd: str):
 def build():
     build_script_sh = os.path.join( dir_path, 'build_script.sh' )
     execute(f"bash {build_script_sh}")
-    execute(f"cp ./build/src/pythonmonkey.so ./python/pythonmonkey/pythonmonkey.so")
+    execute("cp ./build/src/pythonmonkey.so ./python/pythonmonkey/")
+    execute("cp ./_spidermonkey_install/lib/libmozjs-102.so ./python/pythonmonkey/")
 
 if __name__ == "__main__":
     build()
