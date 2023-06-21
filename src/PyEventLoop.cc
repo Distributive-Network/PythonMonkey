@@ -56,7 +56,11 @@ PyEventLoop PyEventLoop::_loopNotFound() {
 /* static */
 PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
   // Modified from Python 3.9 `get_running_loop` https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L241-L278
+  #if PY_VERSION_HEX >= 0x03090000 // Python version is greater than 3.9
   PyObject *ts_dict = _PyThreadState_GetDict(tstate);  // borrowed reference
+  #else // Python 3.8
+  PyObject *ts_dict = tstate->dict; // see https://github.com/python/cpython/blob/v3.8.17/Modules/_asynciomodule.c#L244-L245
+  #endif
   if (ts_dict == NULL) {
     return _loopNotFound();
   }

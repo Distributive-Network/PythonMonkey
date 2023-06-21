@@ -90,7 +90,7 @@ void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReas
       PyObject *pyObj = pyIt->first->getPyObject();
       // If the PyObject reference count is exactly 1, then the only reference to the object is the one
       // we are holding, which means the object is ready to be free'd.
-      if (PyObject_GC_IsFinalized(pyObj) || pyObj->ob_refcnt == 1) {
+      if (_PyGC_FINALIZED(pyObj) || pyObj->ob_refcnt == 1) { // PyObject_GC_IsFinalized is only available in Python 3.9+
         for (JS::PersistentRooted<JS::Value> *rval: pyIt->second) { // for each related GCThing
           bool found = false;
           for (PyToGCIterator innerPyIt = PyTypeToGCThing.begin(); innerPyIt != PyTypeToGCThing.end(); innerPyIt++) { // for each other PyType pointer

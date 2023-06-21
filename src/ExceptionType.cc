@@ -18,7 +18,11 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
 
   // Construct a new SpiderMonkeyError python object
   //    pyObject = SpiderMonkeyError(errStr)
+  #if PY_VERSION_HEX >= 0x03090000
   pyObject = PyObject_CallOneArg(SpiderMonkeyError, errStr); // _PyErr_CreateException, https://github.com/python/cpython/blob/3.9/Python/errors.c#L100
+  #else
+  pyObject = PyObject_CallFunction(SpiderMonkeyError, "O", errStr); // PyObject_CallOneArg is not available in Python < 3.9
+  #endif
   Py_XDECREF(errStr);
 }
 

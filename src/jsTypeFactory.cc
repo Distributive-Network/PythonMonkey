@@ -189,7 +189,11 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS_ValueToObject(cx, callargs.thisv(), thisv);
 
   if (!callargs.length()) {
+    #if PY_VERSION_HEX >= 0x03090000
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
+    #else
+    PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
+    #endif
     if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
       return false;
     }

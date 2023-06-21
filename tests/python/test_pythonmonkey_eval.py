@@ -869,7 +869,11 @@ def test_promises():
 
         # await scheduled jobs on the Python event-loop
         js_sleep = pm.eval("(second) => new Promise((resolve) => setTimeout(resolve, second*1000))")
-        py_sleep = asyncio.sleep
+        def py_sleep(second): # asyncio.sleep has issues on Python 3.8
+            loop = asyncio.get_running_loop()
+            future = loop.create_future()
+            loop.call_later(second, lambda:future.set_result(None))
+            return future
         both_sleep = pm.eval("(js_sleep, py_sleep) => async (second) => { await js_sleep(second); await py_sleep(second) }")(js_sleep, py_sleep)
         await asyncio.wait_for(both_sleep(0.1), timeout=0.21)
         with pytest.raises(asyncio.exceptions.TimeoutError):
