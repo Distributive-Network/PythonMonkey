@@ -176,8 +176,7 @@ static PyTypeObject JSObjectProxyType = {
   .tp_as_buffer = NULL,
   .tp_flags = Py_TPFLAGS_DEFAULT
   | Py_TPFLAGS_DICT_SUBCLASS  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
-  | Py_TPFLAGS_BASETYPE      // can be subclassed
-  | Py_TPFLAGS_HAVE_GC
+  // | Py_TPFLAGS_HAVE_GC     // @TODO (Caleb Aikens) need to figure out how to make GC work cross-language
   | Py_TPFLAGS_MAPPING,
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
   .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
