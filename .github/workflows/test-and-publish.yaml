@@ -85,11 +85,6 @@ jobs:
           # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12
           - os: 'macos-12'
             python_version: '3.8'
-          # Don't test on Windows + Python 3.12 until numpy is released for Python 3.12
-          - os: 'macos-12'
-            python_version: '3.12-dev'
-          - os: 'windows-2019'
-            python_version: '3.12-dev'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
