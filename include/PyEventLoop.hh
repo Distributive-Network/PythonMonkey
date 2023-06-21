@@ -1,7 +1,7 @@
 /**
  * @file PyEventLoop.hh
  * @author Tom Tang (xmader@distributive.network)
- * @brief
+ * @brief Send jobs to the Python event-loop
  * @version 0.1
  * @date 2023-04-05
  *

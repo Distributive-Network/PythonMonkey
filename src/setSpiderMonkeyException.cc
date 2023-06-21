@@ -14,11 +14,10 @@
 #include "include/StrType.hh"
 
 #include <jsapi.h>
+#include <Python.h>
 
 #include <codecvt>
 #include <locale>
-
-#include <Python.h>
 
 PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionStack) {
   JS::ErrorReportBuilder reportBuilder(cx);
