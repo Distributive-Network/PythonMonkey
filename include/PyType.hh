@@ -35,6 +35,6 @@ public:
 
 protected:
   virtual void print(std::ostream &os) const = 0;
-  PyObject *pyObject;
+  PyObject *pyObject = nullptr;
 };
 #endif
