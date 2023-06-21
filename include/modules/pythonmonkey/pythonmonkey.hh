@@ -12,6 +12,7 @@
 #define PythonMonkey_Module_PythonMonkey
 
 #include "include/PyType.hh"
+#include "include/JobQueue.hh"
 
 #include <jsapi.h>
 #include <js/CompilationAndEvaluation.h>
@@ -25,6 +26,7 @@
 static JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 static JSAutoRealm *autoRealm; /**< pointer to PythonMonkey's AutoRealm */
+static JobQueue *JOB_QUEUE; /**< pointer to PythonMonkey's event-loop job queue */
 
 /**
  * @brief Destroys the JSContext and deletes associated memory. Called when python quits or faces a fatal exception.

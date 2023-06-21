@@ -12,8 +12,10 @@
 #include "include/pyTypeFactory.hh"
 
 #include "include/BoolType.hh"
+#include "include/BufferType.hh"
 #include "include/DateType.hh"
 #include "include/DictType.hh"
+#include "include/ExceptionType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
 #include "include/IntType.hh"
@@ -21,6 +23,7 @@
 #include "include/ListType.hh"
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
+#include "include/PromiseType.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -103,9 +106,15 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         break;
       }
     case js::ESClass::Date: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
         returnValue = new DateType(cx, obj);
+        break;
+      }
+    case js::ESClass::Promise: {
+        returnValue = new PromiseType(cx, obj);
+        break;
+      }
+    case js::ESClass::Error: {
+        returnValue = new ExceptionType(cx, obj);
         break;
       }
     case js::ESClass::Function: {
@@ -135,12 +144,18 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         break;
       }
     default: {
-        printf("objects of this type are not handled by PythonMonkey yet");
+        if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
+          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::String
+          returnValue = new BufferType(cx, obj);
+          // if (returnValue->getPyObject() != nullptr) memoizePyTypeAndGCThing(returnValue, *rval);
+        } else {
+          printf("objects of this type (%d) are not handled by PythonMonkey yet\n", cls);
+        }
       }
     }
   }
   else if (rval->isMagic()) {
-    printf("magic type is not handled by PythonMonkey yet");
+    printf("magic type is not handled by PythonMonkey yet\n");
   }
 
   return returnValue;

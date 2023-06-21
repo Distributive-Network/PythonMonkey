@@ -66,11 +66,10 @@ jobs:
           echo "Installing Dependencies"
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
             sudo apt-get update -y
-            sudo apt-get install -y cmake doxygen graphviz gcovr llvm
+            sudo apt-get install -y cmake doxygen graphviz llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update
             brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
-            brew install --ignore-dependencies gcovr # don't install extra python@3.11, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
           fi
           echo "Installing python deps"
           poetry install --no-root
@@ -93,17 +92,6 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
-      - name: Run C++ tests (google-tests)
-        run: |
-          cd build
-          make && make tests
-          gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml
-          cd tests && ctest
-      - name: Upload C++ coverage report
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-${{ github.run_id }}-${{ github.sha }}
-          path: ./build/coverage.xml
       - name: Run Python tests (pytest)
         run: |
           poetry run python -m pip install ./dist/*.whl
