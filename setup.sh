@@ -9,11 +9,10 @@ CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/
 echo "Installing dependencies"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   sudo apt-get update --yes
-  sudo apt-get install cmake doxygen graphviz gcovr llvm g++ pkg-config m4 wget --yes
+  sudo apt-get install cmake doxygen graphviz llvm g++ pkg-config m4 wget --yes
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update
   brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
-  brew install --ignore-dependencies gcovr # don't install extra python@3.11, which causes issues for the mozilla build system, see https://bugzilla.mozilla.org/show_bug.cgi?id=1766497
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else

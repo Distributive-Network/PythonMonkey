@@ -12,8 +12,8 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include "include/PromiseType.hh"
-#include "include/PyEventLoop.hh"
 
+#include "include/PyEventLoop.hh"
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"
 #include "include/pyTypeFactory.hh"

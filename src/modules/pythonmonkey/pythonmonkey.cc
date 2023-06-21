@@ -165,7 +165,10 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
-  // delete rval; // rval may be a JS function which must be kept alive.
+  bool rvalIsFunction = rval->isObject() && js::IsFunctionObject(&rval->toObject());
+  if (!rvalIsFunction) {  // rval may be a JS function which must be kept alive.
+    delete rval;
+  }
 
   if (returnValue) {
     return returnValue->getPyObject();
@@ -218,7 +221,7 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
     //    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
     JS::RootedVector<JS::Value> bindArgs(cx);
     bindArgs.append(JS::ObjectValue(**thisv));
-    for (size_t i = 1, j = 2; j < args.length(); j++) {
+    for (size_t j = 2; j < args.length(); j++) {
       bindArgs.append(args[j]);
     }
     JS::RootedObject jobArgObj = JS::RootedObject(cx, &jobArgVal.toObject());
