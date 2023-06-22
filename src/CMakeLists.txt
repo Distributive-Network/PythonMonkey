@@ -13,11 +13,6 @@ add_library(pythonmonkey SHARED
     ${PYTHONMONKEY_SOURCE_FILES}
 )
 
-execute_process(
-    COMMAND python3-config --prefix
-    OUTPUT_VARIABLE pyloc
-)
-
 target_include_directories(pythonmonkey PUBLIC ..)
 
 if(WIN32)
