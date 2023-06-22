@@ -13,5 +13,6 @@ _spidermonkey_install
 __pycache__
 dist
 *.so
-_spidermonkey_install/*
 node_modules
+*.dylib
+
