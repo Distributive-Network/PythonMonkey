@@ -1,15 +1,17 @@
 ### Loader because Python is awkward
+import sys
 from os import path
+from importlib import machinery
 from pathlib import Path
 
 def include(relative, filename):
-    __file__ = str(Path(relative, filename).resolve())
-    if (path.exists(__file__)):
-        fileHnd = open(__file__, "r")
-        exec(fileHnd.read())
-        return locals()
-    else:
-        raise Exception('file not found: ' + __file__)
+    filename = str(Path(relative, filename).resolve())
+    name = path.basename(filename)
+    if name in sys.modules:
+        return sys.modules[name]
+    sourceFileLoader = machinery.SourceFileLoader(name, filename)
+    module = sourceFileLoader.load_module(name)
+    return module
 
 import sys
 sys.path.append(path.dirname(__file__) + '/..');
@@ -17,6 +19,7 @@ sys.path.append(path.dirname(__file__) + '/..');
 pmr = include(path.dirname(__file__), '../pythonmonkey_require.py');
 
 ### Actual test below
-require = pmr['createRequire'](__file__)
+require = pmr.createRequire(__file__)
 require('./use-require/test1');
+print("Done")
 

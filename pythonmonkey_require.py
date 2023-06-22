@@ -24,11 +24,16 @@
 #
 
 import sys, warnings
+import types
+from typing import Union, Dict, Callable
+import importlib
+from importlib import machinery
+from os import stat, path, getcwd, getenv
+
 sys.path.append(path.dirname(__file__) + '/build/src')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import pythonmonkey as pm
-from os import stat, path, getcwd, getenv
 
 pm.eval("""
 globalThis.python = {};
@@ -97,7 +102,14 @@ propSet('python', 'paths', ':'.join(sys.path));
 pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
 
 # Implement enough of require('fs') so that ctx-module can find/load files
-def statSync_inner(filename):
+
+def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
+    """
+    Inner function for statSync.
+
+    Returns:
+        Union[Dict[str, int], False]: The mode of the file or False if the file doesn't exist.
+    """
     from os import stat
     if (path.exists(filename)):
         sb = stat(filename)
@@ -105,9 +117,14 @@ def statSync_inner(filename):
     else:
         return False
 
-def readFileSync(filename, charset):
-    fileHnd = open(filename, "r")
-    return fileHnd.read()
+def readFileSync(filename, charset) -> str:
+    """
+    Utility function for reading files.
+    Returns:
+        str: The contents of the file
+    """
+    with open(filename, "r", encoding=charset) as fileHnd:
+        return fileHnd.read()
 
 propSet('fsModule', 'statSync_inner', statSync_inner);
 propSet('fsModule', 'readFileSync', readFileSync)
@@ -130,8 +147,9 @@ function statSync(filename)
 # because PythonMonkey current segfaults when return objects. Once that is fixed, we will pass moduleIIFE
 # parameters which are a python implementation of top-level require(for fs, vm - see top) and an exports
 # dict to decorate.
-ctxModuleSource = open(path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r")
-moduleWrapper = pm.eval("""'use strict';
+
+with open(path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r") as ctxModuleSource:
+    moduleWrapper = pm.eval("""'use strict';
 (function moduleWrapper(require, exports)
 {
   exports=exports || globalThis; 
@@ -148,27 +166,46 @@ moduleWrapper()
 # dict->jsObject in createRequire for every require we create.
 pm.eval('const __builtinModules = {}; true');
 
-def load(filename):
-    __file__ = filename
-    if (path.exists(__file__)):
-        exports = {}
-        fileHnd = open(__file__, "r")
-        exec(fileHnd.read())
-        return exports
+def load(filename: str) -> Dict:  
+    """
+    Loads a python module using the importlib machinery sourcefileloader, prefills it with an exports object and returns the module.
+    If the module is already loaded, returns it.
+
+    Args:
+        filename (str): The filename of the python module to load.
+
+    Returns:
+        : The loaded python module
+    """
+
+    name = path.basename(filename)
+    if name not in sys.modules:
+        sourceFileLoader = machinery.SourceFileLoader(name, filename)
+        spec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        module.exports = {}
+        spec.loader.exec_module(module)
     else:
-        raise Exception('file not found: ' + __file__)
+        module = sys.modules[name]
+    module_exports = {}
+    for key in dir(module):
+        module_exports[key] = getattr(module, key)
+    return module_exports 
+
 propSet('python', 'load', load)
 
-# API - createRequire
-# returns a require function that resolves modules relative to the filename argument. 
-# Conceptually the same as node:module.createRequire().
-#
-# example:
-#   from pythonmonkey import createRequire
-#   require = createRequire(__file__)
-#   require('./my-javascript-module')
-#
-createRequire = pm.eval("""(
+"""
+API - createRequire
+returns a require function that resolves modules relative to the filename argument. 
+Conceptually the same as node:module.createRequire().
+
+example:
+  from pythonmonkey import createRequire
+  require = createRequire(__file__)
+  require('./my-javascript-module')
+"""
+createRequire: Callable = pm.eval("""(
 function createRequire(filename)
 {
   function loadPythonModule(module, filename)

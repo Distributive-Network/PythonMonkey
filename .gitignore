@@ -7,10 +7,11 @@ lib/*
 .DS_Store
 firefox-*.tar.xz
 firefox-*/
-tests/__pycache__/*
-tests/python/__pycache__/*
+__pycache__
 Testing/Temporary
 _spidermonkey_install
 __pycache__
 dist
 *.so
+_spidermonkey_install/*
+node_modules
