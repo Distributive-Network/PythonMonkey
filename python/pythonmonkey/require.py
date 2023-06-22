@@ -30,10 +30,9 @@ import importlib
 from importlib import machinery
 from os import stat, path, getcwd, getenv
 
-sys.path.append(path.dirname(__file__) + '/build/src')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-import pythonmonkey as pm
+from pythonmonkey import pythonmonkey as pm
 
 pm.eval("""
 globalThis.python = {};
