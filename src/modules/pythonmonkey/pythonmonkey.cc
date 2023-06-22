@@ -38,6 +38,9 @@
 #include <Python.h>
 #include <datetime.h>
 
+#include <unordered_map>
+#include <vector>
+
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 typedef struct {
   PyObject_HEAD

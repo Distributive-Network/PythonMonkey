@@ -7,7 +7,22 @@ readme = "README.md"
 packages = [
   { include = "pythonmonkey", from = "python" },
 ]
-include = [ "python/pythonmonkey/pythonmonkey.so" ]
+include = [
+  "python/pythonmonkey/pythonmonkey.so",
+  "python/pythonmonkey/libmozjs*",
+
+  # include all files for source distribution
+  { path = "src", format = "sdist" },
+  { path = "include", format = "sdist" },
+  { path = "cmake", format = "sdist" },
+  { path = "docs", format = "sdist" }, # TODO: organize files
+  { path = "externals", format = "sdist" },
+  { path = "format", format = "sdist" },
+  { path = "tests", format = "sdist" },
+  { path = "CMakeLists.txt", format = "sdist" },
+  { path = "*.sh", format = "sdist" },
+  { path = "version.txt", format = "sdist" }, # FIXME: Do we really need this?
+]
 
 
 [tool.poetry.dependencies]
@@ -25,7 +40,8 @@ pip = "^23.1.2"
 numpy = [
   # numpy hasn't packaged for Python 3.12 yet
   # TODO: remove this once numpy releases for Python 3.12
-  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-linux_x86_64.whl", python = "3.12.*"},
+  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-linux_x86_64.whl", python = "3.12.*", platform = "linux"},
+  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-macosx_10_9_x86_64.whl", python = "3.12.*", platform = "darwin"},
   {version = "^1.24.3", python = "<3.12"},
 ]
 

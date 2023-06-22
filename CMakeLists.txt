@@ -44,15 +44,13 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
   if(UNIX)
-    SET(COMPILE_FLAGS "-g -ggdb -O0 -coverage -fprofile-arcs -ftest-coverage -fno-rtti")
+    SET(COMPILE_FLAGS "-g -ggdb -O0 -fno-rtti")
   elseif(WIN32)
     SET(COMPILE_FLAGS "")
   endif()
   SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}" )
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
-  # Try to set bindings for apple
-  # Note I don't actually think that this works currently
   if(APPLE)
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     find_package(SpiderMonkey REQUIRED)
@@ -62,7 +60,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
     message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
-  elseif(UNIX)
+  elseif(LINUX)
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
