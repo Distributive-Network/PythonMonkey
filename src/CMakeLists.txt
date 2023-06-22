@@ -27,7 +27,6 @@ if(WIN32)
       PREFIX ""
       SUFFIX ".pyd"
       OUTPUT_NAME "pythonmonkey"
-      CXX_STANDARD 17
   )
 elseif(UNIX)
   set_target_properties(
