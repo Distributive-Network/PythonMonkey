@@ -165,10 +165,13 @@ jobs:
       - name: Generate repository root page
         run: |
           html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
+          html+="<h1>PythonMonkey Nightly Builds</h1>"
+          html+="<p>To install nightly builds, run</p>"
+          html+="<pre>pip install -i https://distributive-network.github.io/PythonMonkey/ pythonmonkey</pre>"
+          html+="<h3>Browse files:</h3>"
           html+="<a href="pythonmonkey/">pythonmonkey</a>"
           html+="</body></html>"
           echo "$html" > ./index.html
-      - run: ls -alR ./
       - uses: actions/upload-pages-artifact@v1
         with:
           path: ./
