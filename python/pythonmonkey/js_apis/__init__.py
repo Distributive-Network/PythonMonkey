@@ -13,5 +13,4 @@ def install_globals(js_file: str, *python_bindings) -> None:
   }
   """)(None, *python_bindings) # FIXME (Tom Tang): `pm._internalBinding` requires object coercion
 
-install_globals("./timers.js")
 install_globals("./console.js", sys.stdout.write, sys.stderr.write)
