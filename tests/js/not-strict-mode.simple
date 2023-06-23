@@ -1,0 +1,16 @@
+/**
+ * @file        not-strict-mode.simple
+ *              Simple test which ensures that tests are evaluated correctly, such that the interpreter
+ *              does not run tests in strict mode unless explicitly directed to do so.
+ * @author      Wes Garland, wes@distributive.network
+ * @date        June 2023
+ */
+function fun(abc)
+{
+  arguments[0] = 123;
+
+  if (abc !== 123)
+    throw new Error('interpreter is in strict mode');
+}
+
+fun(456);
