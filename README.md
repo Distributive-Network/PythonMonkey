@@ -71,10 +71,10 @@ this package to execute our complex `dcp-client` library, which is written in JS
 $ pip install pythonmonkey
 ```
 
-### Install the [nightly build](https://distributive-network.github.io/PythonMonkey/)
+### Install the [nightly build](https://nightly.pythonmonkey.io/)
 
 ```bash
-$ pip install -i https://distributive-network.github.io/PythonMonkey/ pythonmonkey
+$ pip install -i https://nightly.pythonmonkey.io/ pythonmonkey
 ```
 
 ### Use local version
