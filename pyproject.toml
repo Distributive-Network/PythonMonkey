@@ -26,7 +26,6 @@ include = [
   { path = "tests", format = "sdist" },
   { path = "CMakeLists.txt", format = "sdist" },
   { path = "*.sh", format = "sdist" },
-  { path = "version.txt", format = "sdist" }, # FIXME: Do we really need this?
 ]
 
 
