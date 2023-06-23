@@ -1,0 +1,71 @@
+#! /usr/bin/env python3
+# @file         pmjs - PythonMonkey REPL
+# @author       Wes Garland, wes@distributive.network
+# @date         June 2023
+
+import sys, os, cmd
+sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
+import pythonmonkey as pm
+
+globalThis = pm.eval("globalThis;");
+globalThis.pmEval = pm.eval;
+
+globalThis = pm.eval("globalThis;");
+globalThis.python = {'exit': exit };
+
+pm.eval("""
+const cmds = {
+  help: function help() {
+    return '' +
+`.exit     Exit the REPL
+.help     Print this help message
+.load     Load JS from a file into the REPL session
+.save     Save all evaluated commands in this REPL session to a file
+
+Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
+  },
+};
+
+globalThis.replEval = function replEval(line)
+{
+  try
+  {
+    if (line[0] === '.')
+      return cmds[line.slice(1)]();
+    if (line === String.fromCharCode(4))
+      python.exit(0);
+
+    const result = eval(line);
+    switch (typeof result)
+    {
+      case 'string':
+      case 'number':
+      case 'boolean':
+        return result;
+      case 'object':
+        if (result instanceof Error)
+          return result.stack || result.message;
+        return JSON.stringify(result);
+      default:
+        return String(result);
+    }
+  }
+  catch(error)
+  {
+    return error.stack || result.message;
+  }
+}
+""");
+
+class JSShell(cmd.Cmd):
+    intro = 'Welcome to PythonMonkey v' + pm.__version__ +'.\nType ".help" for more information.';
+
+    prompt = '> '
+
+    def parseline(self, line):
+        print(globalThis.replEval(line))
+        dummyRet = cmd.Cmd.parseline(self, '')
+        return dummyRet
+
+if __name__ == '__main__':
+    JSShell().cmdloop()
