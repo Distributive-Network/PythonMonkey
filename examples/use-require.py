@@ -1,5 +1,6 @@
 ### Loader because Python is awkward
 import sys
+import importlib
 from os import path
 from importlib import machinery
 from pathlib import Path

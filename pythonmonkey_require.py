@@ -23,19 +23,33 @@
 # @date         May 2023
 #
 
-import sys, warnings
-import types
+import sys, os, types
 from typing import Union, Dict, Callable
 import importlib
-from importlib import machinery
-from os import stat, path, getcwd, getenv
 
-sys.path.append(path.dirname(__file__) + '/build/src')
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
+sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
 import pythonmonkey as pm
 
+globalThis = pm.eval("globalThis;");
+globalThis.pmEval = pm.eval;
+
 pm.eval("""
+'use strict';
+
+function runInContext(code, _unused_contextifiedObject, options)
+{
+  var evalOptions = {};
+
+  if (arguments.length === 2)
+    options = arguments[2];
+
+  if (options.filename)       evalOptions.filename = options.filename;
+  if (options.lineOffset)     evalOptions.lineno   = options.lineOffset;
+  if (options.columnOffset)   evalOptions.column   = options.columnOffset;
+
+  return pmEval(code, evalOptions);
+}
+
 globalThis.python = {};
 globalThis.global = globalThis;
 globalThis.vmModule = { runInContext: eval };
@@ -97,7 +111,7 @@ propSet = pm.eval("propSet")
 
 # Add some python functions to the global python object for code in this file to use.
 propSet('python', 'print', print);
-propSet('python', 'getenv', getenv);
+propSet('python', 'getenv', os.getenv);
 propSet('python', 'paths', ':'.join(sys.path));
 pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
 
@@ -111,7 +125,7 @@ def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
         Union[Dict[str, int], False]: The mode of the file or False if the file doesn't exist.
     """
     from os import stat
-    if (path.exists(filename)):
+    if (os.path.exists(filename)):
         sb = stat(filename)
         return { 'mode': sb.st_mode }
     else:
@@ -128,7 +142,7 @@ def readFileSync(filename, charset) -> str:
 
 propSet('fsModule', 'statSync_inner', statSync_inner);
 propSet('fsModule', 'readFileSync', readFileSync)
-propSet('fsModule', 'existsSync', path.exists)
+propSet('fsModule', 'existsSync', os.path.exists)
 pm.eval("fsModule.constants = { S_IFDIR: 16384 }; true;")
 pm.eval("""fsModule.statSync =
 function statSync(filename)
@@ -148,7 +162,7 @@ function statSync(filename)
 # parameters which are a python implementation of top-level require(for fs, vm - see top) and an exports
 # dict to decorate.
 
-with open(path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r") as ctxModuleSource:
+with open(os.path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r") as ctxModuleSource:
     moduleWrapper = pm.eval("""'use strict';
 (function moduleWrapper(require, exports)
 {
@@ -178,9 +192,9 @@ def load(filename: str) -> Dict:
         : The loaded python module
     """
 
-    name = path.basename(filename)
+    name = os.path.basename(filename)
     if name not in sys.modules:
-        sourceFileLoader = machinery.SourceFileLoader(name, filename)
+        sourceFileLoader = importlib.machinery.SourceFileLoader(name, filename)
         spec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader)
         module = importlib.util.module_from_spec(spec)
         sys.modules[name] = module

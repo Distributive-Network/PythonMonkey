@@ -10,6 +10,7 @@ fi
 cd build
 cmake ..
 cmake --build . -j$CPUS
+cp -f ../build/src/pythonmonkey.so ../python/pythonmonkey/
 
 # npm is used to load JS components, see package.json
 npm i
