@@ -15,9 +15,8 @@ const { defineGlobal } = internalBinding("utils")
  */
 function setTimeout(handler, delayMs = 0, ...args) {
   // Ensure the first parameter is a function
-  // We support passing a `code` string to `setTimeout` as the callback function
   if (typeof handler !== "function") {
-    handler = new Function(handler)
+    throw new TypeError("The first parameter to setTimeout() is not a function")
   }
 
   // `setTimeout` allows passing additional arguments to the callback, as spec-ed
