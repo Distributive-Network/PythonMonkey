@@ -15,4 +15,3 @@ def install_globals(js_file: str, *python_bindings) -> None:
 
 install_globals("./timers.js")
 install_globals("./console.js", sys.stdout.write, sys.stderr.write)
-install_globals("./base64.js")
