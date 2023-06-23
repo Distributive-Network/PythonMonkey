@@ -27,6 +27,7 @@
 #include <jsfriendapi.h>
 #include <js/friend/ErrorMessages.h>
 #include <js/CompilationAndEvaluation.h>
+#include <js/ContextOptions.h>
 #include <js/Class.h>
 #include <js/Date.h>
 #include <js/Initialization.h>
@@ -143,17 +144,72 @@ static PyObject *asUCS4(PyObject *self, PyObject *args) {
   return str->asUCS4();
 }
 
-static PyObject *eval(PyObject *self, PyObject *args) {
+static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {
+  PyObject *value;
 
+  value = PyDict_GetItemString(evalOptions, optionName);
+  if (value)
+    *s_p = PyUnicode_AsUTF8(value);
+  return value != NULL;
+}
+
+static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigned long *l_p) {
+  PyObject *value;
+
+  value = PyDict_GetItemString(evalOptions, optionName);
+  if (value)
+    *l_p = PyLong_AsUnsignedLong(value);
+  return value != NULL;
+}
+
+static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b_p) {
+  PyObject *value;
+
+  value = PyDict_GetItemString(evalOptions, optionName);
+  if (value) {
+    if (PyLong_Check(value))
+      *b_p = PyBool_FromLong(PyLong_AsLong(value));
+    else
+      *b_p = value != Py_False;
+  }
+  return value != NULL;
+}
+
+static PyObject *eval(PyObject *self, PyObject *args) {
   StrType *code = new StrType(PyTuple_GetItem(args, 0));
+  PyObject *evalOptions = PyTuple_GET_SIZE(args) == 2 ? PyTuple_GetItem(args, 1) : NULL;
+
   if (!PyUnicode_Check(code->getPyObject())) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
     return NULL;
   }
 
+  if (evalOptions && !PyDict_Check(evalOptions)) {
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its (option) second argument");
+    return NULL;
+  }
+
   JSAutoRealm ar(GLOBAL_CX, *global);
   JS::CompileOptions options (GLOBAL_CX);
-  options.setFileAndLine("noname", 1);
+  options.setFileAndLine("@evaluate", 1)
+  .setIsRunOnce(true)
+  .setNoScriptRval(false)
+  .setIntroductionType("pythonmonkey eval");
+
+  if (evalOptions) {
+    const char *s;
+    unsigned long l;
+    bool b;
+
+    if (getEvalOption(evalOptions, "filename", &s)) options.setFile(s);
+    if (getEvalOption(evalOptions, "lineno", &l)) options.setLine(l);
+    if (getEvalOption(evalOptions, "column", &l)) options.setColumn(l);
+    if (getEvalOption(evalOptions, "mutedErrors", &b)) options.setMutedErrors(b);
+    if (getEvalOption(evalOptions, "noScriptRval", &b)) options.setNoScriptRval(b);
+    if (getEvalOption(evalOptions, "selfHosting", &b)) options.setSelfHostingMode(b);
+    if (getEvalOption(evalOptions, "strict", &b)) if (b) options.setForceStrictMode();
+    if (getEvalOption(evalOptions, "module", &b)) if (b) options.setModule();
+  }
 
   // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
@@ -308,6 +364,12 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a JS context.");
     return NULL;
   }
+
+  JS::ContextOptionsRef(GLOBAL_CX)
+  .setWasm(true)
+  .setAsmJS(true)
+  .setAsyncStack(true)
+  .setSourcePragmas(true);
 
   JOB_QUEUE = new JobQueue();
   if (!JOB_QUEUE->init(GLOBAL_CX)) {
