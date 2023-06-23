@@ -74,7 +74,7 @@ $ pip install pythonmonkey
 ### Install the [nightly build](https://nightly.pythonmonkey.io/)
 
 ```bash
-$ pip install -i https://nightly.pythonmonkey.io/ pythonmonkey
+$ pip install -i https://nightly.pythonmonkey.io/ --pre pythonmonkey
 ```
 
 ### Use local version
