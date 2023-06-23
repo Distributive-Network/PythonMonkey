@@ -139,7 +139,7 @@ jobs:
     # and deploy the static files to GitHub Pages
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04
-    if: ${{ success() || failure() }} # allow tests failure for nightly builds
+    if: ${{ (success() || failure()) && github.ref_name == 'main' }} # publish nightly builds regardless of tests failure
     permissions: # grant GITHUB_TOKEN the permissions required to make a Pages deployment
       pages: write
       id-token: write
