@@ -115,25 +115,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
-    /*
-     * import inspect
-     * args = (inspect.getfullargspec(object)).args
-     */
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
     if (PyFunction_Check(object)) {
-      PyObject *const inspect = PyImport_Import(PyUnicode_DecodeFSDefault("inspect"));
-      PyObject *const getfullargspec = PyObject_GetAttrString(inspect, "getfullargspec");
-      PyObject *const getfullargspecArgs = PyTuple_New(1);
-      PyTuple_SetItem(getfullargspecArgs, 0, object);
-      PyObject *const argspec = PyObject_CallObject(getfullargspec, getfullargspecArgs);
-      PyObject *const args = PyObject_GetAttrString(argspec, "args");
-      nargs = PyList_Size(args);
-      Py_DECREF(inspect);
-      Py_DECREF(getfullargspec);
-      Py_DECREF(getfullargspecArgs);
-      Py_DECREF(argspec);
-      Py_DECREF(args);
+      // https://docs.python.org/3.11/reference/datamodel.html?highlight=co_argcount
+      PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(object); // borrowed reference
+      nargs = bytecode->co_argcount;
     }
 
     JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
@@ -198,11 +185,15 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
   PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
 
-  JS::RootedObject thisv(cx);
-  JS_ValueToObject(cx, callargs.thisv(), &thisv);
+  JS::RootedObject *thisv = new JS::RootedObject(cx);
+  JS_ValueToObject(cx, callargs.thisv(), thisv);
 
   if (!callargs.length()) {
+    #if PY_VERSION_HEX >= 0x03090000
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
+    #else
+    PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
+    #endif
     if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
       return false;
     }
@@ -214,8 +205,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   // populate python args tuple
   PyObject *pyArgs = PyTuple_New(callargs.length());
   for (size_t i = 0; i < callargs.length(); i++) {
-    JS::RootedValue jsArg = JS::RootedValue(cx, callargs[i]);
-    PyType *pyArg = (pyTypeFactory(cx, &thisv, &jsArg));
+    JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
+    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
     PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
   }
 

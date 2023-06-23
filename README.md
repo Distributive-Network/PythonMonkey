@@ -46,38 +46,37 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 ## Build Instructions
 1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
-    - pytest
     - cmake
     - doxygen 
-    - python3-dev (python-dev)
     - graphviz
-    - gcovr
     - llvm
     - rust
-    - python3.9 or later
+    - python3.8 or later with header files (python3-dev)
     - spidermonkey 102.2.0 or later
+    - [Poetry](https://python-poetry.org/docs/#installation)
 
-2. Compile pythonmonkey in ``/build`` (which can be done automatically by running ``./build_script.sh``)
+2. Run `poetry install`. This command automatically compiles the project and installs the project as well as all Python dependencies to the poetry virtualenv.
 
 ## Running tests
 1. Compile the project 
-2. In the build folder `cd` into the `tests` directory and run `ctest`.
-    ```bash
-    # From the root directory we do the following (after compiling the project)
-    $ cd build/tests
-    $ ctest
-    ```
-    Alternatively, from the root directory, run ``./test_script.sh``
+2. From the root directory, run `poetry run pytest ./tests/python`
 
 ## Using the library
 
-### Method 1
-After compiling the project in the `build/src` folder you will find a `.so` file named `pythonmonkey.so`. This is the shared object file that contains the pythonmonkey module.
+### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
 
-If you wish to use the library you can simply copy the `.so` file into the directory that you wish to use python in.
+> PythonMonkey is not release-ready yet. Our first public release is scheduled for mid-June 2023.
+
 ```bash
-# In the directory containg pythonmonkey.so
-$ python
+$ pip install pythonmonkey
+```
+
+### Use local version
+
+`pythonmonkey` is available in the poetry virtualenv once you compiled the project using poetry.
+
+```bash
+$ poetry run python
 ```
 ```py
 Python 3.10.6 (main, Nov 14 2022, 16:10:14) [GCC 11.3.0] on linux
@@ -87,3 +86,5 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> hello()
 'Hello from Spidermonkey!'
 ```
+
+Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.

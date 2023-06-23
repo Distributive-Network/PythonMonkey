@@ -30,7 +30,6 @@ endfunction()
 file (GLOB SOURCE_FILES "src/*.cc" "src/internalBinding/*.cc") # Find all C++ files in the src directory
 file (GLOB HEADER_FILES "include/*.hh") # Find all header files in the include directory
 file (GLOB PYTHON_FILES "python/*.cc" "python/*.hh") # Find all the python bindings in the python directory
-file (GLOB TEST_FILES "tests/cpp/*.cc") # Find all the test files in the test directory
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
@@ -45,17 +44,15 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
   if(UNIX)
-    SET(COMPILE_FLAGS "-g -ggdb -O0 -coverage -fprofile-arcs -ftest-coverage")
+    SET(COMPILE_FLAGS "-g -ggdb -O0")
   elseif(WIN32)
     SET(COMPILE_FLAGS "")
   endif()
   SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}" )
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
-  # Try to set bindings for apple
-  # Note I don't actually think that this works currently
   if(APPLE)
-    find_package(Python 3.9...3.11 COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     find_package(SpiderMonkey REQUIRED)
     set(PYTHON_MAJOR $ENV{Python_VERSION_MAJOR})
     set(PYTHON_MINOR $ENV{Python_VERSION_MINOR})
@@ -63,15 +60,15 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
     message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
-  elseif(UNIX)
-    find_package(Python 3.9...<3.12 COMPONENTS Interpreter Development REQUIRED)
+  elseif(LINUX)
+    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
     set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
     find_package(SpiderMonkey REQUIRED)
   elseif(WIN32)
-    find_package(PythonInterp 3.9...3.11 REQUIRED)
-    find_package(PythonLibs 3.9...3.11   REQUIRED)
+    find_package(PythonInterp 3.8 REQUIRED)
+    find_package(PythonLibs 3.8   REQUIRED)
     find_package(SpiderMonkey REQUIRED)
     set(PYTHONLIBS_VERSION_STRING $ENV{PY_VERSION})
   endif()
@@ -85,10 +82,6 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   else()
       message(STATUS "Doxygen not found. Not building docs.")
   endif()
-
-  include(GoogleTest)
-
-  add_subdirectory(tests)
 
 endif()  
 

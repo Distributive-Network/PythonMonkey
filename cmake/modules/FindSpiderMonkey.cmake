@@ -70,7 +70,7 @@ find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
 )
 
 # SpiderMonkey libs
-set(SPIDERMONKEY_LIBRARY_NAMES mozjs-107a1.lib libmozjs-102.so mozjs185 mozjs-1.9.2 mozjs-48a1 mozjs js185 js js32 js3250)
+set(SPIDERMONKEY_LIBRARY_NAMES mozjs-107a1.lib libmozjs-102.so libmozjs-102.dylib mozjs185 mozjs-1.9.2 mozjs-48a1 mozjs js185 js js32 js3250)
 
 set(SPIDERMONKEY_LIB_SUFFIX_PATHS js/src/build lib)
 
