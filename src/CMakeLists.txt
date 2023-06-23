@@ -38,8 +38,10 @@ elseif(UNIX)
   )
 endif()
 
-# Don't link against `libpython`, see https://peps.python.org/pep-0513/#libpythonx-y-so-1
-# target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+# Don't link against `libpython` on Unix, see https://peps.python.org/pep-0513/#libpythonx-y-so-1
+if (WIN32) # linker error on Windows: `lld-link: could not open 'python311.lib': no such file or directory`
+  target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+endif()
 
 # Stop complaining about missing symbols
 # see https://blog.tim-smith.us/2015/09/python-extension-modules-os-x/
