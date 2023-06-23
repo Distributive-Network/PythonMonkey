@@ -13,7 +13,6 @@
 #include <Python.h>
 
 namespace InternalBinding {
-  extern JSFunctionSpec timers[];
   extern JSFunctionSpec utils[];
 }
 
