@@ -134,3 +134,44 @@ jobs:
           poetry publish \
             --no-interaction --skip-existing \
             --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+  publish-nightly:
+    # Implement a very basic Python package repository (https://peps.python.org/pep-0503/)
+    # and deploy the static files to GitHub Pages
+    needs: [build-and-test, sdist]
+    runs-on: ubuntu-20.04
+    if: ${{ success() || failure() }} # allow tests failure for nightly builds
+    permissions: # grant GITHUB_TOKEN the permissions required to make a Pages deployment
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # don't checkout
+      - name: Download wheels built
+        uses: actions/download-artifact@v3
+        with:
+          name: wheel-${{ github.run_id }}-${{ github.sha }}
+          path: ./pythonmonkey/ # write to the repository project path 
+      - name: Generate index page for the project
+        run: |
+          cd ./pythonmonkey/
+          html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
+          for file in ./*; do # generate <a> tags for each file
+            html+="<a href=\"$file\">$file</a><br/>"
+          done
+          html+="</body></html>"
+          echo "$html" > ./index.html
+      - name: Generate repository root page
+        run: |
+          html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
+          html+="<a href="pythonmonkey/">pythonmonkey</a>"
+          html+="</body></html>"
+          echo "$html" > ./index.html
+      - run: ls -alR ./
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
