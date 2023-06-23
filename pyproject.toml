@@ -8,8 +8,13 @@ packages = [
   { include = "pythonmonkey", from = "python" },
 ]
 include = [
+  # Linux and macOS
   "python/pythonmonkey/pythonmonkey.so",
   "python/pythonmonkey/libmozjs*",
+
+  # Windows
+  "python/pythonmonkey/pythonmonkey.pyd",
+  "python/pythonmonkey/mozjs-*.dll",
 
   # include all files for source distribution
   { path = "src", format = "sdist" },
@@ -38,12 +43,17 @@ generate-setup-file = false
 pytest = "^7.3.1"
 pip = "^23.1.2"
 numpy = [
-  # numpy hasn't packaged for Python 3.12 yet
-  # TODO: remove this once numpy releases for Python 3.12
-  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-linux_x86_64.whl", python = "3.12.*", platform = "linux"},
-  {url = "https://people.distributive.network/xmader/numpy-1.24.3-cp312-cp312-macosx_10_9_x86_64.whl", python = "3.12.*", platform = "darwin"},
+  # numpy hasn't released for Python 3.12 yet on PyPI, but Anaconda nightly build has it.
+  # TODO: use the PyPI build once the wheels are released for Python 3.12
+  {version = "^2.0.0.dev0", allow-prereleases = true, source = "anaconda-nightly", python = "3.12.*"},
   {version = "^1.24.3", python = "<3.12"},
 ]
+
+
+[[tool.poetry.source]]
+name = "anaconda-nightly"
+url = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+priority = "explicit"
 
 [build-system]
 requires = ["poetry-core>=1.0.0a9"]

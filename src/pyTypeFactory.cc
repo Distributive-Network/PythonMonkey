@@ -118,7 +118,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         break;
       }
     case js::ESClass::Function: {
-        PyObject *jsCxThisFuncTuple = Py_BuildValue("(lll)", (uint64_t)cx, (uint64_t)thisObj, (uint64_t)rval);
+        // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
+        PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
         PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
         returnValue = new FuncType(pyFunc);
         memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
@@ -145,7 +146,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
       }
     default: {
         if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
-          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::String
+          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
           returnValue = new BufferType(cx, obj);
           // if (returnValue->getPyObject() != nullptr) memoizePyTypeAndGCThing(returnValue, *rval);
         } else {
@@ -163,9 +164,9 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
 
 static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
-  JSContext *cx = (JSContext *)PyLong_AsLongLong(PyTuple_GetItem(jsCxThisFuncTuple, 0));
-  JS::RootedObject *thisObj = (JS::RootedObject *)PyLong_AsLongLong(PyTuple_GetItem(jsCxThisFuncTuple, 1));
-  JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsLongLong(PyTuple_GetItem(jsCxThisFuncTuple, 2));
+  JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 0));
+  JS::RootedObject *thisObj = (JS::RootedObject *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 1));
+  JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
   for (size_t i = 0; i < PyTuple_Size(args); i++) {

@@ -1,7 +1,6 @@
 import subprocess
 import os, sys
-
-dir_path = os.path.dirname( os.path.realpath(__file__) )
+import platform
 
 def execute(cmd: str):
     popen = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.STDOUT,
@@ -26,10 +25,13 @@ def ensure_spidermonkey():
 
 def build():
     ensure_spidermonkey()
-    build_script_sh = os.path.join( dir_path, 'build_script.sh' )
-    execute(f"bash {build_script_sh}")
-    execute("cp ./build/src/pythonmonkey.so ./python/pythonmonkey/")
-    execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/")
+    execute(f"bash ./build_script.sh")
+    if platform.system() == "Windows":
+        execute("cp ./build/src/*/pythonmonkey.pyd ./python/pythonmonkey/") # Release or Debug build
+        execute("cp ./_spidermonkey_install/lib/mozjs-*.dll ./python/pythonmonkey/")
+    else:
+        execute("cp ./build/src/pythonmonkey.so ./python/pythonmonkey/")
+        execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/")
 
 if __name__ == "__main__":
     build()

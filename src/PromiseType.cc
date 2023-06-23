@@ -92,8 +92,8 @@ void PromiseType::print(std::ostream &os) const {}
 
 // Callback to resolve or reject the JS Promise when the Future is done
 static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *args) {
-  JSContext *cx = (JSContext *)PyLong_AsLongLong(PyTuple_GetItem(futureCallbackTuple, 0));
-  auto rootedPtr = (JS::PersistentRooted<JSObject *> *)PyLong_AsLongLong(PyTuple_GetItem(futureCallbackTuple, 1));
+  JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(futureCallbackTuple, 0));
+  auto rootedPtr = (JS::PersistentRooted<JSObject *> *)PyLong_AsVoidPtr(PyTuple_GetItem(futureCallbackTuple, 1));
   JS::HandleObject promise = *rootedPtr;
   PyObject *futureObj = PyTuple_GetItem(args, 0); // the callback is called with the Future object as its only argument
                                                   // see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.add_done_callback
@@ -134,7 +134,7 @@ JSObject *PromiseType::toJsPromise(JSContext *cx) {
 
   // Resolve or Reject the JS Promise once the python awaitable is done
   JS::PersistentRooted<JSObject *> *rootedPtr = new JS::PersistentRooted<JSObject *>(cx, promise); // `promise` is required to be rooted from here to the end of onDoneCallback
-  PyObject *futureCallbackTuple = Py_BuildValue("(ll)", (uint64_t)cx, (uint64_t)rootedPtr);
+  PyObject *futureCallbackTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(rootedPtr));
   PyObject *onDoneCb = PyCFunction_New(&futureCallbackDef, futureCallbackTuple);
   future.addDoneCallback(onDoneCb);
 
