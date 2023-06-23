@@ -146,7 +146,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
       }
     default: {
         if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
-          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::String
+          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
           returnValue = new BufferType(cx, obj);
           // if (returnValue->getPyObject() != nullptr) memoizePyTypeAndGCThing(returnValue, *rval);
         } else {
