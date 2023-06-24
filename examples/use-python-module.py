@@ -1,24 +1,11 @@
-### Loader because Python is awkward
-import sys
-from os import path
-import importlib
-from importlib import machinery
-from pathlib import Path
+# @file         use-require.py
+#               Sample code which demonstrates how to use require
+# @author       Wes Garland, wes@distributive.network
+# @date         Jun 2023
 
-def include(relative, filename):
-    filename = str(Path(relative, filename).resolve())
-    name = path.basename(filename)
-    if name in sys.modules:
-        return sys.modules[name]
-    sourceFileLoader = machinery.SourceFileLoader(name, filename)
-    module = sourceFileLoader.load_module(name)
-    return module
+import sys, os
+sys.path.append(os.path.dirname(__file__) + '/../python') # location of pythonmonkey module
+import pythonmonkey as pm
 
-import sys
-sys.path.append(path.dirname(__file__) + '/..');
-
-pmr = include(path.dirname(__file__), '../pythonmonkey_require.py');
-
-### Actual test below
-require = pmr.createRequire(__file__)
+require = pm.createRequire(__file__)
 require('./use-python-module');

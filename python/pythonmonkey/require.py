@@ -26,6 +26,8 @@
 import sys, os, types
 from typing import Union, Dict, Callable
 import importlib
+from importlib import machinery
+from importlib import util
 
 sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
 import pythonmonkey as pm
@@ -196,7 +198,7 @@ def load(filename: str) -> Dict:
 
     name = os.path.basename(filename)
     if name not in sys.modules:
-        sourceFileLoader = importlib.machinery.SourceFileLoader(name, filename)
+        sourceFileLoader = machinery.SourceFileLoader(name, filename)
         spec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader)
         module = importlib.util.module_from_spec(spec)
         sys.modules[name] = module
