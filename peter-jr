@@ -39,8 +39,8 @@ if [ "$VERBOSE" ]; then
   stdout="/dev/stdout"
   stderr="/dev/stderr"
 else
-  stdout="$TMP/both"
-  stderr="$TMP/both"
+  stdout="$TMP/stdout"
+  stderr="$TMP/stderr"
 fi
 
 red()
@@ -85,7 +85,6 @@ green()
     )> $stdout 2>$stderr
     exitCode="$?"
 
-    [ "$VERBOSE" ] || cat "$stderr"
     if [ "$exitCode" = "0" ]; then
       echo "$(green PASS)"
     else
@@ -98,4 +97,5 @@ green()
         echo
       fi
     fi
+    [ "$VERBOSE" ] || cat "$stderr"
   done
