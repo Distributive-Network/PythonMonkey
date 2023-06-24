@@ -53,6 +53,16 @@ green()
   printf "\e[0;32m%s\e[0m" "$*"
 }
 
+yellow()
+{
+  printf "\e[0;33m%s\e[0m" "$*"
+}
+
+grey()
+{
+  printf "\e[0;90m%s\e[0m" "$*"
+}
+
 (
   for loc in "${testLocations[@]}"
   do
@@ -63,7 +73,7 @@ green()
 | while read file
   do
     sfile=$(realpath --relative-to="${runDir}" "${file}")
-    printf 'Testing %-40s ... ' "${sfile})"
+    printf 'Testing %-40s ... ' "${sfile}"
     ext="${file##*.}"
     (
       case "$ext" in
@@ -87,15 +97,20 @@ green()
 
     if [ "$exitCode" = "0" ]; then
       echo "$(green PASS)"
+      printf "\e[0;31m"
+      [ "$VERBOSE" ] || cat "$stderr"
+      printf "\e[0m"
     else
       echo "$(red FAIL)"
       if [ ! "$VERBOSE" ]; then
-        echo "-- ${file} vvvvvvvvvvvvvv"
-        cat "$stderr" | sed 's/^/   /'
-        [ "$stderr" = "$stdout" ] || cat "$stderr" | sed 's/^/   /'
-        echo "-- ${file} ^^^^^^^^^^^^^^"
+        echo
+        echo "$(grey --) $(yellow ${file}) $(grey vvvvvvvvvvvvvv)"
+        cat "$stdout" | sed 's/^/   /'
+        printf "\e[0;31m"
+        cat "$stderr" | sed -e 's/^/   /'
+        printf "\e[0m"
+        echo "$(grey --) $(yellow ${file}) $(grey ^^^^^^^^^^^^^^)"
         echo
       fi
     fi
-    [ "$VERBOSE" ] || cat "$stderr"
   done
