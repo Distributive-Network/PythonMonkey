@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "pythonmonkey"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
-authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>"]
+authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>", "Wes Garland <wes@distributive.network>", "Hamada Gasmallah <hamada@distributive.network>"]
 readme = "README.md"
 packages = [
   { include = "pythonmonkey", from = "python" },

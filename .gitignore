@@ -1,6 +1,7 @@
 build/
 .vscode/
 pyvenv.cfg
+python/pythonmonkey/version.py
 bin/
 lib/*
 .pytest_cache
@@ -10,9 +11,13 @@ firefox-*/
 __pycache__
 Testing/Temporary
 _spidermonkey_install
-__pycache__
+__pycache__/*
 dist
 *.so
 _spidermonkey_install/*
 node_modules
 *~
+Makefile
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+CMakeCache.txt
