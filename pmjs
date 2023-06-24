@@ -7,18 +7,15 @@ import sys, os, cmd
 sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
 import pythonmonkey as pm
 
-globalThis = pm.eval("globalThis;");
-globalThis.require = pm.createRequire(os.getcwd() + '/dummy')
+globalThis = pm.eval("globalThis;")
+pm.createRequire(__file__)('./pmjs-require')
+
 globalThis.python.isCompilableUnit = pm.isCompilableUnit
+globalThis.python.exit = sys.exit
 
 def write(buf: str):
-    print('buf', end="")
+    print(buf, end="")
 globalThis.python.write = write
-
-# Wrap exit; pythonmonkey can't pass objects of type Quitter
-def quit(arg):
-    exit(arg)
-globalThis.python.quit = quit
 
 pm.eval("""
 const cmds = {
@@ -41,11 +38,11 @@ globalThis.replEval = function replEval(line)
   {
     if (line[0] === '.')
       return cmds[line.slice(1)]();
-    if (line === String.fromCharCode(4))
-      python.exit(0);
-
+    if (line === 'EOF')
+      python.exit('');
     lineBuf.push(line);
     line = lineBuf.join(String.fromCharCode(10));
+
     if (python.isCompilableUnit(line))
       lineBuf.length = 0;
     else
