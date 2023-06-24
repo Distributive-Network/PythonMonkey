@@ -20,10 +20,14 @@ cd build
 cmake ..
 cmake --build . -j$CPUS
 
-cd "$topDir"
-npm i # npm is used to load JS components, see package.json
+cd "${topDir}"
 cp -f build/src/pythonmonkey.so python/pythonmonkey/
+echo "# This file was generated via $0 by `id -un` on `date` - do not edit by hand!"
 grep '^version' pyproject.toml \
 | head -1 \
 | sed 's/^version /__version__ /' \
-> python/pythonmonkey/version.py
+>> python/pythonmonkey/version.py
+
+# npm is used to load JS components, see package.json
+cd "${topDir}/python/pythonmonkey/"
+npm i 

@@ -96,3 +96,14 @@ Type "help", "copyright", "credits" or "license" for more information.
 ```
 
 Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.
+
+# Troubleshooting Tips
+
+## CommonJS (require)
+If you are having trouble with the CommonJS require function, set DEBUG='ctx-module*' and you can see the filenames it tries to laod
+
+### Extra Symbols
+Loading the CommonJS subsystem declares some extra symbols which may be helpful in debugging -
+- `python.print` - the Python print function
+- `python.getenv` - the Python getenv function
+

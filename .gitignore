@@ -2,6 +2,7 @@ build/
 .vscode/
 pyvenv.cfg
 python/pythonmonkey/version.py
+python/pythonmonkey/node_modules
 bin/
 lib/*
 .pytest_cache
@@ -15,7 +16,6 @@ __pycache__/*
 dist
 *.so
 _spidermonkey_install/*
-node_modules
 *~
 Makefile
 CMakeDoxyfile.in
