@@ -185,7 +185,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   if (evalOptions && !PyDict_Check(evalOptions)) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its (option) second argument");
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its (optional) second argument");
     return NULL;
   }
 
@@ -246,8 +246,28 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 }
 
+static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
+  StrType *buffer = new StrType(PyTuple_GetItem(args, 0));
+  const char *bufferUtf8;
+  bool compilable;
+
+  if (!PyUnicode_Check(buffer->getPyObject())) {
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
+    return NULL;
+  }
+
+  bufferUtf8 = buffer->getValue();
+  compilable = JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8));
+
+  if (compilable)
+    Py_RETURN_TRUE;
+  else
+    Py_RETURN_FALSE;
+}
+
 PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
+  {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
   {"asUCS4", asUCS4, METH_VARARGS, "Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4. Undefined behaviour if the string is not in UTF16."},
   {NULL, NULL, 0, NULL}
@@ -288,9 +308,9 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
     // Wrap the job function into a bound function with the given additional arguments
     //    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
     JS::RootedVector<JS::Value> bindArgs(cx);
-    bindArgs.append(JS::ObjectValue(**thisv));
+    (void)bindArgs.append(JS::ObjectValue(**thisv)); /** @todo XXXwg handle return value */
     for (size_t j = 2; j < args.length(); j++) {
-      bindArgs.append(args[j]);
+      (void)bindArgs.append(args[j]); /** @todo XXXwg handle return value */
     }
     JS::RootedObject jobArgObj = JS::RootedObject(cx, &jobArgVal.toObject());
     JS_CallFunctionName(cx, jobArgObj, "bind", JS::HandleValueArray(bindArgs), jobArg); // jobArg = jobArg.bind(thisv, ...bindArgs)

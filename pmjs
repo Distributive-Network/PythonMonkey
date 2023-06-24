@@ -8,10 +8,17 @@ sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonke
 import pythonmonkey as pm
 
 globalThis = pm.eval("globalThis;");
-globalThis.pmEval = pm.eval;
+globalThis.require = pm.createRequire(os.getcwd() + '/dummy')
+globalThis.python.isCompilableUnit = pm.isCompilableUnit
 
-globalThis = pm.eval("globalThis;");
-globalThis.python = {'exit': exit };
+def write(buf: str):
+    print('buf', end="")
+globalThis.python.write = write
+
+# Wrap exit; pythonmonkey can't pass objects of type Quitter
+def quit(arg):
+    exit(arg)
+globalThis.python.quit = quit
 
 pm.eval("""
 const cmds = {
@@ -28,12 +35,24 @@ Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
 
 globalThis.replEval = function replEval(line)
 {
+  const lineBuf = [];
+
   try
   {
     if (line[0] === '.')
       return cmds[line.slice(1)]();
     if (line === String.fromCharCode(4))
       python.exit(0);
+
+    lineBuf.push(line);
+    line = lineBuf.join(String.fromCharCode(10));
+    if (python.isCompilableUnit(line))
+      lineBuf.length = 0;
+    else
+    {
+      python.write('... ');
+      return; /* Back to REPL for more of JS expression */
+    }
 
     const result = eval(line);
     switch (typeof result)
@@ -46,8 +65,10 @@ globalThis.replEval = function replEval(line)
         if (result instanceof Error)
           return result.stack || result.message;
         return JSON.stringify(result);
-      default:
+      case 'function':
         return String(result);
+      default:
+        return `<unknown type ${typeof result}>${result}`;
     }
   }
   catch(error)
