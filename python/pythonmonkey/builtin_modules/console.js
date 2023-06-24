@@ -4,8 +4,6 @@
  * @author   Wes Garland, wes@distributive.network
  * @date     June 2023
  */
-return {}
-
 function Console(print)
 {
   this.log   = print;
@@ -15,7 +13,7 @@ function Console(print)
   this.info  = print;
 }
 
-if (!global.console)
-  global.console = new Console(python.print);
+if (!globalThis.console)
+  globalThis.console = new Console(python.print);
 
 exports.Console = Console;
