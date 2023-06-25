@@ -97,13 +97,28 @@ def quit():
      readline.write_history_file(histfile)
      sys.exit(0)
 
-def showResult(line):
+def show_result(line):
     result = globalThis.replEval(line)
     if (result != False):
         print(result)
 
-while True:
+got_sigint = 0
+building_line = False
+
+def sigint_handler(signum, frame):
+    global got_sigint
+    global building_line
+    got_sigint = got_sigint + 1
+    if (got_sigint == 1 and building_line == False):
+        print('(To exit, press Ctrl+C again or Ctrl+D or type .exit)')
+    if (got_sigint > 1 and building_line == False):
+        quit()
+
+signal.signal(signal.SIGINT, sigint_handler)
+
+while got_sigint < 2:
     try:
+        building_line = False
         line = input('> ')
 
         if (len(line) == 0):
@@ -112,14 +127,19 @@ while True:
             print(globalThis.replCmd(line))
             continue
         if (pm.isCompilableUnit(line)):
-            showResult(line)
+            show_result(line)
+            got_sigint = 0
         else:
-            while True:
+            building_line = True
+            got_sigint = 0
+            while (got_sigint == 0):
                 more = input('... ')
                 line = line + '\n' + more
                 if (pm.isCompilableUnit(line)):
-                    showResult(line)
+                    show_result(line)
                     break
+            got_sigint = 0
+            building_line = False
     except EOFError:
         print()
         quit()
