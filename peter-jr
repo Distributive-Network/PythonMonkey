@@ -78,7 +78,7 @@ grey()
     (
       case "$ext" in
         "simple")
-          ./js-test-runner "$file"
+          "${topDir}/js-test-runner" "$file"
           exitCode="$?"
           ;;
         "bash")

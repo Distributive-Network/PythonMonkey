@@ -1,0 +1,10 @@
+/**
+ * @file        load-cjs-module.js
+ *              Simple smoke test which ensures that we can load a CommonJS Module
+ * @author      Wes Garland, wes@distributive.network
+ * @date        June 2023
+ */
+
+const { helloWorld } = require('./modules/cjs-module');
+
+helloWorld();
