@@ -3,11 +3,12 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, readline
+import sys, os, readline, signal
 sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
 import pythonmonkey as pm
 
 globalThis = pm.eval("globalThis;")
+globalThis.python.write = sys.stdout.write
 pm.createRequire(__file__)('./pmjs-require')
 
 pm.eval("""'use strict';
@@ -34,59 +35,91 @@ function colour(colourCode, val)
   return `${esc}[${colourCode}m${val}${esc}[0m`
 }
 
+globalThis.formatResult = function formatResult(result)
+{
+  switch (typeof result)
+  {
+    case 'undefined':
+      return colour(90, result);
+    case 'function':
+      return colour(36, result);
+    case 'string':
+      return colour(32, `'${result}'`);
+    case 'boolean':
+    case 'number':
+      return colour(33, result);
+    case 'object':
+      if (result instanceof Date)
+        return colour(35, result.toISOString());
+      if (result instanceof Error)
+      {
+        const error = result;
+        const LF = String.fromCharCode(10);
+        const stackEls = error.stack
+                         .split(LF)
+                         .filter(a => a.length > 0)
+                         .map(a => `    ${a}`);
+        return (`${error.name}: ${error.message}` + LF
+          + stackEls[0] + LF
+          + colour(90, stackEls.slice(1).join(LF))
+        );
+      }
+      return JSON.stringify(result);
+    default:
+      return colour(31, `<unknown type ${typeof result}>${result}`);
+  }
+}
+
 globalThis.replEval = function replEval(line)
 {
   const indirectEval = eval;
   try
   {
     const result = indirectEval(`${line}`);
-    switch (typeof result)
-    {
-      case 'undefined':
-        return colour(90, result);
-      case 'function':
-        return colour(36, result);
-      case 'string':
-        return colour(32, `'${result}'`);
-      case 'boolean':
-      case 'number':
-        return colour(33, result);
-      case 'object':
-        if (result instanceof Date)
-          return colour(35, result.toISOString());
-        if (result instanceof Error)
-          return result.stack || result.message;
-        return JSON.stringify(result);
-      default:
-        return colour(31, `<unknown type ${typeof result}>${result}`);
-    }
+    return formatResult(result);
   }
   catch(error)
   {
-    return error.stack || result.message;
+    return formatResult(error);
   }
 }
 """);
 
 readline.parse_and_bind('set editing-mode emacs')
+histfile = os. path. expanduser('~/.pmjs_history')
+if (os.path.exists(histfile)):
+    readline.read_history_file(histfile)
+
 print('Welcome to PythonMonkey v' + pm.__version__ +'.')
 print('Type ".help" for more information.')
+
+def quit():
+     readline.write_history_file(histfile)
+     sys.exit(0)
+
+def showResult(line):
+    result = globalThis.replEval(line)
+    if (result != False):
+        print(result)
 
 while True:
     try:
         line = input('> ')
+
+        if (len(line) == 0):
+            continue
         if (line[0] == '.'):
             print(globalThis.replCmd(line))
             continue
         if (pm.isCompilableUnit(line)):
-            print(globalThis.replEval(line))
+            showResult(line)
         else:
             while True:
                 more = input('... ')
                 line = line + '\n' + more
                 if (pm.isCompilableUnit(line)):
-                    print(globalThis.replEval(line))
+                    showResult(line)
                     break
     except EOFError:
         print()
-        sys.exit(0)
+        quit()
