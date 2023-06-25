@@ -3,21 +3,14 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, cmd
+import sys, os, readline
 sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
 import pythonmonkey as pm
 
 globalThis = pm.eval("globalThis;")
 pm.createRequire(__file__)('./pmjs-require')
 
-globalThis.python.isCompilableUnit = pm.isCompilableUnit
-globalThis.python.exit = sys.exit
-
-def write(buf: str):
-    print(buf, end="")
-globalThis.python.write = write
-
-pm.eval("""
+pm.eval("""'use strict';
 const cmds = {
   help: function help() {
     return '' +
@@ -30,42 +23,42 @@ Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
   },
 };
 
+globalThis.replCmd = function replCmd(line)
+{
+  return cmds[line.slice(1)]();
+}
+
+function colour(colourCode, val)
+{
+  const esc=String.fromCharCode(27);
+  return `${esc}[${colourCode}m${val}${esc}[0m`
+}
+
 globalThis.replEval = function replEval(line)
 {
-  const lineBuf = [];
-
+  const indirectEval = eval;
   try
   {
-    if (line[0] === '.')
-      return cmds[line.slice(1)]();
-    if (line === 'EOF')
-      python.exit('');
-    lineBuf.push(line);
-    line = lineBuf.join(String.fromCharCode(10));
-
-    if (python.isCompilableUnit(line))
-      lineBuf.length = 0;
-    else
-    {
-      python.write('... ');
-      return; /* Back to REPL for more of JS expression */
-    }
-
-    const result = eval(line);
+    const result = indirectEval(`${line}`);
     switch (typeof result)
     {
+      case 'undefined':
+        return colour(90, result);
+      case 'function':
+        return colour(36, result);
       case 'string':
-      case 'number':
+        return colour(32, `'${result}'`);
       case 'boolean':
-        return result;
+      case 'number':
+        return colour(33, result);
       case 'object':
+        if (result instanceof Date)
+          return colour(35, result.toISOString());
         if (result instanceof Error)
           return result.stack || result.message;
         return JSON.stringify(result);
-      case 'function':
-        return String(result);
       default:
-        return `<unknown type ${typeof result}>${result}`;
+        return colour(31, `<unknown type ${typeof result}>${result}`);
     }
   }
   catch(error)
@@ -75,15 +68,25 @@ globalThis.replEval = function replEval(line)
 }
 """);
 
-class JSShell(cmd.Cmd):
-    intro = 'Welcome to PythonMonkey v' + pm.__version__ +'.\nType ".help" for more information.';
+readline.parse_and_bind('set editing-mode emacs')
+print('Welcome to PythonMonkey v' + pm.__version__ +'.')
+print('Type ".help" for more information.')
 
-    prompt = '> '
-
-    def parseline(self, line):
-        print(globalThis.replEval(line))
-        dummyRet = cmd.Cmd.parseline(self, '')
-        return dummyRet
-
-if __name__ == '__main__':
-    JSShell().cmdloop()
+while True:
+    try:
+        line = input('> ')
+        if (line[0] == '.'):
+            print(globalThis.replCmd(line))
+            continue
+        if (pm.isCompilableUnit(line)):
+            print(globalThis.replEval(line))
+        else:
+            while True:
+                more = input('... ')
+                line = line + '\n' + more
+                if (pm.isCompilableUnit(line)):
+                    print(globalThis.replEval(line))
+                    break
+    except EOFError:
+        print()
+        sys.exit(0)
