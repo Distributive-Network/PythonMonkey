@@ -32,13 +32,40 @@ from importlib import util
 sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
 import pythonmonkey as pm
 
+# Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;");
+pm.eval("globalThis.python = { pythonMonkey: {} }");
 globalThis.pmEval = pm.eval;
+globalThis.python.print = print;
+globalThis.python.getenv = os.getenv;
+globalThis.python.pythonMonkey.dir = os.path.dirname(__file__);
+globalThis.python.paths = ':'.join(sys.path);
+pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
 
-pm.eval("""
-'use strict';
+# bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
+# The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
+# innermost code in ctx-module, without forcing ourselves to expose this minimalist code to
+# userland-require.
+bootstrap = pm.eval("""
+'use strict'; (function IIFE(python) {
 
-function runInContext(code, _unused_contextifiedObject, options)
+const bootstrap = {
+  modules: {
+    vm: { runInContext: eval },
+    'ctx-module': {},
+  },
+}
+
+/* ctx-module needs require() when it loads that can find vm and fs */
+bootstrap.require = function bootstrapRequire(mid)
+{
+  if (bootstrap.modules.hasOwnProperty(mid))
+    return bootstrap.modules[mid];
+
+  throw new Error('module not found: ' + mid);
+}
+
+bootstrap.modules.vm.runInContext_broken = function runInContext(code, _unused_contextifiedObject, options)
 {
   var evalOptions = {};
 
@@ -52,16 +79,12 @@ function runInContext(code, _unused_contextifiedObject, options)
   return pmEval(code, evalOptions);
 }
 
-globalThis.python = { pythonMonkey: {} };
-globalThis.global = globalThis;
-globalThis.vmModule = { runInContext: eval };
-globalThis.require = function outerRequire(mid) {
-  const module = globalThis[mid + 'Module'];
-  if (module)
-    return module;
-  throw new Error('module not found: ' + mid);
-};
-globalThis.debugModule = function debug(selector) {
+/**
+ * The debug module has as its exports a function which may, depending on the DEBUG env var, emit
+ * debugging statemnts to stdout. This is quick implementation of the node built-in.
+ */
+bootstrap.modules.debug = function debug(selector)
+{
   var idx, colour;
   const esc = String.fromCharCode(27);
   const noColour = `${esc}[0m`;
@@ -93,33 +116,33 @@ globalThis.debugModule = function debug(selector) {
 
   /* no match => silent */
   return (function debugDummy() {});
+}
+
+/**
+ * The fs module is like the Node.js fs module, except it only implements exactly what the ctx-module
+ * module requires to load CommonJS modules. It is augmented heavily below by Python methods.
+ */
+bootstrap.modules.fs = {
+  constants: { S_IFDIR: 16384 },
+  statSync: function statSync(filename) {
+    const ret = bootstrap.modules.fs.statSync_inner(filename);
+    if (ret)
+      return ret;
+
+    const err = new Error('file not found: ' + filename); 
+    err.code='ENOENT'; 
+    throw err;
+  },
 };
 
-function globalSet(name, prop)
-{
-  globalThis[name] = prop;
-}
+/* Modules which will be available to all requires */
+bootstrap.builtinModules = { debug: bootstrap.modules.debug };
 
-function propSet(objName, propName, propValue)
-{
-  globalThis[objName] = globalThis[objName] || {}; globalThis[objName][propName] = propValue;
-}
+/* temp workaround for PythonMonkey bug */
+globalThis.bootstrap = bootstrap;
 
-""")
-
-# globalSet and propSet are work-arounds until PythonMonkey correctly proxies objects.
-globalSet = pm.eval("globalSet");
-propSet = pm.eval("propSet")
-
-# Add some python functions to the global python object for code in this file to use.
-propSet('python', 'print', print);
-propSet('python', 'getenv', os.getenv);
-propSet('python', 'paths', ':'.join(sys.path));
-pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
-
-globalThis.python.pythonMonkey.dir = os.path.dirname(__file__);
-
-# Implement enough of require('fs') so that ctx-module can find/load files
+return bootstrap;
+})(globalThis.python)""")
 
 def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
     """
@@ -144,45 +167,25 @@ def readFileSync(filename, charset) -> str:
     with open(filename, "r", encoding=charset) as fileHnd:
         return fileHnd.read()
 
-propSet('fsModule', 'statSync_inner', statSync_inner);
-propSet('fsModule', 'readFileSync', readFileSync)
-propSet('fsModule', 'existsSync', os.path.exists)
-pm.eval("fsModule.constants = { S_IFDIR: 16384 }; true;")
-pm.eval("""fsModule.statSync =
-function statSync(filename)
-{
-  const ret = require('fs').statSync_inner(filename);
-  if (ret)
-    return ret;
+bootstrap.modules.fs.statSync_inner = statSync_inner
+bootstrap.modules.fs.readFileSync   = readFileSync
+bootstrap.modules.fs.existsSync     = os.path.exists
 
-  const err = new Error('file not found: ' + filename); 
-  err.code='ENOENT'; 
-  throw err;
-}""");
-
-# Read in ctx-module and invoke so that this file is the "main module" and the Python symbol require is
-# now the corresponding CommonJS require() function.  We use the globalThis as the module's exports
-# because PythonMonkey current segfaults when return objects. Once that is fixed, we will pass moduleIIFE
-# parameters which are a python implementation of top-level require(for fs, vm - see top) and an exports
-# dict to decorate.
-
+# Read ctx-module module from disk and invoke so that this file is the "main module" and ctx-module has
+# require and exports symbols injected from the bootstrap object above. Current PythonMonkey bugs
+# prevent us from injecting names properly so they are stolen from trail left behind in the global
+# scope until that can be fixed.
 with open(os.path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r") as ctxModuleSource:
-    moduleWrapper = pm.eval("""'use strict';
-(function moduleWrapper(require, exports)
+    initCtxModule = pm.eval("""'use strict';
+(function moduleWrapper_forCtxModule(broken_require, broken_exports)
 {
-  exports=exports || globalThis; 
-  require=require || globalThis.require;
+  const require = bootstrap.require;
+  const exports = bootstrap.modules['ctx-module'];
 """ + ctxModuleSource.read() + """
 })
 """);
-
-# inject require and exports symbols as moduleWrapper arguments once jsObj->dict fixed so we don't have
-# to use globalThis and pollute the global scope. 
-moduleWrapper()
-
-# __builtinModules should be a dict that we add built-in modules to in Python, then pass the same
-# dict->jsObject in createRequire for every require we create.
-pm.eval('const __builtinModules = {}; true');
+#broken initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'].exports);
+initCtxModule();
 
 def load(filename: str) -> Dict:  
     """
@@ -210,8 +213,7 @@ def load(filename: str) -> Dict:
     for key in dir(module):
         module_exports[key] = getattr(module, key)
     return module_exports 
-
-propSet('python', 'load', load)
+globalThis.python.load = load
 
 """
 API - createRequire
@@ -223,15 +225,19 @@ example:
   require = createRequire(__file__)
   require('./my-javascript-module')
 """
-createRequire: Callable = pm.eval("""(
-function createRequire(filename)
+def createRequire(filename):
+    createRequireInner = pm.eval("""'use strict';(
+function createRequire(filename, bootstrap_broken)
 {
+  const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
+  const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
+
   function loadPythonModule(module, filename)
   {
     module.exports = python.load(filename);
   }
 
-  const module = new CtxModule(globalThis, filename, __builtinModules);
+  const module = new CtxModule(globalThis, filename, bootstrap.builtinModules);
   for (let path of python.paths)
     module.paths.push(path + '/node_modules');
   if (module.require.path.length === 0)
@@ -239,5 +245,5 @@ function createRequire(filename)
   module.require.extensions['.py'] = loadPythonModule;
 
   return module.require;
-}
-)""")
+})""")
+    return createRequireInner(filename)
