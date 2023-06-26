@@ -842,7 +842,7 @@ def test_promises():
         # JS Promise to Python awaitable coercion
         assert 100 == await pm.eval("new Promise((r)=>{ r(100) })")
         assert 10010 == await pm.eval("Promise.resolve(10010)")
-        with pytest.raises(pm.SpiderMonkeyError, match="TypeError: .+ is not a constructor"):
+        with pytest.raises(pm.SpiderMonkeyError, match="^TypeError: (.|\\n)+ is not a constructor$"): 
             await pm.eval("Promise.resolve")(10086)
         assert 10086 == await pm.eval("Promise.resolve.bind(Promise)")(10086)
 

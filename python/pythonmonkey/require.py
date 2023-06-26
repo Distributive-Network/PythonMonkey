@@ -29,8 +29,7 @@ import importlib
 from importlib import machinery
 from importlib import util
 
-sys.path.append(os.path.dirname(__file__) + '/python') # location of pythonmonkey module
-import pythonmonkey as pm
+from . import pythonmonkey as pm 
 
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;");
