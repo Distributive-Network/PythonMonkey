@@ -104,6 +104,7 @@ jobs:
             brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
           fi
           echo "Installing python deps"
+          poetry self add "poetry-dynamic-versioning[plugin]"
           poetry install --no-root
           echo "Installed Dependencies"
       - name: Use cached spidermonkey build

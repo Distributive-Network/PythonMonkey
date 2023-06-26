@@ -54,6 +54,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
     - python3.8 or later with header files (python3-dev)
     - spidermonkey 102.2.0 or later
     - [Poetry](https://python-poetry.org/docs/#installation)
+    - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
 2. Run `poetry install`. This command automatically compiles the project and installs the project as well as all Python dependencies to the poetry virtualenv.
 
