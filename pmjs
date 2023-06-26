@@ -119,7 +119,7 @@ globalThis.replEval = function replEval(statement)
 """);
 
 readline.parse_and_bind('set editing-mode emacs')
-histfile = os. path. expanduser('~/.pmjs_history')
+histfile = os.path.expanduser('~/.pmjs_history')
 if (os.path.exists(histfile)):
     readline.read_history_file(histfile)
 
