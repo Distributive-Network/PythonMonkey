@@ -13,6 +13,8 @@
 
 #include <Python.h>
 
+#include <unordered_map>
+
 /**
  * @brief The typedef for the backing store that will be used by JSObjectProxy objects. All it contains is a pointer to the JSObject
  *
