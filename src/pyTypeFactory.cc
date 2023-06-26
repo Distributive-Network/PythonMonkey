@@ -155,7 +155,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
   }
 
   std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");
-  JS::RootedString str(cx, rval->toString());
+  JS::RootedString str(cx, JS::ToString(cx, *rval));
   errorString += JS_EncodeStringToUTF8(cx, str).get();
   PyErr_SetString(PyExc_TypeError, errorString.c_str());
   return NULL;

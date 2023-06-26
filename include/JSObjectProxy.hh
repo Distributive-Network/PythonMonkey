@@ -124,7 +124,7 @@ public:
 
   /**
    * @brief Function to satisfy the python GC. See comment in function implementation for more details
-   * 
+   *
    * @param self - unused
    * @param visit - unused
    * @param arg - unused
