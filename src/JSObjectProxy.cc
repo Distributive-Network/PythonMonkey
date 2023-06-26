@@ -46,7 +46,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
 {
 
   PyObject *dict = NULL;
-  if (PyTuple_Size(args) == 0 || Py_IsNone(PyTuple_GetItem(args, 0))) {
+  if (PyTuple_Size(args) == 0 || PyTuple_GetItem(args, 0) == Py_None) {
     // make fresh JSObject for proxy
     self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
     return 0;
@@ -262,7 +262,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
         return false;
       }
     }
-    else if (Py_IsFalse(PyObject_RichCompare(pyVal1, pyVal2, Py_EQ))) {
+    else if (PyObject_RichCompare(pyVal1, pyVal2, Py_EQ) == Py_False) {
       return false;
     }
   }
