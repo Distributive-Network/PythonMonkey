@@ -24,9 +24,9 @@ jobs:
   build-spidermonkey-unix:
     strategy:
       matrix:
-        # Use Ubuntu 20.04 / macOS 12 + Python 3.8 to build SpiderMonkey
+        # Use Ubuntu 20.04 / macOS 12 + Python 3.10 to build SpiderMonkey
         os: [ 'ubuntu-20.04', 'macos-12', 'm2ci' ]
-        python_version: [ '3.8' ]
+        python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
