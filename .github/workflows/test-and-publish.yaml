@@ -85,6 +85,12 @@ jobs:
           # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12
           - os: 'macos-12'
             python_version: '3.8'
+          # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
+          # see https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+          - os: 'm2ci'
+            python_version: '3.8'
+          - os: 'm2ci'
+            python_version: '3.9'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
