@@ -73,9 +73,6 @@ public:
     }
   protected:
     PyObject *_handle;
-
-    // TODO (Tom Tang): use separate pools of IDs for different global objects
-    static inline std::vector<AsyncHandle> _timeoutIdMap;
   };
 
   /**
@@ -202,6 +199,9 @@ private:
 
   static PyThreadState *_getMainThread();
   static inline PyThreadState *_getCurrentThread();
+
+  // TODO (Tom Tang): use separate pools of IDs for different global objects
+  static inline std::vector<AsyncHandle> _timeoutIdMap;
 };
 
 #endif
