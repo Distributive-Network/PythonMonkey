@@ -71,6 +71,12 @@ this package to execute our complex `dcp-client` library, which is written in JS
 $ pip install pythonmonkey
 ```
 
+### Install the [nightly build](https://nightly.pythonmonkey.io/)
+
+```bash
+$ pip install -i https://nightly.pythonmonkey.io/ --pre pythonmonkey
+```
+
 ### Use local version
 
 `pythonmonkey` is available in the poetry virtualenv once you compiled the project using poetry.
