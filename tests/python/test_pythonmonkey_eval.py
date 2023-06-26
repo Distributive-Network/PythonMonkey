@@ -236,7 +236,7 @@ def test_eval_dates():
     for i in range(10):
         py_date = start + (end - start) * random.random()
         # round to milliseconds precision because the smallest unit for js Date is 1ms
-        py_date = py_date.replace(microsecond=max(round(py_date.microsecond, -3), 999000)) # microsecond must be in 0..999999, but it would be rounded to 1000000 if >= 999500
+        py_date = py_date.replace(microsecond=min(round(py_date.microsecond, -3), 999000)) # microsecond must be in 0..999999, but it would be rounded to 1000000 if >= 999500
         js_date = pm.eval(f'new Date("{py_date.isoformat()}")')
         assert py_date == js_date
 
