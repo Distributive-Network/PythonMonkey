@@ -15,3 +15,5 @@ __pycache__
 dist
 *.so
 *.dylib
+*.dll
+*.pyd

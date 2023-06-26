@@ -10,9 +10,11 @@ project("PythonMonkey"
   LANGUAGES "CXX"
 )
 
-# Set C++ settings.
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQURIED ON)
+# Set C++ settings
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Add an external; appends to `PYTHONMONKEY_EXTERNAL_FILES` in the parent scope.
 function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
   add_subdirectory("externals/${PYTHONMONKEY_EXTERNAL}")
@@ -38,10 +40,6 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
   ### Code block from: https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
   include(FetchContent)
-
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
 
   if(UNIX)
     SET(COMPILE_FLAGS "-g -ggdb -O0 -fno-rtti")

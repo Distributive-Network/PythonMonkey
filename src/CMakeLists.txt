@@ -13,11 +13,6 @@ add_library(pythonmonkey SHARED
     ${PYTHONMONKEY_SOURCE_FILES}
 )
 
-execute_process(
-    COMMAND python3-config --prefix
-    OUTPUT_VARIABLE pyloc
-)
-
 target_include_directories(pythonmonkey PUBLIC ..)
 
 if(WIN32)
@@ -27,7 +22,6 @@ if(WIN32)
       PREFIX ""
       SUFFIX ".pyd"
       OUTPUT_NAME "pythonmonkey"
-      CXX_STANDARD 17
   )
 elseif(UNIX)
   set_target_properties(
@@ -38,8 +32,10 @@ elseif(UNIX)
   )
 endif()
 
-# Don't link against `libpython`, see https://peps.python.org/pep-0513/#libpythonx-y-so-1
-# target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+# Don't link against `libpython` on Unix, see https://peps.python.org/pep-0513/#libpythonx-y-so-1
+if (WIN32) # linker error on Windows: `lld-link: could not open 'python311.lib': no such file or directory`
+  target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+endif()
 
 # Stop complaining about missing symbols
 # see https://blog.tim-smith.us/2015/09/python-extension-modules-os-x/
