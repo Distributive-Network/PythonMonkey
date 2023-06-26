@@ -22,7 +22,7 @@ DictType::DictType() {
 DictType::DictType(PyObject *object) : PyType(object) {}
 
 DictType::DictType(JSContext *cx, JS::Handle<JS::Value> jsObject) {
-  JSObjectProxy *proxy = (JSObjectProxy *)PyObject_CallObject((PyObject *)&JSObjectProxyType, Py_BuildValue("()"));
+  JSObjectProxy *proxy = PyObject_New(JSObjectProxy, &JSObjectProxyType);
   JS::RootedObject obj(cx);
   JS_ValueToObject(cx, jsObject, &obj);
   proxy->jsObject.set(obj);

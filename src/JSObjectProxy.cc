@@ -1,9 +1,9 @@
 /**
  * @file JSObjectProxy.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) & Tom Tang (xmader@distributive.network)
  * @brief JSObjectProxy is a custom C-implemented python type that derives from dict. It acts as a proxy for JSObjects from Spidermonkey, and behaves like a dict would.
  * @version 0.1
- * @date 2023-05-03
+ * @date 2023-06-26
  *
  * Copyright (c) 2023 Distributive Corp.
  *
@@ -25,8 +25,8 @@ JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
-  Py_TYPE(self)->tp_free((PyObject *)self);
-
+  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
+  return;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -52,7 +52,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
     return 0;
   }
 
-  if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, dict))
+  if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict))
   {
     return -1;
   }
@@ -268,4 +268,9 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   return true;
+}
+
+int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *args) {
+  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_traverse. Probably results in leaking dict memory
+  return 0;
 }
