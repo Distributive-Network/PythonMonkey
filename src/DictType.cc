@@ -13,8 +13,6 @@
 
 #include <string>
 
-typedef std::unordered_map<const JS::Value *, PyObject *>::iterator subObjectIterator;
-
 DictType::DictType() {
   this->pyObject = PyDict_New();
 }
