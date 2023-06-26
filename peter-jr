@@ -3,6 +3,13 @@
 # @file         peter-js
 #               A simple test framework in the spirit of Peter (npmjs.com/packages/peter) for testing
 #               basic PythonMonkey functionality.
+#
+#               Exit Codes:
+#               0 - all tests passed
+#               1 - one or more tests failed
+#               2 - no tests ran
+#               3 - internal error
+#
 # @author       Wes Garland, wes@distributive.network
 # @date         Jun 2023
 #
@@ -13,6 +20,7 @@ cd "$runDir"
 
 set -u
 set -o pipefail
+peter_exit_code=2
 
 if [ "${1:-}" = "-v" ]; then
   VERBOSE=1
@@ -22,12 +30,12 @@ else
 fi
 
 [ "${1:-}" ] || set "${topDir}/tests/js"
-testLocations="$@"
+testLocations=("$@")
 
 function panic()
 {
   echo "PANIC: $*" >&2
-  exit 2
+  exit 3
 }
 
 TMP=`mktemp -d`
@@ -97,11 +105,13 @@ grey()
 
     if [ "$exitCode" = "0" ]; then
       echo "$(green PASS)"
+      [ "${peter_exit_code}" = "2" ] && peter_exit_code=0
       printf "\e[0;31m"
       [ "$VERBOSE" ] || cat "$stderr"
       printf "\e[0m"
     else
       echo "$(red FAIL)"
+      peter_exit_code=1
       if [ ! "$VERBOSE" ]; then
         echo
         echo "$(grey --) $(yellow ${file}) $(grey vvvvvvvvvvvvvv)"
@@ -113,4 +123,8 @@ grey()
         echo
       fi
     fi
+    (exit ${peter_exit_code})
   done
+peter_exit_code="$?"
+
+exit ${peter_exit_code}
