@@ -1,9 +1,9 @@
 /**
  * @file JSObjectProxy.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) & Tom Tang (xmader@distributive.network)
  * @brief JSObjectProxy is a custom C-implemented python type that derives from dict. It acts as a proxy for JSObjects from Spidermonkey, and behaves like a dict would.
  * @version 0.1
- * @date 2023-05-03
+ * @date 2023-06-26
  *
  * Copyright (c) 2023 Distributive Corp.
  *
@@ -25,8 +25,8 @@ JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
-  Py_TYPE(self)->tp_free((PyObject *)self);
-
+  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
+  return;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -46,13 +46,13 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
 {
 
   PyObject *dict = NULL;
-  if (PyTuple_Size(args) == 0 || Py_IsNone(PyTuple_GetItem(args, 0))) {
+  if (PyTuple_Size(args) == 0 || PyTuple_GetItem(args, 0) == Py_None) {
     // make fresh JSObject for proxy
     self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
     return 0;
   }
 
-  if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, dict))
+  if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict))
   {
     return -1;
   }
@@ -262,10 +262,15 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
         return false;
       }
     }
-    else if (Py_IsFalse(PyObject_RichCompare(pyVal1, pyVal2, Py_EQ))) {
+    else if (PyObject_RichCompare(pyVal1, pyVal2, Py_EQ) == Py_False) {
       return false;
     }
   }
 
   return true;
+}
+
+int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *args) {
+  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_traverse. Probably results in leaking dict memory
+  return 0;
 }

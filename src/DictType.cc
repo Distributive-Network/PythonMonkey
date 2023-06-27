@@ -13,8 +13,6 @@
 
 #include <string>
 
-typedef std::unordered_map<const JS::Value *, PyObject *>::iterator subObjectIterator;
-
 DictType::DictType() {
   this->pyObject = PyDict_New();
 }
@@ -22,7 +20,7 @@ DictType::DictType() {
 DictType::DictType(PyObject *object) : PyType(object) {}
 
 DictType::DictType(JSContext *cx, JS::Handle<JS::Value> jsObject) {
-  JSObjectProxy *proxy = (JSObjectProxy *)PyObject_CallObject((PyObject *)&JSObjectProxyType, Py_BuildValue("()"));
+  JSObjectProxy *proxy = PyObject_New(JSObjectProxy, &JSObjectProxyType);
   JS::RootedObject obj(cx);
   JS_ValueToObject(cx, jsObject, &obj);
   proxy->jsObject.set(obj);

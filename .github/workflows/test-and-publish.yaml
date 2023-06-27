@@ -10,13 +10,81 @@ on:
   workflow_dispatch:
   pull_request:
 
+env:
+  # don't upgrade outdated brew packages because the process is too slow
+  HOMEBREW_NO_INSTALL_UPGRADE: 1
+  HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+
+defaults:
+  run:
+    # run with Git Bash on Windows
+    shell: bash
+
 jobs:
-  test-and-publish:
+  build-spidermonkey-unix:
+    strategy:
+      matrix:
+        # Use Ubuntu 20.04 / macOS 12 + Python 3.8 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'macos-12' ]
+        python_version: [ '3.8' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+      - name: Cache spidermonkey build
+        id: cache-spidermonkey
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./_spidermonkey_install/*
+          key: ${{ runner.os }}-spidermonkey
+          lookup-only: true # skip download
+      - name: Build spidermonkey
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: ./setup.sh
+  build-spidermonkey-win:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache spidermonkey build
+        id: cache-spidermonkey
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./_spidermonkey_install/*
+          key: ${{ runner.os }}-spidermonkey
+          lookup-only: true # skip download
+      - name: Install dependencies
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        shell: powershell
+        run: |
+          # Already installed in Github Actions runner
+          # choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
+          # choco install -y llvm gnuwin32-m4
+          choco install -y wget make
+      - name: Install MozillaBuild
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: |
+          wget -c -q https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-Latest.exe
+          powershell -command 'Start-Process -Wait -FilePath "./MozillaBuildSetup-Latest.exe" -ArgumentList "/S"'
+      - name: Build spidermonkey in MozillaBuild environment
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: /c/mozilla-build/start-shell.bat -use-full-path -here ./setup.sh
+  build-and-test:
+    needs: [build-spidermonkey-unix, build-spidermonkey-win]
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'ubuntu-latest' ] # , 'windows-latest', 'macos-latest' ]
+        # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
+        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
+        exclude:
+          # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
+          # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12
+          - os: 'macos-12'
+            python_version: '3.8'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -25,25 +93,26 @@ jobs:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
         uses: snok/install-poetry@v1
-      - name: Setup cmake
+      - name: Install Dependencies
         run: |
           echo "Installing Dependencies"
-          sudo apt-get update -y
-          sudo apt-get install -y cmake doxygen graphviz llvm
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
+            sudo apt-get update -y
+            sudo apt-get install -y cmake doxygen graphviz llvm
+          elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+            brew update
+            brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
+          fi
           echo "Installing python deps"
           poetry install --no-root
           echo "Installed Dependencies"
-      - name: Cache spidermonkey build
-        id: cache-spidermonkey
+      - name: Use cached spidermonkey build
         uses: actions/cache@v3
         with:
           path: |
-            ./firefox-source/*
             ./_spidermonkey_install/*
           key: ${{ runner.os }}-spidermonkey
-      - name: Build-Library
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        run: ./setup.sh #&& ./build_script.sh
+          fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build wheel
         run: |
           echo $(poetry run python --version)
@@ -58,8 +127,43 @@ jobs:
         run: |
           poetry run python -m pip install ./dist/*.whl
           poetry run python -m pytest tests/python
-      - name: Buid and Publish package
-        if: ${{ success()  && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
-        run: | 
-          echo $(poetry run python --version)
-          poetry publish --no-interaction --skip-existing --build --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+  sdist:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+      - name: Build source distribution (sdist) file
+        run: |
+          poetry build --format=sdist
+          ls -lah ./dist/
+      - name: Upload sdist as CI artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheel-${{ github.run_id }}-${{ github.sha }}
+          path: ./dist/
+  publish:
+    needs: [build-and-test, sdist]
+    runs-on: ubuntu-20.04
+    if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+      - name: Download wheels built
+        uses: actions/download-artifact@v3
+        with:
+          name: wheel-${{ github.run_id }}-${{ github.sha }}
+          path: ./dist/
+      - run: ls -lah ./dist/
+      - name: Publish package
+        run: |
+          poetry publish \
+            --no-interaction --skip-existing \
+            --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}

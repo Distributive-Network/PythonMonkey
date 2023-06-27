@@ -1,9 +1,9 @@
 /**
  * @file JSObjectProxy.hh
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) & Tom Tang (xmader@distributive.network)
  * @brief JSObjectProxy is a custom C-implemented python type that derives from dict. It acts as a proxy for JSObjects from Spidermonkey, and behaves like a dict would.
  * @version 0.1
- * @date 2023-05-03
+ * @date 2023-06-26
  *
  * Copyright (c) 2023 Distributive Corp.
  *
@@ -13,12 +13,14 @@
 
 #include <Python.h>
 
+#include <unordered_map>
+
 /**
  * @brief The typedef for the backing store that will be used by JSObjectProxy objects. All it contains is a pointer to the JSObject
  *
  */
 typedef struct {
-  PyObject_HEAD
+  PyDictObject dict;
   JS::RootedObject jsObject;
 } JSObjectProxy;
 
@@ -119,6 +121,16 @@ public:
    * @return bool - Whether the compared objects are equal or not
    */
   static bool JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited);
+
+  /**
+   * @brief Function to satisfy the python GC. See comment in function implementation for more details
+   *
+   * @param self - unused
+   * @param visit - unused
+   * @param arg - unused
+   * @return int - always 0
+   */
+  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
 };
 
 
@@ -137,56 +149,19 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
  *
  */
 static PyTypeObject JSObjectProxyType = {
-  .ob_base = {{1, &PyType_Type}, 0},
+  .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
   .tp_name = "pythonmonkey.JSObjectProxy",
   .tp_basicsize = sizeof(JSObjectProxy),
-  .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
-  .tp_vectorcall_offset = 0,
-  .tp_getattr = NULL,
-  .tp_setattr = NULL,
-  .tp_as_async = NULL,
-  .tp_repr = NULL,
-  .tp_as_number = NULL,
-  .tp_as_sequence = NULL,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
-  .tp_hash = NULL,
-  .tp_call = NULL,
-  .tp_str = NULL,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
-  .tp_as_buffer = NULL,
   .tp_flags = Py_TPFLAGS_DEFAULT
-  // | Py_TPFLAGS_DICT_SUBCLASS  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
-  // | Py_TPFLAGS_HAVE_GC     // @TODO (Caleb Aikens) need to figure out how to make GC work cross-language
-  | Py_TPFLAGS_MAPPING,
+  | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
-  .tp_traverse = NULL,
-  .tp_clear = NULL,
+  .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
-  .tp_weaklistoffset = 0,
-  .tp_iter = NULL,
-  .tp_iternext = NULL,
-  .tp_methods = NULL,
-  .tp_members = NULL,
-  .tp_getset = NULL,
-  .tp_base = NULL,
-  .tp_dict = NULL,
-  .tp_descr_get = NULL,
-  .tp_descr_set = NULL,
-  .tp_dictoffset = 0,
+  .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
-  .tp_alloc = PyType_GenericAlloc,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
-  .tp_free = PyObject_Free,
-  .tp_is_gc = NULL,
-  .tp_bases = NULL,
-  .tp_mro = NULL,
-  .tp_cache = NULL,
-  .tp_subclasses = NULL,
-  .tp_weaklist = NULL,
-  .tp_del = NULL,
-  .tp_version_tag = 0,
-  .tp_finalize = NULL,
-  .tp_vectorcall = NULL
 };

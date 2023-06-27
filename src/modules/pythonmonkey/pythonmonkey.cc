@@ -39,6 +39,9 @@
 #include <Python.h>
 #include <datetime.h>
 
+#include <unordered_map>
+#include <vector>
+
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 typedef struct {
   PyObject_HEAD
@@ -233,8 +236,13 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
-  bool rvalIsFunction = rval->isObject() && js::IsFunctionObject(&rval->toObject());
-  if (!rvalIsFunction) {  // rval may be a JS function which must be kept alive.
+  js::ESClass cls = js::ESClass::Other; // placeholder if `rval` is not a JSObject
+  if (rval->isObject()) {
+    JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
+  }
+  bool rvalIsFunction = cls == js::ESClass::Function; // function object
+  bool rvalIsString = rval->isString() || cls == js::ESClass::String; // string primitive or boxed String object
+  if (!(rvalIsFunction || rvalIsString)) {  // rval may be a JS function or string which must be kept alive.
     delete rval;
   }
 
