@@ -10,7 +10,10 @@ authors = [
 ]
 include = [
   # Install extra files into the pythonmonkey package
-  "pythonmonkey/**/*",
+  "pythonmonkey/package*.json",
+  { path = "pythonmonkey/node_modules/**/*", format = "wheel" },
+  # pip builds (and actually installs from) the wheel when installing from sdist
+  # we don't want node_modules inside the sdist package
 ]
 
 [tool.poetry.dependencies]
