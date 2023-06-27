@@ -110,6 +110,7 @@ jobs:
             brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
           fi
           echo "Installing python deps"
+          poetry env use python3 # use the correct Python version we've set up
           poetry install --no-root
           echo "Installed Dependencies"
       - name: Use cached spidermonkey build
@@ -121,7 +122,6 @@ jobs:
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build wheel
         run: |
-          poetry env use python3
           echo $(poetry run python --version)
           poetry build --format=wheel
           ls -lah ./dist/
