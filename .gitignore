@@ -1,7 +1,6 @@
 build/
 .vscode/
 pyvenv.cfg
-python/pythonmonkey/version.py
 python/pythonmonkey/node_modules
 bin/
 lib/*

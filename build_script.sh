@@ -23,12 +23,3 @@ else
   cmake .. 
 fi
 cmake --build . -j$CPUS --config Release
-
-
-cd "${topDir}"
-(
-  echo "# This file was generated via $0 by `id -un` on `hostname` at `date` - do not edit by hand!"
-  grep '^version' pyproject.toml \
-  | head -1 \
-  | sed 's/^version /__version__ /' \
-) > python/pythonmonkey/version.py
