@@ -1,7 +1,7 @@
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-if(LINUX)
+if(UNIX)
   set(CMAKE_INSTALL_RPATH "$ORIGIN")
 else(APPLE)
   set(CMAKE_INSTALL_RPATH "@loader_path")
