@@ -19,6 +19,12 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.8"
 
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+bump = true
+
 [tool.poetry.build]
 script = "post-install-hook.py"
 generate-setup-file = false 
