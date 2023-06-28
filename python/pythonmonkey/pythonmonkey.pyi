@@ -35,6 +35,11 @@ class SpiderMonkeyError(Exception):
     Representing a corresponding JS Error in Python
     """
 
+class JSObjectProxy(dict):
+    """
+    JavaScript Object proxy dict
+    """
+
 null = _typing.Annotated[
     _typing.NewType("pythonmonkey.null", object),
     "Representing the JS null type in Python using a singleton object",
