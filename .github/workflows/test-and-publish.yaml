@@ -94,6 +94,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # fetch all history for all branches and tags
+          # poetry-dynamic-versioning needs git tags to produce the correct version number 
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
