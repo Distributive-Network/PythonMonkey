@@ -32,6 +32,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+pminit = { version = "*", allow-prereleases = true }
 
 
 [tool.poetry-dynamic-versioning]

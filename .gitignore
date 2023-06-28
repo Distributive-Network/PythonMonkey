@@ -1,7 +1,6 @@
 build/
 .vscode/
 pyvenv.cfg
-python/pythonmonkey/version.py
 python/pythonmonkey/node_modules
 bin/
 lib/*
@@ -15,6 +14,7 @@ _spidermonkey_install
 __pycache__/*
 dist
 *.so
+<<<<<<< HEAD
 _spidermonkey_install/*
 *~
 Makefile
@@ -24,3 +24,22 @@ CMakeCache.txt
 *.dylib
 *.dll
 *.pyd
+||||||| merged common ancestors
+<<<<<<<<< Temporary merge branch 1
+*.dylib
+*.dll
+*.pyd
+||||||||| 99add16
+=========
+_spidermonkey_install/*
+*~
+Makefile
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+CMakeCache.txt
+>>>>>>>>> Temporary merge branch 2
+=======
+*.dylib
+*.dll
+*.pyd
+>>>>>>> Xmader/feat/post-install-npm
