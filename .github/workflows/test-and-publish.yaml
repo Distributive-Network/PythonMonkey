@@ -144,6 +144,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
@@ -153,6 +155,7 @@ jobs:
           version: 1.5.1
       - name: Build source distribution (sdist) file
         run: |
+          poetry self add "poetry-dynamic-versioning[plugin]"
           poetry build --format=sdist
           ls -lah ./dist/
       - name: Upload sdist as CI artifacts
