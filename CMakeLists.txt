@@ -2,10 +2,7 @@
 
 cmake_minimum_required(VERSION 3.4...3.18) # Set minimum cmake version
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" PYTHONMONKEY_VERSION)
-string(STRIP "${PYTHONMONKEY_VERSION}" PYTHONMONKEY_VERSION)
 project("PythonMonkey"
-  VERSION "${PYTHONMONKEY_VERSION}"
   DESCRIPTION "A tool for Javascript-Python interoperability."
   LANGUAGES "CXX"
 )
