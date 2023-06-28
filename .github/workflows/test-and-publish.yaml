@@ -99,6 +99,8 @@ jobs:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Install Dependencies
         run: |
           echo "Installing Dependencies"
@@ -144,6 +146,8 @@ jobs:
           python-version: '3.9'
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Build source distribution (sdist) file
         run: |
           poetry build --format=sdist
@@ -164,6 +168,8 @@ jobs:
           python-version: '3.9'
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Download wheels built
         uses: actions/download-artifact@v3
         with:
