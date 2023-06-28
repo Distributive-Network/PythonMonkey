@@ -21,3 +21,6 @@ Makefile
 CMakeDoxyfile.in
 CMakeDoxygenDefaults.cmake
 CMakeCache.txt
+*.dylib
+*.dll
+*.pyd

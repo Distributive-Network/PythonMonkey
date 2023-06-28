@@ -1,4 +1,7 @@
 from .pythonmonkey import *
 from .require import *
-from .version import __version__
+
+# Expose the package version
+import importlib.metadata
+__version__= importlib.metadata.version(__name__)
 

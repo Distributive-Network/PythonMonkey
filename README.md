@@ -46,14 +46,12 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 ## Build Instructions
 1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
-    - pytest
     - cmake
     - doxygen 
-    - python3-dev (python-dev)
     - graphviz
     - llvm
     - rust
-    - python3.8 or later
+    - python3.8 or later with header files (python3-dev)
     - spidermonkey 102.2.0 or later
     - npm (nodejs)
     - [Poetry](https://python-poetry.org/docs/#installation)
@@ -77,6 +75,12 @@ After compiling the project in the `build/src` folder you will find a `.so` file
 
 ```bash
 $ pip install pythonmonkey
+```
+
+### Install the [nightly build](https://nightly.pythonmonkey.io/)
+
+```bash
+$ pip install -i https://nightly.pythonmonkey.io/ --pre pythonmonkey
 ```
 
 ### Use local version

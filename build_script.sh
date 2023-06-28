@@ -17,17 +17,12 @@ if [  ! -d "$DIR" ]; then
 fi
 
 cd build
-cmake ..
-cmake --build . -j$CPUS
-
-cd "${topDir}"
-cp -f build/src/pythonmonkey.so python/pythonmonkey/
-(
-  echo "# This file was generated via $0 by `id -un` on `hostname` at `date` - do not edit by hand!"
-  grep '^version' pyproject.toml \
-  | head -1 \
-  | sed 's/^version /__version__ /' \
-) > python/pythonmonkey/version.py
+if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  cmake .. -T ClangCL # use Clang/LLVM toolset for Visual Studio
+else
+  cmake .. 
+fi
+cmake --build . -j$CPUS --config Release
 
 # npm is used to load JS components, see package.json
 cd "${topDir}/python/pythonmonkey/"

@@ -10,7 +10,7 @@
 
 #include <Python.h>
 
-#include <bit>
+#include <vector>
 
 #define SIGN_BIT_MASK 0b1000 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l40
 #define CELL_HEADER_LENGTH 8 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/gc/Cell.h#l602
@@ -39,7 +39,7 @@ static inline void PythonLong_SetSign(PyLongObject *op, int sign) {
   op->long_value.lv_tag |= (1-sign) & _PyLong_SIGN_MASK; // set the new sign bits value
 #else // Python version is less than 3.12
   // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L956
-  ssize_t pyDigitCount = Py_SIZE(op);
+  Py_ssize_t pyDigitCount = Py_SIZE(op);
   #if PY_VERSION_HEX >= 0x03090000
   Py_SET_SIZE(op, sign * std::abs(pyDigitCount));
   #else
@@ -59,7 +59,7 @@ static inline bool PythonLong_IsNegative(const PyLongObject *op) {
   return (op->long_value.lv_tag & _PyLong_SIGN_MASK) == _PyLong_SIGN_NEGATIVE;
 #else // Python version is less than 3.12
   // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L977
-  ssize_t pyDigitCount = Py_SIZE(op); // negative on negative numbers
+  Py_ssize_t pyDigitCount = Py_SIZE(op); // negative on negative numbers
   return pyDigitCount < 0;
 #endif
 }
@@ -88,11 +88,11 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   // The digit storage starts with the least significant digit (little-endian digit order).
   // Byte order within a digit is native-endian.
 
-  if constexpr (std::endian::native == std::endian::big) { // C++20
-    // @TODO (Tom Tang): use C++23 std::byteswap?
-    printf("big-endian cpu is not supported by PythonMonkey yet");
-    return;
-  }
+  #if not (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)) // gcc extensions (also supported by clang)
+    #error "Big-endian cpu is not supported by PythonMonkey yet"
+  // @TODO (Tom Tang): use C++23 std::byteswap?
+  #endif
+
   // If the native endianness is also little-endian,
   // we now have consecutive bytes of 8-bit "digits" in little-endian order
   const uint8_t *bytes = const_cast<const uint8_t *>((uint8_t *)jsDigits);

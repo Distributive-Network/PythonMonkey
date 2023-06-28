@@ -2,17 +2,16 @@
 
 cmake_minimum_required(VERSION 3.4...3.18) # Set minimum cmake version
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" PYTHONMONKEY_VERSION)
-string(STRIP "${PYTHONMONKEY_VERSION}" PYTHONMONKEY_VERSION)
 project("PythonMonkey"
-  VERSION "${PYTHONMONKEY_VERSION}"
   DESCRIPTION "A tool for Javascript-Python interoperability."
   LANGUAGES "CXX"
 )
 
-# Set C++ settings.
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQURIED ON)
+# Set C++ settings
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Add an external; appends to `PYTHONMONKEY_EXTERNAL_FILES` in the parent scope.
 function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
   add_subdirectory("externals/${PYTHONMONKEY_EXTERNAL}")
@@ -39,20 +38,14 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   ### Code block from: https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
   include(FetchContent)
 
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-
   if(UNIX)
-    SET(COMPILE_FLAGS "-g -ggdb -O0 -coverage -fprofile-arcs -ftest-coverage -fno-rtti")
+    SET(COMPILE_FLAGS "-g -ggdb -O0 -fno-rtti")
   elseif(WIN32)
     SET(COMPILE_FLAGS "")
   endif()
   SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}" )
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
-  # Try to set bindings for apple
-  # Note I don't actually think that this works currently
   if(APPLE)
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     find_package(SpiderMonkey REQUIRED)
@@ -62,7 +55,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
     message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
-  elseif(UNIX)
+  elseif(LINUX)
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
