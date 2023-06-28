@@ -192,16 +192,26 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
-          path: ./pythonmonkey/ # write to the repository project path 
+          path: ./dist/
+      - name: Move wheels to the correct repository project paths
+        run: |
+          mkdir -p ./pythonmonkey/ ./pminit/
+          mv ./dist/pythonmonkey-* ./pythonmonkey/
+          mv ./dist/pminit-* ./pminit/
       - name: Generate index page for the project
         run: |
-          cd ./pythonmonkey/
-          html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
-          for file in ./*; do # generate <a> tags for each file
-            html+="<a href=\"$file\">$file</a><br/>"
-          done
-          html+="</body></html>"
-          echo "$html" > ./index.html
+          generate_index () {
+            cd $1
+            html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
+            for file in ./*; do # generate <a> tags for each file
+              html+="<a href=\"$file\">$file</a><br/>"
+            done
+            html+="</body></html>"
+            echo "$html" > ./index.html
+            cd -
+          }
+          generate_index ./pythonmonkey/
+          generate_index ./pminit/
       - name: Generate repository root page
         run: |
           html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
@@ -210,6 +220,7 @@ jobs:
           html+="<pre>pip install -i https://nightly.pythonmonkey.io/ --pre pythonmonkey</pre>"
           html+="<h3>Browse files:</h3>"
           html+="<a href="pythonmonkey/">pythonmonkey</a>"
+          html+="<a href="pminit/">pminit</a>"
           html+="</body></html>"
           echo "$html" > ./index.html
       - uses: actions/upload-pages-artifact@v1
