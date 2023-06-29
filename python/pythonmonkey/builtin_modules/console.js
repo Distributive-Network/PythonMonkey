@@ -10,7 +10,7 @@
 /** @type {import("internal-binding")} */
 const internalBinding = globalThis._internalBinding // FIXME: proper internal-binding module
 // const internalBinding = globalThis.python.pythonMonkey.internalBinding // broken
-const { defineGlobal } = internalBinding("utils")
+
 const {
   isAnyArrayBuffer,
   isPromise,
@@ -924,8 +924,8 @@ Console.prototype.error = Console.prototype.warn;
 
 if (!globalThis.console) {
   globalThis.console = new Console(
-    globalThis.python.stdout_write /* sys.stdout.write */,
-    globalThis.python.stderr_write /* sys.stderr.write */
+    python.stdout_write /* sys.stdout.write */,
+    python.stderr_write /* sys.stderr.write */
   )
 }
 

@@ -1,6 +1,26 @@
 /// <reference no-default-lib="true"/>
 /// <reference lib="es2022" />
 
+declare const python: {
+  pythonMonkey: {
+    /** root directory of the pythonmonkey package */
+    dir: string;
+  };
+  /** Python `print` */
+  print(...values: any): void;
+  /** Python `sys.stdout.write`. Write the given string to stdout. */
+  stdout_write(s: string): void;
+  /** Python `sys.stderr.write`. Write the given string to stderr. */
+  stderr_write(s: string): void;
+  /** Python `os.getenv`. Get an environment variable, return undefined if it doesn't exist. */
+  getenv(key: string): string | undefined;
+  /** Python `sys.path` */
+  paths: string[];
+};
+
+/** see `pm.eval` */
+declare function pmEval(code: string): any;
+
 declare module "internal-binding" {
   /**
    * Note: `internalBinding` APIs are generally unsafe as they do not perform argument type checking, etc.
