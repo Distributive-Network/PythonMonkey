@@ -94,11 +94,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # fetch all history for all branches and tags
+          # poetry-dynamic-versioning needs git tags to produce the correct version number 
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Install Dependencies
         run: |
           echo "Installing Dependencies"
@@ -110,6 +115,7 @@ jobs:
             brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
           fi
           echo "Installing python deps"
+          poetry self add "poetry-dynamic-versioning[plugin]"
           poetry env use python3 # use the correct Python version we've set up
           poetry install --no-root
           echo "Installed Dependencies"
@@ -138,13 +144,18 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Build source distribution (sdist) file
         run: |
+          poetry self add "poetry-dynamic-versioning[plugin]"
           poetry build --format=sdist
           ls -lah ./dist/
       - name: Upload sdist as CI artifacts
@@ -163,6 +174,8 @@ jobs:
           python-version: '3.9'
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Download wheels built
         uses: actions/download-artifact@v3
         with:
