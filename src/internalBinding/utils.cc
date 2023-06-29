@@ -16,7 +16,7 @@
 #include <js/experimental/TypedData.h>
 
 /**
- * See function declarations in python/pythonmonkey/builtin_modules/global.d.ts :
+ * See function declarations in python/pythonmonkey/builtin_modules/internal-binding.d.ts :
  *    `declare function internalBinding(namespace: "utils")`
  */
 
