@@ -108,8 +108,8 @@ files = [
 
 [package.source]
 type = "legacy"
-url = "https://pypi.anaconda.org/nightly/simple"
-reference = "anaconda-nightly"
+url = "https://pypi.anaconda.org/pythonmonkey/simple"
+reference = "anaconda"
 
 [[package]]
 name = "packaging"
@@ -184,4 +184,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "480d45c78851c132fa65e5ed7618847ed666bbf7d74abf693c1ef5b60dbf27f2"
+content-hash = "b6c04db7deac0a2e9850f6ea1e00e2a00c7e612dfc765171864ca906386e2878"
