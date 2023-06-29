@@ -8,7 +8,10 @@ import pythonmonkey as pm
 
 globalThis = pm.eval("globalThis;")
 globalThis.python.write = sys.stdout.write
-pm.createRequire(__file__)('./pmjs-require')
+require = pm.createRequire(os.getcwd() + '/__pmjs__')
+argvBuilder = require(os.path.dirname(__file__) + "/pmjs-lib/global-init").setArguments();
+for arg in sys.argv:
+    argvBuilder(arg); # list=>Array not working yet
 
 pm.eval("""'use strict';
 const cmds = {};
@@ -207,9 +210,10 @@ def main():
     Main program entry point
     """
     enterRepl = sys.stdin.isatty()
+    forceRepl = False
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "he:p:r:v", ["help", "eval=", "print=", "require=", "version"])
+        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version"])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)  # will print something like "option -a not recognized"
@@ -224,6 +228,8 @@ def main():
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
+        elif o in ("-i", "--interactive"):
+            forceRepl = True
         elif o in ("-e", "--eval"):
             pm.eval(a)
             enterRepl = False
@@ -231,14 +237,17 @@ def main():
             print(pm.eval(a))
             enterRepl = False
         elif o in ("-r", "--require"):
-            print('require ', a);
             pm.eval('require')(a)
-            print('required ', a);
         else:
             assert False, "unhandled option"
 
-        if (enterRepl):
-            repl()
+    if (len(args) > 0):
+        fileHnd = open(args[0], "r", encoding='utf-8')
+        programCode = fileHnd.read()
+        fileHnd.close()
+        pm.eval(programCode)
+    elif (enterRepl or forceRepl):
+        repl()
 
 if __name__ == "__main__":
     main()
