@@ -247,7 +247,7 @@ function createRequire(filename, bootstrap_broken)
 })""")
     return createRequireInner(filename)
 
-def require(*args):
+def require(moduleIdentifier: str):
     # Retrieve the caller’s filename from the call stack
     filename = inspect.stack()[1].filename
-    return createRequire(filename)(*args)
+    return createRequire(filename)(moduleIdentifier)
