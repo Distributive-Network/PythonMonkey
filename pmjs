@@ -5,20 +5,14 @@
 
 import sys, os, readline, signal, getopt
 import pythonmonkey as pm
-
-globalThis = pm.eval("globalThis;")
-globalThis.python.write = sys.stdout.write
-require = pm.createRequire(os.getcwd() + '/__pmjs__')
-argvBuilder = require(os.path.dirname(__file__) + "/pmjs-lib/global-init").setArguments();
-for arg in sys.argv:
-    argvBuilder(arg); # list=>Array not working yet
+globalThis = pm.eval("globalThis")
 
 pm.eval("""'use strict';
 const cmds = {};
 
 cmds.help = function help() {
-  return '' +
-`.exit     Exit the REPL
+  return '.' +
+`exit     Exit the REPL
 .help     Print this help message
 .load     Load JS from a file into the REPL session
 .save     Save all evaluated commands in this REPL session to a file
@@ -29,10 +23,10 @@ Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
 cmds.exit = python.exit;
 
 /**
- * Handle a .XXX command. Invokes function cmds[XXX], passing arguments that the user typed
- * as the function arguments. The function arguments space-delimited arguments; arguments
- * surrounded by quotes can include spaces, similar to how bash parses arguments. Argument
- * parsing cribbed from stackoverflow user Tsuneo Yoshioka, question 4031900.
+ * Handle a .xyz repl command. Invokes function cmds[XXX], passing arguments that the user typed as the
+ * function arguments. The function arguments are space-delimited arguments; arguments surrounded by
+ * quotes can include spaces, similar to how bash parses arguments. Argument parsing cribbed from 
+ * stackoverflow user Tsuneo Yoshioka, question 4031900.
  *
  * @param {string} cmdLine     the command the user typed, without the leading .
  * @returns {string} to display
@@ -120,47 +114,66 @@ globalThis.replEval = function replEval(statement)
 }
 """);
 
-readline.parse_and_bind('set editing-mode emacs')
-histfile = os.getenv('PMJS_REPL_HISTORY') or os.path.expanduser('~/.pmjs_history')
-if (os.path.exists(histfile)):
-    readline.read_history_file(histfile)
-
-def quit():
-     readline.write_history_file(histfile)
-     sys.exit(0)
-globalThis.python.exit = quit
-
-got_sigint = 0
-building_statement = False
-
-# Try to handle ^C by aborting the entry of the current line and quitting when double-struck. Note that
-# does not currently work properly because there doesn't seem to be an easy way to abort data entry via
-# input() via gnu readline in Python.
-def sigint_handler(signum, frame):
-    global got_sigint
-    global building_statement
-    got_sigint = got_sigint + 1
-    if (got_sigint == 1 and building_statement == False):
-        print('(To exit, press Ctrl+C again or Ctrl+D or type .exit)')
-    if (got_sigint > 1 and building_statement == False):
-        quit()
-    readline.redisplay()
-signal.signal(signal.SIGINT, sigint_handler)
-
 def repl():
     """
-    Read lines entered by the user and collect them in a statement. Once the statement is a candiate for
-    JavaScript evaluation (determined by pm.isCompilableUnit(), send it to replEval(). Statement beginning
-    with a . are interpreted as REPL commands and sent to replCmd().
+    Start a REPL to evaluate JavaScript code in the extra-module environment. Multi-line statements and
+    readline history are supported. ^C support is sketchy. Exit the REPL with ^D or ".quit".
     """
+    
     print('Welcome to PythonMonkey v' + pm.__version__ +'.')
     print('Type ".help" for more information.')
-    global got_sigint
-    
+    readline.parse_and_bind('set editing-mode emacs')
+    histfile = os.getenv('PMJS_REPL_HISTORY') or os.path.expanduser('~/.pmjs_history')
+    if (os.path.exists(histfile)):
+        readline.read_history_file(histfile)
+
+    got_sigint = 0
+    statement = ''
+    readline_skip_chars = 0
+
+    def quit():
+        """
+        Quit the REPL, writing history
+        """
+        readline.write_history_file(histfile)
+        sys.exit(0)
+    globalThis.python.exit = sys.exit
+
+    def sigint_handler(signum, frame):
+        """
+        Handle ^C by aborting the entry of the current statement and quitting when double-struck.
+        """
+        nonlocal got_sigint
+        nonlocal statement
+        nonlocal readline_skip_chars
+
+        got_sigint = got_sigint + 1
+        if (got_sigint == 1 and statement == "" and readline.get_line_buffer() == ""):
+            sys.stdout.write("\n(To exit, press Ctrl+C again or Ctrl+D or type .exit)")
+        elif (got_sigint > 1):
+            quit()
+
+        sys.stdout.write("\n> ")
+        readline_skip_chars = len(readline.get_line_buffer())
+        statement = ""
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    # Main Loop
+    #
+    # Read lines entered by the user and collect them in a statement. Once the statement is a candiate
+    # for JavaScript evaluation (determined by pm.isCompilableUnit(), send it to replEval(). Statements
+    # beginning with a . are interpreted as REPL commands and sent to replCmd().
+    #
+    # Beware - extremely tricky interplay between readline and the SIGINT handler. This is largely because we
+    # we can't clear the pending line buffer, so we have to fake it by re-displaying the prompt and subtracting
+    # characters. Another complicating factor is that the handler will suspend and resume readline, but there
+    # is no mechanism to force readline to return before the user presses enter.
+    #
     while got_sigint < 2:
         try:
-            building_statement = False
-            statement = input('> ')
+            if (statement == ""):
+                statement = input('> ')[readline_skip_chars:]
+            readline_skip_chars = 0
             
             if (len(statement) == 0):
                 continue
@@ -169,18 +182,26 @@ def repl():
                 continue
             if (pm.isCompilableUnit(statement)):
                 print(globalThis.replEval(statement))
+                statement = ""
                 got_sigint = 0
             else:
-                building_statement = True
                 got_sigint = 0
+                # This loop builds a multi-line statement, but if the user hits ^C during this build, we
+                # abort the statement. The tricky part here is that the input('... ') doesn't quit when
+                # SIGINT is received, so we have to patch things up so that the next-entered line is
+                # treated as the input at the top of the loop.
                 while (got_sigint == 0):
-                    more = input('... ')
+                    more = input('... ')[readline_skip_chars:]
+                    readline_skip_chars = 0
+                    if (got_sigint > 0):
+                        got_sigint = 0
+                        statement = more
+                        break
                     statement = statement + '\n' + more
                     if (pm.isCompilableUnit(statement)):
                         print(globalThis.replEval(statement))
+                        statement = ""
                         break
-                    got_sigint = 0
-                    building_statement = False
         except EOFError:
             print()
             quit()
@@ -203,7 +224,23 @@ Environment variables:
 TZ                            specify the timezone configuration
 PMJS_PATH                     ':'-separated list of directories prefixed to the module search path
 PMJS_REPL_HISTORY             path to the persistent REPL history file"""
-          )
+    )
+
+def initGlobalThis():
+    """
+    Initialize globalThis for for pmjs use in the extra-module context (eg -r, -e, -p). This context
+    needs a require function which resolve modules relative to the current working directory at pmjs
+    launch. The global require is to the JS function using a trick iinstead of a JS-wrapped-Python-wrapped function
+    """
+    globalThis.python.write = sys.stdout.write
+    globalThis.python.eval = eval
+    globalThis.python.exec = exec
+    globalThis.python.exit = sys.exit
+
+    require = pm.createRequire(os.getcwd() + '/__pmjs__')
+    argvBuilder = require(os.path.dirname(__file__) + "/pmjs-lib/global-init").setArguments()
+    for arg in sys.argv:
+        argvBuilder(arg); # list=>Array not working yet
 
 def main():
     """
@@ -211,6 +248,7 @@ def main():
     """
     enterRepl = sys.stdin.isatty()
     forceRepl = False
+    initGlobalThis()
     
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version"])
@@ -242,14 +280,14 @@ def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        fileHnd = open(args[0], "r", encoding='utf-8')
+        filename = os.path.abspath(args[0])
+        fileHnd = open(filename, "r", encoding='utf-8')
         programCode = fileHnd.read()
         fileHnd.close()
+        pm.createRequire(filename)(os.path.dirname(__file__) + "/pmjs-lib/program-init")
         pm.eval(programCode)
     elif (enterRepl or forceRepl):
         repl()
 
 if __name__ == "__main__":
     main()
-
-    
