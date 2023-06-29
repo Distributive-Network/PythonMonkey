@@ -1,3 +1,8 @@
+/**
+ * @file utils.cc
+ * @author Tom Tang (xmader@distributive.network)
+ * @brief Implement functions in `internalBinding("utils")`
+ */
 
 #include "include/internalBinding.hh"
 
@@ -9,6 +14,11 @@
 #include <js/Proxy.h>
 #include <js/RegExp.h>
 #include <js/experimental/TypedData.h>
+
+/**
+ * See function declarations in python/pythonmonkey/builtin_modules/global.d.ts :
+ *    `declare function internalBinding(namespace: "utils")`
+ */
 
 static bool defineGlobal(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
