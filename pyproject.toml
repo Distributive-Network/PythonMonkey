@@ -58,7 +58,7 @@ numpy = [
 
 [[tool.poetry.source]]
 name = "anaconda-nightly"
-url = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+url = "https://pypi.anaconda.org/nightly/simple"
 priority = "explicit"
 
 [build-system]
