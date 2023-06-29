@@ -36,8 +36,11 @@ globalThis = pm.eval("globalThis;");
 pm.eval("globalThis.python = { pythonMonkey: {} }");
 globalThis.pmEval = pm.eval;
 globalThis.python.print = print;
+globalThis.python.stdout_write = sys.stdout.write;
+globalThis.python.stderr_write = sys.stderr.write;
 globalThis.python.getenv = os.getenv;
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__);
+# globalThis.python.pythonMonkey.internalBinding = pm._internalBinding # broken
 globalThis.python.paths = ':'.join(sys.path);
 pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
 

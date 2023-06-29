@@ -1,15 +1,14 @@
 /// <reference no-default-lib="true"/>
 /// <reference lib="es2022" />
 
-declare const pythonBindings: ReadonlyArray<any>;
+declare module "internal-binding" {
+  /**
+   * Note: `internalBinding` APIs are generally unsafe as they do not perform argument type checking, etc.
+   *       Argument checking should be done in JavaScript side.
+   */
+  declare function internalBinding(namespace: string): any; // catch-all
 
-/**
- * Note: `internalBinding` APIs are generally unsafe as they do not perform argument type checking, etc.
- *       Argument checking should be done in JavaScript side.
- */
-declare function internalBinding(namespace: string): any; // catch-all
-
-declare function internalBinding(namespace: "utils"): {
+  declare function internalBinding(namespace: "utils"): {
     defineGlobal(name: string, value: any): void;
 
     isAnyArrayBuffer(obj: any): obj is (ArrayBuffer | SharedArrayBuffer);
@@ -27,7 +26,10 @@ declare function internalBinding(namespace: "utils"): {
      * @return `undefined` if it's not a proxy
      */
     getProxyDetails<T extends object>(proxy: T): undefined | [target: T, handler: ProxyHandler<T>];
-};
+  };
+
+  export = internalBinding;
+}
 
 // Keep this in sync with both https://hg.mozilla.org/releases/mozilla-esr102/file/a03fde6/js/public/Promise.h#l331
 //                        and  https://github.com/nodejs/node/blob/v20.2.0/deps/v8/include/v8-promise.h#L30

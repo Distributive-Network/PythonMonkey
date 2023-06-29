@@ -1,6 +1,15 @@
+/**
+ * @file     console.js
+ * @author   Tom Tang <xmader@distributive.network>
+ * @date     June 2023
+ */
+
 // @ts-check
 ///<reference path="./global.d.ts"/>
 
+/** @type {import("internal-binding")} */
+const internalBinding = globalThis._internalBinding // FIXME: proper internal-binding module
+// const internalBinding = globalThis.python.pythonMonkey.internalBinding // broken
 const { defineGlobal } = internalBinding("utils")
 const {
   isAnyArrayBuffer,
@@ -913,7 +922,11 @@ Console.prototype.debug = Console.prototype.log;
 Console.prototype.info = Console.prototype.log;
 Console.prototype.error = Console.prototype.warn;
 
-defineGlobal("console", new Console(
-  pythonBindings[0] /* sys.stdout.write */,
-  pythonBindings[1] /* sys.stderr.write */
-))
+if (!globalThis.console) {
+  globalThis.console = new Console(
+    globalThis.python.stdout_write /* sys.stdout.write */,
+    globalThis.python.stderr_write /* sys.stderr.write */
+  )
+}
+
+exports.Console = Console
