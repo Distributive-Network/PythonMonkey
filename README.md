@@ -56,7 +56,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
     - npm (nodejs)
     - [Poetry](https://python-poetry.org/docs/#installation)
 
-2. Run `poetry run pip install --verbose python/pminit ./`. This command automatically compiles the project and installs the project as well as all Python dependencies to the poetry virtualenv.
+2. Run `poetry run pip install --verbose python/pminit ./`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv.
 
 ## Running tests
 1. Compile the project 
