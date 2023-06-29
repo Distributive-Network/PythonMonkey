@@ -23,11 +23,11 @@
 # @date         May 2023
 #
 
-import sys, os, types
-from typing import Union, Dict, Callable
+import sys, os
+from typing import Union, Dict
 import importlib
 from importlib import machinery
-from importlib import util
+import inspect
 
 from . import pythonmonkey as pm 
 
@@ -246,3 +246,8 @@ function createRequire(filename, bootstrap_broken)
   return module.require;
 })""")
     return createRequireInner(filename)
+
+def require(*args):
+    # Retrieve the caller’s filename from the call stack
+    filename = inspect.stack()[1].filename
+    return createRequire(filename)(*args)
