@@ -4,9 +4,6 @@
  * @date     June 2023
  */
 
-// @ts-check
-///<reference path="./global.d.ts"/>
-
 /** @type {import("internal-binding")} */
 const internalBinding = globalThis._internalBinding // FIXME: proper internal-binding module
 // const internalBinding = globalThis.python.pythonMonkey.internalBinding // broken

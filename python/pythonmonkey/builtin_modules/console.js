@@ -4,9 +4,6 @@
  * @date     June 2023
  */
 
-// @ts-check
-///<reference path="./global.d.ts"/>
-
 const { customInspectSymbol, format } = require("util");
 
 /** @typedef {(str: string) => void} WriteFn */

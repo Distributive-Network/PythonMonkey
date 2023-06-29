@@ -1,5 +1,8 @@
-/// <reference no-default-lib="true"/>
-/// <reference lib="es2022" />
+/**
+ * @file     global.d.ts
+ * @author   Tom Tang <xmader@distributive.network>
+ * @date     May 2023
+ */
 
 declare const python: {
   pythonMonkey: {
@@ -26,9 +29,9 @@ declare module "internal-binding" {
    * Note: `internalBinding` APIs are generally unsafe as they do not perform argument type checking, etc.
    *       Argument checking should be done in JavaScript side.
    */
-  declare function internalBinding(namespace: string): any; // catch-all
+  function internalBinding(namespace: string): any; // catch-all
 
-  declare function internalBinding(namespace: "utils"): {
+  function internalBinding(namespace: "utils"): {
     defineGlobal(name: string, value: any): void;
 
     isAnyArrayBuffer(obj: any): obj is (ArrayBuffer | SharedArrayBuffer);
