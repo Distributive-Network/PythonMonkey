@@ -8,7 +8,7 @@ import pythonmonkey as pm
 
 globalThis = pm.eval("globalThis;")
 globalThis.python.write = sys.stdout.write
-pm.createRequire(__file__)('./pmjs-require')
+pm.require('./pmjs-require')
 
 pm.eval("""'use strict';
 const cmds = {};
