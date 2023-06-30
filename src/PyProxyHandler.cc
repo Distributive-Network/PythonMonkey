@@ -103,26 +103,40 @@ bool PyProxyHandler::getOwnEnumerablePropertyKeys(
 // @TODO (Caleb Aikens) implement this
 void PyProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
 
+bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
+  JS::HandleId id,
+  JS::Handle<JS::PropertyDescriptor> desc,
+  JS::ObjectOpResult &result) const {
+  if (desc.hasConfigurable() && desc.configurable()) {}
+
+  // JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
+  // PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  // JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  // if (PyDict_SetItem(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+  //   // @TODO (Caleb Aikens) raise exception
+  //   return false;
+  // }
+  // // @TODO (Caleb Aikens) read about what you're supposed to do with receiver and result
+  // return true;
+}
+
 bool PyProxyHandler::getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
   bool *isOrdinary,
   JS::MutableHandleObject protop) const {
-
-    // We don't have a custom [[GetPrototypeOf]]
-    *isOrdinary = true;
-    protop.set(js::GetStaticPrototype(proxy));
-    return true;
+  // We don't have a custom [[GetPrototypeOf]]
+  *isOrdinary = true;
+  protop.set(js::GetStaticPrototype(proxy));
+  return true;
 }
 
 bool PyProxyHandler::preventExtensions(JSContext *cx, JS::HandleObject proxy,
   JS::ObjectOpResult &result) const {
-
   result.succeed();
   return true;
 }
 
 bool PyProxyHandler::isExtensible(JSContext *cx, JS::HandleObject proxy,
   bool *extensible) const {
-
   *extensible = false;
   return true;
 }

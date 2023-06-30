@@ -142,11 +142,11 @@ public:
   bool defineProperty(JSContext *cx, JS::HandleObject proxy,
     JS::HandleId id,
     JS::Handle<JS::PropertyDescriptor> desc,
-    JS::ObjectOpResult &result) const override {};
+    JS::ObjectOpResult &result) const override;
 
   bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
     bool *isOrdinary,
-    JS::MutableHandleObject protop) const override {};
+    JS::MutableHandleObject protop) const override;
 
   bool preventExtensions(JSContext *cx, JS::HandleObject proxy,
     JS::ObjectOpResult &result) const override;
