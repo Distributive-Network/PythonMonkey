@@ -13,7 +13,7 @@ for (let path of pmjsPaths)
 exports.setMainFilename = function setMainFilename(filename)
 {
   require.cache[filename] = require.cache[module.filename];
-  require.cache[filename].filename = __filename = filename;
+  require.cache[filename].filename = __filename = filename.replace(/\.js$/, '');
   delete require.cache[module.filename]
 }
 
