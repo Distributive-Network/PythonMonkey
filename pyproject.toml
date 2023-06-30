@@ -11,7 +11,6 @@ include = [
   # Linux and macOS
   "python/pythonmonkey/pythonmonkey.so",
   "python/pythonmonkey/libmozjs*",
-  "python/pythonmonkey/builtin_modules/**/*",
 
   # Windows
   "python/pythonmonkey/pythonmonkey.pyd",
