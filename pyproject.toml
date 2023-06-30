@@ -49,16 +49,16 @@ generate-setup-file = false
 pytest = "^7.3.1"
 pip = "^23.1.2"
 numpy = [
-  # numpy hasn't released for Python 3.12 yet on PyPI, but Anaconda nightly build has it.
+  # numpy hasn't released for Python 3.12 yet on PyPI
   # TODO: use the PyPI build once the wheels are released for Python 3.12
-  {version = "^2.0.0.dev0", allow-prereleases = true, source = "anaconda-nightly", python = "3.12.*"},
+  {version = "^2.0.0.dev0", allow-prereleases = true, source = "anaconda", python = "3.12.*"},
   {version = "^1.24.3", python = "<3.12"},
 ]
 
 
 [[tool.poetry.source]]
-name = "anaconda-nightly"
-url = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+name = "anaconda"
+url = "https://pypi.anaconda.org/pythonmonkey/simple"
 priority = "explicit"
 
 [build-system]
