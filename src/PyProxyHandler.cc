@@ -17,12 +17,14 @@
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
+#include <js/Conversions.h>
 #include <js/Proxy.h>
 
 #include <Python.h>
 
 PyObject *idToKey(JSContext *cx, JS::HandleId id) {
-  return StrType(cx, id.toString()).getPyObject();
+  JS::RootedValue idv(cx, js::IdToValue(id));
+  return StrType(cx, JS::ToString(cx, idv)).getPyObject();
 }
 
 PyProxyHandler::PyProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(NULL), pyObject(pyObj) {}
