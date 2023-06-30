@@ -55,7 +55,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
     message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
-  elseif(LINUX)
+  elseif(UNIX)
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
