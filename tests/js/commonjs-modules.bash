@@ -27,7 +27,7 @@ runTest()
         echo "$word $rest" >&2
         return 1
       ;;
-      "*")
+      *)
         echo "$word $rest"
       ;;
       esac
