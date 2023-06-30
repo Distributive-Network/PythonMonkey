@@ -707,8 +707,15 @@ def test_eval_objects_proxy_has():
 def test_eval_objects_proxy_not_extensible():
     assert False == pm.eval("(o) => Object.isExtensible(o)")({})
     assert False == pm.eval("(o) => Object.isExtensible(o)")({ "abc": 1 })
+    assert False == pm.eval("(o) => Object.isExtensible(o)")(pm.JSObjectProxy())
     assert True == pm.eval("(o) => Object.preventExtensions(o) === o")({})
     assert True == pm.eval("(o) => Object.preventExtensions(o) === o")({ "abc": 1 })
+    assert True == pm.eval("(o) => Object.preventExtensions(o) === o")(pm.JSObjectProxy())
+
+def test_eval_objects_proxy_proto():
+    assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({})
+    assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({ "abc": 1 })
+    assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")(pm.JSObjectProxy())
 
 def test_eval_objects_jsproxy_get():
   proxy = pm.eval("({a: 1})")
