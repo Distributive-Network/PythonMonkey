@@ -58,7 +58,7 @@ bool PyProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
 bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   JS::HandleValue receiver, JS::HandleId id,
   JS::MutableHandleValue vp) const {
-  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  PyObject *attrName = StrType(cx, id.toString()).getPyObject();
   PyObject *p = PyDict_GetItem(pyObject, attrName);
   if (!p) {
     // @TODO (Caleb Aikens) raise exception
@@ -72,7 +72,7 @@ bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
   JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
-  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  PyObject *attrName = StrType(cx, id.toString()).getPyObject();
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   if (PyDict_SetItem(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
     // @TODO (Caleb Aikens) raise exception
@@ -89,7 +89,7 @@ bool PyProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
 
 bool PyProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
-  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  PyObject *attrName = StrType(cx, id.toString()).getPyObject();
   *bp = PyDict_Contains(pyObject, attrName) == 1;
   return true;
 }
@@ -110,7 +110,7 @@ bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   if (desc.hasConfigurable() && desc.configurable()) {}
 
   // JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
-  // PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  // PyObject *attrName = StrType(cx, id.toString()).getPyObject();
   // JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   // if (PyDict_SetItem(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
   //   // @TODO (Caleb Aikens) raise exception
