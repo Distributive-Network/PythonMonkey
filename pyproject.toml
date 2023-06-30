@@ -16,6 +16,8 @@ include = [
   "python/pythonmonkey/pythonmonkey.pyd",
   "python/pythonmonkey/mozjs-*.dll",
 
+  "python/pythonmonkey/node_modules/**/*",
+
   # include all files for source distribution
   { path = "src", format = "sdist" },
   { path = "include", format = "sdist" },
