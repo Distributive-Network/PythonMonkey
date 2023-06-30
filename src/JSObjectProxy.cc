@@ -160,7 +160,8 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
   { // we are deleting a value
     JS::RootedId id(GLOBAL_CX);
     keyToId(key, &id);
-    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id);
+    JS::ObjectOpResult ignoredResult;
+    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
   }
 
   return 0;
