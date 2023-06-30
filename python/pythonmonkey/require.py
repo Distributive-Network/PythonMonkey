@@ -14,7 +14,7 @@
 #                - require('vm')    => returns an object which has an implementation of evalInContext
 #
 #               In order to implement this basic require function for bootstrapping ctxModule, we
-#               have simply made global variables of the form xxxModule where xxx is the module
+#               have simply made global variables of the form xyzModule where xyz is the module
 #               identifier, and injected a require function which understands this. A better
 #               implementation in Python that doesn't leak global symbols should be possible once
 #               some PythonMonkey bugs are fixed.
