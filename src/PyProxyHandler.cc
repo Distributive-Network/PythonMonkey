@@ -16,6 +16,7 @@
 #include "include/StrType.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 #include <js/Proxy.h>
 
 #include <Python.h>
@@ -41,7 +42,7 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
 
 bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::ObjectOpResult &result) const {
-  PyObject *attrName = (new StrType(cx, id.toString()))->getPyObject();
+  PyObject *attrName = StrType(cx, id.toString()).getPyObject();
   if (PyDict_DelItem(pyObject, attrName) < 0) {
     // @TODO (Caleb Aikens) raise exception
     return false;
@@ -101,3 +102,27 @@ bool PyProxyHandler::getOwnEnumerablePropertyKeys(
 
 // @TODO (Caleb Aikens) implement this
 void PyProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
+
+bool PyProxyHandler::getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
+  bool *isOrdinary,
+  JS::MutableHandleObject protop) const {
+
+    // We don't have a custom [[GetPrototypeOf]]
+    *isOrdinary = true;
+    protop.set(js::GetStaticPrototype(proxy));
+    return true;
+}
+
+bool PyProxyHandler::preventExtensions(JSContext *cx, JS::HandleObject proxy,
+  JS::ObjectOpResult &result) const {
+
+  result.succeed();
+  return true;
+}
+
+bool PyProxyHandler::isExtensible(JSContext *cx, JS::HandleObject proxy,
+  bool *extensible) const {
+
+  *extensible = false;
+  return true;
+}

@@ -149,9 +149,9 @@ public:
     JS::MutableHandleObject protop) const override {};
 
   bool preventExtensions(JSContext *cx, JS::HandleObject proxy,
-    JS::ObjectOpResult &result) const override {};
+    JS::ObjectOpResult &result) const override;
   bool isExtensible(JSContext *cx, JS::HandleObject proxy,
-    bool *extensible) const override {};
+    bool *extensible) const override;
 };
 
 #endif
