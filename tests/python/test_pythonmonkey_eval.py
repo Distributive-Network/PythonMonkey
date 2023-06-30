@@ -606,23 +606,23 @@ def test_eval_functions_ucs2_string_args():
         
         assert concatenate(string1, string2) == (string1 + string2)
 
-# def test_eval_functions_ucs4_string_args():
-#     concatenate = pm.eval("(a, b) => { return a + b}")
-#     n = 10
-#     for i in range(n):
-#         length1 = random.randint(0x0000, 0xFFFF)
-#         length2 = random.randint(0x0000, 0xFFFF)
-#         string1 = ''
-#         string2 = ''
+def test_eval_functions_ucs4_string_args():
+    concatenate = pm.eval("(a, b) => { return a + b}")
+    n = 10
+    for i in range(n):
+        length1 = random.randint(0x0000, 0xFFFF)
+        length2 = random.randint(0x0000, 0xFFFF)
+        string1 = ''
+        string2 = ''
 
-#         for j in range(length1):
-#             codepoint = random.randint(0x010000, 0x10FFFF)
-#             string1 += chr(codepoint) # add random chr outside BMP
-#         for j in range(length2):
-#             codepoint = random.randint(0x010000, 0x10FFFF)
-#             string2 += chr(codepoint)
+        for j in range(length1):
+            codepoint = random.randint(0x010000, 0x10FFFF)
+            string1 += chr(codepoint) # add random chr outside BMP
+        for j in range(length2):
+            codepoint = random.randint(0x010000, 0x10FFFF)
+            string2 += chr(codepoint)
         
-#         assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
+        assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
 
 def test_eval_functions_roundtrip():
     # BF-60 https://github.com/Distributive-Network/PythonMonkey/pull/18
