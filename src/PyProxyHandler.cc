@@ -59,12 +59,12 @@ bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   JS::HandleValue receiver, JS::HandleId id,
   JS::MutableHandleValue vp) const {
   PyObject *attrName = StrType(cx, id.toString()).getPyObject();
-  PyObject *p = PyDict_GetItem(pyObject, attrName);
-  if (!p) {
-    // @TODO (Caleb Aikens) raise exception
-    return false;
+  PyObject *p = PyDict_GetItemWithError(pyObject, attrName);
+  if (!p) { // NULL if the key is not present
+    vp.setUndefined(); // JS objects return undefined for nonpresent keys
+  } else {
+    vp.set(jsTypeFactory(cx, p));
   }
-  vp.set(jsTypeFactory(cx, p));
   return true;
 }
 
