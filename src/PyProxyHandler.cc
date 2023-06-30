@@ -23,6 +23,11 @@
 #include <Python.h>
 
 PyObject *idToKey(JSContext *cx, JS::HandleId id) {
+  if (id.isSymbol() || id.isVoid()) {
+    // FIXME (Tom Tang): Is this the correct way? Revisit this once we have Symbol coecrion support
+    Py_RETURN_NONE;
+  }
+
   JS::RootedValue idv(cx, js::IdToValue(id));
   return StrType(cx, JS::ToString(cx, idv)).getPyObject();
 }
