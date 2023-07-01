@@ -1,6 +1,6 @@
 # Copyright (c) 2022 Distributive Inc. All Rights Reserved.
 
-cmake_minimum_required(VERSION 3.4...3.18) # Set minimum cmake version
+cmake_minimum_required(VERSION 3.25) # Set minimum cmake version
 
 project("PythonMonkey"
   DESCRIPTION "A tool for Javascript-Python interoperability."
