@@ -17,10 +17,6 @@ dist
 *.so
 _spidermonkey_install/*
 *~
-Makefile
-CMakeDoxyfile.in
-CMakeDoxygenDefaults.cmake
-CMakeCache.txt
 *.dylib
 *.dll
 *.pyd
