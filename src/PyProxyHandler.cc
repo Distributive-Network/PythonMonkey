@@ -23,14 +23,17 @@
 #include <Python.h>
 
 PyObject *idToKey(JSContext *cx, JS::HandleId id) {
-  if (id.isSymbol() || id.isVoid()) {
-    // TODO (Tom Tang): Revisit this once we have Symbol coecrion support
-    // FIXME (Tom Tang): key collision for any JS symbol
-    Py_RETURN_NOTIMPLEMENTED; // OK to be used as Python dict key because Python `NotImplemented` is hashable 
-  }
-
   JS::RootedValue idv(cx, js::IdToValue(id));
-  return StrType(cx, JS::ToString(cx, idv)).getPyObject();
+  JSString *idStr;
+  if (!id.isSymbol()) { // `JS::ToString` returns `nullptr` for JS symbols
+    idStr = JS::ToString(cx, idv);
+  } else {
+    // TODO (Tom Tang): Revisit this once we have Symbol coercion support
+    // FIXME (Tom Tang): key collision for symbols without a description string, or pure strings look like "Symbol(xxx)"
+    idStr = JS_ValueToSource(cx, idv);
+  }
+  // We convert all types of property keys to string
+  return StrType(cx, idStr).getPyObject();
 }
 
 PyProxyHandler::PyProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(NULL), pyObject(pyObj) {}
