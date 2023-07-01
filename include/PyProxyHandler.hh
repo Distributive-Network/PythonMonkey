@@ -18,13 +18,25 @@
 #include <Python.h>
 
 /**
+ * @brief base class for PyProxyHandler and PyListProxyHandler
+ */
+struct PyBaseProxyHandler : public js::BaseProxyHandler {
+public:
+  PyBaseProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(NULL), pyObject(pyObj) {};
+  PyObject *pyObject; // @TODO (Caleb Aikens) Consider putting this in a private slot
+
+  bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy, bool *isOrdinary, JS::MutableHandleObject protop) const override final;
+  bool preventExtensions(JSContext *cx, JS::HandleObject proxy, JS::ObjectOpResult &result) const override final;
+  bool isExtensible(JSContext *cx, JS::HandleObject proxy, bool *extensible) const override final;
+};
+
+/**
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates to handle coercion from python dicts to JS Objects
  *
  */
-struct PyProxyHandler : public js::BaseProxyHandler {
+struct PyProxyHandler : public PyBaseProxyHandler {
 public:
-  PyProxyHandler(PyObject *pyObject);
-  PyObject *pyObject; // @TODO (Caleb Aikens) Consider putting this in a private slot
+  PyProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj) {};
 
   /**
    * @brief [[OwnPropertyKeys]]
@@ -142,16 +154,29 @@ public:
   bool defineProperty(JSContext *cx, JS::HandleObject proxy,
     JS::HandleId id,
     JS::Handle<JS::PropertyDescriptor> desc,
-    JS::ObjectOpResult &result) const override {};
+    JS::ObjectOpResult &result) const override;
+};
 
-  bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
-    bool *isOrdinary,
-    JS::MutableHandleObject protop) const override {};
+/**
+ * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates
+ *    to handle coercion from python lists to JS Array-like objects
+ */
+struct PyListProxyHandler : public PyBaseProxyHandler {
+public:
+  PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj) {};
 
-  bool preventExtensions(JSContext *cx, JS::HandleObject proxy,
-    JS::ObjectOpResult &result) const override {};
-  bool isExtensible(JSContext *cx, JS::HandleObject proxy,
-    bool *extensible) const override {};
+  bool getOwnPropertyDescriptor(
+    JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+  ) const override;
+
+  bool defineProperty(
+    JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result
+  ) const override;
+
+  bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const override;
+  bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
 };
 
 #endif

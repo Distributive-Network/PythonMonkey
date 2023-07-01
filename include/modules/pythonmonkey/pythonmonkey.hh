@@ -46,14 +46,6 @@ static void cleanup();
 void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing);
 
 /**
- * @brief This function checks if a given GCThing is memoized, and returns the related python object if so, or NULL otherwise
- *
- * @param GCThing - The GCThing to be checked
- * @return PyType* - Pointer to related python object wrapped in a PyType, or NULL if GCThing is not memoized
- */
-PyType *checkJSMemo(JS::Handle<JS::Value> GCThing);
-
-/**
  * @brief Callback function passed to JS_SetGCCallback to handle PythonMonkey shared memory
  *
  * @param cx - Pointer to the JS Context (not used)

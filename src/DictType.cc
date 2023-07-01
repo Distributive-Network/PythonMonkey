@@ -7,7 +7,6 @@
 
 #include <jsfriendapi.h>
 #include <jsapi.h>
-#include <js/Equality.h>
 
 #include <Python.h>
 
