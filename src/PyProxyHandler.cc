@@ -36,7 +36,14 @@ PyObject *idToKey(JSContext *cx, JS::HandleId id) {
   return StrType(cx, idStr).getPyObject();
 }
 
-PyProxyHandler::PyProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(NULL), pyObject(pyObj) {}
+bool idToIndex(JSContext *cx, JS::HandleId id, Py_ssize_t *index) {
+  if (id.isInt()) { // int-like strings have already been automatically converted to ints
+    *index = id.toInt();
+    return true;
+  } else {
+    return false; // fail
+  }
+}
 
 bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
   JS::MutableHandleIdVector props) const {
@@ -135,7 +142,7 @@ bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   // return true;
 }
 
-bool PyProxyHandler::getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
+bool PyBaseProxyHandler::getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
   bool *isOrdinary,
   JS::MutableHandleObject protop) const {
   // We don't have a custom [[GetPrototypeOf]]
@@ -144,14 +151,90 @@ bool PyProxyHandler::getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject prox
   return true;
 }
 
-bool PyProxyHandler::preventExtensions(JSContext *cx, JS::HandleObject proxy,
+bool PyBaseProxyHandler::preventExtensions(JSContext *cx, JS::HandleObject proxy,
   JS::ObjectOpResult &result) const {
   result.succeed();
   return true;
 }
 
-bool PyProxyHandler::isExtensible(JSContext *cx, JS::HandleObject proxy,
+bool PyBaseProxyHandler::isExtensible(JSContext *cx, JS::HandleObject proxy,
   bool *extensible) const {
   *extensible = false;
   return true;
+}
+
+bool PyListProxyHandler::getOwnPropertyDescriptor(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+) const {
+  // We're trying to get the "length" property
+  bool isLengthProperty;
+  if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "length", &isLengthProperty) && isLengthProperty) {
+    // proxy.length = len(pyObject)
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        JS::Int32Value(PySequence_Size(pyObject))
+      )
+    ));
+    return true;
+  }
+
+  // We're trying to get an item
+  Py_ssize_t index;
+  PyObject *item;
+  if (idToIndex(cx, id, &index) && (item = PySequence_GetItem(pyObject, index))) {
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        jsTypeFactory(cx, item),
+        {JS::PropertyAttribute::Writable, JS::PropertyAttribute::Enumerable}
+      )
+    ));
+  } else { // item not found in list, or not an int-like property key
+    desc.set(mozilla::Nothing());
+  }
+  return true;
+}
+
+bool PyListProxyHandler::defineProperty(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result
+) const {
+  Py_ssize_t index;
+  if (!idToIndex(cx, id, &index)) { // not an int-like property key
+    return result.failBadIndex();
+  }
+
+  if (desc.isAccessorDescriptor()) { // containing getter/setter
+    return result.failNotDataDescriptor();
+  }
+  if (!desc.hasValue()) {
+    return result.failInvalidDescriptor();
+  }
+
+  // FIXME (Tom Tang): memory leak
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  JS::RootedValue *itemV = new JS::RootedValue(cx, desc.value());
+  PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
+  if (PySequence_SetItem(pyObject, index, item) < 0) {
+    return result.failBadIndex();
+  }
+  return result.succeed();
+}
+
+bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
+  // TODO (Tom Tang): populate from `Py_ssize_t len = PySequence_Size(pyObject);` plus the "length" property
+  return true;
+}
+
+bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const {
+  Py_ssize_t index;
+  if (!idToIndex(cx, id, &index)) {
+    return result.failBadIndex(); // report failure
+  }
+
+  // Set to undefined instead of actually deleting it
+  if (PySequence_SetItem(pyObject, index, Py_None) < 0) {
+    return result.failCantDelete(); // report failure
+  }
+  return result.succeed(); // report success
 }
