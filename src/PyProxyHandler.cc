@@ -222,7 +222,17 @@ bool PyListProxyHandler::defineProperty(
 }
 
 bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
-  // TODO (Tom Tang): populate from `Py_ssize_t len = PySequence_Size(pyObject);` plus the "length" property
+  // Modified from https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/dom/base/RemoteOuterWindowProxy.cpp#l137
+  int32_t length = PySequence_Size(pyObject);
+  if (!props.reserve(length + 1)) {
+    return false;
+  }
+  // item indexes
+  for (int32_t i = 0; i < length; ++i) {
+    props.infallibleAppend(JS::PropertyKey::Int(i));
+  }
+  // the "length" property
+  props.infallibleAppend(JS::PropertyKey::NonIntAtom(JS_AtomizeString(cx, "length")));
   return true;
 }
 
