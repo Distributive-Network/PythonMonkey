@@ -23,20 +23,24 @@
 JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 
 bool keyToId(PyObject *key, JS::MutableHandleId idp) {
-  JS::RootedString idString(GLOBAL_CX);
-  switch (PyUnicode_KIND(key))
-  {
-  case PyUnicode_1BYTE_KIND:
-    idString.set(JS_NewStringCopyZ(GLOBAL_CX, (char *)PyUnicode_1BYTE_DATA(key)));
-    break;
-  case PyUnicode_2BYTE_KIND:
-    idString.set(JS_NewUCStringCopyN(GLOBAL_CX, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key)));
-    break;
-  case PyUnicode_4BYTE_KIND:
-    // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_GetUCProperty
-    break;
+  if (PyUnicode_Check(key)) { // key is str type
+    JS::RootedString idString(GLOBAL_CX);
+    switch (PyUnicode_KIND(key))
+    {
+    case PyUnicode_1BYTE_KIND:
+      idString.set(JS_NewStringCopyZ(GLOBAL_CX, (char *)PyUnicode_1BYTE_DATA(key)));
+      break;
+    case PyUnicode_2BYTE_KIND:
+      idString.set(JS_NewUCStringCopyN(GLOBAL_CX, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key)));
+      break;
+    case PyUnicode_4BYTE_KIND:
+      // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_GetUCProperty
+      break;
+    }
+    return JS_StringToId(GLOBAL_CX, idString, idp);
+  } else {
+    return false; // fail
   }
-  return JS_StringToId(GLOBAL_CX, idString, idp);
 }
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
@@ -128,15 +132,13 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
 {
-  if (!PyUnicode_Check(key))
-  {
-    // @TODO (Caleb Aikens) raise exception here
-    return NULL;
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    // TODO (Caleb Aikens): raise exception here
+    return NULL; // key is not a str or int
   }
 
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS::RootedId id(GLOBAL_CX);
-  keyToId(key, &id);
   JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
   return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
@@ -144,21 +146,16 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
 {
-  if (!PyUnicode_Check(key))
-  {
-    // @TODO (Caleb Aikens) raise exception here
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) { // invalid key
+    // TODO (Caleb Aikens): raise exception here
     return -1;
   }
 
-  if (value)
-  { // we are setting a value
+  if (value) { // we are setting a value
     JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    JSObjectProxy_set_helper(self->jsObject, key, jValue);
-  }
-  else
-  { // we are deleting a value
-    JS::RootedId id(GLOBAL_CX);
-    keyToId(key, &id);
+    JS_SetPropertyById(GLOBAL_CX, self->jsObject, id, jValue);
+  } else { // we are deleting a value
     JS::ObjectOpResult ignoredResult;
     JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
   }
