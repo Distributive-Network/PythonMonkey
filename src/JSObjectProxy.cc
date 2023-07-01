@@ -38,6 +38,9 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
       break;
     }
     return JS_StringToId(GLOBAL_CX, idString, idp);
+  } else if (PyLong_Check(key)) { // key is int type
+    uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // raise OverflowError if the value of pylong is out of range for a unsigned long
+    return JS_IndexToId(GLOBAL_CX, keyAsInt, idp);
   } else {
     return false; // fail
   }
