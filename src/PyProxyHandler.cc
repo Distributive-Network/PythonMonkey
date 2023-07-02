@@ -68,10 +68,9 @@ bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId
   JS::ObjectOpResult &result) const {
   PyObject *attrName = idToKey(cx, id);
   if (PyDict_DelItem(pyObject, attrName) < 0) {
-    // @TODO (Caleb Aikens) raise exception
-    return false;
+    return result.failCantDelete(); // raises JS exception
   }
-  return true;
+  return result.succeed();
 }
 
 bool PyProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
