@@ -98,11 +98,9 @@ bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   PyObject *attrName = idToKey(cx, id);
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   if (PyDict_SetItem(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
-    // @TODO (Caleb Aikens) raise exception
-    return false;
+    return result.failCantSetInterposed(); // raises JS exception
   }
-  // @TODO (Caleb Aikens) read about what you're supposed to do with receiver and result
-  return true;
+  return result.succeed();
 }
 
 bool PyProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
