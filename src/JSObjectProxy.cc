@@ -54,15 +54,9 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-  JSObjectProxy *self;
-  self = (JSObjectProxy *)type->tp_alloc(type, 0);
-  if (!self)
-  {
-    Py_DECREF(self);
-    return NULL;
-  }
-  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-  return (PyObject *)self;
+  PyObject *self = PyDict_Type.tp_new(&PyDict_Type, args, kwds);
+  ((JSObjectProxy *)self)->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
+  return self;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
