@@ -163,5 +163,6 @@ static PyTypeObject JSObjectProxyType = {
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
+  .tp_alloc = PyType_GenericAlloc,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
 };
