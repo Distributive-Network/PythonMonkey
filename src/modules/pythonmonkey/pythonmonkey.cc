@@ -26,6 +26,7 @@
 #include <jsapi.h>
 #include <jsfriendapi.h>
 #include <js/friend/ErrorMessages.h>
+#include <js/friend/DOMProxy.h>
 #include <js/CompilationAndEvaluation.h>
 #include <js/Class.h>
 #include <js/Date.h>
@@ -330,6 +331,14 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   }
 
   JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
+
+  // XXX: SpiderMonkey bug???
+  // In https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/jit/CacheIR.cpp#l317, trying to use the callback returned by `js::GetDOMProxyShadowsCheck()` even it's unset (nullptr)
+  // Temporarily solved by explicitly setting the `domProxyShadowsCheck` callback here
+  JS::SetDOMProxyInformation(nullptr,
+    [](JSContext *, JS::HandleObject, JS::HandleId) { // domProxyShadowsCheck
+      return JS::DOMProxyShadowsResult::ShadowCheckFailed;
+    }, nullptr);
 
   PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)
