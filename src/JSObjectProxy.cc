@@ -25,18 +25,9 @@ JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 bool keyToId(PyObject *key, JS::MutableHandleId idp) {
   if (PyUnicode_Check(key)) { // key is str type
     JS::RootedString idString(GLOBAL_CX);
-    switch (PyUnicode_KIND(key))
-    {
-    case PyUnicode_1BYTE_KIND:
-      idString.set(JS_NewStringCopyZ(GLOBAL_CX, (char *)PyUnicode_1BYTE_DATA(key)));
-      break;
-    case PyUnicode_2BYTE_KIND:
-      idString.set(JS_NewUCStringCopyN(GLOBAL_CX, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key)));
-      break;
-    case PyUnicode_4BYTE_KIND:
-      // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_GetUCProperty
-      break;
-    }
+    const char *keyStr = PyUnicode_AsUTF8(key);
+    JS::ConstUTF8CharsZ utf8Chars(keyStr, strlen(keyStr));
+    idString.set(JS_NewStringCopyUTF8Z(GLOBAL_CX, utf8Chars));
     return JS_StringToId(GLOBAL_CX, idString, idp);
   } else if (PyLong_Check(key)) { // key is int type
     uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // raise OverflowError if the value of pylong is out of range for a unsigned long
