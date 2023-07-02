@@ -129,17 +129,8 @@ bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc,
   JS::ObjectOpResult &result) const {
-  if (desc.hasConfigurable() && desc.configurable()) {}
-
-  // JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
-  // PyObject *attrName = idToKey(cx, id);
-  // JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  // if (PyDict_SetItem(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
-  //   // @TODO (Caleb Aikens) raise exception
-  //   return false;
-  // }
-  // // @TODO (Caleb Aikens) read about what you're supposed to do with receiver and result
-  // return true;
+  // Block direct `Object.defineProperty` since we already have the `set` method 
+  return result.failInvalidDescriptor();
 }
 
 bool PyBaseProxyHandler::getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
