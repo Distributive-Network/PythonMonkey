@@ -45,19 +45,21 @@ bool idToIndex(JSContext *cx, JS::HandleId id, Py_ssize_t *index) {
   }
 }
 
-bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy,
-  JS::MutableHandleIdVector props) const {
+bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   PyObject *keys = PyDict_Keys(pyObject);
-  for (size_t i = 0; i < PyList_Size(keys); i++) {
+  size_t length = PyList_Size(keys);
+  if (!props.reserve(length)) {
+    return false; // out of memory
+  }
+
+  for (size_t i = 0; i < length; i++) {
     PyObject *key = PyList_GetItem(keys, i);
     JS::RootedValue jsKey(cx, jsTypeFactory(cx, key));
     JS::RootedId jsId(cx);
     if (!JS_ValueToId(cx, jsKey, &jsId)) {
       // @TODO (Caleb Aikens) raise exception
     }
-    if (!props.append(jsId)) {
-      // @TODO (Caleb Aikens) raise exception
-    }
+    props.infallibleAppend(jsId);
   }
   return true;
 }
@@ -129,7 +131,7 @@ bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc,
   JS::ObjectOpResult &result) const {
-  // Block direct `Object.defineProperty` since we already have the `set` method 
+  // Block direct `Object.defineProperty` since we already have the `set` method
   return result.failInvalidDescriptor();
 }
 
