@@ -43,9 +43,9 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
   return;
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
 {
-  PyObject *self = PyDict_Type.tp_new(&JSObjectProxyType, args, kwds);
+  PyObject *self = PyDict_Type.tp_new(subtype, args, kwds);
   ((JSObjectProxy *)self)->jsObject = JS::RootedObject(GLOBAL_CX);
   return self;
 }
