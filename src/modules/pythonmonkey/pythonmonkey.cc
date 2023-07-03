@@ -77,7 +77,6 @@ PyTypeObject JSObjectProxyType = {
   .tp_flags = Py_TPFLAGS_DEFAULT
   | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
-  .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,

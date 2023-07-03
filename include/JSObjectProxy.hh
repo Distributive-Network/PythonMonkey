@@ -112,16 +112,6 @@ public:
    * @return bool - Whether the compared objects are equal or not
    */
   static bool JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited);
-
-  /**
-   * @brief Function to satisfy the python GC. See comment in function implementation for more details
-   *
-   * @param self - unused
-   * @param visit - unused
-   * @param arg - unused
-   * @return int - always 0
-   */
-  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
 };
 
 

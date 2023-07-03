@@ -194,8 +194,3 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
 
   return true;
 }
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *args) {
-  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_traverse. Probably results in leaking dict memory
-  return 0;
-}
