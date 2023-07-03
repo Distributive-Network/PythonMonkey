@@ -58,15 +58,6 @@ public:
   static int JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds);
 
   /**
-   * @brief Helper function for JSObjectProxy_init
-   *
-   * @param jsObject - The underlying backing store JSObject for the JSObjectProxy
-   * @param dict - The python dict to be converted into a JSObjectProxy
-   * @param subValsMap - A map of PyObject to JS::Value pairs, representing values that have been visited so far
-   */
-  static void JSObjectProxy_init_helper(JS::HandleObject jsObject, PyObject *dict, std::unordered_map<PyObject *, JS::RootedValue *> &subValsMap);
-
-  /**
    * @brief Length method (.mp_length), returns the number of key-value pairs in the JSObject, used by the python len() method
    *
    * @param self - The JSObjectProxy

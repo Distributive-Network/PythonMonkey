@@ -53,58 +53,9 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtyp
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
-
-  PyObject *dict = NULL;
-  if (PyTuple_Size(args) == 0 || PyTuple_GetItem(args, 0) == Py_None) {
-    // make fresh JSObject for proxy
-    self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-    return 0;
-  }
-
-  if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict))
-  {
-    return -1;
-  }
-
-
   // make fresh JSObject for proxy
-  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-  std::unordered_map<PyObject *, JS::RootedValue *> subValsMap;
-  JSObjectProxy_init_helper(self->jsObject, dict, subValsMap);
+  self->jsObject.set(JS_NewPlainObject(GLOBAL_CX));
   return 0;
-}
-
-void JSObjectProxyMethodDefinitions::JSObjectProxy_init_helper(JS::HandleObject jsObject, PyObject *dict, std::unordered_map<PyObject *, JS::RootedValue *> &subValsMap)
-{
-  PyObject *key, *value;
-  Py_ssize_t pos = 0;
-  while (PyDict_Next(dict, &pos, &key, &value))
-  {
-    bool skip = false;
-    if (!PyUnicode_Check(key))
-    { // only accept string keys
-      continue;
-    }
-
-    for (auto it: subValsMap)
-    {
-      if (it.first == value)
-      { // if we've already seen this value before, just pass the same JS::Value
-        JSObjectProxy_set_helper(jsObject, key, *(it.second));
-        skip = true;
-        break;
-      }
-    }
-
-    if (skip)
-    {
-      continue;
-    }
-
-    JS::RootedValue *jsVal = new JS::RootedValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    subValsMap.insert({{value, jsVal}});
-    JSObjectProxy_set_helper(jsObject, key, *jsVal);
-  }
 }
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
