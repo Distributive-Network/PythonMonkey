@@ -145,7 +145,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObjectOrNull(typedArray);
     memoizePyTypeAndGCThing(pmBuffer, returnType);
   }
-  else if (std::string(Py_TYPE(object)->tp_name) == "pythonmonkey.JSObjectProxy") {
+  else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {

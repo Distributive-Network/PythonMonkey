@@ -66,6 +66,25 @@ static PyTypeObject BigIntType = {
   .tp_base = &PyLong_Type,   // extending the builtin int type
 };
 
+PyTypeObject JSObjectProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectProxy",
+  .tp_basicsize = sizeof(JSObjectProxy),
+  .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
+  .tp_as_mapping = &JSObjectProxy_mapping_methods,
+  .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
+  .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
+  .tp_flags = Py_TPFLAGS_DEFAULT
+  | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
+  .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
+  .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
+  .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
+  .tp_base = &PyDict_Type,
+  .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
+  .tp_alloc = PyType_GenericAlloc,
+  .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+};
+
 static void cleanup() {
   delete autoRealm;
   delete global;
