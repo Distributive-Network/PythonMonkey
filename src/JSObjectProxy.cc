@@ -40,6 +40,7 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
+  self->jsObject.set(nullptr);
   return;
 }
 
