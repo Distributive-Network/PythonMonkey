@@ -20,3 +20,4 @@ _spidermonkey_install/*
 *.dylib
 *.dll
 *.pyd
+cmake/modules/SpiderMonkeySetup.cmake
