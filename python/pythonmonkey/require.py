@@ -253,4 +253,7 @@ function createRequire(filename, bootstrap_broken)
 def require(moduleIdentifier: str):
     # Retrieve the caller’s filename from the call stack
     filename = inspect.stack()[1].filename
+    # From the REPL, the filename is "<stdin>", which is not a valid path
+    if not os.path.exists(filename):
+      filename = os.path.join(os.getcwd(), "__main__") # use the CWD instead
     return createRequire(filename)(moduleIdentifier)
