@@ -43,8 +43,6 @@ public:
    * @param cx - javascript context pointer
    */
   JSObject *toJsPromise(JSContext *cx);
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 /**

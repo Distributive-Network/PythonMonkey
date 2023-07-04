@@ -17,8 +17,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief A struct to represent the tuple type in python
  *
@@ -40,26 +38,8 @@ public:
 /**
  * @brief
  *
- *
- *
  * @returns int length of the tuple
  */
   int len() const;
-
-/**
- * @brief Helper function for print()
- *
- * @param os output stream to print to
- * @param depth depth into sub-objects
- */
-  void print_helper(std::ostream &os, int depth = 0) const;
-
-protected:
-/**
- * @brief Override to the print method defined in PyType to enable us to print this struct easily
- *
- * @param os output stream to print to
- */
-  virtual void print(std::ostream &os) const override;
 };
 #endif

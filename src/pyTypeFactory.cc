@@ -68,32 +68,36 @@ PyType *pyTypeFactory(PyObject *object) {
 }
 
 PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
-  PyType *returnValue = NULL;
   if (rval->isUndefined()) {
-    returnValue = new NoneType();
+    return new NoneType();
   }
   else if (rval->isNull()) {
-    returnValue = new NullType();
+    return new NullType();
   }
   else if (rval->isBoolean()) {
-    returnValue = new BoolType(rval->toBoolean());
+    return new BoolType(rval->toBoolean());
   }
   else if (rval->isNumber()) {
-    returnValue = new FloatType(rval->toNumber());
+    return new FloatType(rval->toNumber());
   }
   else if (rval->isString()) {
-    returnValue = new StrType(cx, rval->toString());
-    memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
+    StrType *s = new StrType(cx, rval->toString());
+    memoizePyTypeAndGCThing(s, *rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
+    return s;
   }
   else if (rval->isSymbol()) {
     printf("symbol type is not handled by PythonMonkey yet");
   }
   else if (rval->isBigInt()) {
-    returnValue = new IntType(cx, rval->toBigInt());
+    return new IntType(cx, rval->toBigInt());
   }
   else if (rval->isObject()) {
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
+    if (JS::GetClass(obj)->isProxyObject()) {
+      // @TODO (Caleb Aikens) need to determine if this is one of OUR ProxyObjects somehow
+      // consider putting a special value in one of the private slots when creating a PyProxyHandler
+    }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
     switch (cls) {
@@ -102,64 +106,60 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         // TODO (Caleb Aikens): refactor using recursive call to `pyTypeFactory`
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new BoolType(unboxed.toBoolean());
-        break;
+        return new BoolType(unboxed.toBoolean());
       }
     case js::ESClass::Date: {
-        returnValue = new DateType(cx, obj);
-        break;
+        return new DateType(cx, obj);
       }
     case js::ESClass::Promise: {
-        returnValue = new PromiseType(cx, obj);
-        break;
+        return new PromiseType(cx, obj);
       }
     case js::ESClass::Error: {
-        returnValue = new ExceptionType(cx, obj);
-        break;
+        return new ExceptionType(cx, obj);
       }
     case js::ESClass::Function: {
         // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
         PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
         PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
-        returnValue = new FuncType(pyFunc);
-        memoizePyTypeAndGCThing(returnValue, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
-        break;
+        FuncType *f = new FuncType(pyFunc);
+        memoizePyTypeAndGCThing(f, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
+        return f;
       }
     case js::ESClass::Number: {
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new FloatType(unboxed.toNumber());
-        break;
+        return new FloatType(unboxed.toNumber());
       }
     case js::ESClass::BigInt: {
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new IntType(cx, unboxed.toBigInt());
-        break;
+        return new IntType(cx, unboxed.toBigInt());
       }
     case js::ESClass::String: {
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        returnValue = new StrType(cx, unboxed.toString());
-        memoizePyTypeAndGCThing(returnValue, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
-        break;
+        StrType *s = new StrType(cx, unboxed.toString());
+        memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
+        return s;
       }
     default: {
         if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
           // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
-          returnValue = new BufferType(cx, obj);
-          // if (returnValue->getPyObject() != nullptr) memoizePyTypeAndGCThing(returnValue, *rval);
-        } else {
-          printf("objects of this type (%d) are not handled by PythonMonkey yet\n", cls);
+          return new BufferType(cx, obj);
         }
       }
     }
+    return new DictType(cx, *rval);
   }
   else if (rval->isMagic()) {
     printf("magic type is not handled by PythonMonkey yet\n");
   }
 
-  return returnValue;
+  std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");
+  JS::RootedString str(cx, JS::ToString(cx, *rval));
+  errorString += JS_EncodeStringToUTF8(cx, str).get();
+  PyErr_SetString(PyExc_TypeError, errorString.c_str());
+  return NULL;
 }
 
 static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {

@@ -15,18 +15,13 @@
 #include "PyType.hh"
 #include "TypeEnum.hh"
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'None' type in Python. It inherits from the PyType struct
  */
 struct NoneType : public PyType {
 public:
   NoneType();
-  const TYPE returnType = TYPE::NONE;
-
-protected:
-  virtual void print(std::ostream &os) const override;
+  TYPE returnType = TYPE::NONE;
 };
 
 #endif

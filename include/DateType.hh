@@ -20,8 +20,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'datetime' type in Python from the datetime module, which is represented as a 'Date' object in JS. It inherits from the PyType struct
  */
@@ -30,9 +28,6 @@ public:
   DateType(PyObject *object);
   DateType(JSContext *cx, JS::Handle<JSObject *> dateObj);
   const TYPE returnType = TYPE::DATE;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

@@ -15,9 +15,9 @@
 #include "PyType.hh"
 #include "TypeEnum.hh"
 
-#include <Python.h>
+#include <jsapi.h>
 
-#include <iostream>
+#include <Python.h>
 
 /**
  * @brief This struct represents a dictionary in python. It derives from the PyType struct
@@ -26,7 +26,17 @@
  */
 struct DictType : public PyType {
 public:
+  DictType();
   DictType(PyObject *object);
+
+  /**
+   * @brief Construct a new DictType object from a JSObject.
+   *
+   * @param cx - pointer to the JSContext
+   * @param jsObject - pointer to the JSObject to be coerced
+   */
+  DictType(JSContext *cx, JS::Handle<JS::Value> jsObject);
+
   const TYPE returnType = TYPE::DICT;
 /**
  * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
@@ -43,11 +53,6 @@ public:
  * @return PyType* Returns a pointer to the appropriate PyType object
  */
   PyType *get(PyType *key) const;
-
-  void print_helper(std::ostream &os, int depth = 0) const;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

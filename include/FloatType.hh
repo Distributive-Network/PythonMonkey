@@ -17,8 +17,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'float' type in Python, which is represented as a 'double' in C++. It inherits from the PyType struct
  */
@@ -29,9 +27,6 @@ public:
   FloatType(double n);
   const TYPE returnType = TYPE::FLOAT;
   double getValue() const;
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

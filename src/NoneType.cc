@@ -14,11 +14,4 @@
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"
 
-#include <iostream>
-
-
 NoneType::NoneType() : PyType(Py_None) {}
-
-void NoneType::print(std::ostream &os) const {
-  os << "None";
-}

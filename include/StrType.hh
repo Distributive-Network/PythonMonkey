@@ -19,8 +19,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'string' type in Python, which is represented as a 'char*' in C++. It inherits from the PyType struct
  */
@@ -53,9 +51,6 @@ public:
    *
    */
   PyObject *asUCS4();
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

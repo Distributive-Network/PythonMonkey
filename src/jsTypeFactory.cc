@@ -14,6 +14,8 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
+#include "include/JSObjectProxy.hh"
+#include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
@@ -23,6 +25,7 @@
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
+#include <js/Proxy.h>
 
 #include <Python.h>
 
@@ -142,6 +145,19 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObjectOrNull(typedArray);
     memoizePyTypeAndGCThing(pmBuffer, returnType);
   }
+  else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
+    returnType.setObject(*((JSObjectProxy *)object)->jsObject);
+  }
+  else if (PyDict_Check(object) || PyList_Check(object)) {
+    JS::RootedValue v(cx);
+    JSObject *proxy;
+    if (PyList_Check(object)) {
+      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
+    } else {
+      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
+    }
+    returnType.setObject(*proxy);
+  }
   else if (object == Py_None) {
     returnType.setUndefined();
   }
@@ -156,7 +172,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     // memoizePyTypeAndGCThing(p, returnType);
   }
   else {
-    PyErr_SetString(PyExc_TypeError, "Python types other than bool, function, int, pythonmonkey.bigint, pythonmonkey.null, float, str, and None are not supported by pythonmonkey yet.");
+    std::string errorString("pythonmonkey cannot yet convert python objects of type: ");
+    errorString += Py_TYPE(object)->tp_name;
+    PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
 

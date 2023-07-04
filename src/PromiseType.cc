@@ -88,8 +88,6 @@ PromiseType::PromiseType(JSContext *cx, JS::HandleObject promise) {
   pyObject = future.getFutureObject(); // must be a new reference
 }
 
-void PromiseType::print(std::ostream &os) const {}
-
 // Callback to resolve or reject the JS Promise when the Future is done
 static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *args) {
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(futureCallbackTuple, 0));

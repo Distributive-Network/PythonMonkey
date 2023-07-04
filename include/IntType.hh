@@ -19,8 +19,6 @@
 
 #include <Python.h>
 
-#include <iostream>
-
 /**
  * @brief This struct represents the 'int' type (arbitrary-precision) in Python. It inherits from the PyType struct
  */
@@ -45,9 +43,6 @@ public:
    * @param cx - javascript context pointer
    */
   JS::BigInt *toJsBigInt(JSContext *cx);
-
-protected:
-  virtual void print(std::ostream &os) const override;
 };
 
 #endif

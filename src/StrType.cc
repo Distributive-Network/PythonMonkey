@@ -7,8 +7,6 @@
 #include <jsapi.h>
 #include <js/String.h>
 
-#include <iostream>
-
 #define PY_UNICODE_HAS_WSTR (PY_VERSION_HEX < 0x030c0000) // Python version is less than 3.12
 
 #define HIGH_SURROGATE_START 0xD800
@@ -141,8 +139,4 @@ PyObject *StrType::asUCS4() {
   }
 
   return PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, ucs4String, ucs4Length);
-}
-
-void StrType::print(std::ostream &os) const {
-  os << "'" << this->getValue() << "'";
 }

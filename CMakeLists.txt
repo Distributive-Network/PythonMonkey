@@ -39,7 +39,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(FetchContent)
 
   if(UNIX)
-    SET(COMPILE_FLAGS "-g -ggdb -O0")
+    SET(COMPILE_FLAGS "-g -ggdb -O0 -fno-rtti")
   elseif(WIN32)
     SET(COMPILE_FLAGS "")
   endif()
