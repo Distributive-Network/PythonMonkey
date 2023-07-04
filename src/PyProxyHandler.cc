@@ -45,6 +45,8 @@ bool idToIndex(JSContext *cx, JS::HandleId id, Py_ssize_t *index) {
   }
 }
 
+const char PyProxyHandler::family = 0;
+
 bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   PyObject *keys = PyDict_Keys(pyObject);
   size_t length = PyList_Size(keys);
@@ -152,6 +154,8 @@ bool PyBaseProxyHandler::isExtensible(JSContext *cx, JS::HandleObject proxy,
   *extensible = false;
   return true;
 }
+
+const char PyListProxyHandler::family = 0;
 
 bool PyListProxyHandler::getOwnPropertyDescriptor(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
