@@ -17,85 +17,45 @@
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
-#include <js/Equality.h>
 
 #include <Python.h>
 
 JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 
+bool keyToId(PyObject *key, JS::MutableHandleId idp) {
+  if (PyUnicode_Check(key)) { // key is str type
+    JS::RootedString idString(GLOBAL_CX);
+    const char *keyStr = PyUnicode_AsUTF8(key);
+    JS::ConstUTF8CharsZ utf8Chars(keyStr, strlen(keyStr));
+    idString.set(JS_NewStringCopyUTF8Z(GLOBAL_CX, utf8Chars));
+    return JS_StringToId(GLOBAL_CX, idString, idp);
+  } else if (PyLong_Check(key)) { // key is int type
+    uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // raise OverflowError if the value of pylong is out of range for a unsigned long
+    return JS_IndexToId(GLOBAL_CX, keyAsInt, idp);
+  } else {
+    return false; // fail
+  }
+}
+
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
+  self->jsObject.set(nullptr);
   return;
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
 {
-  JSObjectProxy *self;
-  self = (JSObjectProxy *)type->tp_alloc(type, 0);
-  if (!self)
-  {
-    Py_DECREF(self);
-    return NULL;
-  }
-  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-  return (PyObject *)self;
+  PyObject *self = PyDict_Type.tp_new(subtype, args, kwds);
+  ((JSObjectProxy *)self)->jsObject = JS::RootedObject(GLOBAL_CX, nullptr);
+  return self;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
-
-  PyObject *dict = NULL;
-  if (PyTuple_Size(args) == 0 || PyTuple_GetItem(args, 0) == Py_None) {
-    // make fresh JSObject for proxy
-    self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-    return 0;
-  }
-
-  if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict))
-  {
-    return -1;
-  }
-
-
   // make fresh JSObject for proxy
-  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-  std::unordered_map<PyObject *, JS::RootedValue *> subValsMap;
-  JSObjectProxy_init_helper(self->jsObject, dict, subValsMap);
+  self->jsObject.set(JS_NewPlainObject(GLOBAL_CX));
   return 0;
-}
-
-void JSObjectProxyMethodDefinitions::JSObjectProxy_init_helper(JS::HandleObject jsObject, PyObject *dict, std::unordered_map<PyObject *, JS::RootedValue *> &subValsMap)
-{
-  PyObject *key, *value;
-  Py_ssize_t pos = 0;
-  while (PyDict_Next(dict, &pos, &key, &value))
-  {
-    bool skip = false;
-    if (!PyUnicode_Check(key))
-    { // only accept string keys
-      continue;
-    }
-
-    for (auto it: subValsMap)
-    {
-      if (it.first == value)
-      { // if we've already seen this value before, just pass the same JS::Value
-        JSObjectProxy_set_helper(jsObject, key, *(it.second));
-        skip = true;
-        break;
-      }
-    }
-
-    if (skip)
-    {
-      continue;
-    }
-
-    JS::RootedValue *jsVal = new JS::RootedValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    subValsMap.insert({{value, jsVal}});
-    JSObjectProxy_set_helper(jsObject, key, *jsVal);
-  }
 }
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
@@ -112,58 +72,32 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
 {
-  if (!PyUnicode_Check(key))
-  {
-    // @TODO (Caleb Aikens) raise exception here
-    return NULL;
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    // TODO (Caleb Aikens): raise exception here
+    return NULL; // key is not a str or int
   }
 
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  switch (PyUnicode_KIND(key))
-  {
-  case PyUnicode_1BYTE_KIND:
-    JS_GetProperty(GLOBAL_CX, self->jsObject, (char *)PyUnicode_1BYTE_DATA(key), value);
-    break;
-  case PyUnicode_2BYTE_KIND:
-    JS_GetUCProperty(GLOBAL_CX, self->jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), value);
-    break;
-  case PyUnicode_4BYTE_KIND:
-    // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_GetUCProperty
-    break;
-  }
+  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
   return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
 {
-  if (!PyUnicode_Check(key))
-  {
-    // @TODO (Caleb Aikens) raise exception here
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) { // invalid key
+    // TODO (Caleb Aikens): raise exception here
     return -1;
   }
 
-  if (value)
-  { // we are setting a value
+  if (value) { // we are setting a value
     JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    JSObjectProxy_set_helper(self->jsObject, key, jValue);
-  }
-  else
-  { // we are deleting a value
-    JS::ObjectOpResult opResult;
-    switch (PyUnicode_KIND(key))
-    {
-    case PyUnicode_1BYTE_KIND:
-      JS_DeleteProperty(GLOBAL_CX, self->jsObject, (char *)PyUnicode_1BYTE_DATA(key));
-      break;
-    case PyUnicode_2BYTE_KIND:
-      // @TODO (Caleb Aikens) make a ticket for mozilla to make an override for the below function that doesn't require an ObjectOpResult arg
-      JS_DeleteUCProperty(GLOBAL_CX, self->jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), opResult);
-      break;
-    case PyUnicode_4BYTE_KIND:
-      // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_SetUCProperty
-      break;
-    }
+    JS_SetPropertyById(GLOBAL_CX, self->jsObject, id, jValue);
+  } else { // we are deleting a value
+    JS::ObjectOpResult ignoredResult;
+    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
   }
 
   return 0;
@@ -171,18 +105,9 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_set_helper(JS::HandleObject jsObject, PyObject *key, JS::HandleValue value)
 {
-  switch (PyUnicode_KIND(key))
-  {
-  case PyUnicode_1BYTE_KIND:
-    JS_SetProperty(GLOBAL_CX, jsObject, (char *)PyUnicode_1BYTE_DATA(key), value);
-    break;
-  case PyUnicode_2BYTE_KIND:
-    JS_SetUCProperty(GLOBAL_CX, jsObject, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key), value);
-    break;
-  case PyUnicode_4BYTE_KIND:
-    // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_SetUCProperty
-    break;
-  }
+  JS::RootedId id(GLOBAL_CX);
+  keyToId(key, &id);
+  JS_SetPropertyById(GLOBAL_CX, jsObject, id, value);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare(JSObjectProxy *self, PyObject *other, int op)
@@ -268,9 +193,4 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   return true;
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *args) {
-  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_traverse. Probably results in leaking dict memory
-  return 0;
 }
