@@ -26,6 +26,7 @@
 #include <jsapi.h>
 #include <jsfriendapi.h>
 #include <js/friend/ErrorMessages.h>
+#include <js/friend/DOMProxy.h>
 #include <js/CompilationAndEvaluation.h>
 #include <js/ContextOptions.h>
 #include <js/Class.h>
@@ -64,6 +65,23 @@ static PyTypeObject BigIntType = {
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
   .tp_doc = PyDoc_STR("Javascript BigInt object"),
   .tp_base = &PyLong_Type,   // extending the builtin int type
+};
+
+PyTypeObject JSObjectProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectProxy",
+  .tp_basicsize = sizeof(JSObjectProxy),
+  .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
+  .tp_as_mapping = &JSObjectProxy_mapping_methods,
+  .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
+  .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
+  .tp_flags = Py_TPFLAGS_DEFAULT
+  | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
+  .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
+  .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
+  .tp_base = &PyDict_Type,
+  .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
+  .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
 };
 
 static void cleanup() {
@@ -412,6 +430,14 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   }
 
   JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
+
+  // XXX: SpiderMonkey bug???
+  // In https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/jit/CacheIR.cpp#l317, trying to use the callback returned by `js::GetDOMProxyShadowsCheck()` even it's unset (nullptr)
+  // Temporarily solved by explicitly setting the `domProxyShadowsCheck` callback here
+  JS::SetDOMProxyInformation(nullptr,
+    [](JSContext *, JS::HandleObject, JS::HandleId) { // domProxyShadowsCheck
+      return JS::DOMProxyShadowsResult::ShadowCheckFailed;
+    }, nullptr);
 
   PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)

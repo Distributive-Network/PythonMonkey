@@ -25,18 +25,9 @@ JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 bool keyToId(PyObject *key, JS::MutableHandleId idp) {
   if (PyUnicode_Check(key)) { // key is str type
     JS::RootedString idString(GLOBAL_CX);
-    switch (PyUnicode_KIND(key))
-    {
-    case PyUnicode_1BYTE_KIND:
-      idString.set(JS_NewStringCopyZ(GLOBAL_CX, (char *)PyUnicode_1BYTE_DATA(key)));
-      break;
-    case PyUnicode_2BYTE_KIND:
-      idString.set(JS_NewUCStringCopyN(GLOBAL_CX, (char16_t *)PyUnicode_2BYTE_DATA(key), PyUnicode_GET_LENGTH(key)));
-      break;
-    case PyUnicode_4BYTE_KIND:
-      // @TODO (Caleb Aikens) convert UCS4 to UTF16 and call JS_GetUCProperty
-      break;
-    }
+    const char *keyStr = PyUnicode_AsUTF8(key);
+    JS::ConstUTF8CharsZ utf8Chars(keyStr, strlen(keyStr));
+    idString.set(JS_NewStringCopyUTF8Z(GLOBAL_CX, utf8Chars));
     return JS_StringToId(GLOBAL_CX, idString, idp);
   } else if (PyLong_Check(key)) { // key is int type
     uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // raise OverflowError if the value of pylong is out of range for a unsigned long
@@ -49,76 +40,22 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
+  self->jsObject.set(nullptr);
   return;
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
 {
-  JSObjectProxy *self;
-  self = (JSObjectProxy *)type->tp_alloc(type, 0);
-  if (!self)
-  {
-    Py_DECREF(self);
-    return NULL;
-  }
-  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-  return (PyObject *)self;
+  PyObject *self = PyDict_Type.tp_new(subtype, args, kwds);
+  ((JSObjectProxy *)self)->jsObject = JS::RootedObject(GLOBAL_CX, nullptr);
+  return self;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
-
-  PyObject *dict = NULL;
-  if (PyTuple_Size(args) == 0 || PyTuple_GetItem(args, 0) == Py_None) {
-    // make fresh JSObject for proxy
-    self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-    return 0;
-  }
-
-  if (!PyArg_ParseTuple(args, "O!", &PyDict_Type, &dict))
-  {
-    return -1;
-  }
-
-
   // make fresh JSObject for proxy
-  self->jsObject.set(JS_NewObject(GLOBAL_CX, NULL));
-  std::unordered_map<PyObject *, JS::RootedValue *> subValsMap;
-  JSObjectProxy_init_helper(self->jsObject, dict, subValsMap);
+  self->jsObject.set(JS_NewPlainObject(GLOBAL_CX));
   return 0;
-}
-
-void JSObjectProxyMethodDefinitions::JSObjectProxy_init_helper(JS::HandleObject jsObject, PyObject *dict, std::unordered_map<PyObject *, JS::RootedValue *> &subValsMap)
-{
-  PyObject *key, *value;
-  Py_ssize_t pos = 0;
-  while (PyDict_Next(dict, &pos, &key, &value))
-  {
-    bool skip = false;
-    if (!PyUnicode_Check(key))
-    { // only accept string keys
-      continue;
-    }
-
-    for (auto it: subValsMap)
-    {
-      if (it.first == value)
-      { // if we've already seen this value before, just pass the same JS::Value
-        JSObjectProxy_set_helper(jsObject, key, *(it.second));
-        skip = true;
-        break;
-      }
-    }
-
-    if (skip)
-    {
-      continue;
-    }
-
-    JS::RootedValue *jsVal = new JS::RootedValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    subValsMap.insert({{value, jsVal}});
-    JSObjectProxy_set_helper(jsObject, key, *jsVal);
-  }
 }
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
@@ -256,9 +193,4 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   return true;
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *args) {
-  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_traverse. Probably results in leaking dict memory
-  return 0;
 }

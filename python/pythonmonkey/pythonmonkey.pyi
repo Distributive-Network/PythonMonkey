@@ -39,6 +39,7 @@ class JSObjectProxy(dict):
     """
     JavaScript Object proxy dict
     """
+    def __init__(self) -> None: ...
 
 null = _typing.Annotated[
     _typing.NewType("pythonmonkey.null", object),

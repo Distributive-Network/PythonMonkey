@@ -67,9 +67,6 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 See also: examples/
 
-### Method 1
-After compiling the project in the `build/src` folder you will find a `.so` file named `pythonmonkey.so`. This is the shared object file that contains the pythonmonkey module.
-
 ### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
 
 > PythonMonkey is not release-ready yet. Our first public release is scheduled for mid-June 2023.
