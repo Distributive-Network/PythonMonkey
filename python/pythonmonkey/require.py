@@ -28,6 +28,7 @@ from typing import Union, Dict
 import importlib
 from importlib import machinery
 import inspect
+import functools
 
 from . import pythonmonkey as pm 
 
@@ -247,7 +248,12 @@ function createRequire(filename, bootstrap_broken)
 })""")
     return createRequireInner(filename)
 
+# We cache the return value of createRequire to always use the same require for the same filename
+@functools.lru_cache(maxsize=None) # unbounded function cache that won't remove any old values
+def _getRequire(filename: str):
+    return createRequire(filename)
+
 def require(moduleIdentifier: str):
     # Retrieve the caller’s filename from the call stack
     filename = inspect.stack()[1].filename
-    return createRequire(filename)(moduleIdentifier)
+    return _getRequire(filename)(moduleIdentifier)
