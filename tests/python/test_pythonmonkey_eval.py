@@ -7,15 +7,6 @@ import math
 import asyncio
 import numpy, array, struct
 
-# https://doc.pytest.org/en/latest/how-to/xunit_setup.html#method-and-function-level-setup-teardown
-def teardown_function(function):
-    """
-    Forcing garbage collection (twice) whenever a test function finishes, 
-    to locate GC-related errors
-    """
-    gc.collect(), pm.collect()
-    gc.collect(), pm.collect()
-
 def test_passes():
     assert True
 
