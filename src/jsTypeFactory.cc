@@ -145,13 +145,17 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObjectOrNull(typedArray);
     memoizePyTypeAndGCThing(pmBuffer, returnType);
   }
-  else if (Py_TYPE(object) == &JSObjectProxyType) {
+  else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
-  else if (PyDict_Check(object)) {
-    PyProxyHandler *proxyHandler = new PyProxyHandler(object);
+  else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
-    JSObject *proxy = js::NewProxyObject(cx, proxyHandler, v, NULL);
+    JSObject *proxy;
+    if (PyList_Check(object)) {
+      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
+    } else {
+      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
+    }
     returnType.setObject(*proxy);
   }
   else if (object == Py_None) {

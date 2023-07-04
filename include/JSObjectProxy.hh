@@ -58,15 +58,6 @@ public:
   static int JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds);
 
   /**
-   * @brief Helper function for JSObjectProxy_init
-   *
-   * @param jsObject - The underlying backing store JSObject for the JSObjectProxy
-   * @param dict - The python dict to be converted into a JSObjectProxy
-   * @param subValsMap - A map of PyObject to JS::Value pairs, representing values that have been visited so far
-   */
-  static void JSObjectProxy_init_helper(JS::HandleObject jsObject, PyObject *dict, std::unordered_map<PyObject *, JS::RootedValue *> &subValsMap);
-
-  /**
    * @brief Length method (.mp_length), returns the number of key-value pairs in the JSObject, used by the python len() method
    *
    * @param self - The JSObjectProxy
@@ -121,16 +112,6 @@ public:
    * @return bool - Whether the compared objects are equal or not
    */
   static bool JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited);
-
-  /**
-   * @brief Function to satisfy the python GC. See comment in function implementation for more details
-   *
-   * @param self - unused
-   * @param visit - unused
-   * @param arg - unused
-   * @return int - always 0
-   */
-  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
 };
 
 
@@ -146,22 +127,5 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
 
 /**
  * @brief Struct for the JSObjectProxyType, used by all JSObjectProxy objects
- *
  */
-static PyTypeObject JSObjectProxyType = {
-  .ob_base = PyVarObject_HEAD_INIT(&PyType_Type, 0)
-  .tp_name = "pythonmonkey.JSObjectProxy",
-  .tp_basicsize = sizeof(JSObjectProxy),
-  .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
-  .tp_as_mapping = &JSObjectProxy_mapping_methods,
-  .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
-  .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
-  .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
-  .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
-  .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
-  .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
-  .tp_base = &PyDict_Type,
-  .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
-  .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
-};
+extern PyTypeObject JSObjectProxyType;

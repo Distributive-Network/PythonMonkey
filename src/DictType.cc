@@ -7,7 +7,6 @@
 
 #include <jsfriendapi.h>
 #include <jsapi.h>
-#include <js/Equality.h>
 
 #include <Python.h>
 
@@ -20,7 +19,7 @@ DictType::DictType() {
 DictType::DictType(PyObject *object) : PyType(object) {}
 
 DictType::DictType(JSContext *cx, JS::Handle<JS::Value> jsObject) {
-  JSObjectProxy *proxy = PyObject_New(JSObjectProxy, &JSObjectProxyType);
+  JSObjectProxy *proxy = (JSObjectProxy *)PyObject_CallObject((PyObject *)&JSObjectProxyType, NULL);
   JS::RootedObject obj(cx);
   JS_ValueToObject(cx, jsObject, &obj);
   proxy->jsObject.set(obj);

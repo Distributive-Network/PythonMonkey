@@ -52,18 +52,18 @@ def test_eval_ucs4_string_matches_evaluated_string():
 
 def test_eval_latin1_string_fuzztest():
     n = 10
-    for i in range(n):
+    for _ in range(n):
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for j in range(length):
+        for _ in range(length):
             codepoint = random.randint(0x00, 0xFF)
             string1 += chr(codepoint) # add random chr in latin1 range
         
         
         INITIAL_STRING = string1
         m = 10
-        for j in range(m):
+        for _ in range(m):
             string2 = pm.eval(repr(string1))
             assert len(string1) == length
             assert len(string2) == length
@@ -84,18 +84,18 @@ def test_eval_latin1_string_fuzztest():
 
 def test_eval_ucs2_string_fuzztest():
     n = 10
-    for i in range(n):
+    for _ in range(n):
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for j in range(length):
+        for _i in range(length):
             codepoint = random.randint(0x00, 0xFFFF)
             string1 += chr(codepoint) # add random chr in ucs2 range
         
         
         INITIAL_STRING = string1
         m = 10
-        for j in range(m):
+        for _ in range(m):
             string2 = pm.eval(repr(string1))
             assert len(string1) == length
             assert len(string2) == length
@@ -116,18 +116,18 @@ def test_eval_ucs2_string_fuzztest():
 
 def test_eval_ucs4_string_fuzztest():
     n = 10
-    for i in range(n):
+    for _ in range(n):
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for j in range(length):
+        for _ in range(length):
             codepoint = random.randint(0x010000, 0x10FFFF)
             string1 += chr(codepoint) # add random chr outside BMP
         
         
         INITIAL_STRING = string1
         m = 10
-        for j in range(m):
+        for _ in range(m):
             utf16_string2 = pm.eval("'" + string1 + "'")
             string2 = pm.asUCS4(utf16_string2)
             assert len(string1) == length
@@ -148,7 +148,7 @@ def test_eval_ucs4_string_fuzztest():
         assert INITIAL_STRING == string1 #strings should still match after a bunch of iterations through JS
 
 def test_eval_numbers_floats():
-    for i in range(10):
+    for _ in range(10):
         py_number = random.uniform(-1000000,1000000)
         js_number = pm.eval(repr(py_number))
         assert py_number == js_number
@@ -171,7 +171,7 @@ def test_eval_numbers_floats_inf():
     assert jsNegInf == float("-inf")
 
 def test_eval_numbers_integers():
-    for i in range(10):
+    for _ in range(10):
         py_number = random.randint(-1000000,1000000)
         js_number = pm.eval(repr(py_number))
         assert py_number == js_number
@@ -233,7 +233,7 @@ def test_eval_dates():
     start = datetime(MIN_YEAR, 1, 1, 00, 00, 00)
     years = MAX_YEAR - MIN_YEAR + 1
     end = start + timedelta(days=365 * years)
-    for i in range(10):
+    for _ in range(10):
         py_date = start + (end - start) * random.random()
         # round to milliseconds precision because the smallest unit for js Date is 1ms
         py_date = py_date.replace(microsecond=min(round(py_date.microsecond, -3), 999000)) # microsecond must be in 0..999999, but it would be rounded to 1000000 if >= 999500
@@ -249,13 +249,13 @@ def test_eval_boxed_booleans():
     assert py_bool == js_bool
 
 def test_eval_boxed_numbers_floats():
-    for i in range(10):
+    for _ in range(10):
         py_number = random.uniform(-1000000,1000000)
         js_number = pm.eval(f'new Number({repr(py_number)})')
         assert py_number == js_number
 
 def test_eval_boxed_numbers_integers():
-    for i in range(10):
+    for _ in range(10):
         py_number = random.randint(-1000000,1000000)
         js_number = pm.eval(f'new Number({repr(py_number)})')
         assert py_number == js_number
@@ -310,18 +310,18 @@ def test_eval_boxed_ucs4_string_matches_evaluated_string():
 
 def test_eval_boxed_latin1_string_fuzztest():
     n = 10
-    for i in range(n):
+    for _ in range(n):
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for j in range(length):
+        for _ in range(length):
             codepoint = random.randint(0x00, 0xFF)
             string1 += chr(codepoint) # add random chr in latin1 range
         
         
         INITIAL_STRING = string1
         m = 10
-        for j in range(m):
+        for _ in range(m):
             string2 = pm.eval(f'new String({repr(string1)})')
             assert len(string1) == length
             assert len(string2) == length
@@ -342,18 +342,18 @@ def test_eval_boxed_latin1_string_fuzztest():
 
 def test_eval_boxed_ucs2_string_fuzztest():
     n = 10
-    for i in range(n):
+    for _ in range(n):
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for j in range(length):
+        for _ in range(length):
             codepoint = random.randint(0x00, 0xFFFF)
             string1 += chr(codepoint) # add random chr in ucs2 range
         
         
         INITIAL_STRING = string1
         m = 10
-        for j in range(m):
+        for _ in range(m):
             string2 = pm.eval(f'new String({repr(string1)})')
             assert len(string1) == length
             assert len(string2) == length
@@ -374,18 +374,18 @@ def test_eval_boxed_ucs2_string_fuzztest():
 
 def test_eval_boxed_ucs4_string_fuzztest():
     n = 10
-    for i in range(n):
+    for _ in range(n):
         length = random.randint(0x0000, 0xFFFF)
         string1 = ''
 
-        for j in range(length):
+        for _ in range(length):
             codepoint = random.randint(0x010000, 0x10FFFF)
             string1 += chr(codepoint) # add random chr outside BMP
         
         
         INITIAL_STRING = string1
         m = 10
-        for j in range(m):
+        for _ in range(m):
             utf16_string2 = pm.eval(f'new String("{string1}")')
             string2 = pm.asUCS4(utf16_string2)
             assert len(string1) == length
@@ -464,12 +464,12 @@ def test_eval_functions():
 
     h = pm.eval("(a, b) => {return a + b}")
     n = 10
-    for i in range(n):
+    for _ in range(n):
         a = random.randint(-1000, 1000)
         b = random.randint(-1000, 1000)
         assert h(a, b) == (a + b)
     
-    for i in range (n):
+    for _ in range (n):
         a = random.uniform(-1000.0, 1000.0)
         b = random.uniform(-1000.0, 1000.0)
         assert h(a, b) == (a + b)
@@ -606,23 +606,23 @@ def test_eval_functions_ucs2_string_args():
         
         assert concatenate(string1, string2) == (string1 + string2)
 
-# def test_eval_functions_ucs4_string_args():
-#     concatenate = pm.eval("(a, b) => { return a + b}")
-#     n = 10
-#     for i in range(n):
-#         length1 = random.randint(0x0000, 0xFFFF)
-#         length2 = random.randint(0x0000, 0xFFFF)
-#         string1 = ''
-#         string2 = ''
+def test_eval_functions_ucs4_string_args():
+    concatenate = pm.eval("(a, b) => { return a + b}")
+    n = 10
+    for i in range(n):
+        length1 = random.randint(0x0000, 0xFFFF)
+        length2 = random.randint(0x0000, 0xFFFF)
+        string1 = ''
+        string2 = ''
 
-#         for j in range(length1):
-#             codepoint = random.randint(0x010000, 0x10FFFF)
-#             string1 += chr(codepoint) # add random chr outside BMP
-#         for j in range(length2):
-#             codepoint = random.randint(0x010000, 0x10FFFF)
-#             string2 += chr(codepoint)
+        for j in range(length1):
+            codepoint = random.randint(0x010000, 0x10FFFF)
+            string1 += chr(codepoint) # add random chr outside BMP
+        for j in range(length2):
+            codepoint = random.randint(0x010000, 0x10FFFF)
+            string2 += chr(codepoint)
         
-#         assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
+        assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
 
 def test_eval_functions_roundtrip():
     # BF-60 https://github.com/Distributive-Network/PythonMonkey/pull/18
@@ -703,6 +703,16 @@ def test_eval_objects_proxy_has():
     f = pm.eval("(obj) => { return 'a' in obj }")
     pyObj = {'a': 42.0}
     assert(f(pyObj))
+
+def test_eval_objects_proxy_not_extensible():
+    assert False == pm.eval("(o) => Object.isExtensible(o)")({})
+    assert False == pm.eval("(o) => Object.isExtensible(o)")({ "abc": 1 })
+    assert True == pm.eval("(o) => Object.preventExtensions(o) === o")({})
+    assert True == pm.eval("(o) => Object.preventExtensions(o) === o")({ "abc": 1 })
+
+def test_eval_objects_proxy_proto():
+    assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({})
+    assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({ "abc": 1 })
 
 def test_eval_objects_jsproxy_get():
   proxy = pm.eval("({a: 1})")
