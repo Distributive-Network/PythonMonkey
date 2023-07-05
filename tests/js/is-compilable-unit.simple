@@ -1,0 +1,16 @@
+/**
+ * @file        is-compilabe-unit.simple
+ *              Simple test which ensures that pm.isCompilableUnit works from JS as expected
+ *              written in Python instead of JavaScript
+ * @author      Wes Garland, wes@distributive.network
+ * @date        June 2023
+ */
+
+const { isCompilableUnit } = require('./modules/vm-tools');
+
+if (isCompilableUnit('()=>'))
+  throw new Error('isCompilableUnit lied about ()=>');
+
+if (!isCompilableUnit('123'))
+  throw new Error('isCompilableUnit lied about 123');
+

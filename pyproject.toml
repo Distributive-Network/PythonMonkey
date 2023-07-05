@@ -2,7 +2,7 @@
 name = "pythonmonkey"
 version = "0" # automatically set by poetry-dynamic-versioning
 description = ""
-authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>"]
+authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>", "Wes Garland <wes@distributive.network>", "Hamada Gasmallah <hamada@distributive.network>"]
 readme = "README.md"
 packages = [
   { include = "pythonmonkey", from = "python" },
@@ -11,10 +11,13 @@ include = [
   # Linux and macOS
   "python/pythonmonkey/pythonmonkey.so",
   "python/pythonmonkey/libmozjs*",
+  "python/pythonmonkey/builtin_modules/**/*",
 
   # Windows
   "python/pythonmonkey/pythonmonkey.pyd",
   "python/pythonmonkey/mozjs-*.dll",
+
+  "python/pythonmonkey/node_modules/**/*",
 
   # include all files for source distribution
   { path = "src", format = "sdist" },

@@ -6,7 +6,7 @@
 PythonMonkey is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
 using the Python engine to provide the JS host environment.
 
-This product is in an early stage, approximately 65% to MVP as of March 2023. It is under active development by Distributive Corp.,
+This product is in an early stage, approximately 80% to MVP as of May 2023. It is under active development by Distributive Corp.,
 https://distributive.network/. External contributions and feedback are welcome and encouraged.
 
 The goal is to make writing code in either JS or Python a developer preference, with libraries commonly used in either language
@@ -30,15 +30,15 @@ this package to execute our complex `dcp-client` library, which is written in JS
 - [done] JS functions coerce to Python function wrappers
 - [done] JS exceptions propagate to Python
 - [done] Implement `eval()` function in Python which accepts JS code and returns JS->Python coerced values
-- [underway] NodeJS+NPM-compatible CommonJS module system
+- [done] NodeJS+NPM-compatible CommonJS module system
 - [done] Python strings coerce to JS strings
 - [done] Python intrinsics coerce to JS intrinsics
-- Python dicts coerce to JS objects
-- Python `require` function, returns a coerced dict of module exports
+- [done] Python dicts coerce to JS objects
+- [done] Python `require` function, returns a coerced dict of module exports
 - [done] Python functions coerce to JS function wrappers
-- CommonJS module system .py loader, loads Python modules for use by JS
+- [done] CommonJS module system .py loader, loads Python modules for use by JS
 - JS object->Python dict coercion supports inherited-property lookup (via __getattribute__?)
-- Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
+- [done] Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
 - Python host environment supplies XMLHttpRequest (other project?)
 - Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client (other project?)
 - Python TypedArrays coerce to JS TypeArrays
@@ -53,6 +53,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
     - rust
     - python3.8 or later with header files (python3-dev)
     - spidermonkey 102.2.0 or later
+    - npm (nodejs)
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
@@ -95,3 +96,23 @@ Type "help", "copyright", "credits" or "license" for more information.
 ```
 
 Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.
+
+## Examples
+
+* [examples/](examples/)
+* https://github.com/Distributive-Network/PythonMonkey-examples
+* https://github.com/Distributive-Network/PythonMonkey-Crypto-JS-Fullstack-Example
+
+# Troubleshooting Tips
+
+## REPL - pmjs 
+A basic JavaScript shell, `pmjs`, ships with PythonMonkey.
+
+## CommonJS (require)
+If you are having trouble with the CommonJS require function, set environment variable DEBUG='ctx-module*' and you can see the filenames it tries to laod.
+
+### Extra Symbols
+Loading the CommonJS subsystem declares some extra symbols which may be helpful in debugging -
+- `python.print` - the Python print function
+- `python.getenv` - the Python getenv function
+

@@ -1,0 +1,12 @@
+/**
+ * @file        console-smoke.simple
+ *              Simple smoke test which ensures that the global console is initialized
+ * @author      Wes Garland, wes@distributive.network
+ * @date        June 2023
+ */
+console.log('one');
+console.info('two');
+console.debug('three');
+console.error('four');
+console.warn('five');
+
