@@ -26,7 +26,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
 ### Roadmap
 - [done] JS instrinsics coerce to Python intrinsics
 - [done] JS strings coerce to Python strings
-- JS objects coerce to Python dicts [own-properties only]
+- [done] JS objects coerce to Python dicts [own-properties only]
 - [done] JS functions coerce to Python function wrappers
 - [done] JS exceptions propagate to Python
 - [done] Implement `eval()` function in Python which accepts JS code and returns JS->Python coerced values
@@ -46,11 +46,11 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 ## Build Instructions
 1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
-    - cmake
+    - cmake 3.25 or later
     - doxygen 
     - graphviz
     - llvm
-    - rust
+    - rust 1.69
     - python3.8 or later with header files (python3-dev)
     - spidermonkey 102.2.0 or later
     - npm (nodejs)
