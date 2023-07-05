@@ -1,3 +1,10 @@
+/**
+ * @file internalBinding.cc
+ * @author Tom Tang (xmader@distributive.network)
+ * @brief Create internal bindings to get C++-implemented functions in JS, (imported from NodeJS internal design decisions)
+ *        See function declarations in python/pythonmonkey/builtin_modules/internal-binding.d.ts
+ * @copyright Copyright (c) 2023 Distributive Corp.
+ */
 
 #include "include/internalBinding.hh"
 #include "include/pyTypeFactory.hh"
@@ -26,7 +33,6 @@ JSObject *getInternalBindingsByNamespace(JSContext *cx, JSLinearString *namespac
  */
 static bool internalBindingFn(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  JS::AutoCheckCannotGC autoNoGC(cx);
 
   // Get the `namespace` argument as string
   JS::HandleValue namespaceStrArg = args.get(0);
@@ -46,7 +52,6 @@ JSFunction *createInternalBinding(JSContext *cx) {
 /**
  * @brief Convert the `internalBinding(namespace)` function to a Python function
  */
-// TODO (Tom Tang): refactor once we get object coercion support
 PyObject *getInternalBindingPyFn(JSContext *cx) {
   // Create the JS `internalBinding` function
   JSObject *jsFn = (JSObject *)createInternalBinding(cx);
@@ -59,4 +64,3 @@ PyObject *getInternalBindingPyFn(JSContext *cx) {
 
   return pyFn;
 }
-
