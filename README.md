@@ -65,8 +65,6 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 ## Using the library
 
-See also: [examples/](examples/)
-
 ### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
 
 > PythonMonkey is not release-ready yet. Our first public release is scheduled for mid-June 2023.
@@ -98,6 +96,12 @@ Type "help", "copyright", "credits" or "license" for more information.
 ```
 
 Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.
+
+## Examples
+
+* [examples/](examples/)
+* https://github.com/Distributive-Network/PythonMonkey-examples
+* https://github.com/Distributive-Network/PythonMonkey-Crypto-JS-Fullstack-Example
 
 # Troubleshooting Tips
 
