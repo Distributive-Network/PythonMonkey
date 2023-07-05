@@ -39,15 +39,18 @@ def run_cmake_build():
     execute(f"cmake --build . -j{CPUS} --config Release")
     os.chdir(TOP_DIR)
 
-def build():
-    ensure_spidermonkey()
-    run_cmake_build()
+def copy_artifacts():
     if platform.system() == "Windows":
         execute("cp ./build/src/*/pythonmonkey.pyd ./python/pythonmonkey/") # Release or Debug build
         execute("cp ./_spidermonkey_install/lib/mozjs-*.dll ./python/pythonmonkey/")
     else:
         execute("cp ./build/src/pythonmonkey.so ./python/pythonmonkey/")
         execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/")
+
+def build():
+    ensure_spidermonkey()
+    run_cmake_build()
+    copy_artifacts()
 
 if __name__ == "__main__":
     build()
