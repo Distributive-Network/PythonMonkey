@@ -78,6 +78,7 @@ grey()
     find $(realpath "$loc") -type f -name \*.bash
   done
 ) \
+| (shuf 2>/dev/null || cat) \
 | while read file
   do
     sfile=$(realpath --relative-to="${runDir}" "${file}")
