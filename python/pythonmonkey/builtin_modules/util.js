@@ -4,9 +4,7 @@
  * @date     June 2023
  */
 
-/** @type {import("internal-binding")} */
-const internalBinding = globalThis._internalBinding // FIXME: proper internal-binding module
-// const internalBinding = globalThis.python.pythonMonkey.internalBinding // broken
+const internalBinding = require("internal-binding")
 
 const {
   isAnyArrayBuffer,
