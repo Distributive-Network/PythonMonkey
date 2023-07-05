@@ -24,9 +24,9 @@ jobs:
   build-spidermonkey-unix:
     strategy:
       matrix:
-        # Use Ubuntu 20.04 / macOS 12 + Python 3.8 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-12' ]
-        python_version: [ '3.8' ]
+        # Use Ubuntu 20.04 / macOS 12 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'macos-12', 'm2ci' ]
+        python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -39,7 +39,7 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: ${{ runner.os }}-spidermonkey
+          key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -54,7 +54,7 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: ${{ runner.os }}-spidermonkey
+          key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -78,21 +78,32 @@ jobs:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019', 'm2ci' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
         exclude:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
           # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12
           - os: 'macos-12'
             python_version: '3.8'
+          # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
+          # see https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
+          - os: 'm2ci'
+            python_version: '3.8'
+          - os: 'm2ci'
+            python_version: '3.9'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # fetch all history for all branches and tags
+          # poetry-dynamic-versioning needs git tags to produce the correct version number 
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Install Dependencies
         run: |
           echo "Installing Dependencies"
@@ -100,19 +111,28 @@ jobs:
             sudo apt-get update -y
             sudo apt-get install -y cmake doxygen graphviz llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
-            brew update
+            brew update || true # allow failure
             brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
           fi
           echo "Installing python deps"
-          poetry install --no-root
+          poetry self add "poetry-dynamic-versioning[plugin]"
+          poetry env use python3 # use the correct Python version we've set up
+          poetry install --no-root --only=dev
           echo "Installed Dependencies"
       - name: Use cached spidermonkey build
         uses: actions/cache@v3
         with:
           path: |
             ./_spidermonkey_install/*
-          key: ${{ runner.os }}-spidermonkey
+          key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
+      - name: Build pminit
+        run: |
+          cd python/pminit
+          poetry build --format=sdist
+          cd -
+          mkdir -p ./dist/
+          mv -v python/pminit/dist/* ./dist/
       - name: Build wheel
         run: |
           echo $(poetry run python --version)
@@ -125,19 +145,24 @@ jobs:
           path: ./dist/
       - name: Run Python tests (pytest)
         run: |
-          poetry run python -m pip install ./dist/*.whl
+          poetry run python -m pip install --force-reinstall ./dist/*
           poetry run python -m pytest tests/python
   sdist:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Build source distribution (sdist) file
         run: |
+          poetry self add "poetry-dynamic-versioning[plugin]"
           poetry build --format=sdist
           ls -lah ./dist/
       - name: Upload sdist as CI artifacts
@@ -156,6 +181,8 @@ jobs:
           python-version: '3.9'
       - name: Setup Poetry
         uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Download wheels built
         uses: actions/download-artifact@v3
         with:
@@ -185,16 +212,26 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
-          path: ./pythonmonkey/ # write to the repository project path 
+          path: ./dist/
+      - name: Move wheels to the correct repository project paths
+        run: |
+          mkdir -p ./pythonmonkey/ ./pminit/
+          mv ./dist/pythonmonkey-* ./pythonmonkey/
+          mv ./dist/pminit-* ./pminit/
       - name: Generate index page for the project
         run: |
-          cd ./pythonmonkey/
-          html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
-          for file in ./*; do # generate <a> tags for each file
-            html+="<a href=\"$file\">$file</a><br/>"
-          done
-          html+="</body></html>"
-          echo "$html" > ./index.html
+          generate_index () {
+            cd $1
+            html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
+            for file in ./*; do # generate <a> tags for each file
+              html+="<a href=\"$file\">$file</a><br/>"
+            done
+            html+="</body></html>"
+            echo "$html" > ./index.html
+            cd -
+          }
+          generate_index ./pythonmonkey/
+          generate_index ./pminit/
       - name: Generate repository root page
         run: |
           html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
@@ -203,6 +240,7 @@ jobs:
           html+="<pre>pip install -i https://nightly.pythonmonkey.io/ --pre pythonmonkey</pre>"
           html+="<h3>Browse files:</h3>"
           html+="<a href="pythonmonkey/">pythonmonkey</a>"
+          html+="<a href="pminit/">pminit</a>"
           html+="</body></html>"
           echo "$html" > ./index.html
       - uses: actions/upload-pages-artifact@v1

@@ -1,7 +1,6 @@
 build/
 .vscode/
 pyvenv.cfg
-python/pythonmonkey/version.py
 python/pythonmonkey/node_modules
 bin/
 lib/*
@@ -15,12 +14,6 @@ _spidermonkey_install
 __pycache__/*
 dist
 *.so
-_spidermonkey_install/*
-*~
-Makefile
-CMakeDoxyfile.in
-CMakeDoxygenDefaults.cmake
-CMakeCache.txt
 *.dylib
 *.dll
 *.pyd

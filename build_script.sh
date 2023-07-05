@@ -23,7 +23,3 @@ else
   cmake .. 
 fi
 cmake --build . -j$CPUS --config Release
-
-# npm is used to load JS components, see package.json
-cd "${topDir}/python/pythonmonkey/"
-npm i
