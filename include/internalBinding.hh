@@ -19,5 +19,4 @@ namespace InternalBinding {
 JSObject *createInternalBindingsForNamespace(JSContext *cx, JSFunctionSpec *methodSpecs);
 JSObject *getInternalBindingsByNamespace(JSContext *cx, JSLinearString *namespaceStr);
 
-JSFunction *createInternalBinding(JSContext *cx);
 PyObject *getInternalBindingPyFn(JSContext *cx);

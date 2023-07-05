@@ -24,39 +24,27 @@ JSObject *getInternalBindingsByNamespace(JSContext *cx, JSLinearString *namespac
 /**
  * @brief Implement the `internalBinding(namespace)` function
  */
-static bool internalBindingFn(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  JS::AutoCheckCannotGC autoNoGC(cx);
+static PyObject *internalBindingFn(PyObject *cxPointer, PyObject *args) {
+  JSContext *cx = (JSContext *)PyLong_AsVoidPtr(cxPointer);
 
   // Get the `namespace` argument as string
-  JS::HandleValue namespaceStrArg = args.get(0);
-  JSLinearString *namespaceStr = JS_EnsureLinearString(cx, namespaceStrArg.toString());
+  const char *namespaceChars = PyUnicode_AsUTF8(PyTuple_GetItem(args, 0));
+  JS::ConstUTF8CharsZ utf8Chars(namespaceChars, strlen(namespaceChars));
+  JSLinearString *namespaceStr = JS_EnsureLinearString(cx, JS_NewStringCopyUTF8Z(cx, utf8Chars));
 
-  args.rval().setObjectOrNull(getInternalBindingsByNamespace(cx, namespaceStr));
-  return true;
+  // Get the internal bindings by namespace
+  JS::RootedObject bindings(cx, getInternalBindingsByNamespace(cx, namespaceStr));
+
+  // Convert to a Python dict
+  JS::RootedValue jsVal = JS::RootedValue(cx, JS::ObjectValue(*bindings));
+  return pyTypeFactory(cx, nullptr, &jsVal)->getPyObject();
 }
 
-/**
- * @brief Create the JS `internalBinding` function
- */
-JSFunction *createInternalBinding(JSContext *cx) {
-  return JS_NewFunction(cx, internalBindingFn, 1, 0, "internalBinding");
-}
+static PyMethodDef internalBindingFuncDef = {"internalBinding", internalBindingFn, METH_VARARGS, NULL};
 
 /**
- * @brief Convert the `internalBinding(namespace)` function to a Python function
+ * @brief Get a usable `internalBinding(namespace)` function in Python
  */
-// TODO (Tom Tang): refactor once we get object coercion support
 PyObject *getInternalBindingPyFn(JSContext *cx) {
-  // Create the JS `internalBinding` function
-  JSObject *jsFn = (JSObject *)createInternalBinding(cx);
-
-  // Convert to a Python function
-  // FIXME (Tom Tang): memory leak, not free-ed
-  JS::RootedObject *thisObj = new JS::RootedObject(cx, nullptr);
-  JS::RootedValue *jsFnVal = new JS::RootedValue(cx, JS::ObjectValue(*jsFn));
-  PyObject *pyFn = pyTypeFactory(cx, thisObj, jsFnVal)->getPyObject();
-
-  return pyFn;
+  return PyCFunction_New(&internalBindingFuncDef, PyLong_FromVoidPtr(cx));
 }
-
