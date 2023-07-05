@@ -2,6 +2,12 @@ import subprocess
 import os, sys
 import platform
 
+TOP_DIR = os.getcwd()
+BUILD_DIR = os.path.join(TOP_DIR, "build")
+
+# Get number of CPU cores
+CPUS = os.cpu_count() or 1
+
 def execute(cmd: str):
     popen = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.STDOUT,
         shell = True, text = True )
@@ -23,9 +29,19 @@ def ensure_spidermonkey():
     # Build SpiderMonkey
     execute("bash ./setup.sh")
 
+def run_cmake_build():
+    os.makedirs(BUILD_DIR, exist_ok=True) # mkdir -p
+    os.chdir(BUILD_DIR)
+    if platform.system() == "Windows":
+        execute("cmake .. -T ClangCL") # use Clang/LLVM toolset for Visual Studio
+    else:
+        execute("cmake ..")
+    execute(f"cmake --build . -j{CPUS} --config Release")
+    os.chdir(TOP_DIR)
+
 def build():
     ensure_spidermonkey()
-    execute(f"bash ./build_script.sh")
+    run_cmake_build()
     if platform.system() == "Windows":
         execute("cp ./build/src/*/pythonmonkey.pyd ./python/pythonmonkey/") # Release or Debug build
         execute("cp ./_spidermonkey_install/lib/mozjs-*.dll ./python/pythonmonkey/")
