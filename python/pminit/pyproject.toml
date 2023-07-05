@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "pminit"
+version = "0"
+description = "Post-install hook for PythonMonkey"
+authors = [
+  "Tom Tang <xmader@distributive.network>",
+  "Caleb Aikens <caleb@distributive.network>",
+  "Wes Garland <wes@distributive.network>",
+  "Hamada Gasmallah <hamada@distributive.network>"
+]
+include = [
+  # Install extra files into the pythonmonkey package
+  "pythonmonkey/package*.json",
+  { path = "pythonmonkey/node_modules/**/*", format = "wheel" },
+  # pip builds (and actually installs from) the wheel when installing from sdist
+  # we don't want node_modules inside the sdist package
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+bump = true
+
+[tool.poetry.build]
+script = "post-install-hook.py"
+generate-setup-file = false 
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
+

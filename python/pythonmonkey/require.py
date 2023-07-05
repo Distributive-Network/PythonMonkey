@@ -211,10 +211,7 @@ def load(filename: str) -> Dict:
         spec.loader.exec_module(module)
     else:
         module = sys.modules[name]
-    module_exports = {}
-    for key in dir(module):
-        module_exports[key] = getattr(module, key)
-    return module_exports 
+    return module.exports
 globalThis.python.load = load
 
 """

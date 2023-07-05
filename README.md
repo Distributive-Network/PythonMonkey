@@ -57,11 +57,12 @@ this package to execute our complex `dcp-client` library, which is written in JS
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
-2. Run `poetry install`. This command automatically compiles the project and installs the project as well as all Python dependencies to the poetry virtualenv.
+2. Run `poetry run pip install --verbose python/pminit ./`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv.
 
 ## Running tests
 1. Compile the project 
-2. From the root directory, run `poetry run pytest ./tests/python`
+2. Install development dependencies: `poetry install --no-root --only=dev`
+3. From the root directory, run `poetry run pytest ./tests/python`
 
 ## Using the library
 
