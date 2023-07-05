@@ -1,10 +1,10 @@
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-if(UNIX)
-  set(CMAKE_INSTALL_RPATH "$ORIGIN")
-else(APPLE)
+if(APPLE)
   set(CMAKE_INSTALL_RPATH "@loader_path")
+elseif(UNIX)
+  set(CMAKE_INSTALL_RPATH "$ORIGIN")
 endif()
 
 list(APPEND PYTHONMONKEY_SOURCE_FILES ${SOURCE_FILES} "${CMAKE_SOURCE_DIR}/src/modules/pythonmonkey/pythonmonkey.cc")
