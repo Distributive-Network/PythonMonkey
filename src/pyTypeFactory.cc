@@ -24,6 +24,7 @@
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
 #include "include/PromiseType.hh"
+#include "include/PyProxyHandler.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -95,8 +96,12 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
     if (JS::GetClass(obj)->isProxyObject()) {
-      // @TODO (Caleb Aikens) need to determine if this is one of OUR ProxyObjects somehow
-      // consider putting a special value in one of the private slots when creating a PyProxyHandler
+      if (js::GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
+        return new DictType(((PyProxyHandler *)js::GetProxyHandler(obj))->pyObject);
+      }
+      if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
+        return new ListType(((PyListProxyHandler *)js::GetProxyHandler(obj))->pyObject);
+      }
     }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
