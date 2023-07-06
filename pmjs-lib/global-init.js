@@ -8,9 +8,6 @@
  */
 'use strict';
 
-const pmjsPaths = (python.getenv('PMJS_PATH') || '').split(':');
-for (let path of pmjsPaths)
-  require.path.unshift(path);
 require('console');
 
 /* Anything loaded with require() before the program started was a side effect and not part of the 

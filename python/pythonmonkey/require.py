@@ -224,7 +224,7 @@ def load(filename: str) -> Dict:
 globalThis.python.load = load
 
 # API: pm.createRequire
-def createRequire(filename, isMain = False):
+def createRequire(filename, extraPaths = False, isMain = False):
     """
     returns a require function that resolves modules relative to the filename argument. 
     Conceptually the same as node:module.createRequire().
@@ -236,12 +236,17 @@ def createRequire(filename, isMain = False):
     """
     createRequireInner = pm.eval("""'use strict';(
 /**
- * Factory function.
+ * Factory function which returns a fresh 'require' function. The module cache will inherit from
+ * globalTHis.require, assuming it has been defined.
+ *
  * @param {string} filename      the filename of the module that would get this require
  * @param {object} bootstrap     the bootstrap context; python imports that are invisible to normal JS
+ * @param {string} extraPaths    colon-delimited list of paths to add to require.path
+ * @param {boolean} isMain       true if the module is to be used as a program module
+ *
  * @returns {function} require
  */
-function createRequire(filename, bootstrap_broken, isMain)
+function createRequire(filename, bootstrap_broken, extraPaths, isMain)
 {
   const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
@@ -252,11 +257,10 @@ function createRequire(filename, bootstrap_broken, isMain)
     module.exports = python.load(filename);
   }
 
-  const module = new CtxModule(globalThis, filename, moduleCache);//bootstrap.builtinModules);
+  const module = new CtxModule(globalThis, filename, moduleCache);
   for (let path of python.paths)
     module.paths.push(path + '/node_modules');
-  if (module.require.path.length === 0)
-    module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
+  module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.extensions['.py'] = loadPythonModule;
 
   if (isMain)
@@ -269,11 +273,13 @@ function createRequire(filename, bootstrap_broken, isMain)
     moduleCache[filename] = module;
   }
 
+  if (extraPaths)
+    module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(':')));
+
   return module.require;
 })""")
     fullFilename = os.path.abspath(filename)
-    return createRequireInner(fullFilename, 'broken', isMain)
-
+    return createRequireInner(fullFilename, 'broken', ':'.join(extraPaths), isMain)
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
     """
@@ -284,11 +290,6 @@ def runProgramModule(filename, argv, extraPaths=[]):
        other modules
     """
     fullFilename = os.path.abspath(filename)
-    createRequire(fullFilename, True)
-    pm.eval("""'use strict';
-(extraPaths) => {
-    require.path.splice(require.path.length, 0, ...(extraPaths.split(':')));
-};
-""")(':'.join(extraPaths));
+    createRequire(fullFilename, extraPaths, True)
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
         pm.eval(mainModuleSource.read())
