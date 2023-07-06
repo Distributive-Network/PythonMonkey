@@ -1,0 +1,86 @@
+{
+  "tasks": [
+    // 
+    // Build
+    // 
+    {
+      "label": "Build pminit",
+      "type": "process",
+      "command": "poetry",
+      "args": [
+        "run",
+        "pip",
+        "install",
+        "--verbose",
+        "python/pminit",
+      ],
+    },
+    {
+      "label": "Build pythonmonkey",
+      "type": "cppbuild",
+      "command": "poetry",
+      "args": [
+        "run",
+        "pip",
+        "install",
+        "--verbose",
+        ".",
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Build",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Build pminit",
+        "Build pythonmonkey",
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    // 
+    // Test
+    // 
+    {
+      "label": "Install development dependencies",
+      "type": "process",
+      "command": "poetry",
+      "args": [
+        "install",
+        "--no-root",
+        "--only=dev"
+      ],
+    },
+    {
+      "label": "Run pytest",
+      "type": "process",
+      "command": "poetry",
+      "args": [
+        "run",
+        "pytest",
+        "./tests/python"
+      ],
+    },
+    {
+      "label": "Test",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Install development dependencies",
+        "Run pytest",
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+  ],
+  "options": {
+    "cwd": "${workspaceFolder}"
+  },
+  "problemMatcher": [],
+  "version": "2.0.0"
+}
