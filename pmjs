@@ -232,12 +232,8 @@ def initGlobalThis():
     needs a require function which resolve modules relative to the current working directory at pmjs
     launch. The global require is to the JS function using a trick iinstead of a JS-wrapped-Python-wrapped function
     """
-    require = pm.createRequire(os.getcwd() + '/__pmjs__')
+    require = pm.createRequire(os.getcwd() + '/__pmjs_virtual__')
     globalThis.require = require
-    globalThis.python.write = sys.stdout.write
-    globalThis.python.eval = eval
-    globalThis.python.exec = exec
-    globalThis.python.exit = sys.exit
 
     argvBuilder = require(os.path.dirname(__file__) + "/pmjs-lib/global-init").setArguments() # module load has side-effects
     for arg in sys.argv:
@@ -250,6 +246,11 @@ def main():
     enterRepl = sys.stdin.isatty()
     forceRepl = False
     initGlobalThis()
+
+    if (os.getenv('PMJS_PATH')):
+      requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
+    else:
+      requirePath = [];
     
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version"])
@@ -281,13 +282,7 @@ def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        filename = os.path.abspath(args[0])
-        fileHnd = open(filename, "r", encoding='utf-8')
-        programCode = fileHnd.read()
-        fileHnd.close()
-        programRequire = pm.createRequire(filename)
-        programRequire(os.path.dirname(__file__) + "/pmjs-lib/program-init").setMainFilename(filename)
-        pm.eval(programCode)
+        pm.runProgramModule(args[0], args, requirePath)
     elif (enterRepl or forceRepl):
         repl()
 
