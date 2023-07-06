@@ -2,7 +2,7 @@ import subprocess
 import os, sys
 import platform
 
-TOP_DIR = os.getcwd()
+TOP_DIR = os.path.abspath(os.path.dirname(__file__))
 BUILD_DIR = os.path.join(TOP_DIR, "build")
 
 # Get number of CPU cores
