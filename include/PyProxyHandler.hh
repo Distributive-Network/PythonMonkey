@@ -22,7 +22,7 @@
  */
 struct PyBaseProxyHandler : public js::BaseProxyHandler {
 public:
-  PyBaseProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(NULL), pyObject(pyObj) {};
+  PyBaseProxyHandler(PyObject *pyObj, const void *family) : js::BaseProxyHandler(family), pyObject(pyObj) {};
   PyObject *pyObject; // @TODO (Caleb Aikens) Consider putting this in a private slot
 
   bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy, bool *isOrdinary, JS::MutableHandleObject protop) const override final;
@@ -36,7 +36,8 @@ public:
  */
 struct PyProxyHandler : public PyBaseProxyHandler {
 public:
-  PyProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj) {};
+  PyProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
+  static const char family;
 
   /**
    * @brief [[OwnPropertyKeys]]
@@ -163,7 +164,8 @@ public:
  */
 struct PyListProxyHandler : public PyBaseProxyHandler {
 public:
-  PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj) {};
+  PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
+  static const char family;
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
