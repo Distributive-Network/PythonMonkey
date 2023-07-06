@@ -1,0 +1,16 @@
+#! /usr/bin/env python3
+# @file         js-test-runner
+#               A simple test driver for peter-jr that runs JS code via PythonMonkey.require
+# @author       Wes Garland, wes@distributive.network
+# @date         Jun 2023
+ 
+import sys, os
+import pythonmonkey as pm
+
+# Main
+require = pm.createRequire(__file__)
+require('console');
+
+testName = os.path.realpath(sys.argv[1]);
+testDir = os.path.dirname(testName);
+pm.createRequire(testName)(testName);

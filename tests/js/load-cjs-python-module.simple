@@ -1,0 +1,11 @@
+/**
+ * @file        load-cjs-python-module.js
+ *              Simple smoke test which ensures that we can load a CommonJS Module which happens to be
+ *              written in Python instead of JavaScript
+ * @author      Wes Garland, wes@distributive.network
+ * @date        June 2023
+ */
+
+const { helloWorld } = require('./modules/python-cjs-module');
+
+helloWorld();

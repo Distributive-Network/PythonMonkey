@@ -1,0 +1,130 @@
+#! /bin/bash
+#
+# @file         peter-js
+#               A simple test framework in the spirit of Peter (npmjs.com/packages/peter) for testing
+#               basic PythonMonkey functionality.
+#
+#               Exit Codes:
+#               0 - all tests passed
+#               1 - one or more tests failed
+#               2 - no tests ran
+#               3 - internal error
+#
+# @author       Wes Garland, wes@distributive.network
+# @date         Jun 2023
+#
+runDir=`pwd`
+cd `dirname "$0"`
+topDir=`pwd`
+cd "$runDir"
+
+set -u
+set -o pipefail
+peter_exit_code=2
+
+if [ "${1:-}" = "-v" ]; then
+  VERBOSE=1
+  shift
+else
+  VERBOSE="${VERBOSE:-}"
+fi
+
+[ "${1:-}" ] || set "${topDir}/tests/js"
+testLocations=("$@")
+
+function panic()
+{
+  echo "PANIC: $*" >&2
+  exit 3
+}
+
+TMP=`mktemp -d`
+([ "${TMP}" ] && [ -d "${TMP}" ]) || exit 3
+
+trap "rm -r \"${TMP}\"" EXIT
+
+if [ "$VERBOSE" ]; then
+  stdout="/dev/stdout"
+  stderr="/dev/stderr"
+else
+  stdout="$TMP/stdout"
+  stderr="$TMP/stderr"
+fi
+
+red()
+{
+  printf "\e[0;31m%s\e[0m" "$*"
+}
+
+green()
+{
+  printf "\e[0;32m%s\e[0m" "$*"
+}
+
+yellow()
+{
+  printf "\e[0;33m%s\e[0m" "$*"
+}
+
+grey()
+{
+  printf "\e[0;90m%s\e[0m" "$*"
+}
+
+(
+  for loc in "${testLocations[@]}"
+  do
+    find $(realpath "$loc") -type f -name \*.simple
+    find $(realpath "$loc") -type f -name \*.bash
+  done
+) \
+| while read file
+  do
+    sfile=$(realpath --relative-to="${runDir}" "${file}")
+    printf 'Testing %-40s ... ' "${sfile}"
+    ext="${file##*.}"
+    (
+      case "$ext" in
+        "simple")
+          "${topDir}/js-test-runner" "$file"
+          exitCode="$?"
+          ;;
+        "bash")
+          bash "$file"
+          exitCode="$?"
+          ;;
+        *)
+          echo
+          panic "${file}: invalid extension '$ext'"
+          ;;
+      esac
+
+      exit "$exitCode"
+    )> $stdout 2>$stderr
+    exitCode="$?"
+
+    if [ "$exitCode" = "0" ]; then
+      echo "$(green PASS)"
+      [ "${peter_exit_code}" = "2" ] && peter_exit_code=0
+      printf "\e[0;31m"
+      [ "$VERBOSE" ] || cat "$stderr"
+      printf "\e[0m"
+    else
+      echo "$(red FAIL)"
+      peter_exit_code=1
+      if [ ! "$VERBOSE" ]; then
+        echo
+        echo "$(grey --) $(yellow ${file}) $(grey vvvvvvvvvvvvvv)"
+        cat "$stdout" | sed 's/^/   /'
+        printf "\e[0;31m"
+        cat "$stderr" | sed -e 's/^/   /'
+        printf "\e[0m"
+        echo "$(grey --) $(yellow ${file}) $(grey ^^^^^^^^^^^^^^)"
+        echo
+      fi
+    fi
+    (exit ${peter_exit_code})
+  done
+peter_exit_code="$?"
+
+exit ${peter_exit_code}

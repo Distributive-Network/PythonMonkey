@@ -26,7 +26,7 @@ function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
   set(PYTHONMONKEY_EXTERNAL_FILES ${PYTHONMONKEY_EXTERNAL_FILES} PARENT_SCOPE)
 endfunction()
 
-file (GLOB SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory
+file (GLOB SOURCE_FILES "src/*.cc" "src/internalBinding/*.cc") # Find all C++ files in the src directory
 file (GLOB HEADER_FILES "include/*.hh") # Find all header files in the include directory
 file (GLOB PYTHON_FILES "python/*.cc" "python/*.hh") # Find all the python bindings in the python directory
 
@@ -55,7 +55,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
     message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
-  elseif(LINUX)
+  elseif(UNIX)
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
     set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})

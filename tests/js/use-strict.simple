@@ -1,0 +1,18 @@
+/**
+ * @file        use-strict.simple
+ *              Simple test which ensures that tests are evaluated correctly, such that the "use strict"
+ *              directive has meaning.
+ * @author      Wes Garland, wes@distributive.network
+ * @date        June 2023
+ */
+"use strict";
+
+function fun(abc)
+{
+  arguments[0] = 123;
+
+  if (abc === 123)
+    throw new Error('"use strict" did not put interpreter in strict mode');
+}
+
+fun(456);
