@@ -32,13 +32,22 @@ from importlib import util
 from . import pythonmonkey as pm 
 
 # Add some python functions to the global python object for code in this file to use.
-globalThis = pm.eval("globalThis;");
-pm.eval("globalThis.python = { pythonMonkey: {} }");
-globalThis.pmEval = pm.eval;
-globalThis.python.print = print;
-globalThis.python.getenv = os.getenv;
-globalThis.python.pythonMonkey.dir = os.path.dirname(__file__);
-globalThis.python.paths = ':'.join(sys.path);
+globalThis = pm.eval("globalThis;")
+pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }")
+globalThis.pmEval = pm.eval
+globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
+#globalThis.python.pythonMonkey.version = pm.__version__
+#globalThis.python.pythonMonkey.module = pm
+globalThis.python.print  = print
+globalThis.python.stdout.write = sys.stdout.write
+globalThis.python.stderr.write = sys.stderr.write
+globalThis.python.stdout.read = sys.stdout.read
+globalThis.python.stderr.read = sys.stderr.read
+globalThis.python.eval = eval
+globalThis.python.exec = exec
+globalThis.python.exit = sys.exit
+globalThis.python.getenv = os.getenv
+globalThis.python.paths  = ':'.join(sys.path)
 pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
 
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
@@ -183,7 +192,7 @@ with open(os.path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", 
 """ + ctxModuleSource.read() + """
 })
 """);
-#broken initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'].exports);
+#broken initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'].exports)
 initCtxModule();
 
 def load(filename: str) -> Dict:  
@@ -214,35 +223,72 @@ def load(filename: str) -> Dict:
     return module_exports 
 globalThis.python.load = load
 
-"""
-API - createRequire
-returns a require function that resolves modules relative to the filename argument. 
-Conceptually the same as node:module.createRequire().
+# API: pm.createRequire
+def createRequire(filename, isMain = False):
+    """
+    returns a require function that resolves modules relative to the filename argument. 
+    Conceptually the same as node:module.createRequire().
 
-example:
-  from pythonmonkey import createRequire
-  require = createRequire(__file__)
-  require('./my-javascript-module')
-"""
-def createRequire(filename):
+    example:
+    from pythonmonkey import createRequire
+    require = createRequire(__file__)
+    require('./my-javascript-module')
+    """
     createRequireInner = pm.eval("""'use strict';(
-function createRequire(filename, bootstrap_broken)
+/**
+ * Factory function.
+ * @param {string} filename      the filename of the module that would get this require
+ * @param {object} bootstrap     the bootstrap context; python imports that are invisible to normal JS
+ * @returns {function} require
+ */
+function createRequire(filename, bootstrap_broken, isMain)
 {
   const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
+  const moduleCache = globalThis.require?.cache || {};
 
   function loadPythonModule(module, filename)
   {
     module.exports = python.load(filename);
   }
 
-  const module = new CtxModule(globalThis, filename, bootstrap.builtinModules);
+  const module = new CtxModule(globalThis, filename, moduleCache);//bootstrap.builtinModules);
   for (let path of python.paths)
     module.paths.push(path + '/node_modules');
   if (module.require.path.length === 0)
     module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.extensions['.py'] = loadPythonModule;
 
+  if (isMain)
+  {
+    globalThis.module = module;
+    globalThis.exports = module.exports;
+    globalThis.require = module.require;
+    globalThis.require.main = module;
+    module.loaded = true;
+    moduleCache[filename] = module;
+  }
+
   return module.require;
 })""")
-    return createRequireInner(filename)
+    fullFilename = os.path.abspath(filename)
+    return createRequireInner(fullFilename, 'broken', isMain)
+
+# API: pm.runProgramModule
+def runProgramModule(filename, argv, extraPaths=[]):
+    """
+    Run the program module. This loads the code from disk, sets up the execution environment, and then
+    invokes the program module (aka main module). The program module is different from other modules in that
+    1. it cannot return (must throw)
+    2. the outermost block scope is the global scope, effectively making its scope a super-global to
+       other modules
+    """
+    fullFilename = os.path.abspath(filename)
+    createRequire(fullFilename, True)
+    pm.eval("""'use strict';
+(extraPaths) => {
+    require.path.splice(require.path.length, 0, ...(extraPaths.split(':')));
+};
+""")(':'.join(extraPaths));
+    with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
+        pm.eval(mainModuleSource.read())
