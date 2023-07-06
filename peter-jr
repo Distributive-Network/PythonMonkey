@@ -22,6 +22,20 @@ set -u
 set -o pipefail
 peter_exit_code=2
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+cat <<EOF
+Peter-jr - A simple test framework in the spirit of Peter for testing basic
+           PythonMonkey functionality. (Peter: npmjs.com/packages/peter)
+Copyright (c) 2023 Distributive. Released under the terms of the MIT License.
+
+Usage: $0 [-h] [-v] [test [test...]]
+Where: -h or --help shows this help
+       -v enables verbose mode (shows tests' stdout)
+       test is the name of a test or a directory containing tests. If not
+       specified, uses ${topDir}/tests/js.
+EOF
+  exit 0
+fi
 if [ "${1:-}" = "-v" ]; then
   VERBOSE=1
   shift
@@ -87,7 +101,7 @@ grey()
     (
       case "$ext" in
         "simple")
-          "${topDir}/js-test-runner" "$file"
+          "${topDir}/pmjs" "$file"
           exitCode="$?"
           ;;
         "bash")
