@@ -96,11 +96,11 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
     if (JS::GetClass(obj)->isProxyObject()) {
-      if (GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
-        return new DictType(((PyProxyHandler *)GetProxyHandler(obj))->pyObject);
+      if (js::GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
+        return new DictType(((PyProxyHandler *)js::GetProxyHandler(obj))->pyObject);
       }
-      if (GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
-        return new ListType(((PyListProxyHandler *)GetProxyHandler(obj))->pyObject);
+      if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
+        return new ListType(((PyListProxyHandler *)js::GetProxyHandler(obj))->pyObject);
       }
     }
     js::ESClass cls;
