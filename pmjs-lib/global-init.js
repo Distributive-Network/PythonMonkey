@@ -32,3 +32,17 @@ exports.setArguments = function pmjsRequire$$init()
     globalThis.arguments.push(arg)
   }
 }
+
+/**
+ * runProgramModule wants to include the require.cache from the pre-program loads (e.g. via -r or -e), but
+ * due to current bugs in PythonMonkey, we can't access the cache property of require because it is a JS
+ * function wrapped in a Python function wrapper exposed to script as a native function.
+ *
+ * This patch swaps in a descended version of require(), which has the same require.cache, but that has
+ * side effects in terms of local module id resolution, so this patch happens only right before we want
+ * to fire up the program module.
+ */
+exports.patchGlobalRequire = function pmjsRequire$$patchGlobalRequire()
+{
+  globalThis.require = require;
+}

@@ -46,6 +46,8 @@ fi
 [ "${1:-}" ] || set "${topDir}/tests/js"
 testLocations=("$@")
 
+export PMJS="${topDir}/pmjs"
+
 function panic()
 {
   echo "PANIC: $*" >&2
@@ -101,7 +103,7 @@ grey()
     (
       case "$ext" in
         "simple")
-          "${topDir}/pmjs" "$file"
+          "${PMJS}" "$file"
           exitCode="$?"
           ;;
         "bash")

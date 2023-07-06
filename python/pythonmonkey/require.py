@@ -279,7 +279,9 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
   return module.require;
 })""")
     fullFilename = os.path.abspath(filename)
-    return createRequireInner(fullFilename, 'broken', ':'.join(extraPaths), isMain)
+    if (extraPaths):
+        extraPaths = ':'.join(extraPaths)
+    return createRequireInner(fullFilename, 'broken', extraPaths, isMain)
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
     """
@@ -291,5 +293,7 @@ def runProgramModule(filename, argv, extraPaths=[]):
     """
     fullFilename = os.path.abspath(filename)
     createRequire(fullFilename, extraPaths, True)
+    globalThis.__filename = fullFilename;
+    globalThis.__dirname = os.path.dirname(fullFilename);
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
         pm.eval(mainModuleSource.read())
