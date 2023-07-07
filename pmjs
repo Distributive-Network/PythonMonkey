@@ -156,13 +156,18 @@ def repl():
     statement = ''
     readline_skip_chars = 0
 
+    def save_history():
+        nonlocal histfile
+        readline.write_history_file(histfile)
+
+    import atexit
+    atexit.register(save_history)
+
     def quit():
         """
-        Quit the REPL, writing history
+        Quit the REPL. Repl saved by atexit handler.
         """
-        readline.write_history_file(histfile)
         sys.exit(0)
-    globalThis.python.exit = sys.exit
 
     def sigint_handler(signum, frame):
         """
@@ -176,6 +181,7 @@ def repl():
         if (got_sigint == 1 and statement == "" and readline.get_line_buffer() == ""):
             sys.stdout.write("\n(To exit, press Ctrl+C again or Ctrl+D or type .exit)")
         elif (got_sigint > 1):
+            sys.stdout.write("\n")
             quit()
 
         sys.stdout.write("\n> ")
