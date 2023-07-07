@@ -226,11 +226,24 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
+  // Detect cyclic objects
+  // FIXME (Tom Tang): find a better way to get a same PyObject when visiting the same JSObject
+  // We currently use the trick that Python reuses the PyLongObjects for ints between -5 and 256.
+  PyObject *objPtr = PyLong_FromLong(((uint64_t)self->jsObject.get()) % 256);
+  int status = Py_ReprEnter(objPtr);
+  if (status != 0) { // the object has already been processed
+    Py_ReprLeave(objPtr);
+    return status > 0 ? PyUnicode_FromString("{...}") : NULL;
+  }
+
   // Convert JSObjectProxy to a dict
   PyObject *dict = PyDict_New();
   // Update from the iterator emitting key-value pairs
   //    see https://docs.python.org/3/c-api/dict.html#c.PyDict_MergeFromSeq2
   PyDict_MergeFromSeq2(dict, JSObjectProxy_iter(self), /*override*/ false);
   // Get the string representation of this dict
-  return PyObject_Repr(dict);
+  PyObject *str = PyObject_Repr(dict);
+
+  Py_ReprLeave(objPtr);
+  return str;
 }

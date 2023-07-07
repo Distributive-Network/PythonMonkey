@@ -123,7 +123,7 @@ public:
 
   /**
    * @brief Compute a string representation of the JSObjectProxy
-   * 
+   *
    * @param self - The JSObjectProxy
    * @return the string representation (a PyUnicodeObject) on success, NULL on failure
    */
