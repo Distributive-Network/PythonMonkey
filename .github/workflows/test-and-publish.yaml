@@ -48,7 +48,7 @@ jobs:
         with:
           version: 1.5.1
       - name: Setup XCode
-        if: ${{ matrix.os == 'macos-13' }}
+        if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey 115 ESR requires XCode SDK version at least 13.3
         # https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md#installed-sdks
         run: sudo xcode-select -switch /Applications/Xcode_14.3.app
