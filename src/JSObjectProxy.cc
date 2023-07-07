@@ -227,12 +227,15 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
   // Detect cyclic objects
-  // FIXME (Tom Tang): find a better way to get a same PyObject when visiting the same JSObject
-  // We currently use the trick that Python reuses the PyLongObjects for ints between -5 and 256.
-  PyObject *objPtr = PyLong_FromLong(((uintptr_t)self->jsObject.get()) >> 12 & 0xff);
-  int status = Py_ReprEnter(objPtr);
+  PyObject *objPtr = PyLong_FromVoidPtr(self->jsObject.get());
+  // For `Py_ReprEnter`, we must get a same PyObject when visiting the same JSObject.
+  // We cannot simply use the object returned by `PyLong_FromVoidPtr` because it won't reuse the PyLongObjects for ints not between -5 and 256.
+  // Instead, we store this PyLongObject in a global dict, using itself as the hashable key.
+  PyObject *tsDict = PyThreadState_GetDict();
+  PyObject *cyclicKey = PyDict_SetDefault(tsDict, /*key*/ objPtr, /*value*/ objPtr); // cyclicKey = (tsDict[objPtr] ??= objPtr)
+  int status = Py_ReprEnter(cyclicKey);
   if (status != 0) { // the object has already been processed
-    Py_ReprLeave(objPtr);
+    Py_ReprLeave(cyclicKey);
     return status > 0 ? PyUnicode_FromString("[Circular]") : NULL;
   }
 
@@ -244,6 +247,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   // Get the string representation of this dict
   PyObject *str = PyObject_Repr(dict);
 
-  Py_ReprLeave(objPtr);
+  Py_ReprLeave(cyclicKey);
+  PyDict_DelItem(tsDict, cyclicKey);
   return str;
 }
