@@ -112,6 +112,14 @@ public:
    * @return bool - Whether the compared objects are equal or not
    */
   static bool JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited);
+
+  /**
+   * @brief Return an iterator object to make JSObjectProxy iterable, emitting (key, value) tuples
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* - iterator object
+   */
+  static PyObject *JSObjectProxy_iter(JSObjectProxy *self);
 };
 
 
