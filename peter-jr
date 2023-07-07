@@ -77,6 +77,16 @@ green()
   printf "\e[0;32m%s\e[0m" "$*"
 }
 
+dred()
+{
+  printf "\e[22m\e[0;31m%s\e[0m" "$*"
+}
+
+bggreen()
+{
+  printf "\e[42m%s\e[0m" "$*"
+}
+
 yellow()
 {
   printf "\e[0;33m%s\e[0m" "$*"
@@ -87,21 +97,46 @@ grey()
   printf "\e[0;90m%s\e[0m" "$*"
 }
 
-(
+findTests()
+{
   for loc in "${testLocations[@]}"
   do
     find $(realpath "$loc") -type f -name \*.simple
     find $(realpath "$loc") -type f -name \*.bash
-  done
-) \
+    find $(realpath "$loc") -type f -name \*.failing
+  done\
+  | while read file
+    do
+      realpath --relative-to="${runDir}" "${file}"
+    done
+}
+
+longestFilenameLen=`findTests | wc -L`
+
+findTests \
 | (shuf 2>/dev/null || cat) \
 | while read file
   do
-    sfile=$(realpath --relative-to="${runDir}" "${file}")
-    printf 'Testing %-40s ... ' "${sfile}"
+    printf "Testing %-${longestFilenameLen}s ... " "${file}"
     ext="${file##*.}"
+    testName="${file%.failing}"
+    testType="${testName##*.}"
+
+    thisStdout="${stdout}" 
+    thisStderr="${stderr}"
+
+    if [ "${ext}" = "failing" ]; then
+      knownFail="yes"
+      PASS="$(bggreen PASS) (unexpected)"
+      FAIL="$(dred F̶A̶I̶L̶) (expected)"
+      [ ! "${VERBOSE}" ] && thisStderr="/dev/null"
+    else
+      knownFail=""
+      PASS="$(green PASS)"
+      FAIL="$(red FAIL)"
+    fi
     (
-      case "$ext" in
+      case "$testType" in
         "simple")
           "${PMJS}" "$file"
           exitCode="$?"
@@ -112,24 +147,24 @@ grey()
           ;;
         *)
           echo
-          panic "${file}: invalid extension '$ext'"
+          panic "${file}: invalid test type '$testType'"
           ;;
       esac
-
       exit "$exitCode"
-    )> $stdout 2>$stderr
+    )> ${thisStdout} 2>${thisStderr}
     exitCode="$?"
 
     if [ "$exitCode" = "0" ]; then
-      echo "$(green PASS)"
+      echo "${PASS}"
       [ "${peter_exit_code}" = "2" ] && peter_exit_code=0
       printf "\e[0;31m"
       [ "$VERBOSE" ] || cat "$stderr"
       printf "\e[0m"
     else
-      echo "$(red FAIL)"
+      echo "${FAIL}"
       peter_exit_code=1
-      if [ ! "$VERBOSE" ]; then
+
+      if [ ! "$VERBOSE" ] && [ ! "$knownFail" ]; then
         echo
         echo "$(grey --) $(yellow ${file}) $(grey vvvvvvvvvvvvvv)"
         cat "$stdout" | sed 's/^/   /'
