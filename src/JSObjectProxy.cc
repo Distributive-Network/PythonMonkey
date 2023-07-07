@@ -229,7 +229,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   // Detect cyclic objects
   // FIXME (Tom Tang): find a better way to get a same PyObject when visiting the same JSObject
   // We currently use the trick that Python reuses the PyLongObjects for ints between -5 and 256.
-  PyObject *objPtr = PyLong_FromLong(((uint64_t)self->jsObject.get()) % 256);
+  PyObject *objPtr = PyLong_FromLong(((uintptr_t)self->jsObject.get()) >> 12 & 0xff);
   int status = Py_ReprEnter(objPtr);
   if (status != 0) { // the object has already been processed
     Py_ReprLeave(objPtr);
