@@ -1,3 +1,4 @@
+#! /usr/bin/env pmjs
 /**
  * @file        program.js
  *              A program for use by pmjs *.bash tests which need a basic program module

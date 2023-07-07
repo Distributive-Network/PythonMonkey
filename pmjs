@@ -21,11 +21,31 @@ cmds.help = function help() {
 .help     Print this help message
 .load     Load JS from a file into the REPL session
 .save     Save all evaluated commands in this REPL session to a file
+.python   Evaluate a Python statement, returning result as global variable $n.
+          Use '.python reset' to rest back to $1.
+          Statement starting with 'from' or 'import' are silently executed.
 
 Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
 };
 
 cmds.exit = python.exit;
+cmds.python = function pythonCmd(...args) {
+  const cmd = args.join(' ').trim();
+
+  if (cmd === 'reset')
+  {
+    pythonCmd.serial = 0;
+    return;
+  }
+
+  if (arguments[0] === 'from' || arguments[0] === 'import')
+    return python.exec(cmd);
+
+  const retval = python.eval(cmd);
+  pythonCmd.serial = (pythonCmd.serial || 0) + 1;
+  python.print('$' + pythonCmd.serial, '=', formatResult(retval));
+  globalThis['$' + pythonCmd.serial] = retval;
+};
 
 /**
  * Handle a .xyz repl command. Invokes function cmds[XXX], passing arguments that the user typed as the
@@ -184,6 +204,7 @@ def repl():
                 continue
             if (statement[0] == '.'):
                 print(globalThis.replCmd(statement[1:]))
+                statement = ""
                 continue
             if (pm.isCompilableUnit(statement)):
                 print(globalThis.replEval(statement))
