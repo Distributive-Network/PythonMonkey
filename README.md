@@ -6,7 +6,7 @@
 PythonMonkey is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
 using the Python engine to provide the JS host environment.
 
-This product is in an early stage, approximately 80% to MVP as of May 2023. It is under active development by Distributive Corp.,
+This product is in an early stage, approximately 80% to MVP as of July 2023. It is under active development by Distributive Corp.,
 https://distributive.network/. External contributions and feedback are welcome and encouraged.
 
 The goal is to make writing code in either JS or Python a developer preference, with libraries commonly used in either language
@@ -103,16 +103,70 @@ Alternatively, you can build a `wheel` package by running `poetry build --format
 * https://github.com/Distributive-Network/PythonMonkey-examples
 * https://github.com/Distributive-Network/PythonMonkey-Crypto-JS-Fullstack-Example
 
+## API
+These methods are exported from the pythonmonkey module.
+
+### require(moduleIdentifier)
+Return the exports of a CommonJS module identified by `moduleIdentifier`, using standrd CommonJS
+semantics
+ - modules are singletons and will never be loaded or evaluated more than once
+ - moduleIdentifier is relative to the Python file invoking `require`
+ - moduleIdentifier should not include a file extension
+ - moduleIdentifiers which do not behing with ./, ../, or / are resolved by search require.path
+   and module.paths.
+ - Modules are evaluated immediately after loading
+ - Modules are not loaded until they are required
+ - The following extensions are supported:
+ ** `.js` - JavaScript module; source code decorates `exports` object
+ ** `.py` - Python module; source code decorates `exports` dict
+ ** `.json` -- JSON module; exports are the result of parsing the JSON text in the file
+
+### globalThis
+A Python Dict which is equivalent to the globalThis object in JavaScript.
+
+### createRequire(filename, extraPaths, isMain)
+Factory function which returns a new require function
+- filename: the pathname of the module that this require function could be used for
+- extraPaths: [optional] a list of extra paths to search to resolve non-relative and non-absolute module identifiers
+- isMain: [optional] True if the require function is being created for a main module
+
+### runProgramModule(filename, argv, extraPaths)
+Load and evaluate a program (main) module. Program modules must be written in JavaScript. Program modules are not
+necessary unless the main entry point of your program is written in JavaScript.
+- filename: the location of the JavaScript source code
+- argv: the program's argument vector
+- extraPaths: [optional] a list of extra paths to search to resolve non-relative and non-absolute module identifiers
+
+Care should be taken to ensure that only one program module is run per JS context.
+
+## Tricks
+### Symbol injection via cross-language IIFE
+You can use a JavaScript IIFE to create a scope in which you can inject Python symbols:
+```python
+    pm.eval("""'use strict';
+(extraPaths) => {
+    require.path.splice(require.path.length, 0, ...extraPaths);
+    console.log('HEY:', require.path);
+};
+""")(extraPaths);
+```
+
 # Troubleshooting Tips
 
 ## REPL - pmjs 
-A basic JavaScript shell, `pmjs`, ships with PythonMonkey.
+A basic JavaScript shell, `pmjs`, ships with PythonMonkey. This shell can also run JavaScript programs with 
 
 ## CommonJS (require)
 If you are having trouble with the CommonJS require function, set environment variable DEBUG='ctx-module*' and you can see the filenames it tries to laod.
 
 ### Extra Symbols
-Loading the CommonJS subsystem declares some extra symbols which may be helpful in debugging -
+Loading the CommonJS subsystem, by using `require` or `createRequire` declares some extra symbols which may be helpful in debugging -
 - `python.print` - the Python print function
 - `python.getenv` - the Python getenv function
+- `python.stdout` - an object with `read` and `write` methods, which read and write to stdout
+- `python.stderr` - an object with `read` and `write` methods, which read and write to stderr
+- `python.exec`   - the Python exec function
+- `python.eval`   - the Python eval function
+- `python.exit`   - the Python exit function
+- `python.paths`  - the Python sys.paths object (currently a copy; will become an Array-like reflection)
 

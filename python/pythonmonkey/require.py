@@ -48,7 +48,7 @@ globalThis.python.exec = exec
 globalThis.python.exit = sys.exit
 globalThis.python.getenv = os.getenv
 globalThis.python.paths  = ':'.join(sys.path)
-pm.eval("python.paths = python.paths.split(':'); true"); # fix when pm supports arrays
+pm.eval("python.paths = python.paths.split(':');"); # fix when pm supports arrays
 
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
 # The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
