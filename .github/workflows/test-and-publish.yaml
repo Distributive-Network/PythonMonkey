@@ -26,7 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         # Use Ubuntu 20.04 / macOS 13 + Python 3.10 to build SpiderMonkey
-        # SpiderMonkey 115 ESR requires XCode SDK version at least 13.3
         os: [ 'ubuntu-20.04', 'macos-13', 'm2ci' ]
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
@@ -48,6 +47,11 @@ jobs:
         uses: snok/install-poetry@v1
         with:
           version: 1.5.1
+      - name: Setup XCode
+        if: ${{ matrix.os == 'macos-13' }}
+        # SpiderMonkey 115 ESR requires XCode SDK version at least 13.3
+        # https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md#installed-sdks
+        run: sudo xcode-select -switch /Applications/Xcode_14.3.app
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
