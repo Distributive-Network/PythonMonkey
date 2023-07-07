@@ -14,7 +14,7 @@ function check(message, testResult)
 
   console[facility](message + ':', testResult ? 'PASS' : 'FAIL');
   if (!testResult)
-    process.exitCode = 1;
+    failures++;    
 }
   
 check('require.main is an object',              typeof require.main === 'object');
@@ -25,11 +25,11 @@ check('module is the global module',            module  === globalThis.module);
 
 module = {};
 check('free module symbol is global symbol',    module  === globalThis.module);
-//check('arguments.length is ' + arguments.length, ...arguments)
+check('arguments.length is ' + arguments.length, ...arguments)
 
 if (failures)
   console.log(`${failures} sub-tests failing`);
 else
-  console.log('all sub-tests pass');
+  console.log('all sub-tests pass', typeof failures);
 
-//python.exit(failures);
+python.exit(failures);
