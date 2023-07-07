@@ -23,6 +23,7 @@ defaults:
 jobs:
   build-spidermonkey-unix:
     strategy:
+      fail-fast: false
       matrix:
         # Use Ubuntu 20.04 / macOS 12 + Python 3.10 to build SpiderMonkey
         os: [ 'ubuntu-20.04', 'macos-12', 'm2ci' ]
