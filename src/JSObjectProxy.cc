@@ -235,7 +235,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   PyObject *cyclicKey = PyDict_SetDefault(tsDict, /*key*/ objPtr, /*value*/ objPtr); // cyclicKey = (tsDict[objPtr] ??= objPtr)
   int status = Py_ReprEnter(cyclicKey);
   if (status != 0) { // the object has already been processed
-    Py_ReprLeave(cyclicKey);
     return status > 0 ? PyUnicode_FromString("[Circular]") : NULL;
   }
 
