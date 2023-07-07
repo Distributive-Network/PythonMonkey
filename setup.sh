@@ -41,8 +41,6 @@ sed -i'' -e '/"winheap.cpp"/d' ./memory/mozalloc/moz.build # https://bugzilla.mo
 sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
 cd js/src
-cp ./configure.in ./configure
-chmod +x ./configure
 mkdir -p _build
 cd _build
 mkdir -p ../../../../_spidermonkey_install/
