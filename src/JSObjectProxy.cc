@@ -233,7 +233,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   int status = Py_ReprEnter(objPtr);
   if (status != 0) { // the object has already been processed
     Py_ReprLeave(objPtr);
-    return status > 0 ? PyUnicode_FromString("{...}") : NULL;
+    return status > 0 ? PyUnicode_FromString("[Circular]") : NULL;
   }
 
   // Convert JSObjectProxy to a dict
