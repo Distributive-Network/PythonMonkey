@@ -25,8 +25,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 20.04 / macOS 12 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-12', 'm2ci' ]
+        # Use Ubuntu 20.04 / macOS 13 + Python 3.10 to build SpiderMonkey
+        # SpiderMonkey 115 ESR requires XCode SDK version at least 13.3
+        os: [ 'ubuntu-20.04', 'macos-13', 'm2ci' ]
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
