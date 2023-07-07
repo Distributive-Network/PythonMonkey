@@ -21,7 +21,7 @@ for (let mid in require.cache)
  * Set the global arguments array, which is just the program's argv.  We use an argvBuilder function to
  * get around PythonMonkey's missing list->Array coercion. /wg june 2023 
  */
-exports.setArguments = function pmjsRequire$$init()
+exports.makeArgvBuilder = function pmjsRequire$$makeArgvBuilder()
 {
   const argv = [];
   globalThis.arguments = argv;

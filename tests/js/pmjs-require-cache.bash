@@ -5,7 +5,7 @@
 #               is the same as the require cache for the program module.
 #
 # @author       Wes Garland, wes@distributive.network
-# @date         June 2023
+# @date         July 2023
 
 set -u
 set -o pipefail
@@ -19,7 +19,7 @@ panic()
 cd `dirname "$0"` || panic "could not change to test directory"
 
 loaded=0
-"${PMJS:-../../pmjs}" -r ./modules/print-load -r ./modules/print-load pmjs-require-cache.js |\
+"${PMJS:-../../pmjs}" -r ./modules/print-load -r ./modules/print-load program.js |\
 while read keyword rest
 do
   case "$keyword" in
