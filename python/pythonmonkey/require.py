@@ -45,10 +45,17 @@ globalThis.python.stdout.read = sys.stdout.read
 globalThis.python.stderr.read = sys.stderr.read
 globalThis.python.eval = eval
 globalThis.python.exec = exec
-globalThis.python.exit = sys.exit
 globalThis.python.getenv = os.getenv
 globalThis.python.paths  = ':'.join(sys.path)
 pm.eval("python.paths = python.paths.split(':');"); # fix when pm supports arrays
+
+globalThis.python.exit = pm.eval("""'use strict';
+(exit) => function pythonExitWrapper(exitCode) {
+  if (typeof exitCode === 'number')
+    exitCode = BigInt(Math.floor(exitCode));
+  exit(exitCode);
+}
+""")(sys.exit);
 
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
 # The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
