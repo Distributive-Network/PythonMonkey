@@ -139,16 +139,62 @@ necessary unless the main entry point of your program is written in JavaScript.
 
 Care should be taken to ensure that only one program module is run per JS context.
 
+## Type Transfer (Coercion / Wrapping)
+When sending variables from Python into JavaScript, PythonMonkey will intelligently coerce or wrap your
+variables based on their type. PythonMonkey will share backing stores (use the same memory) for ctypes,
+typed arrays, and strings; moving these types across the language barrier is extremely fast because
+there is no copying involved.
+
+*Note:* There are plans in Python 3.12 to change the internal string representation so that every
+        character in the string uses four bytes of memory. This will break fast string transfers for
+        PythonMonkey, as it relies on the memory layout being the same in Python and JavaScript. As
+        of this writing (July 2023), "classic" Python strings still work in the 3.12 beta releases.
+
+Where shared backing store is not possible, PythonMonkey will automatically emit wrappers that use
+the "real" data structure as its value authority. Only immutable intrinsics are copied. This means
+that if you update an object in JavaScript, the corresponding Dict in Python will be updated, etc.
+
+| Python Type | JavaScript Type |
+|:------------|:----------------|
+| String      | string
+| Integer     | number
+| Bool        | boolean
+| Function    | function
+| Dict        | object
+| List        | Array-like object
+| datetime    | Date object
+
+| JavaScript Type | Python Type     |
+|:----------------|:----------------|
+| string          | String
+| number          | Float
+| bigint          | Integer
+| boolean         | Bool
+| function        | Function
+| object - most   | JSProxyObject which inherits from Dict
+| object - Date   | datetime
+| object - Array  | List
+
 ## Tricks
+### Integer Type Coercion
+You can force a number in JavaScript to be coerced as an integer by casting it to BigInt.
+```javascript
+function myFunction(a, b) {
+  const result = calculate(a, b);
+  return BigInt(Math.floor(result));
+}
+```
+
 ### Symbol injection via cross-language IIFE
 You can use a JavaScript IIFE to create a scope in which you can inject Python symbols:
 ```python
-    pm.eval("""'use strict';
-(extraPaths) => {
-    require.path.splice(require.path.length, 0, ...extraPaths);
-    console.log('HEY:', require.path);
-};
-""")(extraPaths);
+globalThis.python.exit = pm.eval("""'use strict';
+(exit) => function pythonExitWrapper(exitCode) {
+  if (typeof exitCode === 'number')
+    exitCode = BigInt(Math.floor(exitCode));
+  exit(exitCode);
+}
+""")(sys.exit);
 ```
 
 # Troubleshooting Tips
@@ -167,6 +213,6 @@ Loading the CommonJS subsystem, by using `require` or `createRequire` declares s
 - `python.stderr` - an object with `read` and `write` methods, which read and write to stderr
 - `python.exec`   - the Python exec function
 - `python.eval`   - the Python eval function
-- `python.exit`   - the Python exit function
+- `python.exit`   - the Python exit function (wrapped to return BigInt in place of number)
 - `python.paths`  - the Python sys.paths object (currently a copy; will become an Array-like reflection)
 
