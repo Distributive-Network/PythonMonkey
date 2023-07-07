@@ -139,15 +139,37 @@ necessary unless the main entry point of your program is written in JavaScript.
 
 Care should be taken to ensure that only one program module is run per JS context.
 
+## Built-In Functions
+- `console`
+- `setTimeout`
+- `setInterval`
+- `clearTimeout`
+- `clearInterval`
+
+### CommonJS Subsystem Additions
+The CommonJS subsystem is activated by invoking the `require` or `createRequire` exports of the (Python)
+pythonmonkey module.
+- `require`
+- `exports`
+- `module`
+- `python.print`  - the Python print function
+- `python.getenv` - the Python getenv function
+- `python.stdout` - an object with `read` and `write` methods, which read and write to stdout
+- `python.stderr` - an object with `read` and `write` methods, which read and write to stderr
+- `python.exec`   - the Python exec function
+- `python.eval`   - the Python eval function
+- `python.exit`   - the Python exit function (wrapped to return BigInt in place of number)
+- `python.paths`  - the Python sys.paths list (currently a copy; will become an Array-like reflection)
+
 ## Type Transfer (Coercion / Wrapping)
 When sending variables from Python into JavaScript, PythonMonkey will intelligently coerce or wrap your
 variables based on their type. PythonMonkey will share backing stores (use the same memory) for ctypes,
 typed arrays, and strings; moving these types across the language barrier is extremely fast because
 there is no copying involved.
 
-*Note:* There are plans in Python 3.12 to change the internal string representation so that every
-        character in the string uses four bytes of memory. This will break fast string transfers for
-        PythonMonkey, as it relies on the memory layout being the same in Python and JavaScript. As
+*Note:* There are plans in Python 3.12 (PEP 623) to change the internal string representation so that
+        every character in the string uses four bytes of memory. This will break fast string transfers
+        for PythonMonkey, as it relies on the memory layout being the same in Python and JavaScript. As
         of this writing (July 2023), "classic" Python strings still work in the 3.12 beta releases.
 
 Where shared backing store is not possible, PythonMonkey will automatically emit wrappers that use
@@ -163,17 +185,19 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 | Dict        | object
 | List        | Array-like object
 | datetime    | Date object
+| awaitable   | Promise
 
-| JavaScript Type | Python Type     |
-|:----------------|:----------------|
-| string          | String
-| number          | Float
-| bigint          | Integer
-| boolean         | Bool
-| function        | Function
-| object - most   | JSProxyObject which inherits from Dict
-| object - Date   | datetime
-| object - Array  | List
+| JavaScript Type  | Python Type     |
+|:-----------------|:----------------|
+| string           | String
+| number           | Float
+| bigint           | Integer
+| boolean          | Bool
+| function         | Function
+| object - most    | JSProxyObject which inherits from Dict
+| object - Date    | datetime
+| object - Array   | List
+| object - Promise | awaitable
 
 ## Tricks
 ### Integer Type Coercion
@@ -204,15 +228,3 @@ A basic JavaScript shell, `pmjs`, ships with PythonMonkey. This shell can also r
 
 ## CommonJS (require)
 If you are having trouble with the CommonJS require function, set environment variable DEBUG='ctx-module*' and you can see the filenames it tries to laod.
-
-### Extra Symbols
-Loading the CommonJS subsystem, by using `require` or `createRequire` declares some extra symbols which may be helpful in debugging -
-- `python.print` - the Python print function
-- `python.getenv` - the Python getenv function
-- `python.stdout` - an object with `read` and `write` methods, which read and write to stdout
-- `python.stderr` - an object with `read` and `write` methods, which read and write to stderr
-- `python.exec`   - the Python exec function
-- `python.eval`   - the Python eval function
-- `python.exit`   - the Python exit function (wrapped to return BigInt in place of number)
-- `python.paths`  - the Python sys.paths object (currently a copy; will become an Array-like reflection)
-
