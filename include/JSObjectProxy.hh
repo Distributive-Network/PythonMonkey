@@ -120,6 +120,14 @@ public:
    * @return PyObject* - iterator object
    */
   static PyObject *JSObjectProxy_iter(JSObjectProxy *self);
+
+  /**
+   * @brief Compute a string representation of the JSObjectProxy
+   * 
+   * @param self - The JSObjectProxy
+   * @return the string representation (a PyUnicodeObject) on success, NULL on failure
+   */
+  static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
 };
 
 

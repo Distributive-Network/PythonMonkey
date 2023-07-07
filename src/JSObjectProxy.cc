@@ -224,3 +224,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
   // Convert to a Python iterator
   return PyObject_GetIter(seq);
 }
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
+  // Convert JSObjectProxy to a dict
+  PyObject *dict = PyDict_New();
+  // Update from the iterator emitting key-value pairs
+  //    see https://docs.python.org/3/c-api/dict.html#c.PyDict_MergeFromSeq2
+  PyDict_MergeFromSeq2(dict, JSObjectProxy_iter(self), /*override*/ false);
+  // Get the string representation of this dict
+  return PyObject_Repr(dict);
+}
