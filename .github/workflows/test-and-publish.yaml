@@ -42,6 +42,11 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
+      - name: Setup Poetry
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
@@ -57,6 +62,11 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
+      - name: Setup Poetry
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         shell: powershell
