@@ -45,7 +45,10 @@ this package to execute our complex `dcp-client` library, which is written in JS
 - JS TypedArrays coerce to Python TypeArrays
 
 ## Build Instructions
-1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
+
+Read this if you want to build a local version.
+
+1. You will need the following installed (which can be done automatically by running `./setup.sh`):
     - cmake
     - doxygen 
     - graphviz
@@ -59,10 +62,14 @@ this package to execute our complex `dcp-client` library, which is written in JS
 
 2. Run `poetry run pip install --verbose python/pminit ./`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv.
 
+If you are using VSCode, you can just press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> to [run build task](https://code.visualstudio.com/docs/editor/tasks#_custom-tasks) - We have [the `tasks.json` file configured for you](.vscode/tasks.json).
+
 ## Running tests
 1. Compile the project 
 2. Install development dependencies: `poetry install --no-root --only=dev`
 3. From the root directory, run `poetry run pytest ./tests/python`
+
+For VSCode users, similar to the Build Task, we have a Test Task ready to use.
 
 ## Using the library
 
@@ -97,6 +104,14 @@ Type "help", "copyright", "credits" or "license" for more information.
 ```
 
 Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.
+
+## Debugging Steps
+
+1. [build the project locally](#build-instructions)
+2. To use gdb, run `poetry run gdb python`.  
+See [Python Wiki: DebuggingWithGdb](https://wiki.python.org/moin/DebuggingWithGdb)
+
+If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python to start debugging - We have [the `launch.json` file configured for you](.vscode/launch.json).
 
 ## Examples
 
