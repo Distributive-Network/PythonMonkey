@@ -154,6 +154,7 @@ def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
         Union[Dict[str, int], False]: The mode of the file or False if the file doesn't exist.
     """
     from os import stat
+    filename = os.path.normpath(filename)
     if (os.path.exists(filename)):
         sb = stat(filename)
         return { 'mode': sb.st_mode }
@@ -166,12 +167,17 @@ def readFileSync(filename, charset) -> str:
     Returns:
         str: The contents of the file
     """
+    filename = os.path.normpath(filename)
     with open(filename, "r", encoding=charset) as fileHnd:
         return fileHnd.read()
 
+def existsSync(filename: str) -> bool:
+    filename = os.path.normpath(filename)
+    return os.path.exists(filename)
+
 bootstrap.modules.fs.statSync_inner = statSync_inner
 bootstrap.modules.fs.readFileSync   = readFileSync
-bootstrap.modules.fs.existsSync     = os.path.exists
+bootstrap.modules.fs.existsSync     = existsSync
 
 # Read ctx-module module from disk and invoke so that this file is the "main module" and ctx-module has
 # require and exports symbols injected from the bootstrap object above. Current PythonMonkey bugs
@@ -201,6 +207,7 @@ def load(filename: str) -> Dict:
         : The loaded python module
     """
 
+    filename = os.path.normpath(filename)
     name = os.path.basename(filename)
     if name not in sys.modules:
         sourceFileLoader = machinery.SourceFileLoader(name, filename)
