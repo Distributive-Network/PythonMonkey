@@ -1,6 +1,14 @@
 {
   "tasks": [
     // 
+    // Setup
+    // 
+    {
+      "label": "Setup SpiderMonkey",
+      "type": "process",
+      "command": "./setup.sh",
+    },
+    // 
     // Build
     // 
     {
