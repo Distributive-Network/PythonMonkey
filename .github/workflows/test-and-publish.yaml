@@ -147,6 +147,10 @@ jobs:
         run: |
           poetry run python -m pip install --force-reinstall ./dist/*
           poetry run python -m pytest tests/python
+      - name: Run JavaScript tests (peter-jr)
+        run: |
+          poetry run python -m pip install --force-reinstall ./dist/*
+          poetry run ./peter-jr
   sdist:
     runs-on: ubuntu-20.04
     steps:
