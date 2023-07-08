@@ -26,7 +26,7 @@ function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
   set(PYTHONMONKEY_EXTERNAL_FILES ${PYTHONMONKEY_EXTERNAL_FILES} PARENT_SCOPE)
 endfunction()
 
-file (GLOB SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory
+file (GLOB SOURCE_FILES "src/*.cc" "src/internalBinding/*.cc") # Find all C++ files in the src directory
 file (GLOB HEADER_FILES "include/*.hh") # Find all header files in the include directory
 file (GLOB PYTHON_FILES "python/*.cc" "python/*.hh") # Find all the python bindings in the python directory
 
@@ -38,11 +38,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   ### Code block from: https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
   include(FetchContent)
 
-  if(UNIX)
-    SET(COMPILE_FLAGS "-g -ggdb -O0 -fno-rtti")
-  elseif(WIN32)
-    SET(COMPILE_FLAGS "")
-  endif()
+  SET(COMPILE_FLAGS "-ggdb -Ofast -fno-rtti") # optimize but also emit debug symbols
   SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}" )
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)

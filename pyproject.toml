@@ -11,13 +11,10 @@ include = [
   # Linux and macOS
   "python/pythonmonkey/pythonmonkey.so",
   "python/pythonmonkey/libmozjs*",
-  "python/pythonmonkey/builtin_modules/**/*",
 
   # Windows
   "python/pythonmonkey/pythonmonkey.pyd",
   "python/pythonmonkey/mozjs-*.dll",
-
-  "python/pythonmonkey/node_modules/**/*",
 
   # include all files for source distribution
   { path = "src", format = "sdist" },
@@ -34,6 +31,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+pminit = { version = "*", allow-prereleases = true }
 
 
 [tool.poetry-dynamic-versioning]

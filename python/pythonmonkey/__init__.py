@@ -1,3 +1,4 @@
+# Export public PythonMonkey APIs
 from .pythonmonkey import *
 from .require import *
 

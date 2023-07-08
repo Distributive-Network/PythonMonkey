@@ -1,5 +1,25 @@
 import pythonmonkey as pm
 
+def test_eval_dicts():
+    d = {"a":1}
+    proxy_d = pm.eval("(dict) => { return dict; }")(d)
+    assert d is proxy_d
+
+def test_eval_dicts_subdicts():
+    d = {"a":1, "b":{"c": 2}}
+    
+    assert pm.eval("(dict) => { return dict.a; }")(d) == 1.0
+    assert pm.eval("(dict) => { return dict.b; }")(d) is d["b"]
+    assert pm.eval("(dict) => { return dict.b.c; }")(d) == 2.0
+
+def test_eval_dicts_cycle():
+    d: dict = {"a":1, "b":2}
+    d["recursive"] = d
+    
+    assert pm.eval("(dict) => { return dict.a; }")(d) == 1.0
+    assert pm.eval("(dict) => { return dict.b; }")(d) == 2.0
+    assert pm.eval("(dict) => { return dict.recursive; }")(d) is d["recursive"]
+
 def test_eval_objects():
     pyObj = pm.eval("Object({a:1.0})")
     assert pyObj == {'a':1.0}
