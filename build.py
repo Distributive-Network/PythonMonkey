@@ -48,6 +48,7 @@ def copy_artifacts():
         execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/")
 
 def build():
+    execute("git submodule update --init --recursive")
     ensure_spidermonkey()
     run_cmake_build()
     copy_artifacts()
