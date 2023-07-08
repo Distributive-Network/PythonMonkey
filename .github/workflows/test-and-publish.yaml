@@ -95,6 +95,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          submodules: 'true'
           fetch-depth: 0 # fetch all history for all branches and tags
           # poetry-dynamic-versioning needs git tags to produce the correct version number 
       - uses: actions/setup-python@v4
