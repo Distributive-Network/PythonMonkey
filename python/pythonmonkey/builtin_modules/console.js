@@ -42,7 +42,6 @@ class Console {
         ignoreErrors = true;
       options = { stdout, stderr, ignoreErrors };
     }
-    
     this.#writeToStdout = options.stdout.write;
     this.#writeToStderr = options.stderr.write;
   }
@@ -55,7 +54,7 @@ class Console {
   }
 
   log(...args) {
-    this.writeToStdout(this.#formatToStr(...args))
+    this.#writeToStdout(this.#formatToStr(...args))
   }
 
   warn(...args) {
@@ -84,8 +83,8 @@ Console.prototype.error = Console.prototype.warn;
 
 if (!globalThis.console) {
   globalThis.console = new Console(
-    python.stdout.write /* sys.stdout.write */,
-    python.stderr.write /* sys.stderr.write */
+    python.stdout /* sys.stdout */,
+    python.stderr /* sys.stderr */
   );
 }
 
