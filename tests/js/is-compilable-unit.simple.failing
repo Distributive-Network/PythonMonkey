@@ -14,3 +14,4 @@ if (isCompilableUnit('()=>'))
 if (!isCompilableUnit('123'))
   throw new Error('isCompilableUnit lied about 123');
 
+console.log('done')
