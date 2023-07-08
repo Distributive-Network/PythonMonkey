@@ -1,3 +1,8 @@
+# @file        build.py
+#              Main PythonMonkey build automation script. Run with `poetry build`.
+# @author      Hamada Gasmallah, hamada@distributive.network
+# @date        April 2023
+#
 import subprocess
 import os, sys
 import platform
@@ -52,6 +57,8 @@ def build():
     ensure_spidermonkey()
     run_cmake_build()
     copy_artifacts()
+    os.chdir(TOP_DIR + "/python/pminit")
+    execute(sys.executable + " ./post-install-hook.py")
 
 if __name__ == "__main__":
     build()

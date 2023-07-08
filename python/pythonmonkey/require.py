@@ -30,6 +30,7 @@ from importlib import machinery
 from importlib import util
 
 from . import pythonmonkey as pm 
+node_modules = os.path.abspath(os.path.dirname(__file__) + "/../pminit/pythonmonkey/node_modules")
 
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;")
@@ -190,7 +191,7 @@ bootstrap.modules.fs.existsSync     = os.path.exists
 # require and exports symbols injected from the bootstrap object above. Current PythonMonkey bugs
 # prevent us from injecting names properly so they are stolen from trail left behind in the global
 # scope until that can be fixed.
-with open(os.path.dirname(__file__) + "/node_modules/ctx-module/ctx-module.js", "r") as ctxModuleSource:
+with open(node_modules + "/ctx-module/ctx-module.js", "r") as ctxModuleSource:
     initCtxModule = pm.eval("""'use strict';
 (function moduleWrapper_forCtxModule(broken_require, broken_exports)
 {
