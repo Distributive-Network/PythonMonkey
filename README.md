@@ -26,7 +26,7 @@ this package to execute our complex `dcp-client` library, which is written in JS
 ### Roadmap
 - [done] JS instrinsics coerce to Python intrinsics
 - [done] JS strings coerce to Python strings
-- JS objects coerce to Python dicts [own-properties only]
+- [done] JS objects coerce to Python dicts [own-properties only]
 - [done] JS functions coerce to Python function wrappers
 - [done] JS exceptions propagate to Python
 - [done] Implement `eval()` function in Python which accepts JS code and returns JS->Python coerced values
@@ -41,11 +41,12 @@ this package to execute our complex `dcp-client` library, which is written in JS
 - [done] Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
 - Python host environment supplies XMLHttpRequest (other project?)
 - Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client (other project?)
-- Python TypedArrays coerce to JS TypeArrays
-- JS TypedArrays coerce to Python TypeArrays
+- [done] Python TypedArrays coerce to JS TypeArrays
+- [done] JS TypedArrays coerce to Python TypeArrays
 
 ## Build Instructions
 1. You will need the following installed (which can be done automatically by running ``./setup.sh``):
+    - bash
     - cmake
     - doxygen 
     - graphviz
@@ -107,12 +108,12 @@ Alternatively, you can build a `wheel` package by running `poetry build --format
 These methods are exported from the pythonmonkey module.
 
 ### require(moduleIdentifier)
-Return the exports of a CommonJS module identified by `moduleIdentifier`, using standrd CommonJS
+Return the exports of a CommonJS module identified by `moduleIdentifier`, using standard CommonJS
 semantics
  - modules are singletons and will never be loaded or evaluated more than once
  - moduleIdentifier is relative to the Python file invoking `require`
  - moduleIdentifier should not include a file extension
- - moduleIdentifiers which do not behing with ./, ../, or / are resolved by search require.path
+ - moduleIdentifiers which do not begin with ./, ../, or / are resolved by search require.path
    and module.paths.
  - Modules are evaluated immediately after loading
  - Modules are not loaded until they are required
@@ -186,18 +187,23 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 | List        | Array-like object
 | datetime    | Date object
 | awaitable   | Promise
+| Error       | Error object
+| Buffer      | ArrayBuffer
 
-| JavaScript Type  | Python Type     |
-|:-----------------|:----------------|
-| string           | String
-| number           | Float
-| bigint           | Integer
-| boolean          | Bool
-| function         | Function
-| object - most    | JSProxyObject which inherits from Dict
-| object - Date    | datetime
-| object - Array   | List
-| object - Promise | awaitable
+| JavaScript Type      | Python Type     |
+|:---------------------|:----------------|
+| string               | String
+| number               | Float
+| bigint               | Integer
+| boolean              | Bool
+| function             | Function
+| object - most        | JSObjectProxy which inherits from Dict
+| object - Date        | datetime
+| object - Array       | List
+| object - Promise     | awaitable
+| object - ArrayBuffer | Buffer
+| object - type arrays | Buffer
+| object - Error       | Error
 
 ## Tricks
 ### Integer Type Coercion
