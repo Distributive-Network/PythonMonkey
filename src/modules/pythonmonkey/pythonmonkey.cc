@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -199,7 +199,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
   JSAutoRealm ar(GLOBAL_CX, *global);
   JS::CompileOptions options (GLOBAL_CX);
-  options.setFileAndLine("@evaluate", 1)
+  options.setFileAndLine("evaluate", 1)
   .setIsRunOnce(true)
   .setNoScriptRval(false)
   .setIntroductionType("pythonmonkey eval");
@@ -217,7 +217,32 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     if (getEvalOption(evalOptions, "selfHosting", &b)) options.setSelfHostingMode(b);
     if (getEvalOption(evalOptions, "strict", &b)) if (b) options.setForceStrictMode();
     if (getEvalOption(evalOptions, "module", &b)) if (b) options.setModule();
-  }
+
+    if (getEvalOption(evalOptions, "fromPythonFrame", &b) && b) {
+      PyFrameObject *frame = PyEval_GetFrame();
+      if (frame) {
+        if (!getEvalOption(evalOptions, "lineno", &l)) {
+#if (PY_VERSION_HEX >= 0x030a0000)
+          options.setLine(PyFrame_GetLineNumber(frame));
+#else
+          (void)0;
+#endif
+        } /* lineno */
+
+        if (!getEvalOption(evalOptions, "filename", &s)) {
+#if 0 && (PY_VERSION_HEX >= 0x030a0000) && (PY_VERSION_HEX < 0x030b0000)
+          PyObject *filename = PyDict_GetItemString(frame->f_builtins, "__file__");
+#elif (PY_VERSION_HEX > 0x030c0000)
+          PyObject *filename = PyDict_GetItemString(PyFrame_GetGlobals(frame), "__file__");
+#else
+          PyObject *filename = NULL;
+#endif
+          if (filename && PyUnicode_Check(filename))
+            options.setFile(PyUnicode_AsUTF8(filename));
+        } /* filename */
+      } /* frame */
+    } /* fromPythonFrame */
+  } /* eval options */
 
   // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
@@ -247,7 +272,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
   bool rvalIsFunction = cls == js::ESClass::Function; // function object
   bool rvalIsString = rval->isString() || cls == js::ESClass::String; // string primitive or boxed String object
-  if (!(rvalIsFunction || rvalIsString)) {  // rval may be a JS function or string which must be kept alive.
+  if (!(rvalIsFunction || rvalIsString)) { // rval may be a JS function or string which must be kept alive.
     delete rval;
   }
 

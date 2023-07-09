@@ -31,10 +31,11 @@ from importlib import util
 
 from . import pythonmonkey as pm 
 node_modules = os.path.abspath(os.path.dirname(__file__) + "/../pminit/pythonmonkey/node_modules")
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True }
 
 # Add some python functions to the global python object for code in this file to use.
-globalThis = pm.eval("globalThis;")
-pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }")
+globalThis = pm.eval("globalThis;", evalOpts)
+pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }", evalOpts);
 globalThis.pmEval = pm.eval
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
 #globalThis.python.pythonMonkey.version = pm.__version__
@@ -48,7 +49,7 @@ globalThis.python.eval = eval
 globalThis.python.exec = exec
 globalThis.python.getenv = os.getenv
 globalThis.python.paths  = ':'.join(sys.path)
-pm.eval("python.paths = python.paths.split(':');"); # fix when pm supports arrays
+pm.eval("python.paths = python.paths.split(':');", evalOpts); # fix when pm supports arrays
 
 globalThis.python.exit = pm.eval("""'use strict';
 (exit) => function pythonExitWrapper(exitCode) {
@@ -56,7 +57,7 @@ globalThis.python.exit = pm.eval("""'use strict';
     exitCode = BigInt(Math.floor(exitCode));
   exit(exitCode);
 }
-""")(sys.exit);
+""", evalOpts)(sys.exit);
 
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
 # The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
@@ -67,7 +68,7 @@ bootstrap = pm.eval("""
 
 const bootstrap = {
   modules: {
-    vm: { runInContext: eval },
+    vm: {},
     'ctx-module': {},
   },
 }
@@ -81,7 +82,7 @@ bootstrap.require = function bootstrapRequire(mid)
   throw new Error('module not found: ' + mid);
 }
 
-bootstrap.modules.vm.runInContext_broken = function runInContext(code, _unused_contextifiedObject, options)
+bootstrap.modules.vm.runInContext = function runInContext(code, _unused_contextifiedObject, options)
 {
   var evalOptions = {};
 
@@ -158,7 +159,7 @@ bootstrap.builtinModules = { debug: bootstrap.modules.debug };
 globalThis.bootstrap = bootstrap;
 
 return bootstrap;
-})(globalThis.python)""")
+})(globalThis.python)""", evalOpts)
 
 def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
     """
@@ -191,15 +192,18 @@ bootstrap.modules.fs.existsSync     = os.path.exists
 # require and exports symbols injected from the bootstrap object above. Current PythonMonkey bugs
 # prevent us from injecting names properly so they are stolen from trail left behind in the global
 # scope until that can be fixed.
+#
+# lineno should be -5 but jsapi 102 uses unsigned line numbers, so we take the newlines out of the
+# wrapper prologue to make stack traces line up.
 with open(node_modules + "/ctx-module/ctx-module.js", "r") as ctxModuleSource:
     initCtxModule = pm.eval("""'use strict';
 (function moduleWrapper_forCtxModule(broken_require, broken_exports)
 {
   const require = bootstrap.require;
   const exports = bootstrap.modules['ctx-module'];
-""" + ctxModuleSource.read() + """
+""".replace("\n", " ") + "\n" + ctxModuleSource.read() + """
 })
-""");
+""", { 'filename': node_modules + "/ctx-module/ctx-module.js", 'lineno': 0 });
 #broken initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'].exports)
 initCtxModule();
 
@@ -282,7 +286,7 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(':')));
 
   return module.require;
-})""")
+})""", evalOpts)
     fullFilename = os.path.abspath(filename)
     if (extraPaths):
         extraPaths = ':'.join(extraPaths)
@@ -301,4 +305,4 @@ def runProgramModule(filename, argv, extraPaths=[]):
     globalThis.__filename = fullFilename;
     globalThis.__dirname = os.path.dirname(fullFilename);
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
-        pm.eval(mainModuleSource.read())
+        pm.eval(mainModuleSource.read(), {'filename': fullFilename})
