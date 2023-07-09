@@ -15,23 +15,32 @@ cd `dirname "$0"`/../commonjs-official/tests/modules/1.0 || panic "could not cha
 
 runTest()
 {
+  testName="`printf '%20s' \"$1\"`"
+  set -o pipefail
+  echo -n "${testName}: "
+
   PMJS_PATH="`pwd`" ../../../../../../pmjs -e 'print=python.print' program.js\
   | while read word rest
     do
       case "$word" in
-      "PASS")
-        echo "$word $rest"
+      "PASS"|"DONE")
+        echo -n "$word $rest"
         return 0
       ;;
       "FAIL")
-        echo "$word $rest" >&2
+        echo -n "\r${testName}: $word $rest" >&2
         return 1
       ;;
       *)
         echo "$word $rest"
+        echo -n "${testName}: "
       ;;
       esac
+      (exit 2)
     done
+  ret="$?"
+  echo
+  return "$ret"
 }
 
 find . -name program.js \
@@ -39,7 +48,7 @@ find . -name program.js \
   do
     testDir=`dirname "${program}"`
     cd "${testDir}"
-    runTest || failures=$[${failures:-0} + 1]
+    runTest "`basename ${testDir}`" || failures=$[${failures:-0} + 1]
     cd ..
     (exit ${failures-0})
   done
