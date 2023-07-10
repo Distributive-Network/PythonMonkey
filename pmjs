@@ -109,6 +109,7 @@ def repl():
     got_sigint = 0
     statement = ''
     readline_skip_chars = 0
+    inner_loop = False
     
     def save_history():
         nonlocal histfile
@@ -126,20 +127,43 @@ def repl():
     def sigint_handler(signum, frame):
         """
         Handle ^C by aborting the entry of the current statement and quitting when double-struck.
+
+        Sometimes this happens in the main input() function. When that happens statement is "", because
+        we have not yet returned from input(). Sometimes it happens in the middle of the inner loop's
+        input() - in that case, statement is the beginning of a multiline expression. Hitting ^C in the
+        middle of a multiline express cancels its input, but readline's input() doesn't return, so we
+        have to print the extra > prompt and fake it by later getting rid of the first readline_skip_chars
+        characters from the input buffer.
         """
         nonlocal got_sigint
         nonlocal statement
         nonlocal readline_skip_chars
+        nonlocal inner_loop
 
         got_sigint = got_sigint + 1
-        if (got_sigint == 1 and statement == "" and readline.get_line_buffer() == ""):
-            sys.stdout.write("\n(To exit, press Ctrl+C again or Ctrl+D or type .exit)")
-        elif (got_sigint > 1):
+        if (got_sigint > 1):
             sys.stdout.write("\n")
             quit()
 
+        if (inner_loop != True):
+            if (got_sigint == 1 and len(readline.get_line_buffer()) == readline_skip_chars):
+                # First ^C with nothing in the input buffer
+                sys.stdout.write("\n(To exit, press Ctrl+C again or Ctrl+D or type .exit)")
+            elif (got_sigint == 1 and readline.get_line_buffer() != ""):
+                # Input buffer has text - clear it
+                got_sigint = 0
+                readline_skip_chars = len(readline.get_line_buffer())
+        else:
+            if (got_sigint == 1 and statement == "" and len(readline.get_line_buffer()) == readline_skip_chars):
+                # statement == "" means that the inner loop has already seen ^C and is now faking the outer loop
+                sys.stdout.write("\n(To exit, press Ctrl+C again or Ctrl+D or type .exit)")
+            elif (got_sigint == 1 and statement != ""):
+                # ^C happened on inner loop while it was still thinking we were doing a multiline-expression; since
+                # we can't break the input() function, we set it up to return an outer expression and fake the outer loop
+                got_sigint = 0
+                readline_skip_chars = len(readline.get_line_buffer())
+
         sys.stdout.write("\n> ")
-        readline_skip_chars = len(readline.get_line_buffer())
         statement = ""
     signal.signal(signal.SIGINT, sigint_handler)
 
@@ -156,6 +180,7 @@ def repl():
     #
     while got_sigint < 2:
         try:
+            inner_loop = False
             if (statement == ""):
                 statement = input('> ')[readline_skip_chars:]
             readline_skip_chars = 0
@@ -177,10 +202,11 @@ def repl():
                 # SIGINT is received, so we have to patch things up so that the next-entered line is
                 # treated as the input at the top of the loop.
                 while (got_sigint == 0):
-                    more = input('... ')[readline_skip_chars:]
+                    inner_loop = True
+                    lineBuffer = input('... ')
+                    more = lineBuffer[readline_skip_chars:]
                     readline_skip_chars = 0
                     if (got_sigint > 0):
-                        got_sigint = 0
                         statement = more
                         break
                     statement = statement + '\n' + more
