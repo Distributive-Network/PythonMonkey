@@ -12,38 +12,14 @@
     // Build
     // 
     {
-      "label": "Build pminit",
-      "type": "process",
-      "command": "poetry",
-      "args": [
-        "run",
-        "pip",
-        "install",
-        "--verbose",
-        "python/pminit",
-      ],
-    },
-    {
-      "label": "Build pythonmonkey",
+      "label": "Build",
       "type": "cppbuild",
       "command": "poetry",
       "args": [
-        "run",
-        "pip",
         "install",
-        "--verbose",
-        ".",
       ],
       "problemMatcher": [
         "$gcc"
-      ]
-    },
-    {
-      "label": "Build",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Build pminit",
-        "Build pythonmonkey",
       ],
       "group": {
         "kind": "build",
