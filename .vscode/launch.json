@@ -17,6 +17,7 @@
           "run"
         ],
       },
+      "preLaunchTask": "Build",
       "cwd": "${fileDirname}",
       "environment": [],
       "externalConsole": false,
