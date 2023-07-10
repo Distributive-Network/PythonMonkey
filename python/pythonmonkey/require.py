@@ -23,11 +23,12 @@
 # @date         May 2023
 #
 
-import sys, os, types
-from typing import Union, Dict, Callable
+import sys, os
+from typing import Union, Dict
 import importlib
 from importlib import machinery
-from importlib import util
+import inspect
+import functools
 
 from . import pythonmonkey as pm 
 
@@ -223,7 +224,9 @@ example:
   require = createRequire(__file__)
   require('./my-javascript-module')
 """
-def createRequire(filename):
+# We cache the return value of createRequire to always use the same require for the same filename
+@functools.lru_cache(maxsize=None) # unbounded function cache that won't remove any old values
+def createRequire(filename: str):
     createRequireInner = pm.eval("""'use strict';(
 function createRequire(filename, bootstrap_broken)
 {
@@ -245,3 +248,11 @@ function createRequire(filename, bootstrap_broken)
   return module.require;
 })""")
     return createRequireInner(filename)
+
+def require(moduleIdentifier: str):
+    # Retrieve the caller’s filename from the call stack
+    filename = inspect.stack()[1].filename
+    # From the REPL, the filename is "<stdin>", which is not a valid path
+    if not os.path.exists(filename):
+      filename = os.path.join(os.getcwd(), "__main__") # use the CWD instead
+    return createRequire(filename)(moduleIdentifier)

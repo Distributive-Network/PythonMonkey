@@ -8,8 +8,7 @@ import sys, os
 import pythonmonkey as pm
 
 # Main
-require = pm.createRequire(__file__)
-require('console');
+pm.require('console');
 
 testName = os.path.realpath(sys.argv[1]);
 testDir = os.path.dirname(testName);
