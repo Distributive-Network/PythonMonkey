@@ -55,6 +55,7 @@ numpy = [
   {version = "^2.0.0.dev0", allow-prereleases = true, source = "anaconda", python = "3.12.*"},
   {version = "^1.24.3", python = "<3.12"},
 ]
+pminit = { path = "./python/pminit", develop = true }
 
 
 [[tool.poetry.source]]
