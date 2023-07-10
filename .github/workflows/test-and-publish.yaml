@@ -156,7 +156,7 @@ jobs:
           path: ./dist/
       - name: Run Python tests (pytest)
         run: |
-          poetry run python -m pip install --force-reinstall ./dist/*
+          poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
   sdist:
     runs-on: ubuntu-20.04
