@@ -81,9 +81,38 @@ globalThis.replCmd = function replCmd(cmdLine)
 globalThis.replEval = function replEval(statement)
 {
   const indirectEval = eval;
+  var originalStatement;
+  var result;
+
+  /* A statement which starts with a { and does not end with a ; is treatement as an object literal, 
+   * and to get the parser in to Expression mode instead of Statement mode, we surround any expression
+   * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
+   * we re-evaluate without the parens.
+   */
+  if (/^\\s*\{.*[^;\\s]\\s*$/.test(statement))
+  {
+    const testStatement = `(${statement})`;
+    if (globalThis.python.pythonMonkey.isCompilableUnit(testStatement))
+    {
+      originalStatement = statement;
+      statement = testStatement;
+    }
+  }
+
   try
   {
-    const result = indirectEval(`${statement}`);
+    try
+    {
+      result = indirectEval(statement);
+    }
+    catch(evalError)
+    {
+      if (!(evalError instanceof SyntaxError))
+        throw evalError;
+      globalThis.evalError = evalError;
+      result = indirectEval(originalStatement);
+    }
+
     return util.inspect(result);
   }
   catch(error)

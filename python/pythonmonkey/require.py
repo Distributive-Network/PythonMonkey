@@ -39,6 +39,7 @@ globalThis.pmEval = pm.eval
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
 #globalThis.python.pythonMonkey.version = pm.__version__
 #globalThis.python.pythonMonkey.module = pm
+globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit;
 globalThis.python.print  = print
 globalThis.python.stdout.write = sys.stdout.write
 globalThis.python.stderr.write = sys.stderr.write
