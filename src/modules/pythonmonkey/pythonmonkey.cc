@@ -174,12 +174,8 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b
   PyObject *value;
 
   value = PyDict_GetItemString(evalOptions, optionName);
-  if (value) {
-    if (PyLong_Check(value))
-      *b_p = PyBool_FromLong(PyLong_AsLong(value));
-    else
-      *b_p = value != Py_False;
-  }
+  if (value)
+    *b_p = PyObject_IsTrue(value) ? true : false;
   return value != NULL;
 }
 
