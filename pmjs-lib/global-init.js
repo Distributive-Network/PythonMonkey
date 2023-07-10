@@ -42,7 +42,12 @@ exports.makeArgvBuilder = function pmjsRequire$$makeArgvBuilder()
  * side effects in terms of local module id resolution, so this patch happens only right before we want
  * to fire up the program module.
  */
-exports.patchGlobalRequire = function pmjsRequire$$patchGlobalRequire()
+exports.patchGlobalRequire = function pmjs$$patchGlobalRequire()
 {
   globalThis.require = require;
+}
+
+exports.initReplLibs = function pmjs$$initReplLibs()
+{
+  globalThis.util = require('util');
 }
