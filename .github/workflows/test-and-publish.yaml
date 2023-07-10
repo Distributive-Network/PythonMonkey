@@ -250,8 +250,8 @@ jobs:
           html+="<p>To install nightly builds, run</p>"
           html+="<pre>pip install -i https://nightly.pythonmonkey.io/ --pre pythonmonkey</pre>"
           html+="<h3>Browse files:</h3>"
-          html+="<a href="pythonmonkey/">pythonmonkey</a>"
-          html+="<a href="pminit/">pminit</a>"
+          html+="<li><a href="pythonmonkey/">pythonmonkey</a></li>"
+          html+="<li><a href="pminit/">pminit</a></li>"
           html+="</body></html>"
           echo "$html" > ./index.html
       - uses: actions/upload-pages-artifact@v1
