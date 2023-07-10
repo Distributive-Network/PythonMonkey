@@ -13,7 +13,7 @@
     // 
     {
       "label": "Build",
-      "type": "cppbuild",
+      "type": "process",
       "command": "poetry",
       "args": [
         "install",
