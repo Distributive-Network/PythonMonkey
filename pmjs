@@ -6,6 +6,7 @@
 import sys, os, readline, signal, getopt
 import pythonmonkey as pm
 globalThis = pm.eval("globalThis")
+evalOptions = { 'strict': False }
 
 if (os.getenv('PMJS_PATH')):
     requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
@@ -22,7 +23,7 @@ cmds.help = function help() {
 .load     Load JS from a file into the REPL session
 .save     Save all evaluated commands in this REPL session to a file
 .python   Evaluate a Python statement, returning result as global variable $n.
-          Use '.python reset' to rest back to $1.
+          Use '.python reset' to reset back to $1.
           Statement starting with 'from' or 'import' are silently executed.
 
 Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
@@ -260,6 +261,7 @@ Options:
   -p, --print [...]    evaluate script and print result
   -r, --require...     module to preload (option can be repeated)
   -v, --version        print PythonMonkey version
+  --use-strict         evaluate -e, -p, and REPL code in strict mode
   
 Environment variables:
 TZ                            specify the timezone configuration
@@ -293,7 +295,7 @@ def main():
     global requirePath
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version"])
+        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "use-strict"])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)  # will print something like "option -a not recognized"
@@ -305,16 +307,18 @@ def main():
         if o in ("-v", "--version"):
             print(pm.__version__)
             sys.exit()
+        elif o in ("--use-strict"):
+            evalOptions['strict'] = True
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
         elif o in ("-i", "--interactive"):
             forceRepl = True
         elif o in ("-e", "--eval"):
-            pm.eval(a)
+            pm.eval(a, evalOptions)
             enterRepl = False
         elif o in ("-p", "--print"):
-            print(pm.eval(a))
+            print(pm.eval(a, evalOptions))
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
