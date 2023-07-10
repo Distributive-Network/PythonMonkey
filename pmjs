@@ -12,6 +12,7 @@ if (os.getenv('PMJS_PATH')):
 else:
     requirePath = False;
 
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True }
 pm.eval("""'use strict';
 const cmds = {};
 
@@ -137,7 +138,7 @@ globalThis.replEval = function replEval(statement)
     return formatResult(error);
   }
 }
-""");
+""", evalOpts);
 
 def repl():
     """
@@ -309,7 +310,6 @@ def main():
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
-            #            pm.eval('require')(a)
         else:
             assert False, "unhandled option"
 
