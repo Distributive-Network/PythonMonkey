@@ -27,9 +27,9 @@ poetry self add "poetry-dynamic-versioning[plugin]"
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
-wget -c -q https://ftp.mozilla.org/pub/firefox/releases/102.11.0esr/source/firefox-102.11.0esr.source.tar.xz
+wget -c -q https://ftp.mozilla.org/pub/firefox/releases/102.13.0esr/source/firefox-102.13.0esr.source.tar.xz
 mkdir -p firefox-source
-tar xf firefox-102.11.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
+tar xf firefox-102.13.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
