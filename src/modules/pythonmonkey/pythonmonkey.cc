@@ -180,10 +180,11 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b
 }
 
 static PyObject *eval(PyObject *self, PyObject *args) {
+  size_t argc = PyTuple_GET_SIZE(args);
   StrType *code = new StrType(PyTuple_GetItem(args, 0));
-  PyObject *evalOptions = PyTuple_GET_SIZE(args) == 2 ? PyTuple_GetItem(args, 1) : NULL;
+  PyObject *evalOptions = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
 
-  if (!PyUnicode_Check(code->getPyObject())) {
+  if (argc == 0 || !PyUnicode_Check(code->getPyObject())) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
     return NULL;
   }
