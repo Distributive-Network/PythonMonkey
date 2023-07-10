@@ -38,11 +38,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   ### Code block from: https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
   include(FetchContent)
 
-  if(UNIX)
-    SET(COMPILE_FLAGS "-g -ggdb -O0 -fno-rtti")
-  elseif(WIN32)
-    SET(COMPILE_FLAGS "")
-  endif()
+  SET(COMPILE_FLAGS "-ggdb -Ofast -fno-rtti") # optimize but also emit debug symbols
   SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}" )
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
