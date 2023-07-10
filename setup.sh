@@ -11,7 +11,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   sudo apt-get update --yes
   sudo apt-get install cmake doxygen graphviz llvm g++ pkg-config m4 wget --yes
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
-  brew update
+  brew update || true # allow failure
   brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
