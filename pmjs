@@ -35,6 +35,8 @@ cmds.python = function pythonCmd(...args) {
 
   if (cmd === 'reset')
   {
+    for (let i=0; i < pythonCmd.serial; i++)
+      delete globalThis['$' + i];
     pythonCmd.serial = 0;
     return;
   }
@@ -44,8 +46,9 @@ cmds.python = function pythonCmd(...args) {
 
   const retval = python.eval(cmd);
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
-  python.print('$' + pythonCmd.serial, '=', util.inspect(retval));
   globalThis['$' + pythonCmd.serial] = retval;
+  python.stdout.write('$' + pythonCmd.serial + ' = ');
+  return util.inspect(retval);
 };
 
 /**
@@ -218,7 +221,9 @@ def repl():
             if (len(statement) == 0):
                 continue
             if (statement[0] == '.'):
-                print(globalThis.replCmd(statement[1:]))
+                cmd_output = globalThis.replCmd(statement[1:]);
+                if (cmd_output != None):
+                  print(cmd_output)
                 statement = ""
                 continue
             if (pm.isCompilableUnit(statement)):
