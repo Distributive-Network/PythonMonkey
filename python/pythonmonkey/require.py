@@ -247,17 +247,8 @@ globalThis.python.load = load
 # API: pm.createRequire
 # We cache the return value of createRequire to always use the same require for the same filename
 @functools.lru_cache(maxsize=None) # unbounded function cache that won't remove any old values
-def createRequire(filename, extraPaths: Union[list[str], Literal[False]] = False, isMain = False):
-    """
-    returns a require function that resolves modules relative to the filename argument. 
-    Conceptually the same as node:module.createRequire().
-
-    example:
-    from pythonmonkey import createRequire
-    require = createRequire(__file__)
-    require('./my-javascript-module')
-    """
-    createRequireInner = pm.eval("""'use strict';(
+def _createRequireInner(*args):
+    return pm.eval("""'use strict';(
 /**
  * Factory function which returns a fresh 'require' function. The module cache will inherit from
  * globalTHis.require, assuming it has been defined.
@@ -300,13 +291,24 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(':')));
 
   return module.require;
-})""")
-    fullFilename = os.path.abspath(filename)
+})""")(*args)
+
+def createRequire(filename, extraPaths: Union[list[str], Literal[False]] = False, isMain = False):
+    """
+    returns a require function that resolves modules relative to the filename argument. 
+    Conceptually the same as node:module.createRequire().
+
+    example:
+    from pythonmonkey import createRequire
+    require = createRequire(__file__)
+    require('./my-javascript-module')
+    """
+    fullFilename: str = os.path.abspath(filename)
     if (extraPaths):
         extraPathsStr = ':'.join(extraPaths)
     else:
         extraPathsStr = ''
-    return createRequireInner(fullFilename, 'broken', extraPathsStr, isMain)
+    return _createRequireInner(fullFilename, 'broken', extraPathsStr, isMain)
 
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
