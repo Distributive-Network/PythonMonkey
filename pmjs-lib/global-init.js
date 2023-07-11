@@ -8,8 +8,6 @@
  */
 'use strict';
 
-require('console');
-
 /* Anything loaded with require() before the program started was a side effect and not part of the 
  * program. This means that by now, whoever needed the resources should have memoized them someplace
  * safe, and we can remove them to keep the namespace clean.
