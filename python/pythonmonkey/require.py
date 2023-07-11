@@ -24,7 +24,7 @@
 #
 
 import sys, os
-from typing import Union, Dict, Literal
+from typing import Union, Dict, Literal, List
 import importlib
 import importlib.util
 from importlib import machinery
@@ -293,7 +293,7 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
   return module.require;
 })""")(*args)
 
-def createRequire(filename, extraPaths: Union[list[str], Literal[False]] = False, isMain = False):
+def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False, isMain = False):
     """
     returns a require function that resolves modules relative to the filename argument. 
     Conceptually the same as node:module.createRequire().
