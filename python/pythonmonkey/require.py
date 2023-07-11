@@ -321,7 +321,6 @@ def runProgramModule(filename, argv, extraPaths=[]):
     globalThis.__dirname = os.path.dirname(fullFilename);
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
         pm.eval(mainModuleSource.read())
-    return createRequireInner(filename)
 
 def require(moduleIdentifier: str):
     # Retrieve the caller’s filename from the call stack
