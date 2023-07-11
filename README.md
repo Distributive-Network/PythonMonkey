@@ -228,10 +228,57 @@ globalThis.python.exit = pm.eval("""'use strict';
 """)(sys.exit);
 ```
 
-# Troubleshooting Tips
+# pmjs
+A basic JavaScript shell, `pmjs`, ships with PythonMonkey. This shell can act as a REPL or run
+JavaScript programs; it is conceptually similar to the `node` shell which ships with Node.js.
 
-## REPL - pmjs 
-A basic JavaScript shell, `pmjs`, ships with PythonMonkey. This shell can also run JavaScript programs with 
+## Modules
+Pmjs starts PythonMonkey's CommonJS subsystem, which allow it to use CommonJS modules, with semantics
+that are similar to Node.js - e.g. searching module.paths, understanding package.json, index.js, and
+so on. See the [ctx-module](https://www.npmjs.com/package/ctx-module) for a full list of supported
+features.
+
+In addition to CommonJS modules written in JavaScript, PythonMonkey supports CommonJS modules written
+in Python. Simply decorate a Dict named `exports` inside a file with a `.py` extension, and it can be
+loaded by `require()` -- in either JavaScript or Python.
+
+## Program Module
+The program module, or main module, is a special module in CommonJS. In a program module,
+ - variables defined in the outermost scope are properties of `globalThis`
+ - returning from the outermost scope is a syntax error
+ - the `arguments` variable in an Array-like object which holds your program's argument vector
+   (command-line arguments)
+
+```console
+# echo "console.log('hello world')" > my-program.js
+# pmjs my-program.js
+hello world
+#
+```
+
+# Troubleshooting Tips
 
 ## CommonJS (require)
 If you are having trouble with the CommonJS require function, set environment variable DEBUG='ctx-module*' and you can see the filenames it tries to laod.
+
+## pmjs
+- there is a `.help` menu in the REPL
+- there is a `--help` command-line option
+- the `-r` option can be used to load a module before your program or the REPL runs
+- the `-e` option can be used evaluate code -- e.g. define global variables -- before your program or the REPL runs
+- The REPL can evaluate Python expressions, storing them in variables named `$1`, `$2`, etc. ```
+# ./pmjs
+Welcome to PythonMonkey v0.0.1.dev940+6a2563b.
+Type ".help" for more information.
+> .python import sys
+> .python sys.path
+$1 = { '0': '/home/wes/git/pythonmonkey2',
+  '1': '/usr/lib/python310.zip',
+  '2': '/usr/lib/python3.10',
+  '3': '/usr/lib/python3.10/lib-dynload',
+  '4': '/home/wes/.cache/pypoetry/virtualenvs/pythonmonkey-StuBmUri-py3.10/lib/python3.10/site-packages',
+  '5': '/home/wes/git/pythonmonkey2/python' }
+> $1[3]
+'/usr/lib/python3.10/lib-dynload'
+> 
+```
