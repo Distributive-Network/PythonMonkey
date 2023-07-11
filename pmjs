@@ -3,7 +3,7 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, readline, signal, getopt
+import sys, os, readline, signal, getopt, asyncio
 import pythonmonkey as pm
 globalThis = pm.eval("globalThis")
 evalOptions = { 'strict': False }
@@ -290,7 +290,7 @@ def initGlobalThis():
         argvBuilder(arg); # list=>Array not working yet
     return globalInitModule
 
-def main():
+async def main():
     """
     Main program entry point
     """
@@ -339,4 +339,4 @@ def main():
         repl()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
