@@ -24,7 +24,7 @@
 #
 
 import sys, os
-from typing import Union, Dict
+from typing import Union, Dict, Literal
 import importlib
 import importlib.util
 from importlib import machinery
@@ -247,7 +247,7 @@ globalThis.python.load = load
 # API: pm.createRequire
 # We cache the return value of createRequire to always use the same require for the same filename
 @functools.lru_cache(maxsize=None) # unbounded function cache that won't remove any old values
-def createRequire(filename, extraPaths = False, isMain = False):
+def createRequire(filename, extraPaths: Union[list[str], Literal[False]] = False, isMain = False):
     """
     returns a require function that resolves modules relative to the filename argument. 
     Conceptually the same as node:module.createRequire().
@@ -303,8 +303,10 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
 })""")
     fullFilename = os.path.abspath(filename)
     if (extraPaths):
-        extraPaths = ':'.join(extraPaths)
-    return createRequireInner(fullFilename, 'broken', extraPaths, isMain)
+        extraPathsStr = ':'.join(extraPaths)
+    else:
+        extraPathsStr = ''
+    return createRequireInner(fullFilename, 'broken', extraPathsStr, isMain)
 
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
