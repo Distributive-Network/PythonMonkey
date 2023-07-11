@@ -160,7 +160,7 @@ jobs:
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
         run: |
-          poetry run ./peter-jr ./tests/js/
+          poetry run bash ./peter-jr ./tests/js/
   sdist:
     runs-on: ubuntu-20.04
     steps:
