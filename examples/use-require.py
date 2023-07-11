@@ -5,7 +5,6 @@
 
 import pythonmonkey as pm
 
-require = pm.createRequire(__file__)
-require('./use-require/test1');
+pm.require('./use-require/test1');
 print("Done")
 

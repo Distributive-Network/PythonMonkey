@@ -23,14 +23,23 @@
 # @date         May 2023
 #
 
-import sys, os, types
-from typing import Union, Dict, Callable
+import sys, os
+from typing import Union, Dict, Literal, List
 import importlib
+import importlib.util
 from importlib import machinery
-from importlib import util
+import inspect
+import functools
 
 from . import pythonmonkey as pm 
-node_modules = os.path.abspath(os.path.dirname(__file__) + "/../pminit/pythonmonkey/node_modules")
+node_modules = os.path.abspath(
+  os.path.join(
+    importlib.util.find_spec("pminit").submodule_search_locations[0],
+    "..",
+    "pythonmonkey",
+    "node_modules"
+  )
+)
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True }
 
 # Add some python functions to the global python object for code in this file to use.
@@ -169,6 +178,7 @@ def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
         Union[Dict[str, int], False]: The mode of the file or False if the file doesn't exist.
     """
     from os import stat
+    filename = os.path.normpath(filename)
     if (os.path.exists(filename)):
         sb = stat(filename)
         return { 'mode': sb.st_mode }
@@ -181,12 +191,17 @@ def readFileSync(filename, charset) -> str:
     Returns:
         str: The contents of the file
     """
+    filename = os.path.normpath(filename)
     with open(filename, "r", encoding=charset) as fileHnd:
         return fileHnd.read()
 
+def existsSync(filename: str) -> bool:
+    filename = os.path.normpath(filename)
+    return os.path.exists(filename)
+
 bootstrap.modules.fs.statSync_inner = statSync_inner
 bootstrap.modules.fs.readFileSync   = readFileSync
-bootstrap.modules.fs.existsSync     = os.path.exists
+bootstrap.modules.fs.existsSync     = existsSync
 
 # Read ctx-module module from disk and invoke so that this file is the "main module" and ctx-module has
 # require and exports symbols injected from the bootstrap object above. Current PythonMonkey bugs
@@ -219,6 +234,7 @@ def load(filename: str) -> Dict:
         : The loaded python module
     """
 
+    filename = os.path.normpath(filename)
     name = os.path.basename(filename)
     if name not in sys.modules:
         sourceFileLoader = machinery.SourceFileLoader(name, filename)
@@ -233,17 +249,10 @@ def load(filename: str) -> Dict:
 globalThis.python.load = load
 
 # API: pm.createRequire
-def createRequire(filename, extraPaths = False, isMain = False):
-    """
-    returns a require function that resolves modules relative to the filename argument. 
-    Conceptually the same as node:module.createRequire().
-
-    example:
-    from pythonmonkey import createRequire
-    require = createRequire(__file__)
-    require('./my-javascript-module')
-    """
-    createRequireInner = pm.eval("""'use strict';(
+# We cache the return value of createRequire to always use the same require for the same filename
+@functools.lru_cache(maxsize=None) # unbounded function cache that won't remove any old values
+def _createRequireInner(*args):
+    return pm.eval("""'use strict';(
 /**
  * Factory function which returns a fresh 'require' function. The module cache will inherit from
  * globalTHis.require, assuming it has been defined.
@@ -286,11 +295,25 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(':')));
 
   return module.require;
-})""", evalOpts)
-    fullFilename = os.path.abspath(filename)
+})""", evalOpts)(*args)
+
+def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False, isMain = False):
+    """
+    returns a require function that resolves modules relative to the filename argument. 
+    Conceptually the same as node:module.createRequire().
+
+    example:
+    from pythonmonkey import createRequire
+    require = createRequire(__file__)
+    require('./my-javascript-module')
+    """
+    fullFilename: str = os.path.abspath(filename)
     if (extraPaths):
-        extraPaths = ':'.join(extraPaths)
-    return createRequireInner(fullFilename, 'broken', extraPaths, isMain)
+        extraPathsStr = ':'.join(extraPaths)
+    else:
+        extraPathsStr = ''
+    return _createRequireInner(fullFilename, 'broken', extraPathsStr, isMain)
+
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
     """
@@ -306,3 +329,11 @@ def runProgramModule(filename, argv, extraPaths=[]):
     globalThis.__dirname = os.path.dirname(fullFilename);
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
         pm.eval(mainModuleSource.read(), {'filename': fullFilename})
+
+def require(moduleIdentifier: str):
+    # Retrieve the caller’s filename from the call stack
+    filename = inspect.stack()[1].filename
+    # From the REPL, the filename is "<stdin>", which is not a valid path
+    if not os.path.exists(filename):
+      filename = os.path.join(os.getcwd(), "__main__") # use the CWD instead
+    return createRequire(filename)(moduleIdentifier)
