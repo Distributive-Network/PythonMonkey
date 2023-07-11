@@ -12,6 +12,8 @@ if (os.getenv('PMJS_PATH')):
 else:
     requirePath = False;
 
+globalThis = pm.eval("globalThis;")
+
 pm.eval("""'use strict';
 const cmds = {};
 

@@ -5,5 +5,4 @@
 
 import pythonmonkey as pm
 
-require = pm.createRequire(__file__)
-require('./use-python-module');
+pm.require('./use-python-module');
