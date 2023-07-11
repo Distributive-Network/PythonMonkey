@@ -1,0 +1,3 @@
+[submodule "tests/commonjs-official"]
+  path = tests/commonjs-official
+  url = https://github.com/commonjs/commonjs.git

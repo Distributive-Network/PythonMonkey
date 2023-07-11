@@ -1,3 +1,8 @@
+# @file        build.py
+#              Main PythonMonkey build automation script. Run with `poetry build`.
+# @author      Hamada Gasmallah, hamada@distributive.network
+# @date        April 2023
+#
 import subprocess
 import os, sys
 import platform
@@ -48,6 +53,7 @@ def copy_artifacts():
         execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/")
 
 def build():
+    execute("git submodule update --init --recursive")
     ensure_spidermonkey()
     run_cmake_build()
     copy_artifacts()

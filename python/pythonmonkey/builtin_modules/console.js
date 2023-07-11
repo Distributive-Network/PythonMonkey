@@ -3,7 +3,6 @@
  * @author   Tom Tang <xmader@distributive.network>
  * @date     June 2023
  */
-
 const { customInspectSymbol, format } = require("util");
 
 /** @typedef {(str: string) => void} WriteFn */
@@ -21,12 +20,30 @@ class Console {
   #writeToStderr;
 
   /**
-   * @param {WriteFn} writeToStdout 
-   * @param {WriteFn} writeToStderr 
+   * Console constructor, form 1
+   * @param {object} stdout - object with write method
+   * @param {object} stderr - object with write method
+   * @param {boolean} ignoreErrors - currently unused in PythonMonkey
+   * @see https://nodejs.org/api/console.html#new-consolestdout-stderr-ignoreerrors
    */
-  constructor(writeToStdout, writeToStderr) {
-    this.#writeToStdout = writeToStdout
-    this.#writeToStderr = writeToStderr
+  /**
+   * Console constructor, form 2
+   * @param {object} options - options object
+   */
+  constructor(stdout, stderr, ignoreErrors)
+  {
+    var options;
+
+    if (arguments.length === 1)
+      options = stdout;
+    else
+    {
+      if (typeof ignoreErrors === 'undefined')
+        ignoreErrors = true;
+      options = { stdout, stderr, ignoreErrors };
+    }
+    this.#writeToStdout = options.stdout.write;
+    this.#writeToStderr = options.stderr.write;
   }
 
   /**
@@ -66,8 +83,8 @@ Console.prototype.error = Console.prototype.warn;
 
 if (!globalThis.console) {
   globalThis.console = new Console(
-    python.stdout_write /* sys.stdout.write */,
-    python.stderr_write /* sys.stderr.write */
+    python.stdout /* sys.stdout */,
+    python.stderr /* sys.stderr */
   );
 }
 
