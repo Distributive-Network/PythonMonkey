@@ -152,7 +152,10 @@ def repl():
     readline.parse_and_bind('set editing-mode emacs')
     histfile = os.getenv('PMJS_REPL_HISTORY') or os.path.expanduser('~/.pmjs_history')
     if (os.path.exists(histfile)):
-        readline.read_history_file(histfile)
+        try:
+            readline.read_history_file(histfile)
+        except:
+            pass
 
     got_sigint = 0
     statement = ''
