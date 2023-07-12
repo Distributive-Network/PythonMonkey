@@ -6,6 +6,7 @@
 const { customInspectSymbol, format } = require("util");
 
 /** @typedef {(str: string) => void} WriteFn */
+/** @typedef {{ write: WriteFn }} IOWriter */
 
 /**
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Console_API
@@ -21,14 +22,20 @@ class Console {
 
   /**
    * Console constructor, form 1
-   * @param {object} stdout - object with write method
-   * @param {object} stderr - object with write method
-   * @param {boolean} ignoreErrors - currently unused in PythonMonkey
+   * @overload
+   * @param {IOWriter} stdout - object with write method
+   * @param {IOWriter} stderr - object with write method
+   * @param {boolean=} ignoreErrors - currently unused in PythonMonkey
    * @see https://nodejs.org/api/console.html#new-consolestdout-stderr-ignoreerrors
    */
   /**
    * Console constructor, form 2
-   * @param {object} options - options object
+   * @overload
+   * @param {ConsoleConstructorOptions} options - options object
+   * @typedef {object} ConsoleConstructorOptions
+   * @property {IOWriter} stdout - object with write method
+   * @property {IOWriter} stderr - object with write method
+   * @property {boolean=} ignoreErrors - currently unused in PythonMonkey
    */
   constructor(stdout, stderr, ignoreErrors)
   {
