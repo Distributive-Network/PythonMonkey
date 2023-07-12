@@ -30,4 +30,19 @@ declare function internalBinding(namespace: "utils"): {
   getProxyDetails<T extends object>(proxy: T): undefined | [target: T, handler: ProxyHandler<T>];
 };
 
+declare function internalBinding(namespace: "timers"): {
+  /**
+   * internal binding helper for the `setTimeout` global function
+   * 
+   * **UNSAFE**, does not perform argument type checks
+   * @return timeoutId
+   */
+  enqueueWithDelay(handler: Function, delaySeconds: number): number;
+
+  /**
+   * internal binding helper for the `clearTimeout` global function
+   */
+  cancelByTimeoutId(timeoutId: number): void;
+};
+
 export = internalBinding;
