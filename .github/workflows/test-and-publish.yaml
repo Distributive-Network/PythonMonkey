@@ -23,6 +23,7 @@ defaults:
 jobs:
   build-spidermonkey-unix:
     strategy:
+      fail-fast: false
       matrix:
         # Use Ubuntu 20.04 / macOS 12 + Python 3.10 to build SpiderMonkey
         os: [ 'ubuntu-20.04', 'macos-12', 'm2ci' ]
@@ -39,8 +40,13 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey102.13-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
+      - name: Setup Poetry
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
@@ -54,8 +60,13 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey102.13-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
+      - name: Setup Poetry
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.5.1
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         shell: powershell
@@ -124,7 +135,7 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey102.13-${{ runner.os }}-${{ runner.arch }}
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build pminit
         run: |
@@ -147,6 +158,11 @@ jobs:
         run: |
           poetry run python -m pip install --force-reinstall ./dist/*
           poetry run python -m pytest tests/python
+      - name: Run JS tests (peter-jr)
+        if: ${{ runner.os != 'Windows' }} # Python on Windows doesn't have the readline library
+        # FIXME: on macOS we must make sure to use the GNU version of wc and realpath
+        run: |
+          poetry run bash ./peter-jr ./tests/js/
   sdist:
     runs-on: ubuntu-20.04
     steps:
