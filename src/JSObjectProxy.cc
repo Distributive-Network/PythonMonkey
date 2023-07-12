@@ -73,6 +73,13 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
 {
+  // // XXX: If we ban access of the `.keys()` method from Python internals, we can force to-dict conversion by iterating over the sequence of key-value pairs
+  // //       see also: https://docs.python.org/3/c-api/dict.html#c.PyDict_Update
+  // if (PyUnicode_CompareWithASCIIString(key, "keys") == 0) {
+  //   PyErr_SetString(PyExc_AttributeError, "Use for-in iterator instead.");
+  //   return NULL;
+  // }
+
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
     // TODO (Caleb Aikens): raise exception here
@@ -230,7 +237,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   PyObject *objPtr = PyLong_FromVoidPtr(self->jsObject.get());
   // For `Py_ReprEnter`, we must get a same PyObject when visiting the same JSObject.
   // We cannot simply use the object returned by `PyLong_FromVoidPtr` because it won't reuse the PyLongObjects for ints not between -5 and 256.
-  // Instead, we store this PyLongObject in a global dict, using itself as the hashable key.
+  // Instead, we store this PyLongObject in a global dict, using itself as the hashable key, effectively interning the PyLongObject.
   PyObject *tsDict = PyThreadState_GetDict();
   PyObject *cyclicKey = PyDict_SetDefault(tsDict, /*key*/ objPtr, /*value*/ objPtr); // cyclicKey = (tsDict[objPtr] ??= objPtr)
   int status = Py_ReprEnter(cyclicKey);
