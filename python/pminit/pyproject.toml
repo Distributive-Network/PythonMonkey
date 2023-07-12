@@ -27,7 +27,10 @@ bump = true
 
 [tool.poetry.build]
 script = "post-install-hook.py"
-generate-setup-file = false 
+generate-setup-file = false
+
+[tool.poetry.scripts]
+pminit = "pminit.cli:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
