@@ -43,6 +43,10 @@ declare function pmEval(code: string): any;
 // Expose our own `console` as a property of the global object
 declare const console: import("console").Console;
 
+// Expose `atob`/`btoa` as properties of the global object
+declare const atob: typeof import("base64.js").atob;
+declare const btoa: typeof import("base64.js").btoa;
+
 // Keep this in sync with both https://hg.mozilla.org/releases/mozilla-esr102/file/a03fde6/js/public/Promise.h#l331
 //                        and  https://github.com/nodejs/node/blob/v20.2.0/deps/v8/include/v8-promise.h#L30
 declare enum PromiseState { Pending = 0, Fulfilled = 1, Rejected = 2 }
