@@ -57,8 +57,6 @@ def build():
     ensure_spidermonkey()
     run_cmake_build()
     copy_artifacts()
-    os.chdir(TOP_DIR + "/python/pminit")
-    execute(sys.executable + " ./post-install-hook.py")
 
 if __name__ == "__main__":
     build()
