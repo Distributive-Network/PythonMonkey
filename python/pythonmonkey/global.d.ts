@@ -11,12 +11,28 @@ declare const python: {
   };
   /** Python `print` */
   print(...values: any): void;
-  /** Python `sys.stdout.write`. Write the given string to stdout. */
-  stdout_write(s: string): void;
-  /** Python `sys.stderr.write`. Write the given string to stderr. */
-  stderr_write(s: string): void;
+  /** Python `eval` */
+  eval(code: string, globals?: Record<string, any>, locals?: Record<string, any>): any;
+  /** Python `exec` */
+  exec(code: string, globals?: Record<string, any>, locals?: Record<string, any>): void;
+  /** Python `sys.stdout`. */
+  stdout: {
+    /** Write the given string to stdout. */
+    write(s: string): number;
+    read(n: number): string;
+  };
+  /** Python `sys.stderr`. */
+  stderr: {
+    /** Write the given string to stderr. */
+    write(s: string): number;
+    read(n: number): string;
+  };
   /** Python `os.getenv`. Get an environment variable, return undefined if it doesn't exist. */
   getenv(key: string): string | undefined;
+  /** Python `exit`. Exit the program. */
+  exit(exitCode: number): never;
+  /** Loads a python module using importlib, prefills it with an exports object and returns the module. */
+  load(filename: string): object;
   /** Python `sys.path` */
   paths: string[];
 };
