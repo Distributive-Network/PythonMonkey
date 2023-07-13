@@ -11,7 +11,10 @@ def execute(cmd: str, cwd: str):
 
     popen.stdout.close()
     return_code = popen.wait()
-    if return_code:
+    #For some reason npm returns a non zero
+    #exit code when `--help` is used in the commands.
+    #This shouldn't raise an error.
+    if return_code and "--help" not in cmd:
         raise subprocess.CalledProcessError(return_code, cmd)
 
 def commandType(value: str):
