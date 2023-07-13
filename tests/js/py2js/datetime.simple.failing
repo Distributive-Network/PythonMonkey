@@ -1,0 +1,23 @@
+/**
+ * @file        py2js/datetime.simple.failing
+ *              Simple test which shows that sending Python datetime.datetimes to JS and getting them back into
+ *              Python works as expected
+ * 
+ * @author      Elijah Deluzio, elijah@distributive.network
+ * @date        July 2023
+ */
+'use strict'
+
+python.exec(`import datetime`);
+const pyDate = python.eval(`datetime.datetime(1111, 2, 3)`);
+const jsDateExpected = new Date(1111, 2, 3);
+const throughJS = x => x;
+const jsDate = throughJS(pyDate);
+
+if (jsDate.getTime() !== jsDateExpected.getTime())
+{
+  console.error('expected', jsDate.getTime(), 'but got', pyDate.getTime());
+  throw new Error('test failed');
+}
+
+console.log('pass -', jsDate);
