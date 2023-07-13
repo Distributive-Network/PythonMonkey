@@ -17,3 +17,5 @@ dist
 *.dylib
 *.dll
 *.pyd
+# Virtual Environment
+.venv/
