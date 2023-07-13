@@ -1,0 +1,80 @@
+name: File a Bug Report for PythonMonkey
+description: Use this template to report PythonMonkey-related issues. Thank you so much for making an issue!
+body:
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue type
+      description: What type of issue would you like to report?
+      multiple: false
+      options:
+        - Bug
+        - Build/Install
+        - Performance
+        - Support
+        - Documentation Bug / Error
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: How did you install PythonMonkey?
+      options:
+        - Source
+        - Installed from pip
+        - Other (Please specify in additional info)
+
+  - type: input
+    id: OS
+    attributes:
+      label: OS platform and distribution
+      placeholder: e.g., Linux Ubuntu 22.04
+
+  - type: input
+    id: Python
+    attributes:
+      label: Python version (`python --version`)
+      placeholder: e.g., 3.9
+
+  - type: input
+    id: PythonMonkey
+    attributes:
+      label: PythonMonkey version
+      placeholder: 0.0.1.dev997+1eb883
+      description: You can also get this with `pmjs --version`.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Bug Description
+      description: Please provide a clear and concise description of what the bug is.
+
+  - type: textarea
+    id: code-to-reproduce
+    attributes:
+      label: Standalone code to reproduce the issue
+      description: Provide a reproducible test case that is the bare minimum necessary to generate the problem.
+      value:
+      render: shell
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output or backtrace
+      description: Please copy and paste any relevant log output.
+      render: shell
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional info if applicable
+      description: Anything else to add.
+      render: shell
+
+  - type: input
+    id: brnach
+    attributes:
+      label: What branch of PythonMonkey were you developing on? (If applicable)
+      placeholder: main
