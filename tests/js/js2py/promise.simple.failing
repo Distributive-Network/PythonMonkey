@@ -1,0 +1,25 @@
+/**
+ * @file        js2py/promise.simple
+ *              Simple test which shows that creating a promise in javascript and sending it to Python and getting it back into JS
+ *              works as expected - able to resolve the promise sent back.
+ * @author      Ryan Saweczko ryansaweczko@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+
+var resolve, reject;
+const examplePromise = new Promise((res, rej) => {resolve = res, reject = rej});
+
+const pythonCode = `lambda x: x`;
+
+const pythonLambda = python.eval(pythonCode);
+const outPromise = pythonLambda(examplePromise);
+
+outPromise.then(() => {
+  console.log("able to resolve promise after going through python");
+  python.exit();
+});
+
+resolve();
+
