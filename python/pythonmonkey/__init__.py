@@ -6,5 +6,6 @@ from .require import *
 import importlib.metadata
 __version__= importlib.metadata.version(__name__)
 
-# Load the module by default to make `console` globally available
+# Load the module by default to make `console`/`atob`/`btoa` globally available
 require("console")
+require("base64")
