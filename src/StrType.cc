@@ -33,6 +33,15 @@
   #define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
 #endif
 
+static bool containsSurrogatePair(const char16_t *chars, size_t length) {
+  for (size_t i = 0; i < length; i++) {
+    if (Py_UNICODE_IS_SURROGATE(chars[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 StrType::StrType(PyObject *object) : PyType(object) {}
 
 StrType::StrType(char *string) : PyType(Py_BuildValue("s", string)) {}
@@ -91,6 +100,18 @@ StrType::StrType(JSContext *cx, JSString *str) {
     }
     PY_UNICODE_OBJECT_READY(pyObject) = 1;
   #endif
+
+    if (containsSurrogatePair(chars, length)) {
+      // We must convert to UCS4 here because Python does not support decoding string containing surrogate pairs to bytes
+      PyObject *ucs4Obj = this->asUCS4(); // convert `pyObject` to a new PyUnicodeObject with UCS4 data
+      if (!ucs4Obj) {
+        // conversion fails, keep the original `pyObject`
+        PyErr_Clear();
+        return;
+      }
+      Py_DECREF(pyObject); // cleanup the old `pyObject`
+      pyObject = Py_NewRef(ucs4Obj);
+    }
   }
 }
 
@@ -99,6 +120,10 @@ const char *StrType::getValue() const {
 }
 
 PyObject *StrType::asUCS4() {
+  if (PyUnicode_KIND(pyObject) != PyUnicode_2BYTE_KIND) {
+    return Py_NewRef(pyObject);
+  }
+
   uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
   size_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
 
