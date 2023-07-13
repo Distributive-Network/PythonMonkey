@@ -131,7 +131,7 @@ PyObject *StrType::asUCS4() {
   size_t ucs4Length = 0;
 
   for (size_t i = 0; i < length; i++) {
-    if (chars[i] >= LOW_SURROGATE_START && chars[i] <= LOW_SURROGATE_END) // character is an unpaired low surrogate
+    if (Py_UNICODE_IS_LOW_SURROGATE(chars[i])) // character is an unpaired low surrogate
     {
       char hexString[5];
       sprintf(hexString, "%x", (unsigned int)chars[i]);
@@ -139,13 +139,9 @@ PyObject *StrType::asUCS4() {
       PyErr_SetString(PyExc_UnicodeTranslateError, errorString.c_str());
       return NULL;
     }
-    else if (chars[i] >= HIGH_SURROGATE_START && chars[i] <= HIGH_SURROGATE_END) { // character is a high surrogate
-      if ((i + 1 < length) && chars[i+1] >= LOW_SURROGATE_START && chars[i+1] <= LOW_SURROGATE_END) { // next character is a low surrogate
-        // see https://www.unicode.org/faq/utf_bom.html#utf16-3 for details
-        uint32_t X = (chars[i] & ((1 << 6) -1)) << 10 | chars[i+1] & ((1 << 10) -1);
-        uint32_t W = (chars[i] >> 6) & ((1 << 5) - 1);
-        uint32_t U = W+1;
-        ucs4String[ucs4Length] = U << 16 | X;
+    else if (Py_UNICODE_IS_HIGH_SURROGATE(chars[i])) { // character is a high surrogate
+      if ((i + 1 < length) && Py_UNICODE_IS_LOW_SURROGATE(chars[i+1])) { // next character is a low surrogate
+        ucs4String[ucs4Length] = Py_UNICODE_JOIN_SURROGATES(chars[i], chars[i+1]);
         ucs4Length++;
         i++; // skip over low surrogate
       }
