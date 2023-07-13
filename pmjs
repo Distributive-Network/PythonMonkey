@@ -40,6 +40,9 @@ cmds.python = function pythonCmd(...args) {
     return;
   }
 
+  if (cmd === '')
+    return;
+
   if (arguments[0] === 'from' || arguments[0] === 'import')
     return python.exec(cmd);
 
