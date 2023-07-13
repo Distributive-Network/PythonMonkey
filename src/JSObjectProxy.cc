@@ -73,13 +73,6 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
 {
-  // // XXX: If we ban access of the `.keys()` method from Python internals, we can force to-dict conversion by iterating over the sequence of key-value pairs
-  // //       see also: https://docs.python.org/3/c-api/dict.html#c.PyDict_Update
-  // if (PyUnicode_CompareWithASCIIString(key, "keys") == 0) {
-  //   PyErr_SetString(PyExc_AttributeError, "Use for-in iterator instead.");
-  //   return NULL;
-  // }
-
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
     // TODO (Caleb Aikens): raise exception here
