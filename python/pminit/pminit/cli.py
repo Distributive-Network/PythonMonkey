@@ -22,7 +22,7 @@ def commandType(value: str):
 def main():
     parser = argparse.ArgumentParser(description="A tool to enable running npm on the correct package.json location")
     parser.add_argument("executable", nargs=1, help="Should be npm.", type=commandType)
-    parser.add_argument("args", nargs="+", help="Args to pass into npm command", type=str)
+    parser.add_argument("args", nargs = argparse.REMAINDER)
     args = parser.parse_args()
   
     pythonmonkey_path= os.path.realpath(
@@ -31,8 +31,8 @@ def main():
             '..',
             'pythonmonkey'
         )
-    ) 
-    
+    )
+
     execute(' '.join( args.executable + args.args ), pythonmonkey_path)
 
     
