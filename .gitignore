@@ -18,3 +18,5 @@ dist
 *.dll
 *.pyd
 *~
+# Virtual Environment
+.venv/
