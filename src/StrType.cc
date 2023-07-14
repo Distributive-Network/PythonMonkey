@@ -103,7 +103,7 @@ StrType::StrType(JSContext *cx, JSString *str) {
 
     if (containsSurrogatePair(chars, length)) {
       // We must convert to UCS4 here because Python does not support decoding string containing surrogate pairs to bytes
-      PyObject *ucs4Obj = this->asUCS4(); // convert `pyObject` to a new PyUnicodeObject with UCS4 data
+      PyObject *ucs4Obj = asUCS4(pyObject); // convert to a new PyUnicodeObject with UCS4 data
       if (!ucs4Obj) {
         // conversion fails, keep the original `pyObject`
         return;
@@ -118,7 +118,8 @@ const char *StrType::getValue() const {
   return PyUnicode_AsUTF8(pyObject);
 }
 
-PyObject *StrType::asUCS4() {
+/* static */
+PyObject *StrType::asUCS4(PyObject *pyObject) {
   if (PyUnicode_KIND(pyObject) != PyUnicode_2BYTE_KIND) {
     return Py_NewRef(pyObject);
   }

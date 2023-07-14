@@ -143,13 +143,13 @@ static PyObject *collect(PyObject *self, PyObject *args) {
 }
 
 static PyObject *asUCS4(PyObject *self, PyObject *args) {
-  StrType *str = new StrType(PyTuple_GetItem(args, 0));
-  if (!PyUnicode_Check(str->getPyObject())) {
+  PyObject *str = PyTuple_GetItem(args, 0);
+  if (!PyUnicode_Check(str)) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.asUCS4 expects a string as its first argument");
     return NULL;
   }
 
-  PyObject *ucs4Str = str->asUCS4();
+  PyObject *ucs4Str = StrType::asUCS4(str);
   if (!ucs4Str) {
     PyErr_SetString(PyExc_UnicodeTranslateError, "string contains an unpaired surrogates");
     return NULL;
