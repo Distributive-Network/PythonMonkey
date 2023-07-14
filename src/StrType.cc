@@ -33,6 +33,9 @@
   #define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
 #endif
 
+/**
+ * @brief check if UTF-16 encoded `chars` contain a surrogate pair
+ */
 static bool containsSurrogatePair(const char16_t *chars, size_t length) {
   for (size_t i = 0; i < length; i++) {
     if (Py_UNICODE_IS_SURROGATE(chars[i])) {
@@ -109,7 +112,8 @@ StrType::StrType(JSContext *cx, JSString *str) {
         return;
       }
       Py_DECREF(pyObject); // cleanup the old `pyObject`
-      pyObject = Py_NewRef(ucs4Obj);
+      Py_INCREF(ucs4Obj); // XXX: Same as the above `Py_INCREF(pyObject);`. Why double freed on GC?
+      pyObject = ucs4Obj;
     }
   }
 }
@@ -121,7 +125,9 @@ const char *StrType::getValue() const {
 /* static */
 PyObject *StrType::asUCS4(PyObject *pyObject) {
   if (PyUnicode_KIND(pyObject) != PyUnicode_2BYTE_KIND) {
-    return Py_NewRef(pyObject);
+    // return a new reference to match the behaviour of `PyUnicode_FromKindAndData`
+    Py_INCREF(pyObject);
+    return pyObject;
   }
 
   uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
