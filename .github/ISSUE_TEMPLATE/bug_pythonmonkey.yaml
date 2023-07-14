@@ -74,7 +74,7 @@ body:
       render: shell
 
   - type: input
-    id: brnach
+    id: branch
     attributes:
       label: What branch of PythonMonkey were you developing on? (If applicable)
       placeholder: main
