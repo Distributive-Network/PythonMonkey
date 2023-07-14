@@ -15,7 +15,7 @@ function assert(test)
   if (!test)
   {
     exitCode = 1;
-    console.error(new Error('Assertion failure').stack);
+    console.error(new Error('Assertion failure'));
   }
 }
 
