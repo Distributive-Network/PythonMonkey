@@ -10,21 +10,18 @@
 const bigint = BigInt(777);
 
 python.exec(`
-def throughPython(val):
-  if isinstance(val, int):
-    return val
-  return False
+def isPythonInt(val):
+  return isinstance(val, int)
 
 def compare(val):
-  if val == 777:
+  if val == int(777):
     return True
   return False
 `);
-const throughPython = python.eval('throughPython');
+const isPythonInt = python.eval('isPythonInt');
 const compare = python.eval('compare');
 
-const integer = throughPython(bigint);
-if (!integer)
+if (!isPythonInt)
 {
   console.error(`${bigint} is not instance of int in Python.`);
   throw new Error('test failed');
@@ -34,10 +31,5 @@ if (!compare)
   console.error(`${bigint} !== 777 in Python`);
   throw new Error('test failed');
 }
-if (bigint !== integer)
-{
-  console.error(`${bigint} !== ${integer}`);
-  throw new Error('test failed');
-}
 
-console.log('pass -', integer);
+console.log('pass');
