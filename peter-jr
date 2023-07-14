@@ -97,7 +97,7 @@ grey()
   printf "\e[0;90m%s\e[0m" "$*"
 }
 
-if ! realpath . >/dev/null 2>&1; then 
+if ! realpath --relative-to=. . >/dev/null 2>&1; then 
   realpath()
   {
     local remove
