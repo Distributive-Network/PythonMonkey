@@ -17,3 +17,4 @@ dist
 *.dylib
 *.dll
 *.pyd
+*~
