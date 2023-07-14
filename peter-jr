@@ -97,6 +97,26 @@ grey()
   printf "\e[0;90m%s\e[0m" "$*"
 }
 
+if ! realpath . >/dev/null 2>&1; then 
+  realpath()
+  {
+    local remove
+    if [[ "$1" == --relative-to=* ]]; then
+      remove="${1:14}/"
+      shift 1
+    else
+      remove="$"
+    fi
+    local filename="$1"
+    local dirname=`dirname "$1"`
+    local basename=`basename "$1"`
+    (
+      [ "$dirname" ] || dirname="."
+      cd "$dirname" && echo "`pwd -P`/$basename"
+    ) | sed -e "s;${remove};;g"
+  }
+fi
+
 findTests()
 {
   for loc in "${testLocations[@]}"
@@ -111,7 +131,11 @@ findTests()
     done
 }
 
-longestFilenameLen=`findTests | wc -L`
+if wc -L </dev/null >/dev/null 2>&1; then
+  longestFilenameLen=`findTests | wc -L`
+else
+  longestFilenameLen=`findTests | awk '{print length}' | sort -rn | head -1`
+fi
 
 findTests \
 | (shuf 2>/dev/null || cat) \
