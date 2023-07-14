@@ -149,7 +149,12 @@ static PyObject *asUCS4(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  return str->asUCS4();
+  PyObject *ucs4Str = str->asUCS4();
+  if (!ucs4Str) {
+    PyErr_SetString(PyExc_UnicodeTranslateError, "string contains an unpaired surrogates");
+    return NULL;
+  }
+  return ucs4Str;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {

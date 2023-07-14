@@ -106,7 +106,6 @@ StrType::StrType(JSContext *cx, JSString *str) {
       PyObject *ucs4Obj = this->asUCS4(); // convert `pyObject` to a new PyUnicodeObject with UCS4 data
       if (!ucs4Obj) {
         // conversion fails, keep the original `pyObject`
-        PyErr_Clear();
         return;
       }
       Py_DECREF(pyObject); // cleanup the old `pyObject`
@@ -130,32 +129,19 @@ PyObject *StrType::asUCS4() {
   uint32_t ucs4String[length];
   size_t ucs4Length = 0;
 
-  for (size_t i = 0; i < length; i++) {
-    if (Py_UNICODE_IS_LOW_SURROGATE(chars[i])) // character is an unpaired low surrogate
-    {
-      char hexString[5];
-      sprintf(hexString, "%x", (unsigned int)chars[i]);
-      std::string errorString = std::string("string contains an unpaired low surrogate at position: ") + std::to_string(i) + std::string(" with a value of 0x") + hexString;
-      PyErr_SetString(PyExc_UnicodeTranslateError, errorString.c_str());
+  for (size_t i = 0; i < length; i++, ucs4Length++) {
+    if (Py_UNICODE_IS_LOW_SURROGATE(chars[i])) { // character is an unpaired low surrogate
       return NULL;
-    }
-    else if (Py_UNICODE_IS_HIGH_SURROGATE(chars[i])) { // character is a high surrogate
+    } else if (Py_UNICODE_IS_HIGH_SURROGATE(chars[i])) { // character is a high surrogate
       if ((i + 1 < length) && Py_UNICODE_IS_LOW_SURROGATE(chars[i+1])) { // next character is a low surrogate
         ucs4String[ucs4Length] = Py_UNICODE_JOIN_SURROGATES(chars[i], chars[i+1]);
-        ucs4Length++;
         i++; // skip over low surrogate
       }
       else { // next character is not a low surrogate
-        char hexString[5];
-        sprintf(hexString, "%x", (unsigned int)chars[i]);
-        std::string errorString = std::string("string contains an unpaired high surrogate at position: ") + std::to_string(i) + std::string(" with a value of 0x") + hexString;
-        PyErr_SetString(PyExc_UnicodeTranslateError, errorString.c_str());
         return NULL;
       }
-    }
-    else { // character is not a surrogate, and is in the BMP
+    } else { // character is not a surrogate, and is in the BMP
       ucs4String[ucs4Length] = chars[i];
-      ucs4Length++;
     }
   }
 
