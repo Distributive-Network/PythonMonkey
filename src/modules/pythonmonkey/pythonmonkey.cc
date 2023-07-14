@@ -142,21 +142,6 @@ static PyObject *collect(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *asUCS4(PyObject *self, PyObject *args) {
-  PyObject *str = PyTuple_GetItem(args, 0);
-  if (!PyUnicode_Check(str)) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.asUCS4 expects a string as its first argument");
-    return NULL;
-  }
-
-  PyObject *ucs4Str = StrType::asUCS4(str);
-  if (!ucs4Str) {
-    PyErr_SetString(PyExc_UnicodeTranslateError, "string contains an unpaired surrogates");
-    return NULL;
-  }
-  return ucs4Str;
-}
-
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {
   PyObject *value;
 
@@ -287,7 +272,6 @@ PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
-  {"asUCS4", asUCS4, METH_VARARGS, "Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4. Undefined behaviour if the string is not in UTF16."},
   {NULL, NULL, 0, NULL}
 };
 
