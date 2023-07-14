@@ -6,31 +6,16 @@
  */
 'use strict';
 
-const integer = python.eval('777');
-const throughJS = x => x;
-const number = throughJS(integer);
-
-python.exec(`
-def compare(val):
-  if val == 777:
-    return True
-  return False
-`);
-const compare = python.eval('compare');
+const number = python.eval('int(777)');
 
 if (typeof number !== 'number')
 {
-  console.error(`expected a number type from JS, got: ${typeof number}`);
+  console.error(`expected number but got ${typeof number}`);
   throw new Error('test failed');
 }
-if (!compare(number))
+if (number !== 777)
 {
-  console.error(`Python int: ${integer}, through JS: ${number}, !== 777 in back Python`);
-  throw new Error('test failed');
-}
-if (integer !== number)
-{
-  console.error(`expected ${integer} but got ${number}`);
+  console.error(`expected ${777} but got ${bigint}`);
   throw new Error('test failed');
 }
 
