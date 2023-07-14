@@ -164,6 +164,10 @@ findTests \
       echo "${FAIL}"
       peter_exit_code=1
 
+      if [ "$knownFail" ]; then
+        peter_exit_code=0
+      fi
+
       if [ ! "$VERBOSE" ] && [ ! "$knownFail" ]; then
         echo
         echo "$(grey --) $(yellow ${file}) $(grey vvvvvvvvvvvvvv)"
