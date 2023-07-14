@@ -1,5 +1,5 @@
 /**
- * @file        is-compilabe-unit.simple
+ * @file        is-compilable-unit.simple
  *              Simple test which ensures that pm.isCompilableUnit works from JS as expected
  *              written in Python instead of JavaScript
  * @author      Wes Garland, wes@distributive.network
