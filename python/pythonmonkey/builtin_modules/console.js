@@ -54,8 +54,8 @@ class Console {
     this.log   = (...args) => this.#writeToStdout(this.#formatToStr(...args));
     this.debug = (...args) => this.#writeToStdout(this.#formatToStr(...args));
     this.info  = (...args) => this.#writeToStdout(this.#formatToStr(...args));
-    this.warn  = (...args) => this.#writeToStdout(this.#formatToStr(...args));
-    this.error = (...args) => this.#writeToStdout(this.#formatToStr(...args));
+    this.warn  = (...args) => this.#writeToStderr(this.#formatToStr(...args));
+    this.error = (...args) => this.#writeToStderr(this.#formatToStr(...args));
   }
 
   /**
