@@ -1,0 +1,46 @@
+/**
+ * @file        typeofs-segfaults.simple.failing
+ *
+ *              Parts of typeofs.simple that segfault - should be moved back to typeofs once they work.
+ *
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const throughJS = x => x;
+const throughBoth = python.eval('(lambda x: throughJS(x))', { throughJS });
+
+function check(jsval, expected)
+{
+  var disp;
+  switch (typeof expected)
+  {
+    case 'function':
+      disp = expected.name || '(anonymous function)'
+      break;
+    case 'object':
+      disp = JSON.stringify(expected);
+      break;
+    default:
+      disp = String(expected);
+  }
+
+  console.log(`${jsval}? -`, disp);
+
+  switch (typeof expected)
+  {
+    default:
+      throw new Error(`invalid expectation ${disp} (${typeof expected})`);
+    case 'string':
+      if (typeof jsval !== expected)
+        throw new Error(`expected ${disp} but got ${typeof jsval}`);
+      break;
+    case 'function':
+      if (!(jsval instanceof expected))
+        throw new Error(`expected instance of ${expected.name} but got ${jsval.constructor.name}`);
+  }
+}
+
+check(throughBoth(new Date()),         'object')
+check(throughBoth(new Promise(()=>1)), Promise)
