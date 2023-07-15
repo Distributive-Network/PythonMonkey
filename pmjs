@@ -45,7 +45,7 @@ cmds.python = function pythonCmd(...args) {
 
   const retval = python.eval(cmd);
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
-  python.print('$' + pythonCmd.serial, '=', formatResult(retval));
+  python.print('$' + pythonCmd.serial, '=', util.inspect(retval));
   globalThis['$' + pythonCmd.serial] = retval;
 };
 
@@ -77,52 +77,6 @@ globalThis.replCmd = function replCmd(cmdLine)
   return cmds[cmdName].apply(null, argv);
 }
 
-/** Return String(val) surrounded by appropriate ANSI escape codes to change the console text colour. */
-function colour(colourCode, val)
-{
-  const esc=String.fromCharCode(27);
-  return `${esc}[${colourCode}m${val}${esc}[0m`
-}
-
-/** 
- * Format result more intelligently than toString. Inspired by Node.js util.inspect, but far less 
- * capable.
- */
-globalThis.formatResult = function formatResult(result)
-{
-  switch (typeof result)
-  {
-    case 'undefined':
-      return colour(90, result);
-    case 'function':
-      return colour(36, result);
-    case 'string':
-      return colour(32, `'${result}'`);
-    case 'boolean':
-    case 'number':
-      return colour(33, result);
-    case 'object':
-      if (result instanceof Date)
-        return colour(35, result.toISOString());
-      if (result instanceof Error)
-      {
-        const error = result;
-        const LF = String.fromCharCode(10);
-        const stackEls = error.stack
-                         .split(LF)
-                         .filter(a => a.length > 0)
-                         .map(a => `    ${a}`);
-        return (`${error.name}: ${error.message}` + LF
-          + stackEls[0] + LF
-          + colour(90, stackEls.slice(1).join(LF))
-        );
-      }
-      return JSON.stringify(result);
-    default:
-      return colour(31, `<unknown type ${typeof result}>${result}`);
-  }
-}
-
 /**
  * Evaluate a complete statement, built by the Python readline loop.
  */
@@ -132,11 +86,11 @@ globalThis.replEval = function replEval(statement)
   try
   {
     const result = indirectEval(`${statement}`);
-    return formatResult(result);
+    return util.inspect(result);
   }
   catch(error)
   {
-    return formatResult(error);
+    return util.inspect(error);
   }
 }
 """, evalOpts);
@@ -347,6 +301,7 @@ def main():
         globalInitModule.patchGlobalRequire()
         pm.runProgramModule(args[0], args, requirePath)
     elif (enterRepl or forceRepl):
+        globalInitModule.initReplLibs()
         repl()
 
 if __name__ == "__main__":

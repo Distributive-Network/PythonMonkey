@@ -115,7 +115,13 @@ const inspectDefaultOptions = Object.seal({
 const propertyIsEnumerable = Object.prototype.propertyIsEnumerable;
 const regExpToString = RegExp.prototype.toString;
 const dateToISOString = Date.prototype.toISOString;
-const errorToString = Error.prototype.toString;
+
+/** Return String(val) surrounded by appropriate ANSI escape codes to change the console text colour. */
+function colour(colourCode, val)
+{
+  const esc=String.fromCharCode(27);
+  return `${esc}[${colourCode}m${val}${esc}[0m`
+}
 
 var CIRCULAR_ERROR_MESSAGE;
 
@@ -357,7 +363,8 @@ inspect.styles = Object.assign(Object.create(null), {
   'symbol': 'green',
   'date': 'magenta',
   // "name": intentionally not styling
-  'regexp': 'red'
+  'regexp': 'red',
+  'error2': 'grey',
 });
 
 function stylizeWithColor(str, styleType) {
@@ -524,8 +531,8 @@ function formatValue(ctx, value, recurseTimes, ln) {
     } else if (isError(value)) {
       // Make error with message first say the error
       if (keyLength === 0)
-        return formatError(value);
-      base = ` ${formatError(value)}`;
+        return formatError(ctx, value);
+      base = ` ${formatError(ctx, value)}`;
     } else if (isAnyArrayBuffer(value)) {
       // Fast path for ArrayBuffer and SharedArrayBuffer.
       // Can't do the same for DataView because it has a non-primitive
@@ -620,8 +627,30 @@ function formatPrimitive(fn, value) {
   return fn(value.toString(), 'symbol');
 }
 
-function formatError(value) {
-  return `[${errorToString.call(value)}]`;
+/**
+ * Format an instance of Error. Error is the only type which is typically displayed using two different 
+ * colours -- the stack gets darker at the bottom where it's less relevant.
+ *
+ * @param ctx   {object}  inspect context - lets us know if we're using colors or not
+ * @param error {object}  instance of Error to inspect
+ */
+function formatError(ctx, error)
+{
+  function style(str)
+  {
+    if (!ctx.stylize)
+      return str;
+    return ctx.stylize(str, 'error2');
+  }
+  
+  const stackEls = error.stack
+        .split('\n')
+        .filter(a => a.length > 0)
+        .map(a => `    ${a}`);
+  return (`${error.name}: ${error.message}\n`
+          + stackEls[0] + '\n'
+          + style(stackEls.slice(1).join('\n'))
+         );
 }
 
 function formatObject(ctx, value, recurseTimes, keys) {
