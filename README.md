@@ -257,7 +257,7 @@ In addition to CommonJS modules written in JavaScript, PythonMonkey supports Com
 in Python. Simply decorate a Dict named `exports` inside a file with a `.py` extension, and it can be
 loaded by `require()` -- in either JavaScript or Python.
 
-## Program Module
+### Program Module
 The program module, or main module, is a special module in CommonJS. In a program module,
  - variables defined in the outermost scope are properties of `globalThis`
  - returning from the outermost scope is a syntax error
@@ -269,6 +269,20 @@ The program module, or main module, is a special module in CommonJS. In a progra
 # pmjs my-program.js
 hello world
 #
+```
+
+### CommonJS Module: JavaScript language
+```python
+# date-lib.js - require("./date-lib")
+const d = new Date();
+exports.today = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}-${String(d.getDay()).padStart(2,'0')}`
+```
+
+### CommonJS Module: Python language
+```python
+# date-lib.py - require("./date-lib")
+from datetime import date # You can use Python libraries.
+exports['today'] = date.today()
 ```
 
 # Troubleshooting Tips
@@ -283,7 +297,7 @@ If you are having trouble with the CommonJS require function, set environment va
 - the `-e` option can be used evaluate code -- e.g. define global variables -- before your program or the REPL runs
 - The REPL can evaluate Python expressions, storing them in variables named `$1`, `$2`, etc. ```
 # ./pmjs
-Welcome to PythonMonkey v0.0.1.dev940+6a2563b.
+Welcome to PythonMonkey v0.2.0.
 Type ".help" for more information.
 > .python import sys
 > .python sys.path
