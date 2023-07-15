@@ -13,8 +13,6 @@ if (os.getenv('PMJS_PATH')):
 else:
     requirePath = False;
 
-globalThis = pm.eval("globalThis;")
-
 pm.eval("""'use strict';
 const cmds = {};
 
@@ -87,8 +85,9 @@ globalThis.replCmd = function replCmd(cmdLine)
 globalThis.replEval = function replEval(statement)
 {
   const indirectEval = eval;
-  var originalStatement;
+  var originalStatement = statement;
   var result;
+  var mightBeObjectLiteral = false;
 
   /* A statement which starts with a { and does not end with a ; is treated as an object literal, 
    * and to get the parser in to Expression mode instead of Statement mode, we surround any expression
@@ -99,10 +98,7 @@ globalThis.replEval = function replEval(statement)
   {
     const testStatement = `(${statement})`;
     if (globalThis.python.pythonMonkey.isCompilableUnit(testStatement))
-    {
-      originalStatement = statement;
       statement = testStatement;
-    }
   }
 
   try
@@ -113,16 +109,21 @@ globalThis.replEval = function replEval(statement)
     }
     catch(evalError)
     {
-      if (!(evalError instanceof SyntaxError))
+      /* Don't retry paren-wrapped statements which weren't syntax errors, as they might have
+       * side-effects. Never retry if we didn't paren-wrap.
+       */
+      if (!(evalError instanceof SyntaxError) || originalStatement === statement)
         throw evalError;
-      globalThis.evalError = evalError;
+      globalThis._swallowed_error = evalError;
       result = indirectEval(originalStatement);
     }
 
+    globalThis._ = result;
     return util.inspect(result);
   }
   catch(error)
   {
+    globalThis._error = error;
     return util.inspect(error);
   }
 }
