@@ -296,7 +296,7 @@ def initGlobalThis():
         argvBuilder(arg); # list=>Array not working yet
     return globalInitModule
 
-async def main():
+def main():
     """
     Main program entry point
     """
@@ -338,11 +338,16 @@ async def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        globalInitModule.patchGlobalRequire()
-        pm.runProgramModule(args[0], args, requirePath)
+        loop = asyncio.new_event_loop()
+        async def runJS():
+            globalInitModule.patchGlobalRequire()
+            pm.runProgramModule(args[0], args, requirePath)
+        loop.create_task(runJS())
+        loop.run_forever()
+        loop.close()
     elif (enterRepl or forceRepl):
         globalInitModule.initReplLibs()
         repl()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main();
