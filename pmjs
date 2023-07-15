@@ -90,7 +90,7 @@ globalThis.replEval = function replEval(statement)
   var originalStatement;
   var result;
 
-  /* A statement which starts with a { and does not end with a ; is treatement as an object literal, 
+  /* A statement which starts with a { and does not end with a ; is treated as an object literal, 
    * and to get the parser in to Expression mode instead of Statement mode, we surround any expression
    * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
    * we re-evaluate without the parens.
