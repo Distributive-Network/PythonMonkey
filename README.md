@@ -3,17 +3,28 @@
 ![Testing Suite](https://github.com/Kings-Distributed-Systems/PythonMonkey/actions/workflows/tests.yaml/badge.svg)
 
 ## About
-PythonMonkey is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
+[PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
 using the Python engine to provide the JS host environment.
 
-This product is in an early stage, approximately 80% to MVP as of July 2023. It is under active development by Distributive Corp.,
-https://distributive.network/. External contributions and feedback are welcome and encouraged.
+This product is in an early stage, approximately 80% to MVP as of July 2023. It is under active development by [Distributive](https://distributive.network/).
+External contributions and feedback are welcome and encouraged.
 
-The goal is to make writing code in either JS or Python a developer preference, with libraries commonly used in either language
-available eveywhere, with no significant data exchange or transformation penalties. For example, it should be possible to use NumPy 
-methods from a JS library, or to refactor a slow "hot loop" written in Python to execute in JS instead, taking advantage of 
-SpiderMonkey's JIT for near-native speed, rather than writing a C-language module for Python. At Distributive, we intend to use 
-this package to execute our complex `dcp-client` library, which is written in JS and enables distributed computing on the web stack.
+### tl;dr
+```bash
+$ pip install pythonmonkey
+```
+```python
+from pythonmonkey import eval as js_eval
+
+js_eval("console.log")('hello, world')
+```
+
+### Goals
+- **Fast** and memory-efficient
+- Make writing code in either JS or Python a developer preference
+- Use JavaScript libraries from Python
+- Use Python libraries from JavaScript
+- Same process runs both JS and Python VMs - no serialization, pipes, etc
 
 ### Data Interchange
 - Strings share immutable backing stores whenever possible (when allocating engine choses UCS-2 or Latin-1 internal string representation) to keep memory consumption under control, and to make it possible to move very large strings between JS and Python library code without memory-copy overhead.
@@ -257,7 +268,7 @@ In addition to CommonJS modules written in JavaScript, PythonMonkey supports Com
 in Python. Simply decorate a Dict named `exports` inside a file with a `.py` extension, and it can be
 loaded by `require()` -- in either JavaScript or Python.
 
-## Program Module
+### Program Module
 The program module, or main module, is a special module in CommonJS. In a program module,
  - variables defined in the outermost scope are properties of `globalThis`
  - returning from the outermost scope is a syntax error
@@ -269,6 +280,20 @@ The program module, or main module, is a special module in CommonJS. In a progra
 # pmjs my-program.js
 hello world
 #
+```
+
+### CommonJS Module: JavaScript language
+```python
+# date-lib.js - require("./date-lib")
+const d = new Date();
+exports.today = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}-${String(d.getDay()).padStart(2,'0')}`
+```
+
+### CommonJS Module: Python language
+```python
+# date-lib.py - require("./date-lib")
+from datetime import date # You can use Python libraries.
+exports['today'] = date.today()
 ```
 
 # Troubleshooting Tips
@@ -283,7 +308,7 @@ If you are having trouble with the CommonJS require function, set environment va
 - the `-e` option can be used evaluate code -- e.g. define global variables -- before your program or the REPL runs
 - The REPL can evaluate Python expressions, storing them in variables named `$1`, `$2`, etc. ```
 # ./pmjs
-Welcome to PythonMonkey v0.0.1.dev940+6a2563b.
+Welcome to PythonMonkey v0.2.0.
 Type ".help" for more information.
 > .python import sys
 > .python sys.path
