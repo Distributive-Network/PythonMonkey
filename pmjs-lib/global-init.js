@@ -61,5 +61,15 @@ exports.initReplLibs = function pmjs$$initReplLibs()
 exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler(error)
 {
   console.error(error);
+  python.exit(1);
+}
+
+/**
+ * Temporary API until we get EventEmitters working. Replace this export for a custom handler.
+ */
+exports.unhandledRejectionHandler = function globalInit$$unhandledRejectionHandler(error)
+{
+  console.error(error);
+  python.exit(1);
 }
 

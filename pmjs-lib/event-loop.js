@@ -88,11 +88,11 @@ function eventLoop$$setTimeout(callback, delayMs, ...args)
     {
       const p = callback.apply(this, ...args);
       if (p instanceof Promise)
-        p.catch(globalInit.unhandledRejection)
+        p.catch(globalInit.unhandledRejectionHandler)
     }
     catch (error)
     {
-      globalInit.unhandledException(error);
+      globalInit.uncaughtExceptionHandler(error);
     }
 
     if (timer._repeat && typeof timer._repeat === 'number')
