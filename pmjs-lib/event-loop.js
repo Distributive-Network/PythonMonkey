@@ -96,7 +96,7 @@ function eventLoop$$setTimeout(callback, delayMs, ...args)
     }
 
     if (timer._repeat && typeof timer._repeat === 'number')
-      enqueueWithDelay(callbackWrapper, Math.max(4, delayMs) / 1000, timer._repeat);
+      enqueueWithDelay(timerCallbackWrapper, Math.max(4, timer._repeat) / 1000);
     else
       timer.unref();
 
