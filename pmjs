@@ -300,6 +300,18 @@ def main():
     """
     Main program entry point
     """
+    ela = pm.require('./pmjs-lib/event-loop-asyncio')
+    eljs = pm.require('./pmjs-lib/event-loop')
+    loop = ela['makeLoop']()
+
+    # Intercept calls to python.exit() to unref everything before calling sys.exit
+    def cleanupExit(code):
+        eljs['unrefEverything']()
+        dummyReference = programTask
+        realExit(code);
+    realExit = globalThis.python.exit;
+    globalThis.python.exit = cleanupExit;
+
     enterRepl = sys.stdin.isatty()
     forceRepl = False
     globalInitModule = initGlobalThis()
@@ -338,10 +350,6 @@ def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        ela = pm.require('./pmjs-lib/event-loop-asyncio')
-        eljs = pm.require('./pmjs-lib/event-loop')
-        loop = ela['makeLoop']()
-
         async def runJS():
             try:
                 pm.eval("setImmediate(()=>1)") # seed the loop.stop() code
@@ -353,14 +361,6 @@ def main():
             except Exception as error:
                 print(error)
                 cleanupExit(1)
-
-        def cleanupExit(code):
-            eljs['unrefEverything']()
-            dummyReference = programTask
-            realExit(code);
-
-        realExit = globalThis.python.exit;
-        globalThis.python.exit = cleanupExit;
 
         programTask = loop.create_task(runJS())
         programTask.set_name('pmjs-program')
