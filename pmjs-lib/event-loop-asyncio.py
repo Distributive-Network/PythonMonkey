@@ -26,7 +26,7 @@ def cancelTimer(pyHnd):
     Cancel a timer that was previously enqueued. The pyHnd argument is the return value from one of the
     enqueue functions.
     """
-    loop.pyHnd['timer'].cancel()
+    pyHnd['timer'].cancel()
 
 def getLoop():
     """
@@ -74,6 +74,7 @@ def uptime():
 
 exports['enqueueWithDelay'] = enqueueWithDelay
 exports['enqueue']          = enqueue
+exports['cancelTimer']      = cancelTimer
 exports['getLoop']          = getLoop    
 exports['setLoop']          = setLoop
 exports['makeLoop']         = makeLoop

@@ -15,6 +15,11 @@
 for (let mid in require.cache)
   delete require.cache[mid];
 
+/* Patch the global object so that our event loop methods are the kind that understand references */
+const eventLoopMethods =  require('./event-loop');
+for (let name in eventLoopMethods)
+  globalThis[name] = eventLoopMethods[name];
+
 /**
  * Set the global arguments array, which is just the program's argv.  We use an argvBuilder function to
  * get around PythonMonkey's missing list->Array coercion. /wg june 2023 
@@ -50,6 +55,11 @@ exports.initReplLibs = function pmjs$$initReplLibs()
   globalThis.util = require('util');
 }
 
-const eventLoopMethods =  require('./event-loop');
-for (let name in eventLoopMethods)
-  globalThis[name] = eventLoopMethods[name];
+/**
+ * Temporary API until we get EventEmitters working. Replace this export for a custom handler.
+ */
+exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler(error)
+{
+  console.error(error);
+}
+

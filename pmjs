@@ -343,11 +343,25 @@ def main():
         loop = ela['makeLoop']()
 
         async def runJS():
-            globalInitModule.patchGlobalRequire()
-            pm.runProgramModule(args[0], args, requirePath)
-            pm.eval("setImmediate(()=>1)") # seed the loop.stop() code
+            try:
+                pm.eval("setImmediate(()=>1)") # seed the loop.stop() code
+                globalInitModule.patchGlobalRequire()
+                pm.runProgramModule(args[0], args, requirePath)
+            except pm.SpiderMonkeyError as error:
+                globalInitModule.uncaughtExceptionHandler(error)
+            except Exception as error:
+                print(error)
 
-        loop.create_task(runJS())
+        def cleanupExit(code):
+            eljs['unrefEverything']()
+            dummyReference = programTask
+            realExit(code);
+
+        realExit = globalThis.python.exit;
+        globalThis.python.exit = cleanupExit;
+
+        programTask = loop.create_task(runJS())
+        programTask.set_name('pmjs-program')
         loop.run_forever()
 
     elif (enterRepl or forceRepl):
