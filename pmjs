@@ -349,8 +349,10 @@ def main():
                 pm.runProgramModule(args[0], args, requirePath)
             except pm.SpiderMonkeyError as error:
                 globalInitModule.uncaughtExceptionHandler(error)
+                cleanupExit(1)
             except Exception as error:
                 print(error)
+                cleanupExit(1)
 
         def cleanupExit(code):
             eljs['unrefEverything']()
