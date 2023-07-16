@@ -338,13 +338,17 @@ def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        loop = asyncio.new_event_loop()
+        ela = pm.require('./pmjs-lib/event-loop-asyncio')
+        loop = ela['makeLoop']()
+        globalThis.setTimeout = pm.require('./pmjs-lib/event-loop')['setTimeout'];
+
         async def runJS():
             globalInitModule.patchGlobalRequire()
             pm.runProgramModule(args[0], args, requirePath)
+
         loop.create_task(runJS())
         loop.run_forever()
-        loop.close()
+
     elif (enterRepl or forceRepl):
         globalInitModule.initReplLibs()
         repl()
