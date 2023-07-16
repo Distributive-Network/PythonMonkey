@@ -25,5 +25,4 @@ cd `dirname "$0"` || panic "could not change to test directory"
   do
     [[ "$line" =~ goodbye ]] && panic "found goodbye - timer fired when it shouldn't have!"
     [[ "$line" =~ hello ]] && echo "found expected '$line'" && exit 0
-    echo wtf $line
   done
