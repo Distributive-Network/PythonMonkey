@@ -21,6 +21,7 @@ cd "$runDir"
 set -u
 set -o pipefail
 peter_exit_code=2
+defaultTimeout="${defaultTimeout:-15}"
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
 cat <<EOF
@@ -160,13 +161,14 @@ findTests \
       FAIL="$(red FAIL)"
     fi
     (
+      timeout=$(egrep '^( *[*#] *timeout: )' "$file" | head -1 | sed -e 's/^\( *[*#] *timeout: \)//')
       case "$testType" in
         "simple")
-          "${PMJS}" "$file"
+          eval timeout -s9 "${timeout:-${defaultTimeout}}" "${PMJS}" \"$file\"
           exitCode="$?"
           ;;
         "bash")
-          bash "$file"
+          eval timeout -s9 "${timeout:-${defaultTimeout}}" bash \"$file\"
           exitCode="$?"
           ;;
         *)
