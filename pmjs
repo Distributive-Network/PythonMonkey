@@ -339,12 +339,13 @@ def main():
 
     if (len(args) > 0):
         ela = pm.require('./pmjs-lib/event-loop-asyncio')
+        eljs = pm.require('./pmjs-lib/event-loop')
         loop = ela['makeLoop']()
-        globalThis.setTimeout = pm.require('./pmjs-lib/event-loop')['setTimeout'];
 
         async def runJS():
             globalInitModule.patchGlobalRequire()
             pm.runProgramModule(args[0], args, requirePath)
+            pm.eval("setImmediate(()=>1)") # seed the loop.stop() code
 
         loop.create_task(runJS())
         loop.run_forever()

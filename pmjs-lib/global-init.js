@@ -49,3 +49,7 @@ exports.initReplLibs = function pmjs$$initReplLibs()
 {
   globalThis.util = require('util');
 }
+
+const eventLoopMethods =  require('./event-loop');
+for (let name in eventLoopMethods)
+  globalThis[name] = eventLoopMethods[name];

@@ -19,10 +19,7 @@ def enqueue(callback):
     """
     Schedule a callback to run as soon as possible.
     """
-    global loop
-    acb = loop.run_in_executor(None, callback)
-    loop.call_soon(acb)
-    return acb
+    return { 'timer': loop.call_soon(callback) }
 
 def cancelTimer(pyHnd):
     """

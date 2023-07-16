@@ -48,7 +48,6 @@ Timeout.prototype.unref = function eventLoop$$Timeout$unref()
 
 Timeout.prototype.ref = function eventLoop$$Timeout$unref()
 {
-  console.log('add reference')
   references.add(this);
   this._refed = true;
 }
@@ -60,7 +59,7 @@ function eventLoop$$setTimeout(callback, delayMs, ...args)
 {
   var pyHnd, timer;
 
-  if (delayMs)
+  if (delayMs >= 0)
     pyHnd = enqueueWithDelay(timerCallbackWrapper, Math.max(4, delayMs) / 1000);
   else
     pyHnd = enqueue(timerCallbackWrapper);
@@ -101,7 +100,7 @@ function eventLoop$$clearTimeout(timer)
   timer._destroyed = true;
 }
 
-exports.setInterval    = eventLoop$$setImmediate;
+exports.setImmediate   = eventLoop$$setImmediate;
 exports.setTimeout     = eventLoop$$setTimeout;
 exports.setInterval    = eventLoop$$setInterval;
 exports.clearTimeout   = eventLoop$$clearTimeout;
