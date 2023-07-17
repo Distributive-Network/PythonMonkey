@@ -26,7 +26,7 @@ public:
   FuncType(PyObject *object);
   /**
    * @brief Construct a new FuncType object from a JSObject.
-   * 
+   *
    * @param cx - pointer to the JSContext
    * @param jsFunction pointer to the JSFunction to be coerced
    */

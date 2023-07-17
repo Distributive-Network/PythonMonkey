@@ -150,7 +150,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     memoizePyTypeAndGCThing(pmBuffer, returnType);
   }
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
-    returnType.setObject(*((JSObjectProxy *)object)->jsObject);
+    returnType.setObject(**((JSObjectProxy *)object)->jsObject);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);

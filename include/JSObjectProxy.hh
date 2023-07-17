@@ -25,7 +25,7 @@
  */
 typedef struct {
   PyDictObject dict;
-  JS::RootedObject jsObject;
+  JS::PersistentRootedObject *jsObject;
 } JSObjectProxy;
 
 bool keyToId(PyObject *key, JS::MutableHandleId idp);

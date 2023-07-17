@@ -20,8 +20,6 @@
 
 #include <Python.h>
 
-JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
-
 bool keyToId(PyObject *key, JS::MutableHandleId idp) {
   if (PyUnicode_Check(key)) { // key is str type
     JS::RootedString idString(GLOBAL_CX);
@@ -36,32 +34,31 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
     return false; // fail
   }
 }
-
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
-  self->jsObject.set(nullptr);
+  delete self->jsObject;
   return;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
 {
   PyObject *self = PyDict_Type.tp_new(subtype, args, kwds);
-  ((JSObjectProxy *)self)->jsObject = JS::RootedObject(GLOBAL_CX, nullptr);
+  ((JSObjectProxy *)self)->jsObject = new JS::PersistentRootedObject(GLOBAL_CX);
   return self;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
   // make fresh JSObject for proxy
-  self->jsObject.set(JS_NewPlainObject(GLOBAL_CX));
+  self->jsObject->set(JS_NewPlainObject(GLOBAL_CX));
   return 0;
 }
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
 {
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, *self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return -1;
@@ -79,8 +76,8 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
   }
 
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+  JS_GetPropertyById(GLOBAL_CX, *self->jsObject, id, value);
+  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(*self->jsObject));
   return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
 }
 
@@ -94,20 +91,13 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
 
   if (value) { // we are setting a value
     JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    JS_SetPropertyById(GLOBAL_CX, self->jsObject, id, jValue);
+    JS_SetPropertyById(GLOBAL_CX, *self->jsObject, id, jValue);
   } else { // we are deleting a value
     JS::ObjectOpResult ignoredResult;
-    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
+    JS_DeletePropertyById(GLOBAL_CX, *self->jsObject, id, ignoredResult);
   }
 
   return 0;
-}
-
-void JSObjectProxyMethodDefinitions::JSObjectProxy_set_helper(JS::HandleObject jsObject, PyObject *key, JS::HandleValue value)
-{
-  JS::RootedId id(GLOBAL_CX);
-  keyToId(key, &id);
-  JS_SetPropertyById(GLOBAL_CX, jsObject, id, value);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare(JSObjectProxy *self, PyObject *other, int op)
@@ -146,8 +136,8 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   visited.insert({{(PyObject *)self, other}});
 
   if (Py_TYPE((PyObject *)self) == Py_TYPE(other)) {
-    JS::RootedValue selfVal(GLOBAL_CX, JS::ObjectValue(*self->jsObject));
-    JS::RootedValue otherVal(GLOBAL_CX, JS::ObjectValue(*(*(JSObjectProxy *)other).jsObject));
+    JS::RootedValue selfVal(GLOBAL_CX, JS::ObjectValue(**self->jsObject));
+    JS::RootedValue otherVal(GLOBAL_CX, JS::ObjectValue(**((JSObjectProxy *)other)->jsObject));
     if (selfVal.asRawBits() == otherVal.asRawBits()) {
       return true;
     }
@@ -155,7 +145,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, *self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return NULL;
@@ -168,7 +158,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
     JS::RootedValue *key = new JS::RootedValue(GLOBAL_CX);
     key->setString(id.toString());
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(*self->jsObject));
     PyObject *pyKey = pyTypeFactory(GLOBAL_CX, global, key)->getPyObject();
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
