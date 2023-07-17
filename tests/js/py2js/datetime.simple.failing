@@ -8,15 +8,36 @@
  */
 'use strict'
 
-python.exec(`import datetime`);
-const pyDate = python.eval(`datetime.datetime(1111, 2, 3)`);
-const jsDateExpected = new Date(1111, 2, 3);
 const throughJS = x => x;
-const jsDate = throughJS(pyDate);
+var expectedJsTimestamp;
+var jsDate;
+var pyDate;
 
-if (jsDate.getTime() !== jsDateExpected.getTime())
+// Test 1: Date from timestamp of 0 (1970 - 01 - 01), timestamp = 0
+expectedJsTimestamp = 0;
+python.exec(`from datetime import timezone`)
+python.exec(`import datetime`);
+pyDate = python.eval(`datetime.datetime.fromtimestamp(${expectedJsTimestamp}, tz=timezone.utc)`);
+jsDate = throughJS(pyDate);
+
+if (jsDate.getTime() !== expectedJsTimestamp)
 {
-  console.error('expected', jsDate.getTime(), 'but got', pyDate.getTime());
+  console.error('expected', expectedJsTimestamp, 'but got', jsDate.getTime());
+  throw new Error('test failed');
+}
+
+console.log('pass -', jsDate);
+
+// Test 2: Date from 21st century (2222 - 02 - 03), timestamp = 7955193600
+expectedJsTimestamp = 7955193600;
+python.exec(`from datetime import timezone`)
+python.exec(`import datetime`);
+pyDate = python.eval(`datetime.datetime.fromtimestamp(${expectedJsTimestamp}, tz=timezone.utc)`);
+jsDate = throughJS(pyDate);
+
+if (jsDate.getTime() !== expectedJsTimestamp)
+{
+  console.error('expected', expectedJsTimestamp, 'but got',jsDate.getTime());
   throw new Error('test failed');
 }
 
