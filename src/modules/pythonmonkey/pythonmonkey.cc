@@ -17,6 +17,7 @@
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/JSFunctionProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
@@ -42,6 +43,8 @@
 
 #include <unordered_map>
 #include <vector>
+
+JSContext *GLOBAL_CX;
 
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 typedef struct {
@@ -82,6 +85,26 @@ PyTypeObject JSObjectProxyType = {
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+};
+
+PyTypeObject JSFunctionProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSFunctionProxy",
+  .tp_basicsize = sizeof(JSFunctionProxy),
+  .tp_dealloc = (destructor)JSFunctionProxyMethodDefinitions::JSFunctionProxy_dealloc,  // replaces meth_dealloc
+  .tp_vectorcall_offset = NULL,
+  .tp_repr = (reprfunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_repr,
+  .tp_call = (ternaryfunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_call,
+  .tp_getattro = (getattrofunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_get,   // replaces PyObject_GenericGetAttr
+  .tp_setattro = (setattrofunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_assign, // replaces NULL
+  .tp_flags = Py_TPFLAGS_DEFAULT
+  | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Function proxy function"),
+  .tp_traverse = (traverseproc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_traverse,
+  .tp_richcompare = (richcmpfunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_richcompare,
+  .tp_base = &PyCFunction_Type,
+  .tp_init = (initproc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_init,
+  .tp_new = JSFunctionProxyMethodDefinitions::JSFunctionProxy_new,
 };
 
 static void cleanup() {
@@ -445,6 +468,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   if (PyType_Ready(&BigIntType) < 0)
     return NULL;
   if (PyType_Ready(&JSObjectProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSFunctionProxyType) < 0)
     return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);

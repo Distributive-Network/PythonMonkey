@@ -33,11 +33,9 @@
 #include <jsapi.h>
 #include <js/Object.h>
 #include <js/ValueArray.h>
+#include <js/String.h>
 
 #include <Python.h>
-
-// TODO (Caleb Aikens) get below properties
-static PyMethodDef callJSFuncDef = {"JSFunctionCallable", callJSFunc, METH_VARARGS, NULL};
 
 PyType *pyTypeFactory(PyObject *object) {
   PyType *pyType;
@@ -118,10 +116,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         return new ExceptionType(cx, obj);
       }
     case js::ESClass::Function: {
-        // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
-        PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
-        PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
-        FuncType *f = new FuncType(pyFunc);
+        FuncType *f = new FuncType(cx, *rval);
         memoizePyTypeAndGCThing(f, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
         return f;
       }
@@ -160,29 +155,4 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
   errorString += JS_EncodeStringToUTF8(cx, str).get();
   PyErr_SetString(PyExc_TypeError, errorString.c_str());
   return NULL;
-}
-
-static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
-  // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
-  JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 0));
-  JS::RootedObject *thisObj = (JS::RootedObject *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 1));
-  JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
-
-  JS::RootedVector<JS::Value> jsArgsVector(cx);
-  for (size_t i = 0; i < PyTuple_Size(args); i++) {
-    JS::Value jsValue = jsTypeFactory(cx, PyTuple_GetItem(args, i));
-    if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
-      return NULL; // Fail-fast
-    }
-    jsArgsVector.append(jsValue);
-  }
-
-  JS::HandleValueArray jsArgs(jsArgsVector);
-  JS::Rooted<JS::Value> *jsReturnVal = new JS::Rooted<JS::Value>(cx);
-  if (!JS_CallFunctionValue(cx, *thisObj, *jsFunc, jsArgs, jsReturnVal)) {
-    setSpiderMonkeyException(cx);
-    return NULL;
-  }
-
-  return pyTypeFactory(cx, thisObj, jsReturnVal)->getPyObject();
 }

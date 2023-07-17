@@ -14,6 +14,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
+#include "include/JSFunctionProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
@@ -116,6 +117,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
       }
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
+  }
+  else if (PyObject_TypeCheck(object, &JSFunctionProxyType)) {
+    returnType.setObject(**((JSFunctionProxy *)object)->jsFunction);
   }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded

@@ -9,6 +9,10 @@
  *
  */
 
+#ifndef PythonMonkey_JSObjectProxy_
+#define PythonMonkey_JSObjectProxy_
+
+#include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include <jsapi.h>
 
 #include <Python.h>
@@ -23,6 +27,8 @@ typedef struct {
   PyDictObject dict;
   JS::RootedObject jsObject;
 } JSObjectProxy;
+
+bool keyToId(PyObject *key, JS::MutableHandleId idp);
 
 /**
  * @brief This struct is a bundle of methods used by the JSObjectProxy type
@@ -85,15 +91,6 @@ public:
   static int JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value);
 
   /**
-   * @brief Helper function for various JSObjectProxy methods, sets a key-value pair on a JSObject given a python string key and a JS::Value value
-   *
-   * @param jsObject - The underlying backing store JSObject for the JSObjectProxy
-   * @param key - The key to be assigned or deleted
-   * @param value - The JS::Value to be assigned
-   */
-  static void JSObjectProxy_set_helper(JS::HandleObject jsObject, PyObject *key, JS::HandleValue value);
-
-  /**
    * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyobject
    *
    * @param self - The JSObjectProxy
@@ -129,3 +126,5 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
  * @brief Struct for the JSObjectProxyType, used by all JSObjectProxy objects
  */
 extern PyTypeObject JSObjectProxyType;
+
+#endif
