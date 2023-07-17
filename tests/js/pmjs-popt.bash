@@ -27,7 +27,7 @@ do
       exit 111
       ;;
     *)
-      echo "Ignored: ${keyword} ${rest} (${loaded})"
+      echo "Ignored: ${keyword} ${rest}"
       ;;
   esac
 done
