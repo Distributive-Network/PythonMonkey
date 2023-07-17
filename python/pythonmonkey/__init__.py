@@ -6,8 +6,9 @@ from .require import *
 import importlib.metadata
 __version__= importlib.metadata.version(__name__)
 
-# Load the module by default to make `console` globally available
+# Load the module by default to make `console`/`atob`/`btoa` globally available
 require("console")
+require("base64")
 
 # Add the `.keys()` method on `Object.prototype` to get JSObjectProxy dict() conversion working
 # Conversion from a dict-subclass to a strict dict by `dict(subclass)` internally calls the .keys() method to read the dictionary keys, 

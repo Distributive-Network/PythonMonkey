@@ -176,20 +176,17 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b
   PyObject *value;
 
   value = PyDict_GetItemString(evalOptions, optionName);
-  if (value) {
-    if (PyLong_Check(value))
-      *b_p = PyBool_FromLong(PyLong_AsLong(value));
-    else
-      *b_p = value != Py_False;
-  }
+  if (value)
+    *b_p = PyObject_IsTrue(value) == 1 ? true : false;
   return value != NULL;
 }
 
 static PyObject *eval(PyObject *self, PyObject *args) {
+  size_t argc = PyTuple_GET_SIZE(args);
   StrType *code = new StrType(PyTuple_GetItem(args, 0));
-  PyObject *evalOptions = PyTuple_GET_SIZE(args) == 2 ? PyTuple_GetItem(args, 1) : NULL;
+  PyObject *evalOptions = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
 
-  if (!PyUnicode_Check(code->getPyObject())) {
+  if (argc == 0 || !PyUnicode_Check(code->getPyObject())) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
     return NULL;
   }
