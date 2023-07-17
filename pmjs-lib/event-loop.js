@@ -10,6 +10,7 @@
  */
 'use strict';
 
+const util = require('util');
 const { enqueue, enqueueWithDelay, cancelTimer, endLoop } = require('./event-loop-asyncio');
 
 const pendingTimers = new Set();
@@ -69,6 +70,13 @@ Timeout.prototype.ref = function eventLoop$$Timeout$unref()
 function eventLoop$$setTimeout(callback, delayMs, ...args)
 {
   var pyHnd, timer;
+
+  if (typeof callback !== 'function')
+  {
+    const error = new Error('Callback must be a function. Received ' + util.inspect(callback, { depth: 1, colors: false }));
+    error.code = 'ERR_INVALID_CALLBACK';
+    throw error;
+  }
 
   if (delayMs >= 0)
     pyHnd = enqueueWithDelay(timerCallbackWrapper, Math.max(4, delayMs) / 1000);
