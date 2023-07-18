@@ -42,7 +42,7 @@ body:
     id: PythonMonkey
     attributes:
       label: PythonMonkey version
-      placeholder: 0.0.1.dev997+1eb883
+      placeholder: 0.2.0 or 0.0.1.dev997+1eb883
       description: You can also get this with `pmjs --version`.
 
   - type: textarea
