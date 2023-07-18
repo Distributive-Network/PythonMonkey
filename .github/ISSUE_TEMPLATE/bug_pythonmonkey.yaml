@@ -41,7 +41,7 @@ body:
   - type: input
     id: PythonMonkey
     attributes:
-      label: PythonMonkey version (`pip show pythonmonkey`)
+      label: PythonMonkey version (`python -c "import pythonmonkey as pm; print(pm.__version__)"`) 
       placeholder: 0.2.0 or 0.0.1.dev997+1eb883
       description: You can also get this with `pmjs --version`.
 
