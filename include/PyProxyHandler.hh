@@ -23,7 +23,7 @@
  */
 struct PyBaseProxyHandler : public js::BaseProxyHandler {
 public:
-  PyBaseProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(&pythonmonkey), pyObject(pyObj) {}; // We store a pointer to the pythonmonkey module definition to represent our family of proxyHandlers
+  PyBaseProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(&pythonmonkey), pyObject(pyObj) {};
   PyObject *pyObject; // @TODO (Caleb Aikens) Consider putting this in a private slot
 
   bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy, bool *isOrdinary, JS::MutableHandleObject protop) const override final;

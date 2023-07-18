@@ -22,6 +22,20 @@ set -u
 set -o pipefail
 peter_exit_code=2
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+cat <<EOF
+Peter-jr - A simple test framework in the spirit of Peter for testing basic
+           PythonMonkey functionality. (Peter: npmjs.com/packages/peter)
+Copyright (c) 2023 Distributive. Released under the terms of the MIT License.
+
+Usage: $0 [-h] [-v] [test [test...]]
+Where: -h or --help shows this help
+       -v enables verbose mode (shows tests' stdout)
+       test is the name of a test or a directory containing tests. If not
+       specified, uses ${topDir}/tests/js.
+EOF
+  exit 0
+fi
 if [ "${1:-}" = "-v" ]; then
   VERBOSE=1
   shift
@@ -31,6 +45,8 @@ fi
 
 [ "${1:-}" ] || set "${topDir}/tests/js"
 testLocations=("$@")
+
+export PMJS="${topDir}/pmjs"
 
 function panic()
 {
@@ -61,6 +77,16 @@ green()
   printf "\e[0;32m%s\e[0m" "$*"
 }
 
+dred()
+{
+  printf "\e[22m\e[0;31m%s\e[0m" "$*"
+}
+
+bggreen()
+{
+  printf "\e[42m%s\e[0m" "$*"
+}
+
 yellow()
 {
   printf "\e[0;33m%s\e[0m" "$*"
@@ -71,22 +97,72 @@ grey()
   printf "\e[0;90m%s\e[0m" "$*"
 }
 
-(
+if ! realpath --relative-to=. . >/dev/null 2>&1; then 
+  realpath()
+  {
+    local remove
+    if [[ "$1" == --relative-to=* ]]; then
+      remove="${1:14}/"
+      shift 1
+    else
+      remove="$"
+    fi
+    local filename="$1"
+    local dirname=`dirname "$1"`
+    local basename=`basename "$1"`
+    (
+      [ "$dirname" ] || dirname="."
+      cd "$dirname" && echo "`pwd -P`/$basename"
+    ) | sed -e "s;${remove};;g"
+  }
+fi
+
+findTests()
+{
   for loc in "${testLocations[@]}"
   do
     find $(realpath "$loc") -type f -name \*.simple
     find $(realpath "$loc") -type f -name \*.bash
-  done
-) \
+    find $(realpath "$loc") -type f -name \*.failing
+  done\
+  | while read file
+    do
+      realpath --relative-to="${runDir}" "${file}"
+    done
+}
+
+if wc -L </dev/null >/dev/null 2>&1; then
+  longestFilenameLen=`findTests | wc -L`
+else
+  longestFilenameLen=`findTests | awk '{print length}' | sort -rn | head -1`
+fi
+
+findTests \
+| (shuf 2>/dev/null || cat) \
 | while read file
   do
-    sfile=$(realpath --relative-to="${runDir}" "${file}")
-    printf 'Testing %-40s ... ' "${sfile}"
+    printf "Testing %-${longestFilenameLen}s ... " "${file}"
     ext="${file##*.}"
+    testName="${file%.failing}"
+    testType="${testName##*.}"
+
+    thisStdout="${stdout}" 
+    thisStderr="${stderr}"
+
+    if [ "${ext}" = "failing" ]; then
+      knownFail="yes"
+      PASS="$(bggreen PASS) (unexpected)"
+      FAIL="$(dred F̶A̶I̶L̶) (expected)"
+      [ ! "${VERBOSE}" ] && thisStderr="/dev/null"
+    else
+      knownFail=""
+      PASS="$(green PASS)"
+      FAIL="$(red FAIL)"
+    fi
     (
-      case "$ext" in
+      case "$testType" in
         "simple")
-          "${topDir}/js-test-runner" "$file"
+          "${PMJS}" "$file"
           exitCode="$?"
           ;;
         "bash")
@@ -95,24 +171,28 @@ grey()
           ;;
         *)
           echo
-          panic "${file}: invalid extension '$ext'"
+          panic "${file}: invalid test type '$testType'"
           ;;
       esac
-
       exit "$exitCode"
-    )> $stdout 2>$stderr
+    )> ${thisStdout} 2>${thisStderr}
     exitCode="$?"
 
     if [ "$exitCode" = "0" ]; then
-      echo "$(green PASS)"
+      echo "${PASS}"
       [ "${peter_exit_code}" = "2" ] && peter_exit_code=0
       printf "\e[0;31m"
       [ "$VERBOSE" ] || cat "$stderr"
       printf "\e[0m"
     else
-      echo "$(red FAIL)"
+      echo "${FAIL}"
       peter_exit_code=1
-      if [ ! "$VERBOSE" ]; then
+
+      if [ "$knownFail" ]; then
+        peter_exit_code=0
+      fi
+
+      if [ ! "$VERBOSE" ] && [ ! "$knownFail" ]; then
         echo
         echo "$(grey --) $(yellow ${file}) $(grey vvvvvvvvvvvvvv)"
         cat "$stdout" | sed 's/^/   /'

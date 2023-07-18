@@ -9,9 +9,10 @@ CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/
 echo "Installing dependencies"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   sudo apt-get update --yes
-  sudo apt-get install cmake doxygen graphviz llvm g++ pkg-config m4 wget --yes
+  sudo apt-get install --yes cmake doxygen graphviz llvm g++ pkg-config m4 \
+    wget curl python3-distutils python3-dev
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
-  brew update
+  brew update || true # allow failure
   brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
@@ -27,9 +28,9 @@ poetry self add "poetry-dynamic-versioning[plugin]"
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
-wget -c -q https://ftp.mozilla.org/pub/firefox/releases/102.11.0esr/source/firefox-102.11.0esr.source.tar.xz
+wget -c -q https://ftp.mozilla.org/pub/firefox/releases/102.13.0esr/source/firefox-102.13.0esr.source.tar.xz
 mkdir -p firefox-source
-tar xf firefox-102.11.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
+tar xf firefox-102.13.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"

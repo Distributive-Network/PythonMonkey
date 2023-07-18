@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./builtin_modules", // The base directory to resolve non-relative module names
+                                    // This resolution has higher priority than lookups from node_modules.
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "noEmit": true,
+    "checkJs": true,
+    "moduleDetection": "force", // Every non-declaration file will be treated as a module
+  }
+}
