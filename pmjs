@@ -304,7 +304,11 @@ def main():
     forceRepl = False
     globalInitModule = initGlobalThis()
     global requirePath
-    
+
+    ela = pm.require('./pmjs-lib/event-loop-asyncio')
+    eljs = pm.require('./pmjs-lib/event-loop')
+    loop = ela['makeLoop']()
+
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "use-strict"])
     except getopt.GetoptError as err:
@@ -336,12 +340,8 @@ def main():
             #            pm.eval('require')(a)
         else:
             assert False, "unhandled option"
-
+    
     if (len(args) > 0):
-        ela = pm.require('./pmjs-lib/event-loop-asyncio')
-        eljs = pm.require('./pmjs-lib/event-loop')
-        loop = ela['makeLoop']()
-
         async def runJS():
             try:
                 pm.eval("setImmediate(()=>1)") # seed the loop.stop() code
