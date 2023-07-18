@@ -307,7 +307,7 @@ If you are having trouble with the CommonJS require function, set environment va
 - the `-r` option can be used to load a module before your program or the REPL runs
 - the `-e` option can be used evaluate code -- e.g. define global variables -- before your program or the REPL runs
 - The REPL can evaluate Python expressions, storing them in variables named `$1`, `$2`, etc. ```
-# ./pmjs
+# pmjs
 Welcome to PythonMonkey v0.2.0.
 Type ".help" for more information.
 > .python import sys
