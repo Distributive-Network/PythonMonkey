@@ -197,9 +197,16 @@ JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
 }
 
 void setPyException(JSContext *cx) {
+  // Python `exit` and `sys.exit` only raise a SystemExit exception to end the program
+  // We definitely don't want to catch it in JS
+  if (PyErr_ExceptionMatches(PyExc_SystemExit)) {
+    return;
+  }
+
   PyObject *type, *value, *traceback;
-  PyErr_Fetch(&type, &value, &traceback);
-  JS::RootedObject jsException(cx, ExceptionType(value).toJsError(cx));
+  PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
+
+  JSObject *jsException = ExceptionType(value).toJsError(cx);
   JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
   JS_SetPendingException(cx, jsExceptionValue);
 }
