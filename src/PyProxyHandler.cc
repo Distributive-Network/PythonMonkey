@@ -45,7 +45,7 @@ bool idToIndex(JSContext *cx, JS::HandleId id, Py_ssize_t *index) {
   }
 }
 
-bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
+bool PyDictProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   PyObject *keys = PyDict_Keys(pyObject);
   size_t length = PyList_Size(keys);
   if (!props.reserve(length)) {
@@ -64,7 +64,7 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::
   return true;
 }
 
-bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::ObjectOpResult &result) const {
   PyObject *attrName = idToKey(cx, id);
   if (PyDict_DelItem(pyObject, attrName) < 0) {
@@ -73,12 +73,12 @@ bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId
   return result.succeed();
 }
 
-bool PyProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
   return hasOwn(cx, proxy, id, bp);
 }
 
-bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
+bool PyDictProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   JS::HandleValue receiver, JS::HandleId id,
   JS::MutableHandleValue vp) const {
   PyObject *attrName = idToKey(cx, id);
@@ -91,7 +91,7 @@ bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   return true;
 }
 
-bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
   JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
@@ -103,28 +103,28 @@ bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   return result.succeed();
 }
 
-bool PyProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
+bool PyDictProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
   JS::MutableHandleIdVector props) const {
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
-bool PyProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
   PyObject *attrName = idToKey(cx, id);
   *bp = PyDict_Contains(pyObject, attrName) == 1;
   return true;
 }
 
-bool PyProxyHandler::getOwnEnumerablePropertyKeys(
+bool PyDictProxyHandler::getOwnEnumerablePropertyKeys(
   JSContext *cx, JS::HandleObject proxy,
   JS::MutableHandleIdVector props) const {
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
 // @TODO (Caleb Aikens) implement this
-void PyProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
+void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
 
-bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
+bool PyDictProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc,
   JS::ObjectOpResult &result) const {
@@ -237,4 +237,119 @@ bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::Hand
     return result.failCantDelete(); // report failure
   }
   return result.succeed(); // report success
+}
+
+bool PyFuncProxyHandler::getOwnPropertyDescriptor(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+) const {
+  // We're trying to get an attribute
+  StrType attrName = StrType(cx, id.toString());
+  PyObject *item;
+  if ((item = PyObject_GetAttr(pyObject, attrName.getPyObject()))) {
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        jsTypeFactory(cx, item),
+        {JS::PropertyAttribute::Writable, JS::PropertyAttribute::Enumerable}
+      )
+    ));
+  } else { // attribute not found in object
+    desc.set(mozilla::Nothing());
+  }
+  return true;
+}
+
+bool PyFuncProxyHandler::defineProperty(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result
+) const {
+  if (desc.isAccessorDescriptor()) { // containing getter/setter
+    return result.failNotDataDescriptor();
+  }
+  if (!desc.hasValue()) {
+    return result.failInvalidDescriptor();
+  }
+
+  // @TODO (Caleb Aikens): there is a memory leak here
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  StrType attrName = StrType(cx, id.toString());
+  JS::RootedValue *itemV = new JS::RootedValue(cx, desc.value());
+  PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
+  if (!item) {
+    return result.failBadIndex();
+  }
+  if (PyObject_SetAttr(pyObject, attrName.getPyObject(), item) < 0) {
+    return result.failBadIndex();
+  }
+  return result.succeed();
+}
+
+bool PyFuncProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
+  PyObject **objDict = _PyObject_GetDictPtr(pyObject);
+  size_t length = PyDict_Size(*objDict);
+  if (!props.reserve(length)) {
+    return false; // out of memory
+  }
+
+  PyObject *key;
+  Py_ssize_t pos = 0;
+  while (PyDict_Next(*objDict, &pos, &key, NULL)) {
+    JS::RootedValue jsKey(cx, jsTypeFactory(cx, key));
+    JS::RootedId jsId(cx);
+    if (!JS_ValueToId(cx, jsKey, &jsId)) {
+      // @TODO (Caleb Aikens) raise exception
+      return false;
+    }
+    props.infallibleAppend(jsId);
+  }
+  return true;
+}
+
+bool PyFuncProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const {
+
+  StrType attrName = StrType(cx, id.toString());
+  if (PyObject_SetAttr(pyObject, attrName.getPyObject(), NULL) < 0) {
+    return result.failCantDelete();
+  }
+  return result.succeed();
+}
+
+bool PyFuncProxyHandler::call(JSContext *cx, JS::HandleObject proxy, const JS::CallArgs &args) const {
+  // @TODO (Caleb Aikens) handle bidirectional exceptions
+  JS::RootedObject *thisv = new JS::RootedObject(cx);
+  JS_ValueToObject(cx, args.thisv(), thisv);
+
+  if (!args.length()) {
+    #if PY_VERSION_HEX >= 0x03090000
+    PyObject *pyRval = PyObject_CallNoArgs(pyObject);
+    #else
+    PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
+    #endif
+    if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
+      return false;
+    }
+    // @TODO (Caleb Aikens) need to check for python exceptions here
+    args.rval().set(jsTypeFactory(cx, pyRval));
+    return true;
+  }
+
+  // populate python args tuple
+  PyObject *pyArgs = PyTuple_New(args.length());
+  for (size_t i = 0; i < args.length(); i++) {
+    JS::RootedValue *jsArg = new JS::RootedValue(cx, args[i]);
+    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
+    PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
+  }
+
+  PyObject *pyRval = PyObject_Call(pyObject, pyArgs, NULL);
+  if (PyErr_Occurred()) {
+    return false;
+  }
+  // @TODO (Caleb Aikens) need to check for python exceptions here
+  args.rval().set(jsTypeFactory(cx, pyRval));
+  if (PyErr_Occurred()) {
+    return false;
+  }
+
+  return true;
 }

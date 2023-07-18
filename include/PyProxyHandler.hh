@@ -12,17 +12,18 @@
 #ifndef PythonMonkey_PyProxy_
 #define PythonMonkey_PyProxy_
 
+#include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include <jsapi.h>
 #include <js/Proxy.h>
 
 #include <Python.h>
 
 /**
- * @brief base class for PyProxyHandler and PyListProxyHandler
+ * @brief base class for PyDictProxyHandler and PyListProxyHandler
  */
 struct PyBaseProxyHandler : public js::BaseProxyHandler {
 public:
-  PyBaseProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(NULL), pyObject(pyObj) {};
+  PyBaseProxyHandler(PyObject *pyObj) : js::BaseProxyHandler(&pythonmonkey), pyObject(pyObj) {}; // We store a pointer to the pythonmonkey module definition to represent our family of proxyHandlers
   PyObject *pyObject; // @TODO (Caleb Aikens) Consider putting this in a private slot
 
   bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy, bool *isOrdinary, JS::MutableHandleObject protop) const override final;
@@ -34,9 +35,9 @@ public:
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates to handle coercion from python dicts to JS Objects
  *
  */
-struct PyProxyHandler : public PyBaseProxyHandler {
+struct PyDictProxyHandler : public PyBaseProxyHandler {
 public:
-  PyProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj) {};
+  PyDictProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj) {};
 
   /**
    * @brief [[OwnPropertyKeys]]
@@ -149,12 +150,44 @@ public:
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
-    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) const override {};
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) const override {
+    return false;
+  };
 
   bool defineProperty(JSContext *cx, JS::HandleObject proxy,
     JS::HandleId id,
     JS::Handle<JS::PropertyDescriptor> desc,
     JS::ObjectOpResult &result) const override;
+};
+
+/**
+ * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates
+ *    to handle coercion from python functions to JS Function-like objects
+ *
+ */
+struct PyFuncProxyHandler : public PyBaseProxyHandler {
+public:
+  PyFuncProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj) {};
+
+  bool getOwnPropertyDescriptor(
+    JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+  ) const override;
+
+  bool defineProperty(
+    JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result
+  ) const override;
+
+  bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const override;
+
+  bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
+
+  bool call(JSContext *cx, JS::HandleObject proxy, const JS::CallArgs &args) const override;
+
+  bool isCallable(JSObject *obj) const override {
+    return true;
+  };
 };
 
 /**

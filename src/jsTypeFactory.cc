@@ -122,20 +122,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(**((JSFunctionProxy *)object)->jsFunction);
   }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
-    // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
-    uint16_t nargs = 0;
-    if (PyFunction_Check(object)) {
-      // https://docs.python.org/3.11/reference/datamodel.html?highlight=co_argcount
-      PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(object); // borrowed reference
-      nargs = bytecode->co_argcount;
-    }
-
-    JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
-    JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
-
-    // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
-    js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
-    returnType.setObject(*jsFuncObject);
+    JS::RootedValue v(cx);
+    JSObject *proxy;
+    proxy = js::NewProxyObject(cx, new PyFuncProxyHandler(object), v, NULL);
+    returnType.setObject(*proxy);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
     Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
   }
@@ -158,7 +148,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     if (PyList_Check(object)) {
       proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
     } else {
-      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
+      proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, NULL);
     }
     returnType.setObject(*proxy);
   }
@@ -198,49 +188,4 @@ JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
     v.setNull();
   }
   return v;
-}
-
-bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
-  JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
-
-  // get the python function from the 0th reserved slot
-  JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
-  PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
-
-  JS::RootedObject *thisv = new JS::RootedObject(cx);
-  JS_ValueToObject(cx, callargs.thisv(), thisv);
-
-  if (!callargs.length()) {
-    #if PY_VERSION_HEX >= 0x03090000
-    PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
-    #else
-    PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
-    #endif
-    if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
-      return false;
-    }
-    // @TODO (Caleb Aikens) need to check for python exceptions here
-    callargs.rval().set(jsTypeFactory(cx, pyRval));
-    return true;
-  }
-
-  // populate python args tuple
-  PyObject *pyArgs = PyTuple_New(callargs.length());
-  for (size_t i = 0; i < callargs.length(); i++) {
-    JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
-    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
-    PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
-  }
-
-  PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
-  if (PyErr_Occurred()) {
-    return false;
-  }
-  // @TODO (Caleb Aikens) need to check for python exceptions here
-  callargs.rval().set(jsTypeFactory(cx, pyRval));
-  if (PyErr_Occurred()) {
-    return false;
-  }
-
-  return true;
 }

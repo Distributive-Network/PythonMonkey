@@ -43,14 +43,4 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object);
  */
 JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object);
 
-/**
- * @brief Helper function for jsTypeFactory to create a JSFunction* through JS_NewFunction that knows how to call a python function.
- *
- * @param cx - Pointer to the JSContext
- * @param argc - The number of arguments the JSFunction expects
- * @param vp - The return value of the JSFunction
- * @return true - Function executed successfully
- * @return false - Function did not execute successfully and an exception has been set
- */
-bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp);
 #endif
