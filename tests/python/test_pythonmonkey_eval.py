@@ -119,6 +119,30 @@ def test_eval_exceptions():
     with pytest.raises(pm.SpiderMonkeyError, match="Error: Python BaseException: 123"):
         js_rethrow(BaseException("123"))
 
+def test_eval_exceptions_nested_py_js_py():
+    def c():
+        raise Exception('this is an exception')
+    b = pm.eval('''(x) => {
+        try { 
+            x() 
+        } catch(e) {
+            return "Caught in JS " + e;
+        }
+    }''')
+    assert b(c) == "Caught in JS Error: Python Exception: this is an exception"
+
+def test_eval_exceptions_nested_js_py_js():
+    c = pm.eval("() => { throw TypeError('this is an exception'); }")
+
+    def b(x):
+        try:
+            x()
+            return ""
+        except Exception as e:
+            return "Caught in Py " + str(e)
+    ret = b(c)
+    assert ("Caught in Py Error in" in ret) and ("TypeError: this is an exception" in ret)
+
 def test_eval_undefined():
     x = pm.eval("undefined")
     assert x == None
