@@ -19,6 +19,7 @@
 
 #include <jsapi.h>
 #include <js/Equality.h>
+#include <js/Exception.h>
 #include <js/Value.h>
 
 #include <Python.h>
@@ -126,6 +127,15 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(JSFunctionProxy
   // @TODO (Caleb Aikens) handle kwargs
   // @TODO (Caleb Aikens) handle bidirectional exceptions
   JSContext *cx = GLOBAL_CX;
+
+  if (PyErr_Occurred()) {
+    return NULL;
+  }
+  if (JS_IsExceptionPending(cx)) {
+    setSpiderMonkeyException(cx);
+    return NULL;
+  }
+
   JS::RootedObject *thisObj = new JS::RootedObject(cx);
   if (self->func.m_self) { // set `this` to the self of the pyfunction if it has one
     thisObj->set(&(jsTypeFactory(cx, self->func.m_self).toObject()));

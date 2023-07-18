@@ -13,6 +13,7 @@
 
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
+#include "include/ExceptionType.hh"
 #include "include/StrType.hh"
 
 #include <jsapi.h>
@@ -314,8 +315,22 @@ bool PyFuncProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::Hand
   return result.succeed();
 }
 
+void setPyException(JSContext *cx) {
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback);
+  JS::RootedObject jsException(cx, ExceptionType(value).toJsError(cx));
+  JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
+  JS_SetPendingException(cx, jsExceptionValue);
+}
+
 bool PyFuncProxyHandler::call(JSContext *cx, JS::HandleObject proxy, const JS::CallArgs &args) const {
-  // @TODO (Caleb Aikens) handle bidirectional exceptions
+  if (JS_IsExceptionPending(cx)) {
+    return false;
+  }
+  if (PyErr_Occurred()) {
+    setPyException(cx);
+    return false;
+  }
   JS::RootedObject *thisv = new JS::RootedObject(cx);
   JS_ValueToObject(cx, args.thisv(), thisv);
 
@@ -325,10 +340,10 @@ bool PyFuncProxyHandler::call(JSContext *cx, JS::HandleObject proxy, const JS::C
     #else
     PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
     #endif
-    if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
+    if (PyErr_Occurred()) {
+      setPyException(cx);
       return false;
     }
-    // @TODO (Caleb Aikens) need to check for python exceptions here
     args.rval().set(jsTypeFactory(cx, pyRval));
     return true;
   }
@@ -343,13 +358,10 @@ bool PyFuncProxyHandler::call(JSContext *cx, JS::HandleObject proxy, const JS::C
 
   PyObject *pyRval = PyObject_Call(pyObject, pyArgs, NULL);
   if (PyErr_Occurred()) {
-    return false;
-  }
-  // @TODO (Caleb Aikens) need to check for python exceptions here
-  args.rval().set(jsTypeFactory(cx, pyRval));
-  if (PyErr_Occurred()) {
+    setPyException(cx);
     return false;
   }
 
+  args.rval().set(jsTypeFactory(cx, pyRval));
   return true;
 }
