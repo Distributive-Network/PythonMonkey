@@ -223,7 +223,7 @@ def repl():
             if (statement == ""):
                 statement = input('> ')[readline_skip_chars:]
             readline_skip_chars = 0
-            
+
             if (len(statement) == 0):
                 continue
             if (statement[0] == '.'):
@@ -338,9 +338,8 @@ def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        ela = pm.require('./pmjs-lib/event-loop-asyncio')
+        loop = globalInitModule.prepareEventLoop()['loop']
         eljs = pm.require('./pmjs-lib/event-loop')
-        loop = ela['makeLoop']()
 
         async def runJS():
             try:

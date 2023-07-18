@@ -36,7 +36,7 @@ def getLoop():
     global loop
     if (loop == False):
         loop = asyncio.get_running_loop()
-    return loop
+    return { loop }
 
 def setLoop(newLoop):
     """
@@ -55,7 +55,8 @@ def makeLoop():
     if (loop != False):
         raise Except("can't make loop - event loop already exists")
     loop = asyncio.new_event_loop()
-    return loop
+
+    return { 'loop': loop }
 
 def endLoop():
     """
