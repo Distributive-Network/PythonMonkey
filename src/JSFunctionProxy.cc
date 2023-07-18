@@ -120,7 +120,7 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_richcompare(JSFuncti
 
 PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_repr(JSFunctionProxy *self) {
   JS::RootedValue funcVal(GLOBAL_CX, JS::ObjectValue(**self->jsFunction));
-  return StrType(GLOBAL_CX, funcVal.toString()).getPyObject();
+  return StrType(GLOBAL_CX, JS_ValueToSource(GLOBAL_CX, funcVal)).getPyObject();
 }
 
 PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(JSFunctionProxy *self, PyObject *args, PyObject *kwargs) {

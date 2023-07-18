@@ -287,6 +287,11 @@ bool PyFuncProxyHandler::defineProperty(
 
 bool PyFuncProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   PyObject **objDict = _PyObject_GetDictPtr(pyObject);
+  if (!objDict) {
+    // pyObject has no __dict__
+    return true;
+  }
+
   size_t length = PyDict_Size(*objDict);
   if (!props.reserve(length)) {
     return false; // out of memory

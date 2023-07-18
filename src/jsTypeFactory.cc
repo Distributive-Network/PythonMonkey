@@ -122,9 +122,11 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(**((JSFunctionProxy *)object)->jsFunction);
   }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
-    JS::RootedValue v(cx);
+    JS::RootedValue v(cx, JS::ObjectValue(*JS_GetFunctionObject(JS_NewFunction(cx, nullptr, 0, 0, NULL))));
     JSObject *proxy;
-    proxy = js::NewProxyObject(cx, new PyFuncProxyHandler(object), v, NULL);
+    JS::RootedObject proto(cx);
+    JS_GetClassPrototype(cx, JSProtoKey::JSProto_Function, &proto);
+    proxy = js::NewProxyObject(cx, new PyFuncProxyHandler(object), v, proto);
     returnType.setObject(*proxy);
     memoizePyTypeAndGCThing(new FuncType(object), returnType);
     Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
