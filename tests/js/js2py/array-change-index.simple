@@ -1,0 +1,29 @@
+/**
+ * @file        js2py/array-chnage-index.simple
+ *              Simple test which demonstrates modifying an array
+ *              passed to Python and returning it.
+ * @author      Will Pringle, will@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const numbers = [1,2,3,4,5,6,7,8,9];
+
+python.exec(`
+def setArrayAtIndex(array, index, new):
+  array[1] = new # can't index "array" based on "index"... probably because index is a float. So just pass "1"
+  return array
+`);
+const setArrayAtIndex = python.eval("setArrayAtIndex")
+const numbersBack = setArrayAtIndex(numbers, 1, 999);
+
+// check that the array data was modified by reference in python
+if (numbers[1] !== 999)
+  throw new Error('array not modified by python');
+
+// check that the array we get from python is the same reference as defined in js
+if (!Object.is(numbers, numbersBack))
+  throw new Error('array reference differs between JavaScript and Python');
+
+console.log('pass');
+
