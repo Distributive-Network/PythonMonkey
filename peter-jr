@@ -46,7 +46,7 @@ fi
 [ "${1:-}" ] || set "${topDir}/tests/js"
 testLocations=("$@")
 
-export PMJS="${topDir}/pmjs"
+export PMJS="pmjs"
 
 function panic()
 {

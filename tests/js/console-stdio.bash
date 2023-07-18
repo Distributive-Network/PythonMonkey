@@ -17,7 +17,7 @@ panic()
 
 cd `dirname "$0"` || panic "could not change to test directory"
 
-"${PMJS:-../../pmjs}" \
+"${PMJS:-pmjs}" \
 -e 'console.log("stdout")' \
 -e 'console.debug("stdout")' \
 -e 'console.info("stdout")' \
@@ -30,7 +30,7 @@ cd `dirname "$0"` || panic "could not change to test directory"
     break
   done || exit $?
 
-"${PMJS:-../../pmjs}" \
+"${PMJS:-pmjs}" \
 -e 'console.error("stderr")' \
 -e 'console.warn("stderr")' \
 < /dev/null 2>&1 \
