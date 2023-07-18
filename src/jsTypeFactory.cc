@@ -196,6 +196,14 @@ JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
   return v;
 }
 
+void setPyException(JSContext *cx) {
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback);
+  JS::RootedObject jsException(cx, ExceptionType(value).toJsError(cx));
+  JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
+  JS_SetPendingException(cx, jsExceptionValue);
+}
+
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
 
@@ -213,6 +221,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
     #endif
     if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
+      setPyException(cx);
       return false;
     }
     // @TODO (Caleb Aikens) need to check for python exceptions here
@@ -233,11 +242,13 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
 
   PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
   if (PyErr_Occurred()) {
+    setPyException(cx);
     return false;
   }
   // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
+    setPyException(cx);
     return false;
   }
 
