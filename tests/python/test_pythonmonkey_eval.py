@@ -131,6 +131,18 @@ def test_eval_exceptions_nested_py_js_py():
     }''')
     assert b(c) == "Caught in JS Error: Python Exception: this is an exception"
 
+def test_eval_exceptions_nested_js_py_js():
+    c = pm.eval("() => { throw TypeError('this is an exception'); }")
+
+    def b(x):
+        try:
+            x()
+            return ""
+        except Exception as e:
+            return "Caught in Py " + str(e)
+    ret = b(c)
+    assert ("Caught in Py Error in" in ret) and ("TypeError: this is an exception" in ret)
+
 def test_eval_undefined():
     x = pm.eval("undefined")
     assert x == None
