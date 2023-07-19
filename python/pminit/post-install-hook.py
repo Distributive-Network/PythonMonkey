@@ -1,4 +1,4 @@
-import pmpm
+from . import pmpm
 
 def main():
     pmpm.main() # cd pythonmonkey && npm i
