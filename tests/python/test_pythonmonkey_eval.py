@@ -246,6 +246,18 @@ def test_eval_functions_pyfunction_in_closure():
     assert 101.9 == pm.eval("(fn1, x) => { return fn1()(x) }")(fn1, 1.9)
     assert 101.9 == pm.eval("(fn1) => { return fn1() }")(fn1)(1.9)
 
+def test_unwrap_py_function():
+    # https://github.com/Distributive-Network/PythonMonkey/issues/65
+    def pyFunc():
+        pass
+    unwrappedPyFunc = pm.eval("(wrappedPyFunc) => { return wrappedPyFunc }")(pyFunc)
+    assert unwrappedPyFunc is pyFunc
+
+def test_unwrap_js_function():
+    # https://github.com/Distributive-Network/PythonMonkey/issues/65
+    wrappedJSFunc = pm.eval("const JSFunc = () => { return 0 }\nJSFunc")
+    assert pm.eval("(unwrappedJSFunc) => { return unwrappedJSFunc === JSFunc }")(wrappedJSFunc)
+
 def test_eval_functions_pyfunctions_ints():
     caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
     def add(a, b):
