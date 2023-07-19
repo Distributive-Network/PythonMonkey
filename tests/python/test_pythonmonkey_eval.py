@@ -119,6 +119,30 @@ def test_eval_exceptions():
     with pytest.raises(pm.SpiderMonkeyError, match="Error: Python BaseException: 123"):
         js_rethrow(BaseException("123"))
 
+def test_eval_exceptions_nested_py_js_py():
+    def c():
+        raise Exception('this is an exception')
+    b = pm.eval('''(x) => {
+        try { 
+            x() 
+        } catch(e) {
+            return "Caught in JS " + e;
+        }
+    }''')
+    assert b(c) == "Caught in JS Error: Python Exception: this is an exception"
+
+def test_eval_exceptions_nested_js_py_js():
+    c = pm.eval("() => { throw TypeError('this is an exception'); }")
+
+    def b(x):
+        try:
+            x()
+            return ""
+        except Exception as e:
+            return "Caught in Py " + str(e)
+    ret = b(c)
+    assert ("Caught in Py Error in" in ret) and ("TypeError: this is an exception" in ret)
+
 def test_eval_undefined():
     x = pm.eval("undefined")
     assert x == None
@@ -201,7 +225,7 @@ def test_eval_functions_ucs4_string_args():
             codepoint = random.randint(0x010000, 0x10FFFF)
             string2 += chr(codepoint)
         
-        assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
+        assert concatenate(string1, string2) == (string1 + string2)
 
 def test_eval_functions_roundtrip():
     # BF-60 https://github.com/Distributive-Network/PythonMonkey/pull/18
@@ -210,6 +234,29 @@ def test_eval_functions_roundtrip():
     js_fn_back = pm.eval("(py_fn) => py_fn(()=>{ return 'YYZ' })")(ident)
     # pm.collect() # TODO: to be fixed in BF-59
     assert "YYZ" == js_fn_back()
+
+def test_eval_functions_pyfunction_in_closure():
+    # BF-58 https://github.com/Distributive-Network/PythonMonkey/pull/19
+    def fn1():
+        def fn0(n):
+            return n + 100
+        return fn0
+    assert 101.9 == fn1()(1.9)
+    assert 101.9 == pm.eval("(fn1) => { return fn1 }")(fn1())(1.9)
+    assert 101.9 == pm.eval("(fn1, x) => { return fn1()(x) }")(fn1, 1.9)
+    assert 101.9 == pm.eval("(fn1) => { return fn1() }")(fn1)(1.9)
+
+def test_unwrap_py_function():
+    # https://github.com/Distributive-Network/PythonMonkey/issues/65
+    def pyFunc():
+        pass
+    unwrappedPyFunc = pm.eval("(wrappedPyFunc) => { return wrappedPyFunc }")(pyFunc)
+    assert unwrappedPyFunc is pyFunc
+
+def test_unwrap_js_function():
+    # https://github.com/Distributive-Network/PythonMonkey/issues/65
+    wrappedJSFunc = pm.eval("const JSFunc = () => { return 0 }\nJSFunc")
+    assert pm.eval("(unwrappedJSFunc) => { return unwrappedJSFunc === JSFunc }")(wrappedJSFunc)
 
 def test_eval_functions_pyfunctions_ints():
     caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")

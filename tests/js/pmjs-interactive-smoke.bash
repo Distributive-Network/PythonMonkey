@@ -20,7 +20,7 @@ cd `dirname "$0"` || panic "could not change to test directory"
 
 rnd=$RANDOM
 dotLines=0
-("${PMJS:-../../pmjs}" -i <<EOF
+("${PMJS:-pmjs}" -i <<EOF
 function a(rnd)
 {
   console.log('FINISHED', rnd)

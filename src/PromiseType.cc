@@ -140,14 +140,8 @@ JSObject *PromiseType::toJsPromise(JSContext *cx) {
 }
 
 bool PythonAwaitable_Check(PyObject *obj) {
-  // result = inspect.isawaitable(obj)
-  //    see https://docs.python.org/3.9/library/inspect.html#inspect.isawaitable
-  //        https://github.com/python/cpython/blob/3.9/Lib/inspect.py#L230-L235
-  PyObject *inspect = PyImport_ImportModule("inspect");
-  PyObject *result = PyObject_CallMethod(inspect, "isawaitable", "O", obj); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
-  bool isAwaitable = result == Py_True;
-  // cleanup
-  Py_DECREF(inspect);
-  Py_DECREF(result);
+  // see https://docs.python.org/3/c-api/typeobj.html#c.PyAsyncMethods
+  PyTypeObject *tp = Py_TYPE(obj);
+  bool isAwaitable = tp->tp_as_async != NULL && tp->tp_as_async->am_await != NULL;
   return isAwaitable;
 }

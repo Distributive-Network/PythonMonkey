@@ -117,6 +117,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
+  else if (PyCFunction_Check(object) && PyCFunction_GetFunction(object) == callJSFunc) {
+    // If it's a wrapped JS function by us, return the underlying JS function rather than wrapping it again
+    PyObject *jsCxThisFuncTuple = PyCFunction_GetSelf(object);
+    JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
+    returnType.set(*jsFunc);
+  }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
@@ -196,6 +202,21 @@ JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
   return v;
 }
 
+void setPyException(JSContext *cx) {
+  // Python `exit` and `sys.exit` only raise a SystemExit exception to end the program
+  // We definitely don't want to catch it in JS
+  if (PyErr_ExceptionMatches(PyExc_SystemExit)) {
+    return;
+  }
+
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
+
+  JSObject *jsException = ExceptionType(value).toJsError(cx);
+  JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
+  JS_SetPendingException(cx, jsExceptionValue);
+}
+
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
 
@@ -213,6 +234,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
     #endif
     if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
+      setPyException(cx);
       return false;
     }
     // @TODO (Caleb Aikens) need to check for python exceptions here
@@ -225,16 +247,21 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   for (size_t i = 0; i < callargs.length(); i++) {
     JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
     PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
-    PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
+    if (!pyArg) return false; // error occurred
+    PyObject *pyArgObj = pyArg->getPyObject();
+    if (!pyArgObj) return false; // error occurred
+    PyTuple_SetItem(pyArgs, i, pyArgObj);
   }
 
   PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
   if (PyErr_Occurred()) {
+    setPyException(cx);
     return false;
   }
   // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
+    setPyException(cx);
     return false;
   }
 
