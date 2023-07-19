@@ -68,7 +68,6 @@ Read this if you want to build a local version.
     - rust
     - python3.8 or later with header files (python3-dev)
     - spidermonkey 102.2.0 or later
-    - npm (nodejs)
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
