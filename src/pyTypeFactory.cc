@@ -32,6 +32,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 #include <js/Object.h>
 #include <js/ValueArray.h>
 
@@ -123,9 +124,16 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         return new ExceptionType(cx, obj);
       }
     case js::ESClass::Function: {
-        // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
-        PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
-        PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
+        PyObject *pyFunc;
+        if (JS_IsNativeFunction(obj, callPyFunc)) { // It's a wrapped python function by us
+          // Get the underlying python function from the 0th reserved slot
+          JS::Value pyFuncVal = js::GetFunctionNativeReserved(obj, 0);
+          pyFunc = (PyObject *)(pyFuncVal.toPrivate());
+        } else {
+          // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
+          PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
+          pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
+        }
         FuncType *f = new FuncType(pyFunc);
         memoizePyTypeAndGCThing(f, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
         return f;
@@ -178,7 +186,7 @@ PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Ro
   return v;
 }
 
-static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
+PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 0));
   JS::RootedObject *thisObj = (JS::RootedObject *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 1));

@@ -48,7 +48,8 @@ globalThis.pmEval = pm.eval
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
 #globalThis.python.pythonMonkey.version = pm.__version__
 #globalThis.python.pythonMonkey.module = pm
-globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit;
+globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit
+globalThis.python.pythonMonkey.nodeModules = node_modules
 globalThis.python.print  = print
 globalThis.python.stdout.write = sys.stdout.write
 globalThis.python.stderr.write = sys.stderr.write
@@ -272,10 +273,15 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.exports = python.load(filename);
   }
 
+  if (moduleCache[filename])
+    return moduleCache[filename].require;
+
   const module = new CtxModule(globalThis, filename, moduleCache);
+  moduleCache[filename] = module;
   for (let path of python.paths)
     module.paths.push(path + '/node_modules');
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
+  module.require.path.push(python.pythonMonkey.nodeModules);
   module.require.extensions['.py'] = loadPythonModule;
 
   if (isMain)

@@ -43,7 +43,10 @@ bump = true
 
 [tool.poetry.build]
 script = "build.py"
-generate-setup-file = false 
+generate-setup-file = false
+
+[tool.poetry.scripts]
+pmjs = "pythonmonkey.cli.pmjs:main"
 
 
 [tool.poetry.group.dev.dependencies]
