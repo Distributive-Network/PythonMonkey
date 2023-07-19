@@ -314,6 +314,7 @@ def main():
         sys.exit(2)
     output = None
     verbose = False
+    evalOptions = {}
     for o, a in opts:
         if o in ("-v", "--version"):
             print(pm.__version__)
