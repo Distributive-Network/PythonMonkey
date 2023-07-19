@@ -15,6 +15,20 @@
 for (let mid in require.cache)
   delete require.cache[mid];
 
+/* Recreate the python object as an EventEmitter */
+const { EventEmitter } = require('events');
+const originalPython = globalThis.python;
+const python = globalThis.python = new EventEmitter('python');
+Object.assign(python, originalPython);
+
+/* Emulate node's process.on('error') behaviour with python.on('error'). */
+python.on('error', function unhandledError() {
+  if (python.listenerCount('error') > 1)
+    return;
+  if (python.listenerCount('error') === 0 || python.listeners('error')[0] === unhandledErrror)
+    python.emit('unhandledException', error);
+});
+  
 exports.prepareEventLoop = function globalInit$$prepareEventLoops()
 {
   /* Patch the global object so that our event loop methods are the kind that understand references */
@@ -58,6 +72,7 @@ exports.patchGlobalRequire = function pmjs$$patchGlobalRequire()
 exports.initReplLibs = function pmjs$$initReplLibs()
 {
   globalThis.util = require('util');
+  globalThis.events = require('events');
 }
 
 /**
@@ -65,8 +80,14 @@ exports.initReplLibs = function pmjs$$initReplLibs()
  */
 exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler(error)
 {
-  console.error(error);
-  python.exit(1);
+  error.name = 'Uncaught ' + error.name;
+  if (python._events && python._events['uncaughtException'])
+    python.emit('uncaughtException', error);
+  else
+  {
+    console.error(error);
+    python.exit(1);
+  }
 }
 
 /**
@@ -74,7 +95,11 @@ exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler
  */
 exports.unhandledRejectionHandler = function globalInit$$unhandledRejectionHandler(error)
 {
-  console.error(error);
-  python.exit(1);
+  if (python._events && python._events['uncaughtRejection'])
+    python.emit('unhandledRejection', error);
+  else
+  {
+    console.error(error);
+    python.exit(1);
+  }
 }
-

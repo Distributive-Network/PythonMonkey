@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/Distributive-Network/PythonMonkey#readme",
   "dependencies": {
-    "ctx-module": "^1.0.13"
+    "ctx-module": "^1.0.13",
+    "events": "^3.3.0"
   }
 }
