@@ -44,6 +44,6 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
  * @param args - Pointer to a PyTupleObject containing the arguments to the python function
  * @return PyObject* - The result of the JSFunction called with args coerced to JS types, coerced back to a PyObject type, or NULL if coercion wasn't possible
  */
-static PyObject *callJSFunc(PyObject *JSFuncAddress, PyObject *args);
+PyObject *callJSFunc(PyObject *JSFuncAddress, PyObject *args);
 
 #endif

@@ -167,7 +167,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
   return NULL;
 }
 
-static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
+PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 0));
   JS::RootedObject *thisObj = (JS::RootedObject *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 1));
