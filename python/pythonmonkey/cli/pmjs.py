@@ -314,23 +314,22 @@ def main():
         sys.exit(2)
     output = None
     verbose = False
-    evalOptions = {}
     for o, a in opts:
         if o in ("-v", "--version"):
             print(pm.__version__)
             sys.exit()
         elif o in ("--use-strict"):
-            evalOptions['strict'] = True
+            evalOpts['strict'] = True
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
         elif o in ("-i", "--interactive"):
             forceRepl = True
         elif o in ("-e", "--eval"):
-            pm.eval(a, evalOptions)
+            pm.eval(a, evalOpts)
             enterRepl = False
         elif o in ("-p", "--print"):
-            print(pm.eval(a, evalOptions))
+            print(pm.eval(a, evalOpts))
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
