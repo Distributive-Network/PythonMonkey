@@ -73,6 +73,7 @@ PyTypeObject JSObjectProxyType = {
   .tp_name = "pythonmonkey.JSObjectProxy",
   .tp_basicsize = sizeof(JSObjectProxy),
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_repr,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
@@ -80,6 +81,7 @@ PyTypeObject JSObjectProxyType = {
   | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
+  .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,

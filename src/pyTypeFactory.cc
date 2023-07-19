@@ -175,6 +175,17 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
   return NULL;
 }
 
+PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
+  PyType *v = pyTypeFactory(cx, thisObj, rval);
+  if (PyErr_Occurred()) {
+    // Clear Python error
+    PyErr_Clear();
+    // Return `pythonmonkey.null` on error
+    return new NullType();
+  }
+  return v;
+}
+
 PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 0));

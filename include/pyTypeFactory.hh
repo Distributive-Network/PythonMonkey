@@ -36,6 +36,11 @@ PyType *pyTypeFactory(PyObject *object);
  * @return PyType* - Pointer to a PyType object corresponding to the JS::Value
  */
 PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval);
+/**
+ * @brief same to pyTypeFactory, but it's guaranteed that no error would be set on the Python error stack, instead
+ * return `pythonmonkey.null` on error
+ */
+PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval);
 
 /**
  * @brief Helper function for pyTypeFactory to create FuncTypes through PyCFunction_New
