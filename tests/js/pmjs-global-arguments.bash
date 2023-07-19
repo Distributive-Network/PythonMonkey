@@ -19,7 +19,7 @@ panic()
 cd `dirname "$0"` || panic "could not change to test directory"
 
 argc=0
-"${PMJS:-../../pmjs}" program.js abc easy as one two three |\
+"${PMJS:-pmjs}" program.js abc easy as one two three |\
 while read keyword rest
 do
   case "$keyword" in
