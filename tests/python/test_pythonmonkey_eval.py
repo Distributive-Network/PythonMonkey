@@ -235,6 +235,17 @@ def test_eval_functions_roundtrip():
     # pm.collect() # TODO: to be fixed in BF-59
     assert "YYZ" == js_fn_back()
 
+def test_eval_functions_pyfunction_in_closure():
+    # BF-58 https://github.com/Distributive-Network/PythonMonkey/pull/19
+    def fn1():
+        def fn0(n):
+            return n + 100
+        return fn0
+    assert 101.9 == fn1()(1.9)
+    assert 101.9 == pm.eval("(fn1) => { return fn1 }")(fn1())(1.9)
+    assert 101.9 == pm.eval("(fn1, x) => { return fn1()(x) }")(fn1, 1.9)
+    assert 101.9 == pm.eval("(fn1) => { return fn1() }")(fn1)(1.9)
+
 def test_eval_functions_pyfunctions_ints():
     caller = pm.eval("(func, param1, param2) => { return func(param1, param2) }")
     def add(a, b):
