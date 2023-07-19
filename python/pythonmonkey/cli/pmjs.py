@@ -339,7 +339,7 @@ def main():
 
     if (len(args) > 0):
         loop = globalInitModule.prepareEventLoop()['loop']
-        eljs = pm.require('./pmjs-lib/event-loop')
+        eljs = pm.require('../lib/pmjs/event-loop')
 
         async def runJS():
             try:
