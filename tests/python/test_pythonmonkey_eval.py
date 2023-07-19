@@ -225,7 +225,7 @@ def test_eval_functions_ucs4_string_args():
             codepoint = random.randint(0x010000, 0x10FFFF)
             string2 += chr(codepoint)
         
-        assert pm.asUCS4(concatenate(string1, string2)) == (string1 + string2)
+        assert concatenate(string1, string2) == (string1 + string2)
 
 def test_eval_functions_roundtrip():
     # BF-60 https://github.com/Distributive-Network/PythonMonkey/pull/18
