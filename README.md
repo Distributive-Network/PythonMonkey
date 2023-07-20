@@ -143,9 +143,9 @@ semantics
  - Modules are evaluated immediately after loading
  - Modules are not loaded until they are required
  - The following extensions are supported:
- ** `.js` - JavaScript module; source code decorates `exports` object
- ** `.py` - Python module; source code decorates `exports` dict
- ** `.json` -- JSON module; exports are the result of parsing the JSON text in the file
+  * `.js` - JavaScript module; source code decorates `exports` object
+  * `.py` - Python module; source code decorates `exports` dict
+  * `.json` - JSON module; exports are the result of parsing the JSON text in the file
 
 ### globalThis
 A Python Dict which is equivalent to the globalThis object in JavaScript.
@@ -274,15 +274,15 @@ The program module, or main module, is a special module in CommonJS. In a progra
    (command-line arguments)
 
 ```console
-# echo "console.log('hello world')" > my-program.js
-# pmjs my-program.js
+$ echo "console.log('hello world')" > my-program.js
+$ pmjs my-program.js
 hello world
-#
+$
 ```
 
 ### CommonJS Module: JavaScript language
-```python
-# date-lib.js - require("./date-lib")
+```js
+// date-lib.js - require("./date-lib")
 const d = new Date();
 exports.today = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}-${String(d.getDay()).padStart(2,'0')}`
 ```
@@ -297,7 +297,7 @@ exports['today'] = date.today()
 # Troubleshooting Tips
 
 ## CommonJS (require)
-If you are having trouble with the CommonJS require function, set environment variable DEBUG='ctx-module*' and you can see the filenames it tries to laod.
+If you are having trouble with the CommonJS require function, set environment variable `DEBUG='ctx-module*'` and you can see the filenames it tries to laod.
 
 ## pmjs
 - there is a `.help` menu in the REPL
