@@ -40,11 +40,17 @@ cmds.python = function pythonCmd(...args) {
     pythonCmd.serial = 0;
     return;
   }
-
-  if (arguments[0] === 'from' || arguments[0] === 'import')
+  try {
+    if (arguments[0] === 'from' || arguments[0] === 'import')
     return python.exec(cmd);
 
-  const retval = python.eval(cmd);
+    const retval = python.eval(cmd);
+  }
+  catch(error) {
+    globalThis._error = error;
+    return util.inspect(error);
+  }
+  
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
   globalThis['$' + pythonCmd.serial] = retval;
   python.stdout.write('$' + pythonCmd.serial + ' = ');
