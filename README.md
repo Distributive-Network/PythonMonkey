@@ -87,8 +87,6 @@ For VSCode users, similar to the Build Task, we have a Test Task ready to use.
 
 ### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
 
-> PythonMonkey is not release-ready yet. Our first public release is scheduled for mid-June 2023.
-
 ```bash
 $ pip install pythonmonkey
 ```
