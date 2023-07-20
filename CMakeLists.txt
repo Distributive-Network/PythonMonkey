@@ -81,4 +81,4 @@ add_subdirectory(src)
 
 pythonmonkey_add_external("uncrustify")
 pythonmonkey_add_external("autopep8")
-add_subdirectory(format)
+add_subdirectory(cmake/format)
