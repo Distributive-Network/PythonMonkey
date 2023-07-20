@@ -104,7 +104,7 @@ globalThis.replEval = function replEval(statement)
    * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
    * we re-evaluate without the parens.
    */
-  if (/^\\s*\{.*[^;\\s]\\s*$/.test(statement))
+  if (/^\\s*\\{.*[^;\\s]\\s*$/.test(statement))
   {
     const testStatement = `(${statement})`;
     if (globalThis.python.pythonMonkey.isCompilableUnit(testStatement))
