@@ -1,0 +1,41 @@
+/**
+ * @file        py2js/function-curry.simple
+ *              Curry a JS function in python.
+ * @author      Liang Wang, liang@distributive.network
+ * @date        July 2023
+ */
+'use strict'
+
+// stolen from: https://www.askpython.com/python/examples/currying-in-python
+const curry = (() => {
+  python.exec(
+`
+from inspect import signature
+def curry(func):
+ 
+  def inner(arg):
+ 
+    #checking if the function has one argument,
+    #then return function as it is
+    if len(signature(func).parameters) == 1:
+      return func(arg)
+ 
+    return curry(partial(func, arg))
+ 
+  return inner
+`
+  );
+
+  return python.eval('curry')
+})();
+const takeMiddle = (_x, y, _z) => y;
+const curried = curry(takeMiddle);
+const middle = curried(1)(2)(3);
+
+if (middle !== 2)
+{
+  console.error('expected', 2, 'but got', middle);
+  throw new Error('test failed');
+}
+
+console.log('test passes, the thing knows how to curry');

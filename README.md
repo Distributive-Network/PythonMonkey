@@ -222,10 +222,10 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 |:---------------------|:----------------|
 | string               | String
 | number               | Float
-| bigint               | Integer
+| bigint               | pythonmonkey.bigint (Integer)
 | boolean              | Bool
 | function             | Function
-| object - most        | JSObjectProxy which inherits from Dict
+| object - most        | pythonmonkey.JSObjectProxy (Dict)
 | object - Date        | datetime
 | object - Array       | List
 | object - Promise     | awaitable
@@ -235,12 +235,21 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 
 ## Tricks
 ### Integer Type Coercion
-You can force a number in JavaScript to be coerced as an integer by casting it to BigInt.
+You can force a number in JavaScript to be coerced as an integer by casting it to BigInt:
 ```javascript
 function myFunction(a, b) {
   const result = calculate(a, b);
   return BigInt(Math.floor(result));
 }
+```
+
+The `pythonmonkey.bigint` object works like an int in Python, but it will be coerced as a BigInt in JavaScript:
+```python
+import pythonmonkey
+
+def fn myFunction()
+  result = 5
+  return pythonmonkey.bigint(result)
 ```
 
 ### Symbol injection via cross-language IIFE

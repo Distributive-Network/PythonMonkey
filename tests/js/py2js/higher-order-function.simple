@@ -1,0 +1,22 @@
+/**
+ * @file        py2js/higher-order-function.simple
+ *              A simple function composition in python, but evaluated in JS.
+ * @author      Liang Wang, liang@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const pDouble = python.eval('lambda x: x * 2');
+const pSquare = python.eval('lambda x: x**2');
+const pCompose = python.eval('lambda f, g: lambda *args: f(g(*args))')
+const doubleAfterSqaure = pCompose(pDouble, pSquare);
+const throughJS = x => x;
+const eight = throughJS(doubleAfterSqaure)(2);
+
+if (eight !== 8)
+{
+  console.error('expected', 8, 'but got', eight);
+  throw new Error('test failed');
+}
+
+console.log('pass 2(2^2) is 8');
