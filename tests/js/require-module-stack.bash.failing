@@ -1,0 +1,29 @@
+#! /bin/bash
+#
+# @file         require-module-stack.bash
+#               A peter-jr test which tests that requiring a module yields JS stacks with the correct 
+#               filename and line number information.
+#
+#               NOTE: This test currently fails because the stack coming back through python has
+#                     underscores instead of slashes in the filename
+#
+# @author       Wes Garland, wes@distributive.network
+# @date         July 2023
+
+set -u
+set -o pipefail
+
+panic()
+{
+  echo "FAIL: $*" >&2
+  exit 2
+}
+
+cd `dirname "$0"` || panic "could not change to test directory"
+
+if "${PMJS:-../../pmjs}" -r ./throw-filename ./program.js \
+   | grep '^@/home/wes/git/pythonmonkey2/tests/js/throw-filename.js:9:9$'; then
+  echo 'pass'
+fi
+
+panic "did not find correct stack info"
