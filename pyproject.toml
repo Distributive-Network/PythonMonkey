@@ -20,7 +20,6 @@ include = [
   { path = "src", format = "sdist" },
   { path = "include", format = "sdist" },
   { path = "cmake", format = "sdist" },
-  { path = "docs", format = "sdist" }, # TODO: organize files
   { path = "externals", format = "sdist" },
   { path = "format", format = "sdist" },
   { path = "tests", format = "sdist" },
