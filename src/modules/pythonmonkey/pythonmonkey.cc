@@ -375,7 +375,7 @@ static bool clearTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Retrieve the AsyncHandle by `timeoutID`
   int32_t timeoutID = timeoutIdArg.toInt32();
   AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
-  if (!handle) return true;   // does nothing on invalid timeoutID
+  if (!handle) return true; // does nothing on invalid timeoutID
 
   // Cancel this job on Python event-loop
   handle->cancel();
