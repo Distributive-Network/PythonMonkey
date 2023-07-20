@@ -300,7 +300,7 @@ def initGlobalThis():
 
     require = pm.createRequire(os.path.abspath(os.getcwd() + '/__pmjs_virtual__'), requirePath)
     globalThis.require = require
-    globalInitModule = require(os.path.dirname(__file__) + "/../lib/pmjs/global-init") # module load has side-effects
+    globalInitModule = require(os.path.realpath(os.path.dirname(__file__) + "/../lib/pmjs/global-init")) # module load has side-effects
     argvBuilder = globalInitModule.makeArgvBuilder()
     for arg in sys.argv:
         argvBuilder(arg); # list=>Array not working yet
