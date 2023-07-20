@@ -14,10 +14,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Add an external; appends to `PYTHONMONKEY_EXTERNAL_FILES` in the parent scope.
 function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
-  add_subdirectory("externals/${PYTHONMONKEY_EXTERNAL}")
-  set(PYTHONMONKEY_EXTERNAL_FILE "externals/${PYTHONMONKEY_EXTERNAL}/CMakeLists.txt")
+  add_subdirectory("cmake/externals/${PYTHONMONKEY_EXTERNAL}")
+  set(PYTHONMONKEY_EXTERNAL_FILE "cmake/externals/${PYTHONMONKEY_EXTERNAL}/CMakeLists.txt")
   source_group(
-    TREE "${CMAKE_CURRENT_SOURCE_DIR}/externals/${PYTHONMONKEY_EXTERNAL}"
+    TREE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/externals/${PYTHONMONKEY_EXTERNAL}"
     PREFIX "Externals\\${PYTHONMONKEY_EXTERNAL}"
     FILES "${PYTHONMONKEY_EXTERNAL_FILE}"
   )
