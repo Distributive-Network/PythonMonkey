@@ -60,7 +60,7 @@ const eqUnixTime = python.eval('eqUnixTime');
 
 const now = new Date();
 const randomDate   = new Date(Date.UTC(1973, 8, 16, 23, 2, 30));
-const startOfEpoch = new Date(Date.UTC(1970, 0, 0, 0, 0, 0));
+const startOfEpoch = new Date(Date.UTC(1970, 0, 1, 0, 0, 0));
 
 test(eq(now, now),                      'same dates (now) are equal');
 test(eq(startOfEpoch, startOfEpoch),    'same dates (0) are equal');
