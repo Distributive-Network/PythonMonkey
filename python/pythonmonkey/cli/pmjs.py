@@ -191,8 +191,7 @@ def repl():
 
         got_sigint = got_sigint + 1
         if (got_sigint > 1):
-            sys.stdout.write("\n")
-            quit()
+            raise EOFError
 
         if (inner_loop != True):
             if (got_sigint == 1 and len(readline.get_line_buffer()) == readline_skip_chars):
