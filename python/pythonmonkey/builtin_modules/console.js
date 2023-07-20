@@ -47,9 +47,9 @@ class Console {
         ignoreErrors = true;
       options = { stdout, stderr, ignoreErrors };
     }
-    /* s.replace workaround for https://github.com/Distributive-Network/PythonMonkey/issues/89 */
-    this.#writeToStdout = (s) => options.stdout.write(s.replace(/[\uD800-\uDFFF]/g, '\uFFFD'));
-    this.#writeToStderr = (s) => options.stderr.write(s.replace(/[\uD800-\uDFFF]/g, '\uFFFD'));
+
+    this.#writeToStdout = options.stdout.write;
+    this.#writeToStderr = options.stderr.write;
 
     this.log   = (...args) => this.#writeToStdout(this.#formatToStr(...args));
     this.debug = (...args) => this.#writeToStdout(this.#formatToStr(...args));
