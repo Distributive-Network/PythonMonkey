@@ -80,6 +80,7 @@ If you are using VSCode, you can just press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> +
 1. Compile the project 
 2. Install development dependencies: `poetry install --no-root --only=dev`
 3. From the root directory, run `poetry run pytest ./tests/python`
+4. From the root directory, run `poetry run bash ./peter-jr ./tests/js/`
 
 For VSCode users, similar to the Build Task, we have a Test Task ready to use.
 
