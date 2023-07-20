@@ -242,7 +242,7 @@ function myFunction(a, b) {
 }
 ```
 
-The `pythonmonkey.bigint` object works like an int in Python, but it will be coercced as a BigInt in JavaScript:
+The `pythonmonkey.bigint` object works like an int in Python, but it will be coerced as a BigInt in JavaScript:
 ```python
 import pythonmonkey
 
