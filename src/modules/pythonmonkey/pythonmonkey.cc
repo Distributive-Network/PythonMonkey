@@ -208,13 +208,13 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     if (getEvalOption(evalOptions, "module", &b)) if (b) options.setModule();
 
     if (getEvalOption(evalOptions, "fromPythonFrame", &b) && b) {
+#if (PY_VERSION_HEX >= 0x03090000)
       PyFrameObject *frame = PyEval_GetFrame();
       if (frame) {
         if (!getEvalOption(evalOptions, "lineno", &l)) {
-#if (PY_VERSION_HEX >= 0x030a0000)
           options.setLine(PyFrame_GetLineNumber(frame));
 #else
-          (void)0;
+      (void)0;
 #endif
         } /* lineno */
 
