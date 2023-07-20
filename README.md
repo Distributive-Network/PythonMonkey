@@ -85,6 +85,8 @@ For VSCode users, similar to the Build Task, we have a Test Task ready to use.
 
 ## Using the library
 
+> npm (Node.js) is required **during installation only** to populate the JS dependencies.
+
 ### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
 
 ```bash
