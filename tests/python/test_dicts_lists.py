@@ -73,6 +73,30 @@ def test_eval_objects_proxy_proto():
     assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({})
     assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({ "abc": 1 })
 
+def test_eval_objects_proxy_iterate():
+    obj = pm.eval("({ a: 123, b: 'test' })")
+    result = []
+    for i in obj:
+        result.append(i)
+    assert result == [('a', 123.0), ('b', 'test')]
+
+def test_eval_objects_proxy_repr():
+    obj = pm.eval("({ a: 123, b: 'test' , c: { d: 1 }})")
+    obj.e = obj # supporting circular references
+    expected = "{'a': 123.0, 'b': 'test', 'c': {'d': 1.0}, 'e': [Circular]}"
+    assert repr(obj) == expected
+    assert str(obj) == expected
+
+def test_eval_objects_proxy_dict_conversion():
+    obj = pm.eval("({ a: 123, b: 'test' , c: { d: 1 }})")
+    d = dict(obj)
+    assert type(obj) is not dict # dict subclass
+    assert type(d) is dict # strict dict
+    assert repr(d) == "{'a': 123.0, 'b': 'test', 'c': {'d': 1.0}}"
+    assert obj.keys() == ['a', 'b', 'c'] # Conversion from a dict-subclass to a strict dict internally calls the .keys() method
+    assert list(d.keys()) == obj.keys()
+    assert obj == d
+
 def test_eval_objects_jsproxy_get():
     proxy = pm.eval("({a: 1})")
     assert 1.0 == proxy['a']

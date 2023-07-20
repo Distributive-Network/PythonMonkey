@@ -181,4 +181,9 @@ public:
   bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
 };
 
+/**
+ * @brief Convert jsid to a PyObject to be used as dict keys
+ */
+PyObject *idToKey(JSContext *cx, JS::HandleId id);
+
 #endif

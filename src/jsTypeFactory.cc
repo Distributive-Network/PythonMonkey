@@ -117,6 +117,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
+  else if (PyCFunction_Check(object) && PyCFunction_GetFunction(object) == callJSFunc) {
+    // If it's a wrapped JS function by us, return the underlying JS function rather than wrapping it again
+    PyObject *jsCxThisFuncTuple = PyCFunction_GetSelf(object);
+    JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
+    returnType.set(*jsFunc);
+  }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;

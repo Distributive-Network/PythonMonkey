@@ -6,7 +6,7 @@
 import sys, os, readline, signal, getopt
 import pythonmonkey as pm
 globalThis = pm.eval("globalThis")
-evalOptions = { 'strict': False }
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False }
 
 if (os.getenv('PMJS_PATH')):
     requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
@@ -42,12 +42,23 @@ cmds.python = function pythonCmd(...args) {
   }
 
   if (cmd === '')
+  {
     return;
+  }
+  
+  try {
+    if (arguments[0] === 'from' || arguments[0] === 'import')
+    {
+      return python.exec(cmd);
+    }
 
-  if (arguments[0] === 'from' || arguments[0] === 'import')
-    return python.exec(cmd);
-
-  const retval = python.eval(cmd);
+    const retval = python.eval(cmd);
+  }
+  catch(error) {
+    globalThis._error = error;
+    return util.inspect(error);
+  }
+  
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
   globalThis['$' + pythonCmd.serial] = retval;
   python.stdout.write('$' + pythonCmd.serial + ' = ');
@@ -130,7 +141,7 @@ globalThis.replEval = function replEval(statement)
     return util.inspect(error);
   }
 }
-""");
+""", evalOpts);
 
 def repl():
     """
@@ -322,21 +333,20 @@ def main():
             print(pm.__version__)
             sys.exit()
         elif o in ("--use-strict"):
-            evalOptions['strict'] = True
+            evalOpts['strict'] = True
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
         elif o in ("-i", "--interactive"):
             forceRepl = True
         elif o in ("-e", "--eval"):
-            pm.eval(a, evalOptions)
+            pm.eval(a, evalOpts)
             enterRepl = False
         elif o in ("-p", "--print"):
-            print(pm.eval(a, evalOptions))
+            print(pm.eval(a, evalOpts))
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
-            #            pm.eval('require')(a)
         else:
             assert False, "unhandled option"
 
