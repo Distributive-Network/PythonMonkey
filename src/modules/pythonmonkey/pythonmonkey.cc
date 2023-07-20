@@ -208,32 +208,27 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     if (getEvalOption(evalOptions, "module", &b)) if (b) options.setModule();
 
     if (getEvalOption(evalOptions, "fromPythonFrame", &b) && b) {
-#if (PY_VERSION_HEX >= 0x03090000)
+#if PY_VERSION_HEX >= 0x03090000
       PyFrameObject *frame = PyEval_GetFrame();
-      if (frame) {
-        if (!getEvalOption(evalOptions, "lineno", &l)) {
-          options.setLine(PyFrame_GetLineNumber(frame));
-#else
-      (void)0;
+      if (frame && !getEvalOption(evalOptions, "lineno", &l)) {
+        options.setLine(PyFrame_GetLineNumber(frame));
+      } /* lineno */
 #endif
-        } /* lineno */
-
-        if (!getEvalOption(evalOptions, "filename", &s)) {
-#if 0 && (PY_VERSION_HEX >= 0x030a0000) && (PY_VERSION_HEX < 0x030b0000)
-          PyObject *filename = PyDict_GetItemString(frame->f_builtins, "__file__");
-#elif (PY_VERSION_HEX > 0x030c0000)
-          PyObject *filename = PyDict_GetItemString(PyFrame_GetGlobals(frame), "__file__");
+#if 0 && (PY_VERSION_HEX >= 0x030a0000) && (PY_VERSION_HEX < 0x030c0000)
+      PyObject *filename = PyDict_GetItemString(frame->f_builtins, "__file__");
+#elif (PY_VERSION_HEX >= 0x030c0000)
+      PyObject *filename = PyDict_GetItemString(PyFrame_GetGlobals(frame), "__file__");
 #else
-          PyObject *filename = NULL;
+      PyObject *filename = NULL;
 #endif
-          if (filename && PyUnicode_Check(filename))
-            options.setFile(PyUnicode_AsUTF8(filename));
-        } /* filename */
-      } /* frame */
+      if (!getEvalOption(evalOptions, "filename", &s)) {
+        if (filename && PyUnicode_Check(filename)) {
+          options.setFile(PyUnicode_AsUTF8(filename));
+        }
+      } /* filename */
     } /* fromPythonFrame */
   } /* eval options */
-
-  // initialize JS context
+    // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
   if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
     setSpiderMonkeyException(GLOBAL_CX);
@@ -255,13 +250,13 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
-  js::ESClass cls = js::ESClass::Other; // placeholder if `rval` is not a JSObject
+  js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
   if (rval->isObject()) {
     JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
   }
-  bool rvalIsFunction = cls == js::ESClass::Function; // function object
-  bool rvalIsString = rval->isString() || cls == js::ESClass::String; // string primitive or boxed String object
-  if (!(rvalIsFunction || rvalIsString)) { // rval may be a JS function or string which must be kept alive.
+  bool rvalIsFunction = cls == js::ESClass::Function;   // function object
+  bool rvalIsString = rval->isString() || cls == js::ESClass::String;   // string primitive or boxed String object
+  if (!(rvalIsFunction || rvalIsString)) {   // rval may be a JS function or string which must be kept alive.
     delete rval;
   }
 
@@ -303,7 +298,7 @@ struct PyModuleDef pythonmonkey =
 {
   PyModuleDef_HEAD_INIT,
   "pythonmonkey",                                   /* name of module */
-  "A module for python to JS interoperability", /* module documentation, may be NULL */
+  "A module for python to JS interoperability",   /* module documentation, may be NULL */
   -1,                                           /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
   PythonMonkeyMethods
 };
@@ -327,29 +322,29 @@ static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Get the function to be executed
   // FIXME (Tom Tang): memory leak, not free-ed
-  JS::RootedObject *thisv = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee())); // HTML spec requires `thisArg` to be the global object
+  JS::RootedObject *thisv = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee()));   // HTML spec requires `thisArg` to be the global object
   JS::RootedValue *jobArg = new JS::RootedValue(cx, jobArgVal);
   // `setTimeout` allows passing additional arguments to the callback, as spec-ed
-  if (args.length() > 2) { // having additional arguments
+  if (args.length() > 2) {   // having additional arguments
     // Wrap the job function into a bound function with the given additional arguments
     //    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
     JS::RootedVector<JS::Value> bindArgs(cx);
-    (void)bindArgs.append(JS::ObjectValue(**thisv)); /** @todo XXXwg handle return value */
+    (void)bindArgs.append(JS::ObjectValue(**thisv));   /** @todo XXXwg handle return value */
     for (size_t j = 2; j < args.length(); j++) {
-      (void)bindArgs.append(args[j]); /** @todo XXXwg handle return value */
+      (void)bindArgs.append(args[j]);   /** @todo XXXwg handle return value */
     }
     JS::RootedObject jobArgObj = JS::RootedObject(cx, &jobArgVal.toObject());
-    JS_CallFunctionName(cx, jobArgObj, "bind", JS::HandleValueArray(bindArgs), jobArg); // jobArg = jobArg.bind(thisv, ...bindArgs)
+    JS_CallFunctionName(cx, jobArgObj, "bind", JS::HandleValueArray(bindArgs), jobArg);   // jobArg = jobArg.bind(thisv, ...bindArgs)
   }
   // Convert to a Python function
   PyObject *job = pyTypeFactory(cx, thisv, jobArg)->getPyObject();
 
   // Get the delay time
   //  JS `setTimeout` takes milliseconds, but Python takes seconds
-  double delayMs = 0; // use value of 0 if the delay parameter is omitted
-  if (args.hasDefined(1)) { JS::ToNumber(cx, args[1], &delayMs); } // implicitly do type coercion to a `number`
-  if (delayMs < 0) { delayMs = 0; } // as spec-ed
-  double delaySeconds = delayMs / 1000; // convert ms to s
+  double delayMs = 0;   // use value of 0 if the delay parameter is omitted
+  if (args.hasDefined(1)) { JS::ToNumber(cx, args[1], &delayMs); }   // implicitly do type coercion to a `number`
+  if (delayMs < 0) { delayMs = 0; }   // as spec-ed
+  double delaySeconds = delayMs / 1000;   // convert ms to s
 
   // Schedule job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
@@ -380,7 +375,7 @@ static bool clearTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Retrieve the AsyncHandle by `timeoutID`
   int32_t timeoutID = timeoutIdArg.toInt32();
   AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
-  if (!handle) return true; // does nothing on invalid timeoutID
+  if (!handle) return true;   // does nothing on invalid timeoutID
 
   // Cancel this job on Python event-loop
   handle->cancel();
@@ -449,7 +444,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   // In https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/jit/CacheIR.cpp#l317, trying to use the callback returned by `js::GetDOMProxyShadowsCheck()` even it's unset (nullptr)
   // Temporarily solved by explicitly setting the `domProxyShadowsCheck` callback here
   JS::SetDOMProxyInformation(nullptr,
-    [](JSContext *, JS::HandleObject, JS::HandleId) { // domProxyShadowsCheck
+    [](JSContext *, JS::HandleObject, JS::HandleId) {   // domProxyShadowsCheck
       return JS::DOMProxyShadowsResult::ShadowCheckFailed;
     }, nullptr);
 
