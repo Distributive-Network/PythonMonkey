@@ -22,6 +22,7 @@ cd `dirname "$0"` || panic "could not change to test directory"
 -e 'console.debug("stdout")' \
 -e 'console.info("stdout")' \
 < /dev/null \
+| tr -d '\r' \
 | grep -c '^stdout$' \
 | while read qty
   do
@@ -34,6 +35,7 @@ cd `dirname "$0"` || panic "could not change to test directory"
 -e 'console.error("stderr")' \
 -e 'console.warn("stderr")' \
 < /dev/null 2>&1 \
+| tr -d '\r' \
 | grep -c '^stderr$' \
 | while read qty
   do
