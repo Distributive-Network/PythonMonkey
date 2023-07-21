@@ -182,7 +182,7 @@ necessary unless the main entry point of your program is written in JavaScript.
 
 Care should be taken to ensure that only one program module is run per JS context.
 
-## Built-In Functions
+## [Built-In Functions](python/pythonmonkey/global.d.ts)
 
 - `console`
 - `atob`
@@ -193,6 +193,7 @@ Care should be taken to ensure that only one program module is run per JS contex
 ### CommonJS Subsystem Additions
 The CommonJS subsystem is activated by invoking the `require` or `createRequire` exports of the (Python)
 pythonmonkey module.
+
 - `require`
 - `exports`
 - `module`
