@@ -139,6 +139,14 @@ If you are using VSCode, it's more convenient to debug in [VSCode's built-in deb
 ## API
 These methods are exported from the pythonmonkey module.
 
+### `eval`
+### `collect`
+### `bigint`
+### `SpiderMonkeyError`
+### `null`
+
+See definitions in [python/pythonmonkey/pythonmonkey.pyi](python/pythonmonkey/pythonmonkey.pyi).
+
 ### require(moduleIdentifier)
 Return the exports of a CommonJS module identified by `moduleIdentifier`, using standard CommonJS
 semantics
