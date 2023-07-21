@@ -3,13 +3,17 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, readline, signal, getopt
+import sys, os, signal, getopt
+try:
+  import readline # Unix
+except ImportError:
+  import pyreadline3 as readline # Windows
 import pythonmonkey as pm
 globalThis = pm.eval("globalThis")
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
 
 if (os.getenv('PMJS_PATH')):
-    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
+    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(',')))
 else:
     requirePath = False;
 
@@ -108,7 +112,7 @@ globalThis.replEval = function replEval(statement)
    * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
    * we re-evaluate without the parens.
    */
-  if (/^\\s*\{.*[^;\\s]\\s*$/.test(statement))
+  if (/^\\s*\\{.*[^;\\s]\\s*$/.test(statement))
   {
     const testStatement = `(${statement})`;
     if (globalThis.python.pythonMonkey.isCompilableUnit(testStatement))
@@ -195,8 +199,7 @@ def repl():
 
         got_sigint = got_sigint + 1
         if (got_sigint > 1):
-            sys.stdout.write("\n")
-            quit()
+            raise EOFError
 
         if (inner_loop != True):
             if (got_sigint == 1 and len(readline.get_line_buffer()) == readline_skip_chars):
@@ -304,7 +307,7 @@ def initGlobalThis():
 
     require = pm.createRequire(os.path.abspath(os.getcwd() + '/__pmjs_virtual__'), requirePath)
     globalThis.require = require
-    globalInitModule = require(os.path.dirname(__file__) + "/../lib/pmjs/global-init") # module load has side-effects
+    globalInitModule = require(os.path.realpath(os.path.dirname(__file__) + "/../lib/pmjs/global-init")) # module load has side-effects
     argvBuilder = globalInitModule.makeArgvBuilder()
     for arg in sys.argv:
         argvBuilder(arg); # list=>Array not working yet

@@ -23,7 +23,7 @@
 # @date         May 2023
 #
 
-import sys, os
+import sys, os, io
 from typing import Union, Dict, Literal, List
 import importlib
 import importlib.util
@@ -43,6 +43,12 @@ node_modules = os.path.abspath(
 )
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True } # type: pm.EvalOptions
 
+# Force to use UTF-8 encoding
+# Windows may use other encodings / code pages that have many characters missing/unrepresentable
+# Error: Python UnicodeEncodeError: 'charmap' codec can't encode characters in position xx-xx: character maps to <undefined>
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;", evalOpts)
 pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }", evalOpts);
@@ -60,8 +66,7 @@ globalThis.python.stderr.read = sys.stderr.read
 globalThis.python.eval = eval
 globalThis.python.exec = exec
 globalThis.python.getenv = os.getenv
-globalThis.python.paths  = ':'.join(sys.path)
-pm.eval("python.paths = python.paths.split(':');", evalOpts); # fix when pm supports arrays
+globalThis.python.paths  = sys.path
 
 globalThis.python.exit = pm.eval("""'use strict';
 (exit) => function pythonExitWrapper(exitCode) {
@@ -269,6 +274,7 @@ def _createRequireInner(*args):
  */
 function createRequire(filename, bootstrap_broken, extraPaths, isMain)
 {
+  filename = filename.split('\\\\').join('/');
   const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
   const moduleCache = globalThis.require?.cache || {};
@@ -283,7 +289,7 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
 
   const module = new CtxModule(globalThis, filename, moduleCache);
   moduleCache[filename] = module;
-  for (let path of python.paths)
+  for (let path of Array.from(python.paths))
     module.paths.push(path + '/node_modules');
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.path.push(python.pythonMonkey.nodeModules);
@@ -300,7 +306,7 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
   }
 
   if (extraPaths)
-    module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(':')));
+    module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(',')));
 
   return module.require;
 })""", evalOpts)(*args)

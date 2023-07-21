@@ -28,6 +28,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+pyreadline3 = "^3.4.1"
 pminit = { version = "*", allow-prereleases = true }
 
 

@@ -30,7 +30,7 @@ a;
 b(${rnd});
 EOF
 )\
-| cat -u | while read prompt keyword rest
+| cat -u | tr -d '\r' | while read prompt keyword rest
   do
     case "$keyword" in
       "...")
