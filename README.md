@@ -183,13 +183,12 @@ necessary unless the main entry point of your program is written in JavaScript.
 Care should be taken to ensure that only one program module is run per JS context.
 
 ## Built-In Functions
+
 - `console`
 - `atob`
 - `btoa`
 - `setTimeout`
-- `setInterval`
 - `clearTimeout`
-- `clearInterval`
 
 ### CommonJS Subsystem Additions
 The CommonJS subsystem is activated by invoking the `require` or `createRequire` exports of the (Python)
