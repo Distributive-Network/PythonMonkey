@@ -391,7 +391,7 @@ static JSFunctionSpec jsGlobalFunctions[] = {
 
 PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
-  PyDateTime_IMPORT;
+  if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
   SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
   if (!JS_Init()) {

@@ -28,7 +28,7 @@ DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
   JS_CallFunctionName(cx, dateObj, "getSeconds", args, &second);
   JS_CallFunctionName(cx, dateObj, "getMilliseconds", args, &usecond);
 
-  PyDateTime_IMPORT;
+  if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
   pyObject = PyDateTime_FromDateAndTime(
     year.toNumber(), month.toNumber() + 1, day.toNumber(),
     hour.toNumber(), minute.toNumber(), second.toNumber(),
