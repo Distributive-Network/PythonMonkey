@@ -9,6 +9,12 @@
 #include <Python.h>
 #include <datetime.h>
 
+// https://github.com/python/cpython/blob/v3.10.11/Modules/_datetimemodule.c#L89-L92
+#define DATE_SET_MICROSECOND(o, v) \
+  (((o)->data[7] = ((v) & 0xff0000) >> 16), \
+  ((o)->data[8] = ((v) & 0x00ff00) >> 8), \
+  ((o)->data[9] = ((v) & 0x0000ff)))
+
 DateType::DateType(PyObject *object) : PyType(object) {}
 
 DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
@@ -25,7 +31,15 @@ DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
   PyTuple_SetItem(timestampArg, 1, PyDateTime_TimeZone_UTC); // Make the resulting Python datetime object timezone-aware
                                                              // See https://docs.python.org/3/library/datetime.html#aware-and-naive-objects
   pyObject = PyDateTime_FromTimestamp(timestampArg);
+  Py_INCREF(PyDateTime_TimeZone_UTC); // PyTuple_SetItem steals the reference
   Py_DECREF(timestampArg);
+
+  // Round to milliseconds precision because the smallest unit for a JS Date is 1ms
+  double microseconds = PyDateTime_DATE_GET_MICROSECOND(pyObject);
+  DATE_SET_MICROSECOND(
+    (PyDateTime_DateTime *)pyObject,
+    std::lround(microseconds / 1000) * 1000
+  );
 }
 
 JSObject *DateType::toJsDate(JSContext *cx) {
