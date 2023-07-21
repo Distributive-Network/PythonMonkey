@@ -268,6 +268,7 @@ def _createRequireInner(*args):
  */
 function createRequire(filename, bootstrap_broken, extraPaths, isMain)
 {
+  filename = filename.split('\\\\').join('/');
   const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
   const moduleCache = globalThis.require?.cache || {};
