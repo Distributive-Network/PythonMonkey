@@ -273,6 +273,26 @@ globalThis.python.exit = pm.eval("""'use strict';
 """)(sys.exit);
 ```
 
+### Run Python event-loop
+
+You need an event-loop running to use `setTimeout` and `Promise`<=>`awaitable` coercion.
+
+```python
+import asyncio
+
+async def async_fn():
+  await pm.eval("""
+    new Promise((resolve) => setTimeout((...args) => { 
+        console.log(args);
+        resolve();
+      }, 1000, 42, "abc")
+    )
+  """)
+  await pm.eval("async (x) => await x")(asyncio.sleep(0.5))
+
+asyncio.run(async_fn())
+```
+
 # pmjs
 A basic JavaScript shell, `pmjs`, ships with PythonMonkey. This shell can act as a REPL or run
 JavaScript programs; it is conceptually similar to the `node` shell which ships with Node.js.
