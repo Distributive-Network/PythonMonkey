@@ -140,6 +140,7 @@ If you are using VSCode, it's more convenient to debug in [VSCode's built-in deb
 These methods are exported from the pythonmonkey module.
 
 ### eval(code, evalOpts)
+### isCompilableUnit(code)
 ### collect()
 ### bigint(int)
 ### `SpiderMonkeyError`
