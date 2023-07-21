@@ -67,7 +67,7 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
 }
 
 JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
-  PyDateTime_IMPORT; // for PyDateTime_Check
+  if (!PyDateTimeAPI) { PyDateTime_IMPORT; } // for PyDateTime_Check
 
   JS::RootedValue returnType(cx);
 

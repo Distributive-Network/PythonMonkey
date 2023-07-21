@@ -52,7 +52,7 @@ def eq(date1, date2):
 def eqUnixTime(date, timet):
     import datetime
     global eq
-    return eq(date, datetime.datetime.utcfromtimestamp(timet))
+    return eq(date, datetime.datetime.fromtimestamp(timet, tz=datetime.timezone.utc))
 `);
 
 const eq = python.eval('eq');

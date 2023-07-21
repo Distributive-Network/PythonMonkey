@@ -1,7 +1,7 @@
 import pytest
 import pythonmonkey as pm
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import math
 
 def test_passes():
@@ -47,7 +47,7 @@ def test_eval_booleans():
 def test_eval_dates():
     MIN_YEAR = 1 # https://docs.python.org/3/library/datetime.html#datetime.MINYEAR
     MAX_YEAR = 2023
-    start = datetime(MIN_YEAR, 1, 1, 00, 00, 00)
+    start = datetime(MIN_YEAR, 1, 1, 00, 00, 00, tzinfo=timezone.utc)
     years = MAX_YEAR - MIN_YEAR + 1
     end = start + timedelta(days=365 * years)
     for _ in range(10):
