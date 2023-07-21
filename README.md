@@ -197,6 +197,8 @@ pythonmonkey module.
 - `require`
 - `exports`
 - `module`
+- `__filename`
+- `__dirname`
 - `python.print`  - the Python print function
 - `python.getenv` - the Python getenv function
 - `python.stdout` - an object with `read` and `write` methods, which read and write to stdout
