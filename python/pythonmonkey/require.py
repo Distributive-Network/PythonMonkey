@@ -23,7 +23,7 @@
 # @date         May 2023
 #
 
-import sys, os
+import sys, os, io
 from typing import Union, Dict, Literal, List
 import importlib
 import importlib.util
@@ -41,6 +41,13 @@ node_modules = os.path.abspath(
   )
 )
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True }
+
+# Force to use UTF-8 encoding
+# Windows may use other encodings / code pages that have many characters missing/unrepresentable
+# Error: Python UnicodeEncodeError: 'charmap' codec can't encode characters in position ##-##: character maps to <undefined>
+sys.stdin  = io.TextIOWrapper(sys.stdin .buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;", evalOpts)
