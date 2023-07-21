@@ -115,7 +115,12 @@ Type "help", "copyright", "credits" or "license" for more information.
 'Hello from Spidermonkey!'
 ```
 
-Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.
+Alternatively, you can build installable packages by running
+```bash
+$ cd python/pminit && poetry build --format=sdist && cd - && mv -v python/pminit/dist/* ./dist/
+$ poetry build --format=wheel
+```
+and install them by `pip install ./dist/*`.
 
 ## Debugging Steps
 
