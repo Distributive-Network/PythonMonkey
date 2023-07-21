@@ -184,6 +184,8 @@ Care should be taken to ensure that only one program module is run per JS contex
 
 ## Built-In Functions
 - `console`
+- `atob`
+- `btoa`
 - `setTimeout`
 - `setInterval`
 - `clearTimeout`
