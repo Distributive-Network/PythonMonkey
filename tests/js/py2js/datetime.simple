@@ -10,6 +10,7 @@
 
 const throughJS = x => x;
 var expectedJsTimestamp;
+var actualJsTimestamp;
 var jsDate;
 var pyDate;
 
@@ -35,9 +36,10 @@ python.exec(`import datetime`);
 pyDate = python.eval(`datetime.datetime.fromtimestamp(${expectedJsTimestamp}, tz=timezone.utc)`);
 jsDate = throughJS(pyDate);
 
-if (jsDate.getTime() !== expectedJsTimestamp)
+actualJsTimestamp = jsDate.getTime() / 1000; // JS timestamp is in milliseconds, convert it to seconds
+if (actualJsTimestamp !== expectedJsTimestamp)
 {
-  console.error('expected', expectedJsTimestamp, 'but got',jsDate.getTime());
+  console.error('expected', expectedJsTimestamp, 'but got', actualJsTimestamp);
   throw new Error('test failed');
 }
 
