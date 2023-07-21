@@ -139,10 +139,11 @@ If you are using VSCode, it's more convenient to debug in [VSCode's built-in deb
 ## API
 These methods are exported from the pythonmonkey module.
 
-### `eval`
-### `collect`
-### `bigint`
+### eval(code, evalOpts)
+### collect()
+### bigint(int)
 ### `SpiderMonkeyError`
+### `JSObjectProxy`
 ### `null`
 
 See definitions in [python/pythonmonkey/pythonmonkey.pyi](python/pythonmonkey/pythonmonkey.pyi).
