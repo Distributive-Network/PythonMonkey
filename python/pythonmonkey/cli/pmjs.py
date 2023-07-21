@@ -4,10 +4,7 @@
 # @date         June 2023
 
 import sys, os, signal, getopt
-try:
-  import readline # Unix
-except ImportError:
-  import pyreadline3 as readline # Windows
+import readline
 import pythonmonkey as pm
 globalThis = pm.eval("globalThis")
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
