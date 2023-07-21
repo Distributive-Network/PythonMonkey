@@ -41,7 +41,7 @@ node_modules = os.path.abspath(
     "node_modules"
   )
 )
-evalOpts: pm.EvalOptions = { 'filename': __file__, 'fromPythonFrame': True }
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True } # type: pm.EvalOptions
 
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;", evalOpts)
