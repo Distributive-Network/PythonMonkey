@@ -1,0 +1,21 @@
+/**
+ * @file        js2py/string.simple
+ *              Simple test which shows that sending strings to Python and getting them back into JS
+ *              works as expected - including non-BMP Unicode.
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const hello = 'hello, world!🐍🐒'
+const throughPython = python.eval('(lambda x: x)');
+const bonjour = throughPython(hello);
+
+if (bonjour !== hello)
+{
+  console.error('expected', hello, 'but got', bonjour);
+  throw new Error('test failed');
+}
+
+/* XXXwg jul 2023 note - we get unknown characters in the output here because of issue 89, unrelated to this test */
+console.log('pass -', bonjour);

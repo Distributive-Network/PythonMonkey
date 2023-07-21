@@ -1,0 +1,25 @@
+/**
+ * @file        py2js/arraybuffer.simple
+ *              Simple test which shows that sending Buffers from python to JavaScript and mutating
+ *              them works
+ * @author      Severn Lortie, severn@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+python.exec(`
+x = bytearray([ 104, 101, 108, 108, 111 ])
+`);
+
+const pythonBuff = python.eval('x');
+
+// Mutate the buffer
+pythonBuff[3] = 55;
+
+// Now pass back to python
+const newPythonBuff = python.eval('x');
+
+// Check that both were updated
+for (let i = 0; i < pythonBuff.length; i++) 
+  if (pythonBuff[i] !== newPythonBuff[i]) throw new Error('The buffer was not changed, or not returned correctly.');
+

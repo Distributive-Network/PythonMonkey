@@ -11,7 +11,7 @@
 
 DateType::DateType(PyObject *object) : PyType(object) {}
 
-DateType::DateType(JSContext *cx, JS::Handle<JSObject *> dateObj) {
+DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
   JS::Rooted<JS::ValueArray<0>> args(cx);
   JS::Rooted<JS::Value> year(cx);
   JS::Rooted<JS::Value> month(cx);
@@ -33,4 +33,12 @@ DateType::DateType(JSContext *cx, JS::Handle<JSObject *> dateObj) {
     year.toNumber(), month.toNumber() + 1, day.toNumber(),
     hour.toNumber(), minute.toNumber(), second.toNumber(),
     usecond.toNumber() * 1000);
+}
+
+JSObject *DateType::toJsDate(JSContext *cx) {
+  // See https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp
+  PyObject *timestamp = PyObject_CallMethod(pyObject, "timestamp", NULL); // the result is in seconds
+  double milliseconds = PyFloat_AsDouble(timestamp) * 1000;
+  Py_DECREF(timestamp);
+  return JS::NewDateObject(cx, JS::TimeClip(milliseconds));
 }

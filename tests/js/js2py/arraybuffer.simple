@@ -1,0 +1,30 @@
+/**
+ * @file        js2py/arraybuffer.simple
+ *              Simple test which shows that sending ArrayBuffers to Python and getting them back into JS
+ *              works as expected. Also tests mutation.
+ * @author      Severn Lortie, severn@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const buffer = new ArrayBuffer(5); // 5 bytes
+const bufferView = new Uint8Array(buffer);
+bufferView[0] = 104;
+bufferView[1] = 101;
+bufferView[2] = 108;
+bufferView[3] = 108;
+bufferView[4] = 111;
+
+python.exec(`
+def mutate(x):
+  x[3] = 55;
+  return x;
+`);
+
+const fn = python.eval('mutate');
+const modifiedBuff = fn(buffer); // Call the function which mutates the buffer
+
+// Check that both were updated
+for (let i = 0; i < bufferView.length; i++) 
+  if (modifiedBuff[i] !== bufferView[i]) throw new Error('The buffer was not changed, or not returned correctly.');
+

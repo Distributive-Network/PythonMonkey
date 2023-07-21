@@ -20,6 +20,7 @@
 #include "include/StrType.hh"
 #include "include/IntType.hh"
 #include "include/PromiseType.hh"
+#include "include/DateType.hh"
 #include "include/ExceptionType.hh"
 #include "include/BufferType.hh"
 
@@ -28,6 +29,7 @@
 #include <js/Proxy.h>
 
 #include <Python.h>
+#include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
 
 #define HIGH_SURROGATE_START 0xD800
 #define LOW_SURROGATE_START 0xDC00
@@ -65,6 +67,8 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
 }
 
 JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
+  PyDateTime_IMPORT; // for PyDateTime_Check
+
   JS::RootedValue returnType(cx);
 
   if (PyBool_Check(object)) {
@@ -144,6 +148,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (PyExceptionInstance_Check(object)) {
     JSObject *error = ExceptionType(object).toJsError(cx);
     returnType.setObject(*error);
+  }
+  else if (PyDateTime_Check(object)) {
+    JSObject *dateObj = DateType(object).toJsDate(cx);
+    returnType.setObject(*dateObj);
   }
   else if (PyObject_CheckBuffer(object)) {
     BufferType *pmBuffer = new BufferType(object);

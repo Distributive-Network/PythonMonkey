@@ -1,0 +1,34 @@
+/**
+ * @file        js2py/function-curry.simple
+ *              Curries a function in JS, pass it to python, apply it in JS.
+ * @author      Liang Wang, liang@distributive.network
+ * @date        July 2023
+ */
+
+'use strict'
+const curry = (fn) => {
+  return function curried(...args) {
+    if (args.length >= fn.length) {
+      return fn.apply(this, args);
+    } else {
+      return function(...args2) {
+        return curried.apply(this, args.concat(args2));
+      }
+    }
+  };
+}
+
+const takeMiddle = (_x, y, _z) => y;
+
+const throughPython = python.eval('(lambda x: x)');
+const pTakeMiddle = throughPython(curry(takeMiddle));
+const middle = pTakeMiddle(1)(2)(3);
+
+if (middle !== 2)
+{
+  console.error('expected', 2 , 'but got', middle);
+  throw new Error('test failed');
+}
+
+console.log('this thing can curry');
+
