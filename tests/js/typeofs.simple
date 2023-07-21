@@ -9,7 +9,7 @@
 'use strict';
 
 const throughJS = x => x;
-const throughBoth = python.eval('(lambda x: throughJS(x))', { throughJS });
+const throughBoth = python.eval('(lambda func: lambda x: func(x))')(throughJS);
 
 function check(jsval, expected)
 {
