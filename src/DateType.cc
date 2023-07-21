@@ -20,8 +20,10 @@ DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
   JS_CallFunctionName(cx, dateObj, "getTime", args, &timeValue);
   double milliseconds = timeValue.toNumber();
 
-  PyObject *timestampArg = PyTuple_New(1);
+  PyObject *timestampArg = PyTuple_New(2);
   PyTuple_SetItem(timestampArg, 0, PyFloat_FromDouble(milliseconds / 1000));
+  PyTuple_SetItem(timestampArg, 1, PyDateTime_TimeZone_UTC); // Make the resulting Python datetime object timezone-aware
+                                                             // See https://docs.python.org/3/library/datetime.html#aware-and-naive-objects
   pyObject = PyDateTime_FromTimestamp(timestampArg);
   Py_DECREF(timestampArg);
 }
