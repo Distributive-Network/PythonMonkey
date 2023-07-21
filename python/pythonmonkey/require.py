@@ -299,7 +299,7 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
   }
 
   if (extraPaths)
-    module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(':')));
+    module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(',')));
 
   return module.require;
 })""", evalOpts)(*args)
