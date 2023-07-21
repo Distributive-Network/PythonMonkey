@@ -35,13 +35,13 @@ from . import pythonmonkey as pm
 
 node_modules = os.path.abspath(
   os.path.join(
-    importlib.util.find_spec("pminit").submodule_search_locations[0],
+    importlib.util.find_spec("pminit").submodule_search_locations[0], # type: ignore
     "..",
     "pythonmonkey",
     "node_modules"
   )
 )
-evalOpts = { 'filename': __file__, 'fromPythonFrame': True }
+evalOpts: pm.EvalOptions = { 'filename': __file__, 'fromPythonFrame': True }
 
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;", evalOpts)
@@ -241,11 +241,11 @@ def load(filename: str) -> Dict:
     name = os.path.basename(filename)
     if name not in sys.modules:
         sourceFileLoader = machinery.SourceFileLoader(name, filename)
-        spec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader)
+        spec: machinery.ModuleSpec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader) # type: ignore
         module = importlib.util.module_from_spec(spec)
         sys.modules[name] = module
-        module.exports = {}
-        spec.loader.exec_module(module)
+        module.exports = {} # type: ignore
+        spec.loader.exec_module(module) # type: ignore
     else:
         module = sys.modules[name]
     return module.exports

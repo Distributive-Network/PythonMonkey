@@ -6,7 +6,7 @@
 import sys, os, readline, signal, getopt
 import pythonmonkey as pm
 globalThis = pm.eval("globalThis")
-evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False }
+evalOpts: pm.EvalOptions = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False }
 
 if (os.getenv('PMJS_PATH')):
     requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
