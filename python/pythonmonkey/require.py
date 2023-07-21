@@ -59,8 +59,7 @@ globalThis.python.stderr.read = sys.stderr.read
 globalThis.python.eval = eval
 globalThis.python.exec = exec
 globalThis.python.getenv = os.getenv
-globalThis.python.paths  = ':'.join(sys.path)
-pm.eval("python.paths = python.paths.split(':');", evalOpts); # fix when pm supports arrays
+globalThis.python.paths  = sys.path
 
 globalThis.python.exit = pm.eval("""'use strict';
 (exit) => function pythonExitWrapper(exitCode) {
@@ -283,7 +282,7 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
 
   const module = new CtxModule(globalThis, filename, moduleCache);
   moduleCache[filename] = module;
-  for (let path of python.paths)
+  for (let path of Array.from(python.paths))
     module.paths.push(path + '/node_modules');
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.path.push(python.pythonMonkey.nodeModules);
