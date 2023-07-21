@@ -32,6 +32,7 @@ import inspect
 import functools
 
 from . import pythonmonkey as pm 
+
 node_modules = os.path.abspath(
   os.path.join(
     importlib.util.find_spec("pminit").submodule_search_locations[0],
@@ -344,3 +345,6 @@ def require(moduleIdentifier: str):
     if not os.path.exists(filename):
       filename = os.path.join(os.getcwd(), "__main__") # use the CWD instead
     return createRequire(filename)(moduleIdentifier)
+
+# Restrict what are exposed to the pythonmonkey module.
+__all__ = ["globalThis", "require", "createRequire", "runProgramModule"]
