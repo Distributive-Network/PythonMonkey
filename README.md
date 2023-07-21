@@ -28,7 +28,7 @@ js_eval("console.log")('hello, world')
 
 ### Data Interchange
 - Strings share immutable backing stores whenever possible (when allocating engine choses UCS-2 or Latin-1 internal string representation) to keep memory consumption under control, and to make it possible to move very large strings between JS and Python library code without memory-copy overhead.
-- TypedArrays to share mutable backing stores; if this is not possible we will implement a copy-on-write (CoW) solution.
+- TypedArrays share mutable backing stores.
 - JS objects are represented by Python dicts
 - JS Date objects are represented by Python datetime.datetime objects
 - Intrinsics (boolean, number, null, undefined) are passed by value
