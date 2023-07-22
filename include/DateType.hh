@@ -26,8 +26,19 @@
 struct DateType : public PyType {
 public:
   DateType(PyObject *object);
-  DateType(JSContext *cx, JS::Handle<JSObject *> dateObj);
+  /**
+   * @brief Convert a JS Date object to Python datetime
+   */
+  DateType(JSContext *cx, JS::HandleObject dateObj);
+
   const TYPE returnType = TYPE::DATE;
+
+  /**
+   * @brief Convert a Python datetime object to JS Date
+   *
+   * @param cx - javascript context pointer
+   */
+  JSObject *toJsDate(JSContext *cx);
 };
 
 #endif

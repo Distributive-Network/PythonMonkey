@@ -1,0 +1,33 @@
+/**
+ * @file        js2py/promise-await-in-python.simple
+ *              Simple test to await a javascript promise as a python awaitable, resolving with the correct value.
+ * @author      Ryan Saweczko ryansaweczko@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+var resolve, reject;
+var valToResolve = 1;
+const examplePromise = new Promise((res, rej) => {resolve = res, reject = rej});
+
+const pythonCode = `
+import asyncio
+
+async def awaitPromise(promise):
+  ret = await promise
+  return ret
+`;
+
+python.exec(pythonCode);
+const pythonFunction = python.eval("awaitPromise")
+
+async function test()
+{
+  const backValue = await pythonFunction(examplePromise);
+  if (backValue !== 1)
+    throw new Error(`Received value ${backValue} instead of ${valToResolve} from awaiting a JS promise in python`)
+}
+test()
+
+resolve(valToResolve);
+

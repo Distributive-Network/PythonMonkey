@@ -33,6 +33,18 @@
   #define PY_UNICODE_OBJECT_READY(op)       (PY_ASCII_OBJECT_CAST(op)->state.ready)
 #endif
 
+/**
+ * @brief check if UTF-16 encoded `chars` contain a surrogate pair
+ */
+static bool containsSurrogatePair(const char16_t *chars, size_t length) {
+  for (size_t i = 0; i < length; i++) {
+    if (Py_UNICODE_IS_SURROGATE(chars[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 StrType::StrType(PyObject *object) : PyType(object) {}
 
 StrType::StrType(char *string) : PyType(Py_BuildValue("s", string)) {}
@@ -91,6 +103,18 @@ StrType::StrType(JSContext *cx, JSString *str) {
     }
     PY_UNICODE_OBJECT_READY(pyObject) = 1;
   #endif
+
+    if (containsSurrogatePair(chars, length)) {
+      // We must convert to UCS4 here because Python does not support decoding string containing surrogate pairs to bytes
+      PyObject *ucs4Obj = asUCS4(pyObject); // convert to a new PyUnicodeObject with UCS4 data
+      if (!ucs4Obj) {
+        // conversion fails, keep the original `pyObject`
+        return;
+      }
+      Py_DECREF(pyObject); // cleanup the old `pyObject`
+      Py_INCREF(ucs4Obj); // XXX: Same as the above `Py_INCREF(pyObject);`. Why double freed on GC?
+      pyObject = ucs4Obj;
+    }
   }
 }
 
@@ -98,43 +122,33 @@ const char *StrType::getValue() const {
   return PyUnicode_AsUTF8(pyObject);
 }
 
-PyObject *StrType::asUCS4() {
+/* static */
+PyObject *StrType::asUCS4(PyObject *pyObject) {
+  if (PyUnicode_KIND(pyObject) != PyUnicode_2BYTE_KIND) {
+    // return a new reference to match the behaviour of `PyUnicode_FromKindAndData`
+    Py_INCREF(pyObject);
+    return pyObject;
+  }
+
   uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
   size_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
 
   uint32_t ucs4String[length];
   size_t ucs4Length = 0;
 
-  for (size_t i = 0; i < length; i++) {
-    if (chars[i] >= LOW_SURROGATE_START && chars[i] <= LOW_SURROGATE_END) // character is an unpaired low surrogate
-    {
-      char hexString[5];
-      sprintf(hexString, "%x", (unsigned int)chars[i]);
-      std::string errorString = std::string("string contains an unpaired low surrogate at position: ") + std::to_string(i) + std::string(" with a value of 0x") + hexString;
-      PyErr_SetString(PyExc_UnicodeTranslateError, errorString.c_str());
+  for (size_t i = 0; i < length; i++, ucs4Length++) {
+    if (Py_UNICODE_IS_LOW_SURROGATE(chars[i])) { // character is an unpaired low surrogate
       return NULL;
-    }
-    else if (chars[i] >= HIGH_SURROGATE_START && chars[i] <= HIGH_SURROGATE_END) { // character is a high surrogate
-      if ((i + 1 < length) && chars[i+1] >= LOW_SURROGATE_START && chars[i+1] <= LOW_SURROGATE_END) { // next character is a low surrogate
-        // see https://www.unicode.org/faq/utf_bom.html#utf16-3 for details
-        uint32_t X = (chars[i] & ((1 << 6) -1)) << 10 | chars[i+1] & ((1 << 10) -1);
-        uint32_t W = (chars[i] >> 6) & ((1 << 5) - 1);
-        uint32_t U = W+1;
-        ucs4String[ucs4Length] = U << 16 | X;
-        ucs4Length++;
+    } else if (Py_UNICODE_IS_HIGH_SURROGATE(chars[i])) { // character is a high surrogate
+      if ((i + 1 < length) && Py_UNICODE_IS_LOW_SURROGATE(chars[i+1])) { // next character is a low surrogate
+        ucs4String[ucs4Length] = Py_UNICODE_JOIN_SURROGATES(chars[i], chars[i+1]);
         i++; // skip over low surrogate
       }
       else { // next character is not a low surrogate
-        char hexString[5];
-        sprintf(hexString, "%x", (unsigned int)chars[i]);
-        std::string errorString = std::string("string contains an unpaired high surrogate at position: ") + std::to_string(i) + std::string(" with a value of 0x") + hexString;
-        PyErr_SetString(PyExc_UnicodeTranslateError, errorString.c_str());
         return NULL;
       }
-    }
-    else { // character is not a surrogate, and is in the BMP
+    } else { // character is not a surrogate, and is in the BMP
       ucs4String[ucs4Length] = chars[i];
-      ucs4Length++;
     }
   }
 

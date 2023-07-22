@@ -1,0 +1,35 @@
+/**
+ * @file        js2py/bigint.simple
+ *              Simple test which shows that sending bigint to Python and getting them back into JS
+ *              works as expected.
+ * @author      Kirill Kirnichansky, kirill@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const bigint = BigInt(777);
+
+python.exec(`
+def isPythonInt(val):
+  return isinstance(val, int)
+
+def compare(val):
+  if val == int(777):
+    return True
+  return False
+`);
+const isPythonInt = python.eval('isPythonInt');
+const compare = python.eval('compare');
+
+if (!isPythonInt)
+{
+  console.error(`${bigint} is not instance of int in Python.`);
+  throw new Error('test failed');
+}
+if (!compare)
+{
+  console.error(`${bigint} !== 777 in Python`);
+  throw new Error('test failed');
+}
+
+console.log('pass');

@@ -3,13 +3,18 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, readline, signal, getopt, asyncio
+import sys, os, signal, getopt, asyncio
+try:
+  import readline # Unix
+except ImportError:
+  import pyreadline3 as readline # Windows
+
 import pythonmonkey as pm
 globalThis = pm.eval("globalThis")
-evalOptions = { 'strict': False }
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
 
 if (os.getenv('PMJS_PATH')):
-    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
+    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(',')))
 else:
     requirePath = False;
 
@@ -41,10 +46,24 @@ cmds.python = function pythonCmd(...args) {
     return;
   }
 
-  if (arguments[0] === 'from' || arguments[0] === 'import')
-    return python.exec(cmd);
+  if (cmd === '')
+  {
+    return;
+  }
+  
+  try {
+    if (arguments[0] === 'from' || arguments[0] === 'import')
+    {
+      return python.exec(cmd);
+    }
 
-  const retval = python.eval(cmd);
+    const retval = python.eval(cmd);
+  }
+  catch(error) {
+    globalThis._error = error;
+    return util.inspect(error);
+  }
+  
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
   globalThis['$' + pythonCmd.serial] = retval;
   python.stdout.write('$' + pythonCmd.serial + ' = ');
@@ -94,7 +113,7 @@ globalThis.replEval = function replEval(statement)
    * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
    * we re-evaluate without the parens.
    */
-  if (/^\\s*\{.*[^;\\s]\\s*$/.test(statement))
+  if (/^\\s*\\{.*[^;\\s]\\s*$/.test(statement))
   {
     const testStatement = `(${statement})`;
     if (globalThis.python.pythonMonkey.isCompilableUnit(testStatement))
@@ -127,7 +146,7 @@ globalThis.replEval = function replEval(statement)
     return util.inspect(error);
   }
 }
-""");
+""", evalOpts);
 
 def repl():
     """
@@ -181,8 +200,7 @@ def repl():
 
         got_sigint = got_sigint + 1
         if (got_sigint > 1):
-            sys.stdout.write("\n")
-            quit()
+            raise EOFError
 
         if (inner_loop != True):
             if (got_sigint == 1 and len(readline.get_line_buffer()) == readline_skip_chars):
@@ -290,7 +308,7 @@ def initGlobalThis():
 
     require = pm.createRequire(os.path.abspath(os.getcwd() + '/__pmjs_virtual__'), requirePath)
     globalThis.require = require
-    globalInitModule = require(os.path.dirname(__file__) + "/../lib/pmjs/global-init") # module load has side-effects
+    globalInitModule = require(os.path.realpath(os.path.dirname(__file__) + "/../lib/pmjs/global-init")) # module load has side-effects
     argvBuilder = globalInitModule.makeArgvBuilder()
     for arg in sys.argv:
         argvBuilder(arg); # list=>Array not working yet
@@ -319,21 +337,20 @@ def main():
             print(pm.__version__)
             sys.exit()
         elif o in ("--use-strict"):
-            evalOptions['strict'] = True
+            evalOpts['strict'] = True
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
         elif o in ("-i", "--interactive"):
             forceRepl = True
         elif o in ("-e", "--eval"):
-            pm.eval(a, evalOptions)
+            pm.eval(a, evalOpts)
             enterRepl = False
         elif o in ("-p", "--print"):
-            print(pm.eval(a, evalOptions))
+            print(pm.eval(a, evalOpts))
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
-            #            pm.eval('require')(a)
         else:
             assert False, "unhandled option"
 

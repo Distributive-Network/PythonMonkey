@@ -1,0 +1,19 @@
+/**
+ * @file        js2py/trivial-function.simple
+                A trivial function that squares a number. The function is passed to python but evaluated in JS.
+ * @author      Liang Wang, liang@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const square = x => x * x;
+const throughPython = python.eval('(lambda x: x)');
+const four = throughPython(square)(2);
+
+if (four !== 4)
+{
+  console.error('expected', 4 , 'but got', four);
+  throw new Error('test failed');
+}
+
+console.log('pass, 2 * 2 is 4');

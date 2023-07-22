@@ -18,6 +18,7 @@ panic()
 cd `dirname "$0"` || panic "could not change to test directory"
 
 "${PMJS:-pmjs}" -r ./modules/print-load < /dev/null |\
+tr -d '\r' |\
 while read keyword rest
 do
   case "$keyword" in

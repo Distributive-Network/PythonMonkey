@@ -159,8 +159,6 @@ jobs:
           poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
-        if: ${{ runner.os != 'Windows' }} # Python on Windows doesn't have the readline library
-        # FIXME: on macOS we must make sure to use the GNU version of wc and realpath
         run: |
           poetry run bash ./peter-jr ./tests/js/
   sdist:

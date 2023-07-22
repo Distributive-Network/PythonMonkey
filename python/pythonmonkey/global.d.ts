@@ -37,6 +37,9 @@ declare const python: {
   paths: string[];
 };
 
+declare var __filename: string;
+declare var __dirname: string;
+
 /** see `pm.eval` */
 declare function pmEval(code: string): any;
 

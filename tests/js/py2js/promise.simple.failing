@@ -1,0 +1,30 @@
+/**
+ * @file        py2js/promise.simple
+ *              Simple test which shows that sending Python awaitable to JS appears as a JS promise
+ * @author      Ryan Saweczko ryansaweczko@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const pythonCode = python.exec(`
+import asyncio
+
+async def nested():
+    return 42
+
+async def main():
+  global asyncio
+  global nested
+  task = asyncio.create_task(nested())
+  return task
+`);
+const task = python.eval('asyncio.run(main())');
+
+if (task instanceof Promise)
+{
+  console.log("Return was a promise");
+}
+else
+{
+  throw new Error(`Received a non-promise in JS from a python awaitable. Type ${typeof(task)}`);
+}

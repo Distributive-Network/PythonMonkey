@@ -20,9 +20,6 @@ include = [
   { path = "src", format = "sdist" },
   { path = "include", format = "sdist" },
   { path = "cmake", format = "sdist" },
-  { path = "docs", format = "sdist" }, # TODO: organize files
-  { path = "externals", format = "sdist" },
-  { path = "format", format = "sdist" },
   { path = "tests", format = "sdist" },
   { path = "CMakeLists.txt", format = "sdist" },
   { path = "*.sh", format = "sdist" },
@@ -31,6 +28,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+pyreadline3 = "^3.4.1"
 pminit = { version = "*", allow-prereleases = true }
 
 

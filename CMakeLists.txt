@@ -14,10 +14,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Add an external; appends to `PYTHONMONKEY_EXTERNAL_FILES` in the parent scope.
 function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
-  add_subdirectory("externals/${PYTHONMONKEY_EXTERNAL}")
-  set(PYTHONMONKEY_EXTERNAL_FILE "externals/${PYTHONMONKEY_EXTERNAL}/CMakeLists.txt")
+  add_subdirectory("cmake/externals/${PYTHONMONKEY_EXTERNAL}")
+  set(PYTHONMONKEY_EXTERNAL_FILE "cmake/externals/${PYTHONMONKEY_EXTERNAL}/CMakeLists.txt")
   source_group(
-    TREE "${CMAKE_CURRENT_SOURCE_DIR}/externals/${PYTHONMONKEY_EXTERNAL}"
+    TREE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/externals/${PYTHONMONKEY_EXTERNAL}"
     PREFIX "Externals\\${PYTHONMONKEY_EXTERNAL}"
     FILES "${PYTHONMONKEY_EXTERNAL_FILE}"
   )
@@ -69,7 +69,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   # Add doxygen if this is the main app
   find_package(Doxygen)
   if(Doxygen_FOUND)
-      add_subdirectory(docs)
+      add_subdirectory(cmake/docs)
   else()
       message(STATUS "Doxygen not found. Not building docs.")
   endif()
@@ -81,4 +81,4 @@ add_subdirectory(src)
 
 pythonmonkey_add_external("uncrustify")
 pythonmonkey_add_external("autopep8")
-add_subdirectory(format)
+add_subdirectory(cmake/format)

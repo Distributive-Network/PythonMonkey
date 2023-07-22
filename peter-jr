@@ -152,8 +152,8 @@ findTests \
 
     if [ "${ext}" = "failing" ]; then
       knownFail="yes"
-      PASS="$(bggreen PASS) (unexpected)"
-      FAIL="$(dred F̶A̶I̶L̶) (expected)"
+      PASS="$(bggreen PASS) $(grey \(unexpected\))"
+      FAIL="$(dred F̶A̶I̶L̶) $(grey \(expected\))"
       [ ! "${VERBOSE}" ] && thisStderr="/dev/null"
     else
       knownFail=""
