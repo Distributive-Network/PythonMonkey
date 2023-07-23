@@ -1,6 +1,7 @@
 # Export public PythonMonkey APIs
 from .pythonmonkey import *
 from .require import *
+from .helpers import *
 
 # Expose the package version
 import importlib.metadata
@@ -24,4 +25,4 @@ pythonmonkey.eval("""
   Object.defineProperty(Object.prototype, "keys", keysMethod)
   Object.defineProperty(Array.prototype, "keys", keysMethod)
 }
-""")(lambda *args: list(args))
+""", { 'filename': __file__, 'fromPythonFrame': True })(lambda *args: list(args))
