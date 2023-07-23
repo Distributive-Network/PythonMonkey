@@ -20,9 +20,9 @@ function pmTypeof(jsval)
 }
     )""", evalOpts)(jsval);
 
-def new(ctor, *args):
+def instanciate(ctor, *args):
     """
-    new function - wraps JS new operator
+    instanciate function - wraps JS new operator and arguments
     """
     if (typeof(ctor) == 'string'):
         ctor = pm.eval(ctor)
@@ -39,11 +39,40 @@ function pmNew(ctor, args)
     const newArgs = [];
     for (let i=0; i < args.length; i++)
       newArgs[i] = args[i];
-    args = newArgs;    
+    args = newArgs;
   }
   return new ctor(...args);
 }
     )""", evalOpts)(ctor, list(args));
 
+def new(ctor):
+    """
+    new function - emits function which wraps JS new operator, emitting a lambda which constructs a new
+    JS object upon invocation.
+    """
+    if (typeof(ctor) == 'string'):
+        ctor = pm.eval(ctor)
+
+    newCtor = pm.eval("""'use strict'; (
+function pmNewFactory(ctor)
+{
+  return function newCtor(args) {
+    if (arguments.length === 0)
+      args = [];
+
+    // work around pm list->Array bug, /wg july 2023
+    if (!Array.isArray(args))
+    {
+      const newArgs = [];
+      for (let i=0; i < args.length; i++)
+        newArgs[i] = args[i];
+      args = newArgs;
+    }
+    return new ctor(...args);
+  };
+}
+    )""", evalOpts)(ctor)
+    return (lambda *args: newCtor(list(args)))
+
 # Restrict what symbols are exposed to the pythonmonkey module.
-__all__ = ["new", "typeof"]
+__all__ = ["instanciate", "new", "typeof"]
