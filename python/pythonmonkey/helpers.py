@@ -16,34 +16,9 @@ def typeof(jsval):
     return pm.eval("""'use strict'; (
 function pmTypeof(jsval) 
 {
-  return typeof(jsval)
+  return typeof jsval;
 }
     )""", evalOpts)(jsval);
-
-def instanciate(ctor, *args):
-    """
-    instanciate function - wraps JS new operator and arguments
-    """
-    if (typeof(ctor) == 'string'):
-        ctor = pm.eval(ctor)
-
-    return pm.eval("""'use strict'; (
-function pmNew(ctor, args) 
-{
-  if (arguments.length === 1)
-    args = [];
-  
-  // work around pm list->Array bug, /wg july 2023
-  if (!Array.isArray(args))
-  {
-    const newArgs = [];
-    for (let i=0; i < args.length; i++)
-      newArgs[i] = args[i];
-    args = newArgs;
-  }
-  return new ctor(...args);
-}
-    )""", evalOpts)(ctor, list(args));
 
 def new(ctor):
     """
@@ -57,22 +32,28 @@ def new(ctor):
 function pmNewFactory(ctor)
 {
   return function newCtor(args) {
-    if (arguments.length === 0)
-      args = [];
-
-    // work around pm list->Array bug, /wg july 2023
-    if (!Array.isArray(args))
-    {
-      const newArgs = [];
-      for (let i=0; i < args.length; i++)
-        newArgs[i] = args[i];
-      args = newArgs;
-    }
+    args = Array.from(args || []);
     return new ctor(...args);
   };
 }
     )""", evalOpts)(ctor)
     return (lambda *args: newCtor(list(args)))
 
+globalThis = pm.eval('globalThis');
+# standard ECMAScript global properties defined in ECMA 262-3 §15.1 except eval as it is ~supplied in pythonmonkey.so 
+standard_globals = [ "Array", "Boolean", "Date", "decodeURI", "decodeURIComponent", "encodeURI",
+                     "encodeURIComponent", "Error", "EvalError", "Function", "Infinity", "isNaN",
+                     "isFinite", "Math", "NaN", "Number", "Object", "parseInt", "parseFloat",
+                     "RangeError", "ReferenceError", "RegExp", "String", "SyntaxError", "TypeError",
+                     "undefined", "URIError" ]
+# SpiderMonkey-specific globals, depending on compile-time options
+spidermonkey_extra_globals = [ "escape", "unescape", "uneval", "InternalError", "Script", "XML",
+                               "Namespace", "QName", "File", "Generator", "Iterator", "StopIteration" ]
+
 # Restrict what symbols are exposed to the pythonmonkey module.
-__all__ = ["instanciate", "new", "typeof"]
+__all__ = [ "new", "typeof" ]
+
+for name in standard_globals + spidermonkey_extra_globals:
+    if (globalThis['hasOwnProperty'](name)):
+        globals().update({name: globalThis[name]})
+        __all__.append(name)
