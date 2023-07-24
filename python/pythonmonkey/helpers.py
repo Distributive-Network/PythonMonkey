@@ -49,10 +49,9 @@ exports = pm.eval("""
 Object.getOwnPropertyNames(globalThis)
 .filter(prop => prop !== 'eval')
 .filter(prop => prop[0] !== '_')
-.filter(prop => Object.keys(globalThis).indexOf(prop) === -1)
 """)
 
-for index in range(0, int(exports.length) - 1):
+for index in range(0, int(exports.length)):
     name = exports[index]
     globals().update({name: globalThis[name]})
     __all__.append(name)
