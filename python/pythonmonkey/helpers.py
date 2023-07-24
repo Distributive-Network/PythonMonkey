@@ -39,21 +39,20 @@ function pmNewFactory(ctor)
     )""", evalOpts)(ctor)
     return (lambda *args: newCtor(list(args)))
 
-globalThis = pm.eval('globalThis');
-# standard ECMAScript global properties defined in ECMA 262-3 §15.1 except eval as it is ~supplied in pythonmonkey.so 
-standard_globals = [ "Array", "Boolean", "Date", "decodeURI", "decodeURIComponent", "encodeURI",
-                     "encodeURIComponent", "Error", "EvalError", "Function", "Infinity", "isNaN",
-                     "isFinite", "Math", "NaN", "Number", "Object", "parseInt", "parseFloat",
-                     "RangeError", "ReferenceError", "RegExp", "String", "SyntaxError", "TypeError",
-                     "undefined", "URIError" ]
-# SpiderMonkey-specific globals, depending on compile-time options
-spidermonkey_extra_globals = [ "escape", "unescape", "uneval", "InternalError", "Script", "XML",
-                               "Namespace", "QName", "File", "Generator", "Iterator", "StopIteration" ]
-
-# Restrict what symbols are exposed to the pythonmonkey module.
+# List which symbols are exposed to the pythonmonkey module.
 __all__ = [ "new", "typeof" ]
 
-for name in standard_globals + spidermonkey_extra_globals:
-    if (globalThis['hasOwnProperty'](name)):
-        globals().update({name: globalThis[name]})
-        __all__.append(name)
+# Add the properties of globalThis (except eval) as exports:
+globalThis = pm.eval('globalThis');
+
+exports = pm.eval("""
+Object.getOwnPropertyNames(globalThis)
+.filter(prop => prop !== 'eval')
+.filter(prop => prop[0] !== '_')
+.filter(prop => Object.keys(globalThis).indexOf(prop) === -1)
+""")
+
+for index in range(0, int(exports.length) - 1):
+    name = exports[index]
+    globals().update({name: globalThis[name]})
+    __all__.append(name)
