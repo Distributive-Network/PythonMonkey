@@ -42,16 +42,17 @@ function pmNewFactory(ctor)
 # List which symbols are exposed to the pythonmonkey module.
 __all__ = [ "new", "typeof" ]
 
-# Add the properties of globalThis (except eval) as exports:
+# Add the non-enumerable properties of globalThis which don't collide with pythonmonkey.so as exports:
 globalThis = pm.eval('globalThis');
+pmGlobals = vars(pm)
 
 exports = pm.eval("""
 Object.getOwnPropertyNames(globalThis)
-.filter(prop => prop !== 'eval')
-.filter(prop => prop[0] !== '_')
-""")
+.filter(prop => Object.keys(globalThis).indexOf(prop) === -1);
+""", evalOpts)
 
 for index in range(0, int(exports.length)):
     name = exports[index]
-    globals().update({name: globalThis[name]})
-    __all__.append(name)
+    if (pmGlobals.get(name) == None):
+        globals().update({name: globalThis[name]})
+        __all__.append(name)

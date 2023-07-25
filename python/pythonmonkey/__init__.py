@@ -1,7 +1,7 @@
 # Export public PythonMonkey APIs
 from .pythonmonkey import *
-from .require import *
 from .helpers import *
+from .require import *
 
 # Expose the package version
 import importlib.metadata
