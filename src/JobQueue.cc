@@ -39,8 +39,7 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
 }
 
 void JobQueue::runJobs(JSContext *cx) {
-  // TODO (Tom Tang):
-  throw std::logic_error("JobQueue::runJobs is not implemented.");
+  return;
 }
 
 // is empty
@@ -50,8 +49,8 @@ bool JobQueue::empty() const {
 }
 
 js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx) {
-  // TODO (Tom Tang): implement this method way later
-  throw std::logic_error("JobQueue::saveJobQueue is not implemented\n");
+  auto saved = js::MakeUnique<JS::JobQueue::SavedJobQueue>();
+  return saved;
 }
 
 bool JobQueue::init(JSContext *cx) {
