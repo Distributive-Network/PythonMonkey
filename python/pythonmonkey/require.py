@@ -45,9 +45,9 @@ evalOpts = { 'filename': __file__, 'fromPythonFrame': True } # type: pm.EvalOpti
 
 # Force to use UTF-8 encoding
 # Windows may use other encodings / code pages that have many characters missing/unrepresentable
-# Error: Python UnicodeEncodeError: 'charmap' codec can't encode characters in position xx-xx: character maps to <undefined>
-sys.stdout.reconfigure(encoding='utf-8')
-sys.stderr.reconfigure(encoding='utf-8')
+if isinstance(sys.stdin,  io.TextIOWrapper): sys.stdin.reconfigure(encoding='utf-8')
+if isinstance(sys.stdout, io.TextIOWrapper): sys.stdout.reconfigure(encoding='utf-8')
+if isinstance(sys.stderr, io.TextIOWrapper): sys.stderr.reconfigure(encoding='utf-8')
 
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;", evalOpts)
@@ -59,10 +59,10 @@ globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
 globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit
 globalThis.python.pythonMonkey.nodeModules = node_modules
 globalThis.python.print  = print
-globalThis.python.stdout.write = sys.stdout.write
-globalThis.python.stderr.write = sys.stderr.write
-globalThis.python.stdout.read = sys.stdout.read
-globalThis.python.stderr.read = sys.stderr.read
+globalThis.python.stdout.write = lambda s: sys.stdout.write(s)
+globalThis.python.stderr.write = lambda s: sys.stderr.write(s)
+globalThis.python.stdout.read = lambda n: sys.stdout.read(n)
+globalThis.python.stderr.read = lambda n: sys.stderr.read(n)
 globalThis.python.eval = eval
 globalThis.python.exec = exec
 globalThis.python.getenv = os.getenv
