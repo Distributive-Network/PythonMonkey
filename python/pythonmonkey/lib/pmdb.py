@@ -1,7 +1,8 @@
-# @file     pmdb - A gdb-like JavaScript debugger interface for pmjs
-#                  Enabled by `pmjs --inspect`
+# @file     pmdb - A gdb-like JavaScript debugger interface
 # @author   Tom Tang <xmader@distributive.network>
 # @date     July 2023
+
+import pythonmonkey as pm
 
 def debuggerInput(prompt: str):
   try:
@@ -13,7 +14,7 @@ def debuggerInput(prompt: str):
     print(e)
     return ""
 
-def pmdbEnable(debuggerGlobalObject):
+def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
   debuggerGlobalObject.eval("""(debuggerInput, _pythonPrint) => {
   const dbg = new Debugger()
   const mainDebuggee = dbg.addDebuggee(mainGlobal)

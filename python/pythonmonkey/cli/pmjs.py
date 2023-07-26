@@ -6,7 +6,7 @@
 import sys, os, signal, getopt
 import readline
 import pythonmonkey as pm
-from pythonmonkey.lib.pmdb import pmdbEnable
+from pythonmonkey.lib import pmdb
 
 globalThis = pm.eval("globalThis")
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
@@ -351,7 +351,7 @@ def main():
         elif o in ("-r", "--require"):
             globalThis.require(a)
         elif o in ("--inspect"):
-            pmdbEnable(pm.eval("debuggerGlobal"))
+            pmdb.enable()
         else:
             assert False, "unhandled option"
 
