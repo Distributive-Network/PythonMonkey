@@ -96,12 +96,27 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
           // Force exit the program
           mainGlobal.python.exit(127)
           break blockingLoop;
+        case "h":
+        case "help":
+          // Print help message
+          // XXX: keep this in sync with the actual implementation
+          print([
+            "List of commands:",
+            "• c/cont: Continue execution until next breakpoint or debugger statement",
+            "• n/next: Step next",
+            "• bt/backtrace: Print backtrace of current execution frame",
+            "• l/line: Print current line",
+            "• p <expr>/print <expr>/exec <expr>: Execute an expression in debugging script's context and print its value",
+            "• q/quit/kill: Force exit the program",
+            "• h/help: Print help message",
+          ].join("\\n"))
+          continue blockingLoop;
         case "":
         case undefined:
           // no-op
           continue blockingLoop;
         default:
-          print(`Undefined command: "${command}"`)
+          print(`Undefined command: "${command}". Try "help".`)
       }
     }
   }
