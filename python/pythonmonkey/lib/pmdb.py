@@ -15,7 +15,7 @@ def debuggerInput(prompt: str):
     return ""
 
 def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
-  debuggerGlobalObject.eval("""(debuggerInput, _pythonPrint) => {
+  debuggerGlobalObject.eval("""(debuggerInput, _pythonPrint, _pythonExit) => {
   const dbg = new Debugger()
   const mainDebuggee = dbg.addDebuggee(mainGlobal)
   dbg.uncaughtExceptionHook = (e) => {
@@ -99,7 +99,7 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
         case "quit":
         case "kill":
           // Force exit the program
-          mainGlobal.python.exit(127)
+          _pythonExit(127)
           break blockingLoop;
         case "h":
         case "help":
@@ -140,4 +140,4 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
   // Enter debugger on `debugger;` statement
   dbg.onDebuggerStatement = (frame) => enterDebuggerLoop(frame)
 
-  }""")(debuggerInput, print)
+  }""")(debuggerInput, print, lambda status: exit(int(status)))
