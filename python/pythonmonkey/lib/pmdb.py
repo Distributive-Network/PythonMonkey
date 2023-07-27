@@ -47,9 +47,9 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
     return { command, rest }
   }
 
-  function enterDebuggerLoop (frame) {
+  function enterDebuggerLoop (frame, checkIsBreakpoint = false) {
     const metadata = frame.script.getOffsetMetadata(frame.offset)
-    if (!metadata.isBreakpoint) {
+    if (checkIsBreakpoint && !metadata.isBreakpoint) {
       // This bytecode offset does not qualify as a breakpoint, skipping
       return
     }
@@ -65,7 +65,7 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
         case "n":
         case "next":
           // Step next
-          frame.onStep = function () { enterDebuggerLoop(this) } // add handler
+          frame.onStep = function () { enterDebuggerLoop(this, /*checkIsBreakpoint*/ true) } // add handler
           break blockingLoop;
         case "bt":
         case "backtrace":
@@ -125,5 +125,18 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
     }
   }
 
+  // Enter debugger on uncaught exceptions
+  dbg.onExceptionUnwind = (frame, err) => {
+    const isUncaught = !frame.script.isInCatchScope(frame.offset) // not in a catch block
+                    && frame.older == null                        // this is the outermost frame
+    if (isUncaught) {
+      printErr("Uncaught exception:")
+      printErr(err)
+      enterDebuggerLoop(frame)
+    }
+  }
+
+  // Enter debugger on `debugger;` statement
   dbg.onDebuggerStatement = (frame) => enterDebuggerLoop(frame)
+
   }""")(debuggerInput, print)
