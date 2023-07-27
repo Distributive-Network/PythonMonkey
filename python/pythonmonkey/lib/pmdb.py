@@ -85,6 +85,10 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
         case "exec":
         case "print": {
           // Execute an expression in debugging script's context and print its value
+          if (!rest) {
+            print(`"print <expr>" command requires an argument.`)
+            continue blockingLoop;
+          }
           const result = frame.eval(rest)
           if (result.throw) printErr(result.throw) // on error
           else print(result.return) // on success
