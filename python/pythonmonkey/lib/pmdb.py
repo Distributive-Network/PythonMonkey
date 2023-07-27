@@ -41,6 +41,13 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
     logger.apply(logger, args.map(makeDebuggeeValue))
   }
   
+  function printSource (frame, location) {
+    const src = frame.script.source.text
+    const line = src.split('\\n').slice(location.lineNumber-1, location.lineNumber).join('\\n')
+    print(line)
+    print(" ".repeat(location.columnNumber) + "^") // indicate column position
+  }
+  
   function getCommandInputs () {
     const input = debuggerInput("(pmdb) > ") // blocking
     const [_, command, rest] = input.match(/\\s*(\\w+)?(?:\\s+(.*))?/)
@@ -57,6 +64,31 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
     blockingLoop: while (true) {
       const { command, rest } = getCommandInputs() // blocking
       switch (command) {
+        case "b":
+        case "break": {
+          // Set breakpoint on specific line number
+          const lineNum = Number(rest)
+          if (!lineNum) {
+            print(`"break <lineNumber>" command requires a valid line number argument.`)
+            continue blockingLoop;
+          }
+
+          // find the bytecode offset for possible breakpoint location
+          const bp = frame.script.getPossibleBreakpoints({ line: lineNum })[0]
+          if (!bp) {
+            print(`No possible breakpoint location found on line ${lineNum}`)
+            continue blockingLoop;
+          }
+
+          // add handler
+          frame.script.setBreakpoint(bp.offset, (frame) => enterDebuggerLoop(frame))
+
+          // print breakpoint info
+          print(`Breakpoint set on line ${bp.lineNumber} column ${bp.columnNumber+1} in "${frame.script.url}" :`)
+          printSource(frame, bp)
+
+          continue blockingLoop;
+        }
         case "c":
         case "cont":
           // Continue execution until next breakpoint or `debugger` statement
@@ -76,10 +108,7 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
         case "l":
         case "line": {
           // Print current line
-          const src = frame.script.source.text
-          const line = src.split('\\n').slice(metadata.lineNumber-1, metadata.lineNumber).join('\\n')
-          print(line)
-          print(" ".repeat(metadata.columnNumber) + "^") // indicate column position
+          printSource(frame, metadata)
           continue blockingLoop;
         }
         case "p":
@@ -107,6 +136,7 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
           // XXX: keep this in sync with the actual implementation
           print([
             "List of commands:",
+            "• b <lineNumber>/break <lineNumber>: Set breakpoint on specific line",
             "• c/cont: Continue execution until next breakpoint or debugger statement",
             "• n/next: Step next",
             "• bt/backtrace: Print backtrace of current execution frame",
