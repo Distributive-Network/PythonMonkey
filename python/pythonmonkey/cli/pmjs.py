@@ -323,7 +323,7 @@ def main():
     global requirePath
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "use-strict", "inspect"])
+        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "interactive", "use-strict", "inspect"])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)  # will print something like "option -a not recognized"
