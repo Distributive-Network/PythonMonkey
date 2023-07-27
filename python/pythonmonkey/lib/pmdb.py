@@ -79,6 +79,7 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
           const src = frame.script.source.text
           const line = src.split('\\n').slice(metadata.lineNumber-1, metadata.lineNumber).join('\\n')
           print(line)
+          print(" ".repeat(metadata.columnNumber) + "^") // indicate column position
           continue blockingLoop;
         }
         case "p":
