@@ -189,14 +189,11 @@ jobs:
     runs-on: ubuntu-20.04
     if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     steps:
-      - uses: actions/checkout@v3
+      # no need to checkout
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Setup Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.5.1
+      - run: pip install twine
       - name: Download wheels built
         uses: actions/download-artifact@v3
         with:
@@ -205,8 +202,8 @@ jobs:
       - run: ls -lah ./dist/
       - name: Publish package
         run: |
-          poetry publish \
-            --no-interaction --skip-existing \
+          twine upload dist/* \
+            --non-interactive --skip-existing \
             --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
   publish-nightly:
     # Implement a very basic Python package repository (https://peps.python.org/pep-0503/)
