@@ -15,6 +15,10 @@ def debuggerInput(prompt: str):
     return ""
 
 def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
+  if debuggerGlobalObject._pmdbEnabled:
+    return # already enabled, skipping
+
+  debuggerGlobalObject._pmdbEnabled = True
   debuggerGlobalObject.eval("""(debuggerInput, _pythonPrint, _pythonExit) => {
   const dbg = new Debugger()
   const mainDebuggee = dbg.addDebuggee(mainGlobal)
