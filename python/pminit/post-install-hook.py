@@ -15,7 +15,7 @@ def execute(cmd: str):
         raise subprocess.CalledProcessError(return_code, cmd)
 
 def main():
-    node_package_manager = 'ynpm'
+    node_package_manager = 'npm'
     # check if npm is installed on the system
     if (shutil.which(node_package_manager) is None):
         print("""
