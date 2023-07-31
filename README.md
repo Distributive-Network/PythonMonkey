@@ -350,9 +350,34 @@ exports['today'] = date.today()
 ## CommonJS (require)
 If you are having trouble with the CommonJS require function, set environment variable `DEBUG='ctx-module*'` and you can see the filenames it tries to laod.
 
+## pmdb
+
+PythonMonkey has a built-in gdb-like JavaScript command-line debugger called **pmdb**, which would be automatically triggered on `debugger;` statements and uncaught exceptions.
+
+To enable **pmdb**, simply call `from pythonmonkey.lib import pmdb; pmdb.enable()` before doing anything on PythonMonkey.
+
+```py
+import pythonmonkey as pm
+from pythonmonkey.lib import pmdb
+
+pmdb.enable()
+
+pm.eval("...")
+```
+
+Run `help` command in **pmdb** to see available commands.
+
+```console
+(pmdb) > help
+List of commands:
+• ...
+• ...
+```
+
 ## pmjs
 - there is a `.help` menu in the REPL
 - there is a `--help` command-line option
+- the `--inspect` option enables **pmdb**, a gdb-like JavaScript command-line debugger
 - the `-r` option can be used to load a module before your program or the REPL runs
 - the `-e` option can be used evaluate code -- e.g. define global variables -- before your program or the REPL runs
 - The REPL can evaluate Python expressions, storing them in variables named `$1`, `$2`, etc.

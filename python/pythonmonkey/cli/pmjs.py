@@ -3,13 +3,11 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, signal, getopt, asyncio
-try:
-  import readline # Unix
-except ImportError:
-  import pyreadline3 as readline # Windows
-
+import sys, os, signal, getopt
+import readline
 import pythonmonkey as pm
+from pythonmonkey.lib import pmdb
+
 globalThis = pm.eval("globalThis")
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
 
@@ -291,6 +289,7 @@ Options:
   -r, --require...     module to preload (option can be repeated)
   -v, --version        print PythonMonkey version
   --use-strict         evaluate -e, -p, and REPL code in strict mode
+  --inspect            enable pmdb, a gdb-like JavaScript debugger interface
   
 Environment variables:
 TZ                            specify the timezone configuration
@@ -324,7 +323,7 @@ def main():
     global requirePath
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "use-strict"])
+        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "interactive", "use-strict", "inspect"])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)  # will print something like "option -a not recognized"
@@ -351,6 +350,8 @@ def main():
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
+        elif o in ("--inspect"):
+            pmdb.enable()
         else:
             assert False, "unhandled option"
 
