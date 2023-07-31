@@ -1,0 +1,18 @@
+name: Make a Feature Request for PythonMonkey 
+description: Use this template to make feature requests for PythonMonkey. Thank you so much for making an issue!
+body:
+
+  - type: textarea
+    id: feature-body
+    attributes:
+      label: Describe your feature request here.
+      description: Feel free to include diagrams drawings or anything else to help explain it.
+
+  - type: textarea
+    id: feature-code
+    attributes:
+      label: Code example
+      description: Provide a code example of this feature if applicable.
+      value:
+      render: shell
+

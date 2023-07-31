@@ -5,25 +5,39 @@ stub file for type hints & documentations for the native module
 
 import typing as _typing
 
+class EvalOptions(_typing.TypedDict, total=False):
+    filename: str
+    lineno: int
+    column: int
+    mutedErrors: bool
+    noScriptRval: bool
+    selfHosting: bool
+    strict: bool
+    module: bool
+    fromPythonFrame: bool
+
 # pylint: disable=redefined-builtin
-def eval(code: str, /) -> _typing.Any:
+def eval(code: str, evalOpts: EvalOptions = {}, /) -> _typing.Any:
     """
     JavaScript evaluator in Python
+    """
+
+def isCompilableUnit(code: str) -> bool:
+    """
+    Hint if a string might be compilable Javascript without actual evaluation
+    """
+
+def internalBinding(namespace: str) -> JSObjectProxy:
+    """
+    INTERNAL USE ONLY
+
+    See function declarations in ./builtin_modules/internal-binding.d.ts
     """
 
 def collect() -> None:
     """
     Calls the spidermonkey garbage collector
     """
-
-@_typing.overload
-def asUCS4(utf16_str: str, /) -> str:
-    """
-    Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4.
-    Undefined behaviour if the string is not in UTF16.
-    """
-@_typing.overload
-def asUCS4(anything_else: _typing.Any, /) -> _typing.NoReturn: ...
 
 class bigint(int):
     """

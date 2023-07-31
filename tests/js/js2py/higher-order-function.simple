@@ -1,0 +1,25 @@
+/**
+ * @file        js2py/higher-order-function.simple
+ *              A basic higher order function that composes two functions together, point free style. The function is
+ *              passed to python but evaluated in JS.
+ * @author      Liang Wang, liang@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const square = x => x * x;
+const double = x => 2 * x;
+
+const compose = (f, g) => (...args) => f(g(...args));
+const throughPython = python.eval('(lambda x: x)');
+const doubleAfterSqaure = throughPython(compose)(double, square);
+
+const eight = doubleAfterSqaure(2);
+
+if (eight !== 8)
+{
+  console.error('expected', 8 , 'but got', eight);
+  throw new Error('test failed');
+}
+
+console.log('pass, 2(2^2) is 8');

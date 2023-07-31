@@ -1,0 +1,40 @@
+/**
+ * @file        console-this.simple
+ *
+ *              Test which ensures that the Console objects have unique own properties and bound this.
+ *              Regression test for issue #90.
+ *
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+var exitCode = 0;
+function assert(test)
+{
+  if (!test)
+  {
+    exitCode = 1;
+    console.error(new Error('Assertion failure'));
+  }
+}
+
+const c = console;
+
+assert(c.log  !== c.debug);
+assert(c.log  !== c.warn);
+assert(c.log  !== c.info);
+assert(c.warn !== c.error);
+assert(typeof c.log   === 'function');
+assert(typeof c.debug === 'function');
+assert(typeof c.info  === 'function');
+assert(typeof c.error === 'function');
+assert(typeof c.warn  === 'function');
+assert(c.hasOwnProperty('debug'));
+assert(c.hasOwnProperty('log'));
+assert(c.hasOwnProperty('info'));
+assert(c.hasOwnProperty('warn'));
+assert(c.hasOwnProperty('error'));
+
+c.log('test done'); /* throws if wrong this, issue #90 */
+python.exit(exitCode);

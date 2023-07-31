@@ -50,11 +50,23 @@
       ],
     },
     {
+      "label": "Run JS tests",
+      "type": "process",
+      "command": "poetry",
+      "args": [
+        "run",
+        "bash",
+        "./peter-jr",
+        "./tests/js/"
+      ],
+    },
+    {
       "label": "Test",
       "dependsOrder": "sequence",
       "dependsOn": [
         "Install development dependencies",
         "Run pytest",
+        "Run JS tests",
       ],
       "group": {
         "kind": "test",

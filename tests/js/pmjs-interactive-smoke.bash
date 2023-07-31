@@ -20,7 +20,7 @@ cd `dirname "$0"` || panic "could not change to test directory"
 
 rnd=$RANDOM
 dotLines=0
-("${PMJS:-../../pmjs}" -i <<EOF
+("${PMJS:-pmjs}" -i <<EOF
 function a(rnd)
 {
   console.log('FINISHED', rnd)
@@ -30,7 +30,7 @@ a;
 b(${rnd});
 EOF
 )\
-| cat -u | while read prompt keyword rest
+| cat -u | tr -d '\r' | while read prompt keyword rest
   do
     case "$keyword" in
       "...")

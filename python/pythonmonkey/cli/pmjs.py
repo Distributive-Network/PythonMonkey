@@ -3,16 +3,18 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, readline, signal, getopt
+import sys, os, signal, getopt
+import readline
 import pythonmonkey as pm
+from pythonmonkey.lib import pmdb
+
 globalThis = pm.eval("globalThis")
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
 
 if (os.getenv('PMJS_PATH')):
-    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
+    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(',')))
 else:
     requirePath = False;
-
-globalThis = pm.eval("globalThis;")
 
 pm.eval("""'use strict';
 const cmds = {};
@@ -24,7 +26,7 @@ cmds.help = function help() {
 .load     Load JS from a file into the REPL session
 .save     Save all evaluated commands in this REPL session to a file
 .python   Evaluate a Python statement, returning result as global variable $n.
-          Use '.python reset' to rest back to $1.
+          Use '.python reset' to reset back to $1.
           Statement starting with 'from' or 'import' are silently executed.
 
 Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
@@ -36,17 +38,34 @@ cmds.python = function pythonCmd(...args) {
 
   if (cmd === 'reset')
   {
+    for (let i=0; i < pythonCmd.serial; i++)
+      delete globalThis['$' + i];
     pythonCmd.serial = 0;
     return;
   }
 
-  if (arguments[0] === 'from' || arguments[0] === 'import')
-    return python.exec(cmd);
+  if (cmd === '')
+  {
+    return;
+  }
+  
+  try {
+    if (arguments[0] === 'from' || arguments[0] === 'import')
+    {
+      return python.exec(cmd);
+    }
 
-  const retval = python.eval(cmd);
+    const retval = python.eval(cmd);
+  }
+  catch(error) {
+    globalThis._error = error;
+    return util.inspect(error);
+  }
+  
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
-  python.print('$' + pythonCmd.serial, '=', formatResult(retval));
   globalThis['$' + pythonCmd.serial] = retval;
+  python.stdout.write('$' + pythonCmd.serial + ' = ');
+  return util.inspect(retval);
 };
 
 /**
@@ -77,69 +96,55 @@ globalThis.replCmd = function replCmd(cmdLine)
   return cmds[cmdName].apply(null, argv);
 }
 
-/** Return String(val) surrounded by appropriate ANSI escape codes to change the console text colour. */
-function colour(colourCode, val)
-{
-  const esc=String.fromCharCode(27);
-  return `${esc}[${colourCode}m${val}${esc}[0m`
-}
-
-/** 
- * Format result more intelligently than toString. Inspired by Node.js util.inspect, but far less 
- * capable.
- */
-globalThis.formatResult = function formatResult(result)
-{
-  switch (typeof result)
-  {
-    case 'undefined':
-      return colour(90, result);
-    case 'function':
-      return colour(36, result);
-    case 'string':
-      return colour(32, `'${result}'`);
-    case 'boolean':
-    case 'number':
-      return colour(33, result);
-    case 'object':
-      if (result instanceof Date)
-        return colour(35, result.toISOString());
-      if (result instanceof Error)
-      {
-        const error = result;
-        const LF = String.fromCharCode(10);
-        const stackEls = error.stack
-                         .split(LF)
-                         .filter(a => a.length > 0)
-                         .map(a => `    ${a}`);
-        return (`${error.name}: ${error.message}` + LF
-          + stackEls[0] + LF
-          + colour(90, stackEls.slice(1).join(LF))
-        );
-      }
-      return JSON.stringify(result);
-    default:
-      return colour(31, `<unknown type ${typeof result}>${result}`);
-  }
-}
-
 /**
  * Evaluate a complete statement, built by the Python readline loop.
  */
 globalThis.replEval = function replEval(statement)
 {
   const indirectEval = eval;
+  var originalStatement = statement;
+  var result;
+  var mightBeObjectLiteral = false;
+
+  /* A statement which starts with a { and does not end with a ; is treated as an object literal, 
+   * and to get the parser in to Expression mode instead of Statement mode, we surround any expression
+   * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
+   * we re-evaluate without the parens.
+   */
+  if (/^\\s*\\{.*[^;\\s]\\s*$/.test(statement))
+  {
+    const testStatement = `(${statement})`;
+    if (globalThis.python.pythonMonkey.isCompilableUnit(testStatement))
+      statement = testStatement;
+  }
+
   try
   {
-    const result = indirectEval(`${statement}`);
-    return formatResult(result);
+    try
+    {
+      result = indirectEval(statement);
+    }
+    catch(evalError)
+    {
+      /* Don't retry paren-wrapped statements which weren't syntax errors, as they might have
+       * side-effects. Never retry if we didn't paren-wrap.
+       */
+      if (!(evalError instanceof SyntaxError) || originalStatement === statement)
+        throw evalError;
+      globalThis._swallowed_error = evalError;
+      result = indirectEval(originalStatement);
+    }
+
+    globalThis._ = result;
+    return util.inspect(result);
   }
   catch(error)
   {
-    return formatResult(error);
+    globalThis._error = error;
+    return util.inspect(error);
   }
 }
-""");
+""", evalOpts);
 
 def repl():
     """
@@ -193,8 +198,7 @@ def repl():
 
         got_sigint = got_sigint + 1
         if (got_sigint > 1):
-            sys.stdout.write("\n")
-            quit()
+            raise EOFError
 
         if (inner_loop != True):
             if (got_sigint == 1 and len(readline.get_line_buffer()) == readline_skip_chars):
@@ -239,7 +243,9 @@ def repl():
             if (len(statement) == 0):
                 continue
             if (statement[0] == '.'):
-                print(globalThis.replCmd(statement[1:]))
+                cmd_output = globalThis.replCmd(statement[1:]);
+                if (cmd_output != None):
+                  print(cmd_output)
                 statement = ""
                 continue
             if (pm.isCompilableUnit(statement)):
@@ -282,6 +288,8 @@ Options:
   -p, --print [...]    evaluate script and print result
   -r, --require...     module to preload (option can be repeated)
   -v, --version        print PythonMonkey version
+  --use-strict         evaluate -e, -p, and REPL code in strict mode
+  --inspect            enable pmdb, a gdb-like JavaScript debugger interface
   
 Environment variables:
 TZ                            specify the timezone configuration
@@ -299,7 +307,7 @@ def initGlobalThis():
 
     require = pm.createRequire(os.path.abspath(os.getcwd() + '/__pmjs_virtual__'), requirePath)
     globalThis.require = require
-    globalInitModule = require(os.path.dirname(__file__) + "/pmjs-lib/global-init") # module load has side-effects
+    globalInitModule = require(os.path.realpath(os.path.dirname(__file__) + "/../lib/pmjs/global-init")) # module load has side-effects
     argvBuilder = globalInitModule.makeArgvBuilder()
     for arg in sys.argv:
         argvBuilder(arg); # list=>Array not working yet
@@ -315,7 +323,7 @@ def main():
     global requirePath
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version"])
+        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "interactive", "use-strict", "inspect"])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)  # will print something like "option -a not recognized"
@@ -327,20 +335,23 @@ def main():
         if o in ("-v", "--version"):
             print(pm.__version__)
             sys.exit()
+        elif o in ("--use-strict"):
+            evalOpts['strict'] = True
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
         elif o in ("-i", "--interactive"):
             forceRepl = True
         elif o in ("-e", "--eval"):
-            pm.eval(a)
+            pm.eval(a, evalOpts)
             enterRepl = False
         elif o in ("-p", "--print"):
-            print(pm.eval(a))
+            print(pm.eval(a, evalOpts))
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
-            #            pm.eval('require')(a)
+        elif o in ("--inspect"):
+            pmdb.enable()
         else:
             assert False, "unhandled option"
 
@@ -348,6 +359,7 @@ def main():
         globalInitModule.patchGlobalRequire()
         pm.runProgramModule(args[0], args, requirePath)
     elif (enterRepl or forceRepl):
+        globalInitModule.initReplLibs()
         repl()
 
 if __name__ == "__main__":

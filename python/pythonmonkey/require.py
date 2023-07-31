@@ -23,7 +23,7 @@
 # @date         May 2023
 #
 
-import sys, os
+import sys, os, io
 from typing import Union, Dict, Literal, List
 import importlib
 import importlib.util
@@ -32,32 +32,41 @@ import inspect
 import functools
 
 from . import pythonmonkey as pm 
+
 node_modules = os.path.abspath(
   os.path.join(
-    importlib.util.find_spec("pminit").submodule_search_locations[0],
+    importlib.util.find_spec("pminit").submodule_search_locations[0], # type: ignore
     "..",
     "pythonmonkey",
     "node_modules"
   )
 )
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True } # type: pm.EvalOptions
+
+# Force to use UTF-8 encoding
+# Windows may use other encodings / code pages that have many characters missing/unrepresentable
+if isinstance(sys.stdin,  io.TextIOWrapper): sys.stdin.reconfigure(encoding='utf-8')
+if isinstance(sys.stdout, io.TextIOWrapper): sys.stdout.reconfigure(encoding='utf-8')
+if isinstance(sys.stderr, io.TextIOWrapper): sys.stderr.reconfigure(encoding='utf-8')
 
 # Add some python functions to the global python object for code in this file to use.
-globalThis = pm.eval("globalThis;")
-pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }")
+globalThis = pm.eval("globalThis;", evalOpts)
+pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }", evalOpts);
 globalThis.pmEval = pm.eval
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
 #globalThis.python.pythonMonkey.version = pm.__version__
 #globalThis.python.pythonMonkey.module = pm
+globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit
+globalThis.python.pythonMonkey.nodeModules = node_modules
 globalThis.python.print  = print
-globalThis.python.stdout.write = sys.stdout.write
-globalThis.python.stderr.write = sys.stderr.write
-globalThis.python.stdout.read = sys.stdout.read
-globalThis.python.stderr.read = sys.stderr.read
+globalThis.python.stdout.write = lambda s: sys.stdout.write(s)
+globalThis.python.stderr.write = lambda s: sys.stderr.write(s)
+globalThis.python.stdout.read = lambda n: sys.stdout.read(n)
+globalThis.python.stderr.read = lambda n: sys.stderr.read(n)
 globalThis.python.eval = eval
 globalThis.python.exec = exec
 globalThis.python.getenv = os.getenv
-globalThis.python.paths  = ':'.join(sys.path)
-pm.eval("python.paths = python.paths.split(':');"); # fix when pm supports arrays
+globalThis.python.paths  = sys.path
 
 globalThis.python.exit = pm.eval("""'use strict';
 (exit) => function pythonExitWrapper(exitCode) {
@@ -65,7 +74,7 @@ globalThis.python.exit = pm.eval("""'use strict';
     exitCode = BigInt(Math.floor(exitCode));
   exit(exitCode);
 }
-""")(sys.exit);
+""", evalOpts)(sys.exit);
 
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
 # The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
@@ -76,7 +85,7 @@ bootstrap = pm.eval("""
 
 const bootstrap = {
   modules: {
-    vm: { runInContext: eval },
+    vm: {},
     'ctx-module': {},
   },
 }
@@ -90,7 +99,7 @@ bootstrap.require = function bootstrapRequire(mid)
   throw new Error('module not found: ' + mid);
 }
 
-bootstrap.modules.vm.runInContext_broken = function runInContext(code, _unused_contextifiedObject, options)
+bootstrap.modules.vm.runInContext = function runInContext(code, _unused_contextifiedObject, options)
 {
   var evalOptions = {};
 
@@ -167,7 +176,7 @@ bootstrap.builtinModules = { debug: bootstrap.modules.debug };
 globalThis.bootstrap = bootstrap;
 
 return bootstrap;
-})(globalThis.python)""")
+})(globalThis.python)""", evalOpts)
 
 def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
     """
@@ -206,15 +215,18 @@ bootstrap.modules.fs.existsSync     = existsSync
 # require and exports symbols injected from the bootstrap object above. Current PythonMonkey bugs
 # prevent us from injecting names properly so they are stolen from trail left behind in the global
 # scope until that can be fixed.
+#
+# lineno should be -5 but jsapi 102 uses unsigned line numbers, so we take the newlines out of the
+# wrapper prologue to make stack traces line up.
 with open(node_modules + "/ctx-module/ctx-module.js", "r") as ctxModuleSource:
     initCtxModule = pm.eval("""'use strict';
 (function moduleWrapper_forCtxModule(broken_require, broken_exports)
 {
   const require = bootstrap.require;
   const exports = bootstrap.modules['ctx-module'];
-""" + ctxModuleSource.read() + """
+""".replace("\n", " ") + "\n" + ctxModuleSource.read() + """
 })
-""");
+""", { 'filename': node_modules + "/ctx-module/ctx-module.js", 'lineno': 0 });
 #broken initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'].exports)
 initCtxModule();
 
@@ -234,11 +246,11 @@ def load(filename: str) -> Dict:
     name = os.path.basename(filename)
     if name not in sys.modules:
         sourceFileLoader = machinery.SourceFileLoader(name, filename)
-        spec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader)
+        spec: machinery.ModuleSpec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader) # type: ignore
         module = importlib.util.module_from_spec(spec)
         sys.modules[name] = module
-        module.exports = {}
-        spec.loader.exec_module(module)
+        module.exports = {} # type: ignore
+        spec.loader.exec_module(module) # type: ignore
     else:
         module = sys.modules[name]
     return module.exports
@@ -262,6 +274,7 @@ def _createRequireInner(*args):
  */
 function createRequire(filename, bootstrap_broken, extraPaths, isMain)
 {
+  filename = filename.split('\\\\').join('/');
   const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
   const moduleCache = globalThis.require?.cache || {};
@@ -271,10 +284,15 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.exports = python.load(filename);
   }
 
+  if (moduleCache[filename])
+    return moduleCache[filename].require;
+
   const module = new CtxModule(globalThis, filename, moduleCache);
-  for (let path of python.paths)
+  moduleCache[filename] = module;
+  for (let path of Array.from(python.paths))
     module.paths.push(path + '/node_modules');
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
+  module.require.path.push(python.pythonMonkey.nodeModules);
   module.require.extensions['.py'] = loadPythonModule;
 
   if (isMain)
@@ -288,10 +306,10 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
   }
 
   if (extraPaths)
-    module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(':')));
+    module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(',')));
 
   return module.require;
-})""")(*args)
+})""", evalOpts)(*args)
 
 def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False, isMain = False):
     """
@@ -324,7 +342,7 @@ def runProgramModule(filename, argv, extraPaths=[]):
     globalThis.__filename = fullFilename;
     globalThis.__dirname = os.path.dirname(fullFilename);
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
-        pm.eval(mainModuleSource.read())
+        pm.eval(mainModuleSource.read(), {'filename': fullFilename})
 
 def require(moduleIdentifier: str):
     # Retrieve the caller’s filename from the call stack
@@ -333,3 +351,6 @@ def require(moduleIdentifier: str):
     if not os.path.exists(filename):
       filename = os.path.join(os.getcwd(), "__main__") # use the CWD instead
     return createRequire(filename)(moduleIdentifier)
+
+# Restrict what symbols are exposed to the pythonmonkey module.
+__all__ = ["globalThis", "require", "createRequire", "runProgramModule"]

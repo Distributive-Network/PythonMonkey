@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -73,6 +73,7 @@ PyTypeObject JSObjectProxyType = {
   .tp_name = "pythonmonkey.JSObjectProxy",
   .tp_basicsize = sizeof(JSObjectProxy),
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_repr,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
@@ -80,6 +81,7 @@ PyTypeObject JSObjectProxyType = {
   | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
+  .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
@@ -142,16 +144,6 @@ static PyObject *collect(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *asUCS4(PyObject *self, PyObject *args) {
-  StrType *str = new StrType(PyTuple_GetItem(args, 0));
-  if (!PyUnicode_Check(str->getPyObject())) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.asUCS4 expects a string as its first argument");
-    return NULL;
-  }
-
-  return str->asUCS4();
-}
-
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {
   PyObject *value;
 
@@ -174,20 +166,17 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b
   PyObject *value;
 
   value = PyDict_GetItemString(evalOptions, optionName);
-  if (value) {
-    if (PyLong_Check(value))
-      *b_p = PyBool_FromLong(PyLong_AsLong(value));
-    else
-      *b_p = value != Py_False;
-  }
+  if (value)
+    *b_p = PyObject_IsTrue(value) == 1 ? true : false;
   return value != NULL;
 }
 
 static PyObject *eval(PyObject *self, PyObject *args) {
+  size_t argc = PyTuple_GET_SIZE(args);
   StrType *code = new StrType(PyTuple_GetItem(args, 0));
-  PyObject *evalOptions = PyTuple_GET_SIZE(args) == 2 ? PyTuple_GetItem(args, 1) : NULL;
+  PyObject *evalOptions = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
 
-  if (!PyUnicode_Check(code->getPyObject())) {
+  if (argc == 0 || !PyUnicode_Check(code->getPyObject())) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
     return NULL;
   }
@@ -199,7 +188,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
   JSAutoRealm ar(GLOBAL_CX, *global);
   JS::CompileOptions options (GLOBAL_CX);
-  options.setFileAndLine("@evaluate", 1)
+  options.setFileAndLine("evaluate", 1)
   .setIsRunOnce(true)
   .setNoScriptRval(false)
   .setIntroductionType("pythonmonkey eval");
@@ -217,9 +206,29 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     if (getEvalOption(evalOptions, "selfHosting", &b)) options.setSelfHostingMode(b);
     if (getEvalOption(evalOptions, "strict", &b)) if (b) options.setForceStrictMode();
     if (getEvalOption(evalOptions, "module", &b)) if (b) options.setModule();
-  }
 
-  // initialize JS context
+    if (getEvalOption(evalOptions, "fromPythonFrame", &b) && b) {
+#if PY_VERSION_HEX >= 0x03090000
+      PyFrameObject *frame = PyEval_GetFrame();
+      if (frame && !getEvalOption(evalOptions, "lineno", &l)) {
+        options.setLine(PyFrame_GetLineNumber(frame));
+      } /* lineno */
+#endif
+#if 0 && (PY_VERSION_HEX >= 0x030a0000) && (PY_VERSION_HEX < 0x030c0000)
+      PyObject *filename = PyDict_GetItemString(frame->f_builtins, "__file__");
+#elif (PY_VERSION_HEX >= 0x030c0000)
+      PyObject *filename = PyDict_GetItemString(PyFrame_GetGlobals(frame), "__file__");
+#else
+      PyObject *filename = NULL;
+#endif
+      if (!getEvalOption(evalOptions, "filename", &s)) {
+        if (filename && PyUnicode_Check(filename)) {
+          options.setFile(PyUnicode_AsUTF8(filename));
+        }
+      } /* filename */
+    } /* fromPythonFrame */
+  } /* eval options */
+    // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
   if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
     setSpiderMonkeyException(GLOBAL_CX);
@@ -241,13 +250,13 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
-  js::ESClass cls = js::ESClass::Other; // placeholder if `rval` is not a JSObject
+  js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
   if (rval->isObject()) {
     JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
   }
-  bool rvalIsFunction = cls == js::ESClass::Function; // function object
-  bool rvalIsString = rval->isString() || cls == js::ESClass::String; // string primitive or boxed String object
-  if (!(rvalIsFunction || rvalIsString)) {  // rval may be a JS function or string which must be kept alive.
+  bool rvalIsFunction = cls == js::ESClass::Function;   // function object
+  bool rvalIsString = rval->isString() || cls == js::ESClass::String;   // string primitive or boxed String object
+  if (!(rvalIsFunction || rvalIsString)) {   // rval may be a JS function or string which must be kept alive.
     delete rval;
   }
 
@@ -282,7 +291,6 @@ PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
-  {"asUCS4", asUCS4, METH_VARARGS, "Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4. Undefined behaviour if the string is not in UTF16."},
   {NULL, NULL, 0, NULL}
 };
 
@@ -290,7 +298,7 @@ struct PyModuleDef pythonmonkey =
 {
   PyModuleDef_HEAD_INIT,
   "pythonmonkey",                                   /* name of module */
-  "A module for python to JS interoperability", /* module documentation, may be NULL */
+  "A module for python to JS interoperability",   /* module documentation, may be NULL */
   -1,                                           /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
   PythonMonkeyMethods
 };
@@ -299,7 +307,7 @@ PyObject *SpiderMonkeyError = NULL;
 
 PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
-  PyDateTime_IMPORT;
+  if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
   SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
   if (!JS_Init()) {
@@ -339,15 +347,23 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  JS::RootedObject debuggerGlobal(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
+  {
+    JSAutoRealm r(GLOBAL_CX, debuggerGlobal);
+    JS_DefineProperty(GLOBAL_CX, debuggerGlobal, "mainGlobal", *global, JSPROP_READONLY);
+    JS_DefineDebuggerObject(GLOBAL_CX, debuggerGlobal);
+  }
+
   autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
 
   JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
+  JS_DefineProperty(GLOBAL_CX, *global, "debuggerGlobal", debuggerGlobal, JSPROP_READONLY);
 
   // XXX: SpiderMonkey bug???
   // In https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/jit/CacheIR.cpp#l317, trying to use the callback returned by `js::GetDOMProxyShadowsCheck()` even it's unset (nullptr)
   // Temporarily solved by explicitly setting the `domProxyShadowsCheck` callback here
   JS::SetDOMProxyInformation(nullptr,
-    [](JSContext *, JS::HandleObject, JS::HandleId) { // domProxyShadowsCheck
+    [](JSContext *, JS::HandleObject, JS::HandleId) {   // domProxyShadowsCheck
       return JS::DOMProxyShadowsResult::ShadowCheckFailed;
     }, nullptr);
 

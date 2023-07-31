@@ -1,0 +1,22 @@
+/**
+ * @file        py2js/integer.simple
+ *              Simple test which shows that sending Python integers to JS and getting it back in Python works as expected.
+ * @author      Kirill Kirnichansky, kirill@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const number = python.eval('int(777)');
+
+if (typeof number !== 'number')
+{
+  console.error(`expected number but got ${typeof number}`);
+  throw new Error('test failed');
+}
+if (number !== 777)
+{
+  console.error(`expected ${777} but got ${bigint}`);
+  throw new Error('test failed');
+}
+
+console.log('pass -', number);

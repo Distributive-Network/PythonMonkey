@@ -9,7 +9,8 @@ CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/
 echo "Installing dependencies"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   sudo apt-get update --yes
-  sudo apt-get install cmake doxygen graphviz llvm g++ pkg-config m4 wget --yes
+  sudo apt-get install --yes cmake doxygen graphviz llvm g++ pkg-config m4 \
+    wget curl python3-distutils python3-dev
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
