@@ -368,12 +368,10 @@ def main():
             except Exception as error:
                 print(error, file=sys.stderr)
                 sys.exit(1)
-
         asyncio.run(runJS())
-
     elif (enterRepl or forceRepl):
         globalInitModule.initReplLibs()
         repl()
 
 if __name__ == "__main__":
-    main();
+    main()

@@ -22,22 +22,12 @@ const python = globalThis.python = new EventEmitter('python');
 Object.assign(python, originalPython);
 
 /* Emulate node's process.on('error') behaviour with python.on('error'). */
-python.on('error', function unhandledError() {
+python.on('error', function unhandledError(error) {
   if (python.listenerCount('error') > 1)
     return;
-  if (python.listenerCount('error') === 0 || python.listeners('error')[0] === unhandledErrror)
+  if (python.listenerCount('error') === 0 || python.listeners('error')[0] === unhandledError)
     python.emit('unhandledException', error);
 });
-  
-exports.prepareEventLoop = function globalInit$$prepareEventLoops()
-{
-  /* Patch the global object so that our event loop methods are the kind that understand references */
-  const loopHnd = require('./event-loop-asyncio').makeLoop();
-  const eventLoopMethods =  require('./event-loop');
-  for (let name in eventLoopMethods)
-    globalThis[name] = eventLoopMethods[name];
-  return loopHnd;
-}
 
 /**
  * Set the global arguments array, which is just the program's argv.  We use an argvBuilder function to
