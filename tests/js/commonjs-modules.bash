@@ -19,7 +19,8 @@ runTest()
   set -o pipefail
   echo -n "${testName}: "
 
-  PMJS_PATH="`pwd`" ../../../../../../pmjs -e 'print=python.print' program.js\
+  PMJS_PATH="`pwd`" pmjs -e 'print=python.print' program.js\
+  | tr -d '\r'\
   | while read word rest
     do
       case "$word" in

@@ -1,0 +1,46 @@
+/**
+ * @file        py2js/datetime.simple.failing
+ *              Simple test which shows that sending Python datetime.datetimes to JS and getting them back into
+ *              Python works as expected
+ * 
+ * @author      Elijah Deluzio, elijah@distributive.network
+ * @date        July 2023
+ */
+'use strict'
+
+const throughJS = x => x;
+var expectedJsTimestamp;
+var actualJsTimestamp;
+var jsDate;
+var pyDate;
+
+// Test 1: Date from timestamp of 0 (1970 - 01 - 01), timestamp = 0
+expectedJsTimestamp = 0;
+python.exec(`from datetime import timezone`)
+python.exec(`import datetime`);
+pyDate = python.eval(`datetime.datetime.fromtimestamp(${expectedJsTimestamp}, tz=timezone.utc)`);
+jsDate = throughJS(pyDate);
+
+if (jsDate.getTime() !== expectedJsTimestamp)
+{
+  console.error('expected', expectedJsTimestamp, 'but got', jsDate.getTime());
+  throw new Error('test failed');
+}
+
+console.log('pass -', jsDate);
+
+// Test 2: Date from 21st century (2222 - 02 - 03), timestamp = 7955193600
+expectedJsTimestamp = 7955193600;
+python.exec(`from datetime import timezone`)
+python.exec(`import datetime`);
+pyDate = python.eval(`datetime.datetime.fromtimestamp(${expectedJsTimestamp}, tz=timezone.utc)`);
+jsDate = throughJS(pyDate);
+
+actualJsTimestamp = jsDate.getTime() / 1000; // JS timestamp is in milliseconds, convert it to seconds
+if (actualJsTimestamp !== expectedJsTimestamp)
+{
+  console.error('expected', expectedJsTimestamp, 'but got', actualJsTimestamp);
+  throw new Error('test failed');
+}
+
+console.log('pass -', jsDate);

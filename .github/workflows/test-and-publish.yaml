@@ -156,11 +156,9 @@ jobs:
           path: ./dist/
       - name: Run Python tests (pytest)
         run: |
-          poetry run python -m pip install --force-reinstall ./dist/*
+          poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
-        if: ${{ runner.os != 'Windows' }} # Python on Windows doesn't have the readline library
-        # FIXME: on macOS we must make sure to use the GNU version of wc and realpath
         run: |
           poetry run bash ./peter-jr ./tests/js/
   sdist:
@@ -253,10 +251,10 @@ jobs:
           html="<html><head><title>PythonMonkey Nightly Builds</title></head><body>"
           html+="<h1>PythonMonkey Nightly Builds</h1>"
           html+="<p>To install nightly builds, run</p>"
-          html+="<pre>pip install -i https://nightly.pythonmonkey.io/ --pre pythonmonkey</pre>"
+          html+="<pre>pip install --extra-index-url https://nightly.pythonmonkey.io/ --pre pythonmonkey</pre>"
           html+="<h3>Browse files:</h3>"
-          html+="<a href="pythonmonkey/">pythonmonkey</a>"
-          html+="<a href="pminit/">pminit</a>"
+          html+="<li><a href="pythonmonkey/">pythonmonkey</a></li>"
+          html+="<li><a href="pminit/">pminit</a></li>"
           html+="</body></html>"
           echo "$html" > ./index.html
       - uses: actions/upload-pages-artifact@v1

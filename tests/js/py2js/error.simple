@@ -1,0 +1,26 @@
+/**
+ * @file        py2js/string.simple
+ *              Ensures that an error constructed in JS and passed through python retains error message.
+ *              There will be a lossful conversion of error properties from JS to Py.
+ * 
+ * @author      David Courtis, david@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+class RandomError extends Error {
+  constructor(message) {
+    super(message);
+  }
+}
+
+const exceptionjs = new RandomError("I was created!");
+const throughPython = python.eval('(lambda x: x)');
+const exceptionpy = throughPython(exceptionjs);
+
+if (!exceptionpy.toString().includes(exceptionjs.toString())) {
+  console.error('Expected\n', exceptionjs.toString(), '\nbut got\n', exceptionpy.toString());
+  throw new Error('test failed');
+}
+
+console.log('pass -', exceptionjs);
