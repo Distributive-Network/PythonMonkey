@@ -15,6 +15,7 @@
 #include <Python.h>
 #include <vector>
 #include <utility>
+#include <atomic>
 
 struct PyEventLoop {
 public:
@@ -179,6 +180,48 @@ public:
    */
   static PyEventLoop getMainLoop();
 
+  struct Lock {
+  public:
+    explicit Lock() {
+      PyObject *asyncio = PyImport_ImportModule("asyncio");
+      _queueIsEmpty = PyObject_CallMethod(asyncio, "Event", NULL); // _queueIsEmpty = asyncio.Event()
+      Py_DECREF(asyncio);
+    };
+    ~Lock() {
+      Py_DECREF(_queueIsEmpty);
+    }
+
+    /**
+     * @brief Increment the counter for the number of our job functions in the Python event-loop
+     */
+    inline void incCounter() {
+      _counter++;
+      Py_XDECREF(PyObject_CallMethod(_queueIsEmpty, "clear", NULL)); // _queueIsEmpty.clear()
+    }
+
+    /**
+     * @brief Decrement the counter for the number of our job functions in the Python event-loop
+     */
+    inline void decCounter() {
+      _counter--;
+      if (_counter == 0) { // no job queueing
+        // Notify that the queue is empty and awake (unblock) the event-loop shield
+        Py_XDECREF(PyObject_CallMethod(_queueIsEmpty, "set", NULL)); // _queueIsEmpty.set()
+      } else if (_counter < 0) { // something went wrong
+        PyErr_SetString(PyExc_RuntimeError, "Event-loop job counter went below zero.");
+      }
+    }
+
+    /**
+     * @brief An `asyncio.Event` instance to notify that there are no queueing asynchronous jobs
+     * @see https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event
+     */
+    PyObject *_queueIsEmpty = nullptr;
+  protected:
+    std::atomic_int _counter = 0;
+  };
+
+  static inline PyEventLoop::Lock *_locker;
 protected:
   PyObject *_loop;
 

@@ -404,6 +404,15 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  // Initialize event-loop shield
+  PyEventLoop::_locker = new PyEventLoop::Lock();
+  PyObject *waiter = PyObject_GetAttrString(PyEventLoop::_locker->_queueIsEmpty /* instance of asyncio.Event*/, "wait");
+  if (!waiter || PyModule_AddObject(pyModule, "wait", waiter) < 0) {
+    Py_XDECREF(waiter);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
   PyObject *internalBindingPy = getInternalBindingPyFn(GLOBAL_CX);
   if (PyModule_AddObject(pyModule, "internalBinding", internalBindingPy) < 0) {
     Py_DECREF(internalBindingPy);
