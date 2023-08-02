@@ -22,6 +22,17 @@ def eval(code: str, evalOpts: EvalOptions = {}, /) -> _typing.Any:
     JavaScript evaluator in Python
     """
 
+def wait() -> _typing.Awaitable[None]:
+    """
+    Block until all asynchronous jobs (Promise/setTimeout/etc.) finish.
+    
+    ```py
+    await pm.wait()
+    ```
+
+    This is the event-loop shield that protects the loop from being prematurely terminated.
+    """
+
 def isCompilableUnit(code: str) -> bool:
     """
     Hint if a string might be compilable Javascript without actual evaluation

@@ -5,6 +5,7 @@
 
 import sys, os, signal, getopt
 import readline
+import asyncio
 import pythonmonkey as pm
 from pythonmonkey.lib import pmdb
 
@@ -356,32 +357,19 @@ def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        loop = globalInitModule.prepareEventLoop()['loop']
-        eljs = pm.require('../lib/pmjs/event-loop')
-
         async def runJS():
             try:
-                pm.eval("setImmediate(()=>1)") # seed the loop.stop() code
                 globalInitModule.patchGlobalRequire()
                 pm.runProgramModule(args[0], args, requirePath)
+                await pm.wait() # blocks until all asynchronous calls finish
             except pm.SpiderMonkeyError as error:
                 globalInitModule.uncaughtExceptionHandler(error)
-                cleanupExit(1)
+                sys.exit(1)
             except Exception as error:
-                print(error)
-                cleanupExit(1)
+                print(error, file=sys.stderr)
+                sys.exit(1)
 
-        def cleanupExit(code):
-            eljs['unrefEverything']()
-            dummyReference = programTask
-            realExit(code);
-
-        realExit = globalThis.python.exit;
-        globalThis.python.exit = cleanupExit;
-
-        programTask = loop.create_task(runJS())
-        programTask.set_name('pmjs-program')
-        loop.run_forever()
+        asyncio.run(runJS())
 
     elif (enterRepl or forceRepl):
         globalInitModule.initReplLibs()

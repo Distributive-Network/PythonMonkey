@@ -2,17 +2,32 @@
 
 #include <Python.h>
 
+/**
+ * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
+ */
+static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
+  PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
+  Py_XDECREF(ret); // don't care about its return value
+  PyEventLoop::_locker->decCounter();
+  Py_RETURN_NONE;
+}
+static PyMethodDef jobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapper, METH_NOARGS, NULL};
+
 PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
+  PyEventLoop::_locker->incCounter();
+  PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", jobFn); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
 PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
+  PyEventLoop::_locker->incCounter();
+  PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
   // Schedule job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dO", delaySeconds, jobFn); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dO", delaySeconds, wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
   if (asyncHandle == nullptr) {
     PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
   }
@@ -122,6 +137,14 @@ PyEventLoop PyEventLoop::getRunningLoop() {
 }
 
 void PyEventLoop::AsyncHandle::cancel() {
+  PyObject *scheduled = PyObject_GetAttrString(_handle, "_scheduled"); // this attribute only exists on asyncio.TimerHandle returned by loop.call_later
+                                                                       // NULL if no such attribute (on a strict asyncio.Handle returned by loop.call_soon)
+  bool finishedOrCanceled = scheduled && scheduled == Py_False; // the job function has already been executed or canceled
+  if (!finishedOrCanceled) {
+    PyEventLoop::_locker->decCounter();
+  }
+  Py_XDECREF(scheduled);
+
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancel
   PyObject *ret = PyObject_CallMethod(_handle, "cancel", NULL); // returns None
   Py_XDECREF(ret);
