@@ -268,6 +268,17 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 }
 
+static PyObject *waitForEventLoop(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED(_)) {
+  PyObject *waiter = PyEventLoop::_locker->_queueIsEmpty; // instance of asyncio.Event
+
+  // Making sure it's attached to the current event-loop
+  PyEventLoop loop = PyEventLoop::getRunningLoop();
+  if (!loop.initialized()) return NULL;
+  PyObject_SetAttrString(waiter, "_loop", loop._loop);
+
+  return PyObject_CallMethod(waiter, "wait", NULL);
+}
+
 static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
   StrType *buffer = new StrType(PyTuple_GetItem(args, 0));
   const char *bufferUtf8;
@@ -289,6 +300,7 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
 
 PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
+  {"wait", waitForEventLoop, METH_NOARGS, "The event-loop shield. Blocks until all asynchronous jobs finish."},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
   {NULL, NULL, 0, NULL}
@@ -406,12 +418,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
 
   // Initialize event-loop shield
   PyEventLoop::_locker = new PyEventLoop::Lock();
-  PyObject *waiter = PyObject_GetAttrString(PyEventLoop::_locker->_queueIsEmpty /* instance of asyncio.Event*/, "wait");
-  if (!waiter || PyModule_AddObject(pyModule, "wait", waiter) < 0) {
-    Py_XDECREF(waiter);
-    Py_DECREF(pyModule);
-    return NULL;
-  }
 
   PyObject *internalBindingPy = getInternalBindingPyFn(GLOBAL_CX);
   if (PyModule_AddObject(pyModule, "internalBinding", internalBindingPy) < 0) {

@@ -222,9 +222,9 @@ public:
   };
 
   static inline PyEventLoop::Lock *_locker;
-protected:
-  PyObject *_loop;
 
+  PyObject *_loop;
+protected:
   PyEventLoop() = delete;
   PyEventLoop(PyObject *loop) : _loop(loop) {};
 private:
