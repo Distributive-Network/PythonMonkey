@@ -186,6 +186,9 @@ public:
       PyObject *asyncio = PyImport_ImportModule("asyncio");
       _queueIsEmpty = PyObject_CallMethod(asyncio, "Event", NULL); // _queueIsEmpty = asyncio.Event()
       Py_DECREF(asyncio);
+
+      // The flag should initially be set as the queue is initially empty
+      Py_XDECREF(PyObject_CallMethod(_queueIsEmpty, "set", NULL)); // _queueIsEmpty.set()
     };
     ~Lock() {
       Py_DECREF(_queueIsEmpty);
