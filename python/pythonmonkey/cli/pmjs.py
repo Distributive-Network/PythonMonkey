@@ -358,13 +358,24 @@ def main():
 
     if (len(args) > 0):
         async def runJS():
+            loop = asyncio.get_running_loop()
+            # See https://docs.python.org/3.11/library/asyncio-eventloop.html#error-handling-api
+            def exceptionHandler(loop, context):
+                error = context["exception"]
+                try:
+                    globalInitModule.uncaughtExceptionHandler(error)
+                except:
+                    pass
+                finally:
+                    os._exit(1)
+            loop.set_exception_handler(exceptionHandler)
+
+            globalThis.python.exit = lambda status: os._exit(int(status))
+
             try:
                 globalInitModule.patchGlobalRequire()
                 pm.runProgramModule(args[0], args, requirePath)
                 await pm.wait() # blocks until all asynchronous calls finish
-            except pm.SpiderMonkeyError as error:
-                globalInitModule.uncaughtExceptionHandler(error)
-                sys.exit(1)
             except Exception as error:
                 print(error, file=sys.stderr)
                 sys.exit(1)
