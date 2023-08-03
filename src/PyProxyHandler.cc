@@ -56,10 +56,10 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::
 
   for (size_t i = 0; i < length; i++) {
     PyObject *key = PyList_GetItem(keys, i);
-    JS::RootedValue jsKey(cx, jsTypeFactory(cx, key));
     JS::RootedId jsId(cx);
-    if (!JS_ValueToId(cx, jsKey, &jsId)) {
-      // @TODO (Caleb Aikens) raise exception
+    if (!keyToId(key, &jsId)) {
+      // TODO (Caleb Aikens): raise exception here
+      return false; // key is not a str or int
     }
     props.infallibleAppend(jsId);
   }

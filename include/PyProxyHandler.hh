@@ -186,4 +186,9 @@ public:
  */
 PyObject *idToKey(JSContext *cx, JS::HandleId id);
 
+/**
+ * @brief Convert Python dict key to jsid
+ */
+bool keyToId(PyObject *key, JS::MutableHandleId idp);
+
 #endif
