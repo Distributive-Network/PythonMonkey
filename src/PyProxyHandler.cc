@@ -24,7 +24,7 @@
 
 PyObject *idToKey(JSContext *cx, JS::HandleId id) {
   JS::RootedValue idv(cx, js::IdToValue(id));
-  JSString *idStr;
+  JS::RootedString idStr(cx);
   if (!id.isSymbol()) { // `JS::ToString` returns `nullptr` for JS symbols
     idStr = JS::ToString(cx, idv);
   } else {
@@ -32,8 +32,10 @@ PyObject *idToKey(JSContext *cx, JS::HandleId id) {
     // FIXME (Tom Tang): key collision for symbols without a description string, or pure strings look like "Symbol(xxx)"
     idStr = JS_ValueToSource(cx, idv);
   }
+
   // We convert all types of property keys to string
-  return StrType(cx, idStr).getPyObject();
+  auto chars = JS_EncodeStringToUTF8(cx, idStr);
+  return PyUnicode_FromString(chars.get());
 }
 
 bool idToIndex(JSContext *cx, JS::HandleId id, Py_ssize_t *index) {
