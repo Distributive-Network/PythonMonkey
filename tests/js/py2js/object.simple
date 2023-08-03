@@ -7,7 +7,7 @@
  */
 'use strict';
 
-const obj = python.eval('"{a: 1, b: 2, c: 3}"');
+const obj = python.eval('{"a": 1, "b": 2, "c": 3}');
 const throughJS = (x) => x;
 const jsObj = throughJS(obj);
 
