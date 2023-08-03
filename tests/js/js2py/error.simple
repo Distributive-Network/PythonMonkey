@@ -1,0 +1,48 @@
+/**
+ * @file        js2py/string.simple
+ *              Ensures that an error constructed in PY and binded to JS retains error message.
+ *              Error properties are not retained.
+ * 
+ * @author      David Courtis, david@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const throughJS = x => x; 
+let errorFlag = false;
+
+function tester(exceptionpy, exceptionjs) {
+  if (!exceptionpy.toString() === exceptionjs.toString())
+  {
+    console.error('Expected\n', exceptionpy.toString(), '\nbut got\n', exceptionjs.toString());
+    errorFlag = true;
+  } else {
+    console.log('pass -', exceptionpy.toString());
+  }
+}
+
+function inbuiltError() {
+  const exceptionpy = python.eval(`Exception('I know Python!')`);
+  const exceptionjs = throughJS(exceptionpy);
+  tester(exceptionpy, exceptionjs);
+}
+
+function customError() {
+  python.exec(
+    `class IAmAnError(Exception):
+      def __init__(self, message):            
+        super().__init__(message)
+    `
+    );
+  const exceptionpy = python.eval(`IAmAnError('I know Python!')`);
+  const exceptionjs = throughJS(exceptionpy);
+  tester(exceptionpy, exceptionjs);
+}
+
+inbuiltError();
+customError();
+
+if (errorFlag) {
+  throw new Error('test failed');
+}
+
