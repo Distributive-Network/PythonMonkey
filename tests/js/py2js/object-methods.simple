@@ -13,19 +13,19 @@ const throughJS = (x) => x;
 const jsObj = throughJS(obj);
 const standardJSObj = { a: 1, b: 2, c: 3 };
 
-if (Object.keys(jsObj) !== Object.keys(standardJSObj))
+if (JSON.stringify(Object.keys(jsObj)) !== JSON.stringify(Object.keys(standardJSObj)))
 {
   console.error('The output of the PythonMonkey JS object does not match the output of a standard JS Object.');
   throw new Error('Test failed');
 }
 
-if (Object.values(jsObj) !== Object.values(standardJSObj))
+if (JSON.stringify(Object.values(jsObj)) !== JSON.stringify(Object.values(standardJSObj)))
 {
   console.error('The output of the PythonMonkey JS object does not match the output of a standard JS Object.');
   throw new Error('Test failed');
 }
 
-if (Object.entries(jsObj) !== Object.entries(standardJSObj))
+if (JSON.stringify(Object.entries(jsObj)) !== JSON.stringify(Object.entries(standardJSObj)))
 {
   console.error('The output of the PythonMonkey JS object does not match the output of a standard JS Object.');
   throw new Error('Test failed');
