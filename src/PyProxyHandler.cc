@@ -95,6 +95,25 @@ bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   return true;
 }
 
+bool PyProxyHandler::getOwnPropertyDescriptor(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+) const {
+  PyObject *attrName = idToKey(cx, id);
+  PyObject *item = PyDict_GetItemWithError(pyObject, attrName);
+  if (!item) { // NULL if the key is not present
+    desc.set(mozilla::Nothing()); // JS objects return undefined for nonpresent keys
+  } else {
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        jsTypeFactory(cx, item),
+        {JS::PropertyAttribute::Writable, JS::PropertyAttribute::Enumerable}
+      )
+    ));
+  }
+  return true;
+}
+
 bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {

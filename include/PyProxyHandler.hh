@@ -150,7 +150,8 @@ public:
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
-    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) const override {};
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+  ) const override;
 
   bool defineProperty(JSContext *cx, JS::HandleObject proxy,
     JS::HandleId id,
