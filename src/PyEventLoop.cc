@@ -8,7 +8,12 @@
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
+
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback); // Protects `decCounter()`. If the error indicator is set, Python cannot make further function calls.
   PyEventLoop::_locker->decCounter();
+  PyErr_Restore(type, value, traceback);
+
   if (PyErr_Occurred()) {
     return NULL;
   } else {
