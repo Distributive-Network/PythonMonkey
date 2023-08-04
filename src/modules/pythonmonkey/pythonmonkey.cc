@@ -279,6 +279,11 @@ static PyObject *waitForEventLoop(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED
   return PyObject_CallMethod(waiter, "wait", NULL);
 }
 
+static PyObject *closeAllPending(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED(_)) {
+  if (!PyEventLoop::AsyncHandle::cancelAll()) return NULL;
+  Py_RETURN_NONE;
+}
+
 static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
   StrType *buffer = new StrType(PyTuple_GetItem(args, 0));
   const char *bufferUtf8;
@@ -301,6 +306,7 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
 PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"wait", waitForEventLoop, METH_NOARGS, "The event-loop shield. Blocks until all asynchronous jobs finish."},
+  {"stop", closeAllPending, METH_NOARGS, "Cancel all pending event-loop jobs."},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
   {NULL, NULL, 0, NULL}

@@ -154,6 +154,14 @@ void PyEventLoop::AsyncHandle::cancel() {
   Py_XDECREF(ret);
 }
 
+/* static */
+bool PyEventLoop::AsyncHandle::cancelAll() {
+  for (AsyncHandle &handle: _timeoutIdMap) {
+    handle.cancel();
+  }
+  return true;
+}
+
 void PyEventLoop::Future::setResult(PyObject *result) {
   // https://docs.python.org/3/library/asyncio-future.html#asyncio.Future.set_result
   PyObject *ret = PyObject_CallMethod(_future, "set_result", "O", result); // returns None

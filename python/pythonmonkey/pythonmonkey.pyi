@@ -33,6 +33,11 @@ def wait() -> _typing.Awaitable[None]:
     This is the event-loop shield that protects the loop from being prematurely terminated.
     """
 
+def stop() -> None:
+    """
+    Stop all pending asynchronous jobs, and unblock `await pm.wait()`
+    """
+
 def isCompilableUnit(code: str) -> bool:
     """
     Hint if a string might be compilable Javascript without actual evaluation
