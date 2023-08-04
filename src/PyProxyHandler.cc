@@ -24,7 +24,7 @@
 
 PyObject *idToKey(JSContext *cx, JS::HandleId id) {
   JS::RootedValue idv(cx, js::IdToValue(id));
-  JSString *idStr;
+  JS::RootedString idStr(cx);
   if (!id.isSymbol()) { // `JS::ToString` returns `nullptr` for JS symbols
     idStr = JS::ToString(cx, idv);
   } else {
@@ -32,8 +32,10 @@ PyObject *idToKey(JSContext *cx, JS::HandleId id) {
     // FIXME (Tom Tang): key collision for symbols without a description string, or pure strings look like "Symbol(xxx)"
     idStr = JS_ValueToSource(cx, idv);
   }
+
   // We convert all types of property keys to string
-  return StrType(cx, idStr).getPyObject();
+  auto chars = JS_EncodeStringToUTF8(cx, idStr);
+  return PyUnicode_FromString(chars.get());
 }
 
 bool idToIndex(JSContext *cx, JS::HandleId id, Py_ssize_t *index) {
@@ -56,10 +58,10 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::
 
   for (size_t i = 0; i < length; i++) {
     PyObject *key = PyList_GetItem(keys, i);
-    JS::RootedValue jsKey(cx, jsTypeFactory(cx, key));
     JS::RootedId jsId(cx);
-    if (!JS_ValueToId(cx, jsKey, &jsId)) {
-      // @TODO (Caleb Aikens) raise exception
+    if (!keyToId(key, &jsId)) {
+      // TODO (Caleb Aikens): raise exception here
+      return false; // key is not a str or int
     }
     props.infallibleAppend(jsId);
   }
@@ -89,6 +91,25 @@ bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
     vp.setUndefined(); // JS objects return undefined for nonpresent keys
   } else {
     vp.set(jsTypeFactory(cx, p));
+  }
+  return true;
+}
+
+bool PyProxyHandler::getOwnPropertyDescriptor(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+) const {
+  PyObject *attrName = idToKey(cx, id);
+  PyObject *item = PyDict_GetItemWithError(pyObject, attrName);
+  if (!item) { // NULL if the key is not present
+    desc.set(mozilla::Nothing()); // JS objects return undefined for nonpresent keys
+  } else {
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        jsTypeFactory(cx, item),
+        {JS::PropertyAttribute::Writable, JS::PropertyAttribute::Enumerable}
+      )
+    ));
   }
   return true;
 }
