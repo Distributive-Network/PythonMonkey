@@ -186,10 +186,9 @@ findTests \
       printf "\e[0m"
     else
       echo "${FAIL}"
-      peter_exit_code=1
 
-      if [ "$knownFail" ]; then
-        peter_exit_code=0
+      if [ ! "$knownFail" ]; then
+        peter_exit_code=1
       fi
 
       if [ ! "$VERBOSE" ] && [ ! "$knownFail" ]; then
