@@ -23,10 +23,8 @@ function setTimeout(handler, delayMs = 0, ...args)
 {
   // Ensure the first parameter is a function
   // We support passing a `code` string to `setTimeout` as the callback function
-  if (typeof handler !== 'function') 
-  {
+  if (typeof handler !== 'function')
     handler = new Function(handler);
-  }
 
   // `setTimeout` allows passing additional arguments to the callback, as spec-ed
   // FIXME (Tom Tang): the spec doesn't allow additional arguments to be passed if the original `handler` is not a function
@@ -39,7 +37,8 @@ function setTimeout(handler, delayMs = 0, ...args)
   // Get the delay time in seconds
   //  JS `setTimeout` takes milliseconds, but Python takes seconds
   delayMs = Number(delayMs) || 0; // ensure the `delayMs` is a `number`, explicitly do type coercion
-  if (delayMs < 0) { delayMs = 0; } // as spec-ed
+  if (delayMs < 0)
+    delayMs = 0; // as spec-ed
   const delaySeconds = delayMs / 1000; // convert ms to s
 
   return enqueueWithDelay(boundHandler, delaySeconds);
@@ -57,14 +56,10 @@ function clearTimeout(timeoutId)
   return cancelByTimeoutId(timeoutId);
 }
 
-if (!globalThis.setTimeout) 
-{
+if (!globalThis.setTimeout)
   globalThis.setTimeout = setTimeout;
-}
-if (!globalThis.clearTimeout) 
-{
+if (!globalThis.clearTimeout)
   globalThis.clearTimeout = clearTimeout;
-}
 
 exports.setTimeout = setTimeout;
 exports.clearTimeout = clearTimeout;
