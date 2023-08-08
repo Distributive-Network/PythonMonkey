@@ -38,7 +38,7 @@ module.exports = {
     'vars-on-top':                              [ 'error' ],
     'no-var':                                   [ 'off' ],
     'spaced-comment':                           [ 'warn' ],
-    'brace-style':                              [ 'warn', 'allman', { 'allowSingleLine': true }],
+    'brace-style':                              [ 'warn', 'allman' ],
     'no-eval':                                  [ 'error' ],
     'object-curly-spacing':                     [ 'warn',       'always' ],
     'eqeqeq':                                   [ 'warn',       'always' ],
