@@ -1,11 +1,19 @@
 /**
  * @file        console-smoke.simple
- *              Simple smoke test which ensures that the global console is initialized
+ *
+ *              Simple smoke test which ensures that the global console is initialized and that the 
+ *              console constructor works. We send stderr to stdout to avoid cluttering up the test 
+ *              runner display.
+ *
  * @author      Wes Garland, wes@distributive.network
  * @date        June 2023
  */
-console.log('one');
-console.info('two');
+const console = new (require('console').Console)({
+  stdout: python.stdout,
+  stderr: python.stdout
+});
+globalThis.console.log('one');
+globalThis.console.info('two');
 console.debug('three');
 console.error('four');
 console.warn('five');

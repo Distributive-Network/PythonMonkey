@@ -1,0 +1,27 @@
+/**
+ * @file    js2py/boolean.simple - Asserts that sending primitive and boxed
+ *          booleans to Python and getting them back into JS as primitive
+ *          booleans retains the correponsing logical values.
+ *
+ * @author  Bryan Hoang <bryan@distributive.network>
+ * @date    July 2023
+ */
+'use strict';
+
+const throughPython = python.eval('(lambda x: x)');
+
+const primitiveJsTrue = true;
+const maybePrimitiveJsTrue = throughPython(primitiveJsTrue);
+if (maybePrimitiveJsTrue !== primitiveJsTrue)
+{
+  console.error('Expected', primitiveJsTrue, 'but got', maybePrimitiveJsTrue);
+  throw new Error('Test failed');
+}
+
+const boxedJsFalse = new Boolean(false);
+const maybePrimitiveJsFalse = throughPython(boxedJsFalse);
+if (false !== maybePrimitiveJsFalse)
+{
+  console.error('Expected', false, 'but got', maybePrimitiveJsFalse);
+  throw new Error('Test failed');
+}

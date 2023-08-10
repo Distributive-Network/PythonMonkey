@@ -14,6 +14,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
+#include "include/PyProxyHandler.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -193,4 +194,59 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   return true;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self) {
+  JSContext *cx = GLOBAL_CX;
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
+
+  // Get **enumerable** own properties
+  JS::RootedIdVector props(cx);
+  if (!js::GetPropertyKeys(cx, self->jsObject, JSITER_OWNONLY, &props)) {
+    return NULL;
+  }
+
+  // Populate a Python tuple with (propertyKey, value) pairs from the JS object
+  // Similar to `Object.entries()`
+  size_t length = props.length();
+  PyObject *seq = PyTuple_New(length);
+  for (size_t i = 0; i < length; i++) {
+    JS::HandleId id = props[i];
+    PyObject *key = idToKey(cx, id);
+
+    JS::RootedValue *jsVal = new JS::RootedValue(cx);
+    JS_GetPropertyById(cx, self->jsObject, id, jsVal);
+    PyObject *value = pyTypeFactory(cx, global, jsVal)->getPyObject();
+
+    PyTuple_SetItem(seq, i, PyTuple_Pack(2, key, value));
+  }
+
+  // Convert to a Python iterator
+  return PyObject_GetIter(seq);
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
+  // Detect cyclic objects
+  PyObject *objPtr = PyLong_FromVoidPtr(self->jsObject.get());
+  // For `Py_ReprEnter`, we must get a same PyObject when visiting the same JSObject.
+  // We cannot simply use the object returned by `PyLong_FromVoidPtr` because it won't reuse the PyLongObjects for ints not between -5 and 256.
+  // Instead, we store this PyLongObject in a global dict, using itself as the hashable key, effectively interning the PyLongObject.
+  PyObject *tsDict = PyThreadState_GetDict();
+  PyObject *cyclicKey = PyDict_SetDefault(tsDict, /*key*/ objPtr, /*value*/ objPtr); // cyclicKey = (tsDict[objPtr] ??= objPtr)
+  int status = Py_ReprEnter(cyclicKey);
+  if (status != 0) { // the object has already been processed
+    return status > 0 ? PyUnicode_FromString("[Circular]") : NULL;
+  }
+
+  // Convert JSObjectProxy to a dict
+  PyObject *dict = PyDict_New();
+  // Update from the iterator emitting key-value pairs
+  //    see https://docs.python.org/3/c-api/dict.html#c.PyDict_MergeFromSeq2
+  PyDict_MergeFromSeq2(dict, JSObjectProxy_iter(self), /*override*/ false);
+  // Get the string representation of this dict
+  PyObject *str = PyObject_Repr(dict);
+
+  Py_ReprLeave(cyclicKey);
+  PyDict_DelItem(tsDict, cyclicKey);
+  return str;
 }

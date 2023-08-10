@@ -1,0 +1,40 @@
+/**
+ * @file    py2js/boolean.simple - Asserts that sending Python `bool`'s' to JS
+ *          retains the corresponding logical values, and don't become boxed
+ *          booleans.
+ *
+ * @author  Bryan Hoang <bryan@distributive.network>
+ * @date    July 2023
+ */
+'use strict';
+
+const throughJS = x => x;
+
+const pyTrue = python.eval('True');
+const maybePyTrue = throughJS(pyTrue);
+if (maybePyTrue !== pyTrue)
+{
+  console.error('Expected', pyTrue, 'but got', maybePyTrue);
+  throw new Error('Test failed');
+}
+
+if (typeof maybePyTrue !== 'boolean')
+{
+  console.error('Expected typeof boolean', 'but got', typeof maybePyTrue);
+  throw new Error('Test failed');
+}
+
+const pyFalse = python.eval('False');
+const maybePyFalse = throughJS(pyFalse);
+if (maybePyFalse !== pyFalse)
+{
+  console.error('Expected', pyFalse, 'but got', maybePyFalse);
+  throw new Error('test failed');
+}
+
+if (typeof maybePyFalse !== 'boolean')
+{
+  console.error('Expected typeof boolean', 'but got', typeof maybePyFalse);
+  throw new Error('Test failed');
+}
+

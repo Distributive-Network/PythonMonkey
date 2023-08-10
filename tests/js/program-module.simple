@@ -1,0 +1,36 @@
+/**
+ * @file        program-module.simple
+ *              Test subtle details about program modules scopes
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+var failures = 0;
+
+function check(message, testResult)
+{
+  const facility = testResult ? 'log' : 'error';
+
+  console[facility](message + ':', testResult ? 'PASS' : 'FAIL');
+  if (!testResult)
+    failures++;    
+}
+  
+check('require.main is an object',              typeof require.main === 'object');
+check('require.main is the current module',     require.main === module);
+check('require is the global require',          require === globalThis.require)
+check('exports is the global exports',          exports === globalThis.exports);
+check('module is the global module',            module  === globalThis.module);
+
+// eslint-disable-next-line no-global-assign
+module = {};
+check('free module symbol is global symbol',    module  === globalThis.module);
+check('arguments.length is ' + arguments.length, ...arguments)
+
+if (failures)
+  console.log(`${failures} sub-tests failing`);
+else
+  console.log('all sub-tests pass', typeof failures);
+
+python.exit(failures);

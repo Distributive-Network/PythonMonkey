@@ -150,7 +150,8 @@ public:
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
-    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) const override {};
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+  ) const override;
 
   bool defineProperty(JSContext *cx, JS::HandleObject proxy,
     JS::HandleId id,
@@ -180,5 +181,15 @@ public:
   bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const override;
   bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
 };
+
+/**
+ * @brief Convert jsid to a PyObject to be used as dict keys
+ */
+PyObject *idToKey(JSContext *cx, JS::HandleId id);
+
+/**
+ * @brief Convert Python dict key to jsid
+ */
+bool keyToId(PyObject *key, JS::MutableHandleId idp);
 
 #endif

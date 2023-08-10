@@ -1,0 +1,20 @@
+/**
+ * @file        py2js/string.simple
+ *              Simple test which shows that sending Python strings to JS and getting them back into
+ *              Python works as expected
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const hello = python.eval('"hello, world!"');
+const throughJS = x => x;
+const bonjour = throughJS(hello);
+
+if (bonjour !== hello)
+{
+  console.error('expected', hello, 'but got', bonjour);
+  throw new Error('test failed');
+}
+
+console.log('pass -', bonjour);

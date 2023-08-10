@@ -20,9 +20,6 @@ include = [
   { path = "src", format = "sdist" },
   { path = "include", format = "sdist" },
   { path = "cmake", format = "sdist" },
-  { path = "docs", format = "sdist" }, # TODO: organize files
-  { path = "externals", format = "sdist" },
-  { path = "format", format = "sdist" },
   { path = "tests", format = "sdist" },
   { path = "CMakeLists.txt", format = "sdist" },
   { path = "*.sh", format = "sdist" },
@@ -31,6 +28,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
+pyreadline3 = { version = "^3.4.1", platform = "win32" }
 pminit = { version = "*", allow-prereleases = true }
 
 
@@ -43,7 +41,10 @@ bump = true
 
 [tool.poetry.build]
 script = "build.py"
-generate-setup-file = false 
+generate-setup-file = false
+
+[tool.poetry.scripts]
+pmjs = "pythonmonkey.cli.pmjs:main"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -55,6 +56,7 @@ numpy = [
   {version = "^2.0.0.dev0", allow-prereleases = true, source = "anaconda", python = "3.12.*"},
   {version = "^1.24.3", python = "<3.12"},
 ]
+pminit = { path = "./python/pminit", develop = true }
 
 
 [[tool.poetry.source]]
@@ -63,5 +65,5 @@ url = "https://pypi.anaconda.org/pythonmonkey/simple"
 priority = "explicit"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning==0.24.0"]
 build-backend = "poetry_dynamic_versioning.backend"

@@ -1,0 +1,72 @@
+/**
+ * @file        js2py/datetime.simple.failing
+ *              Test which tests sending js Date() objects into Python get the right types and values
+ *
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ */
+'use strict'
+
+var fail = false;
+function test(result, name)
+{
+  if (result)
+    console.log('pass -', name);
+  else
+  {
+    console.log('fail -', name);
+    fail = true;
+  }
+}
+
+python.exec('import datetime');
+const pyTypeOf = python.eval('(lambda x: str(type(x)))');
+
+const ct = pyTypeOf(new Date());
+if (ct.indexOf('datetime.datetime') !== -1)
+  console.log('type check pass - converted type was', ct);
+else
+{
+  fail = true;
+  console.error('type check fail - converted type was', ct);
+}
+
+python.exec(`
+def eq(date1, date2):
+    print('')
+    print('compare', date1, date2);
+    if (date1 == date2):
+        return True
+    if (type(date1) != type(date2)):
+        #print("types do not match")
+        return False
+
+    diff = date2 - date1
+    if (diff):
+        print(f'Dates do not match, difference is {diff}')
+        return False
+            
+    print('warning - dates are different but equal', diff)
+    return True
+
+def eqUnixTime(date, timet):
+    import datetime
+    global eq
+    return eq(date, datetime.datetime.fromtimestamp(timet, tz=datetime.timezone.utc))
+`);
+
+const eq = python.eval('eq');
+const eqUnixTime = python.eval('eqUnixTime');
+
+const now = new Date();
+const randomDate   = new Date(Date.UTC(1973, 8, 16, 23, 2, 30));
+const startOfEpoch = new Date(Date.UTC(1970, 0, 1, 0, 0, 0));
+
+test(eq(now, now),                      'same dates (now) are equal');
+test(eq(startOfEpoch, startOfEpoch),    'same dates (0) are equal');
+test(!eq(startOfEpoch, now),            'different dates are not equal 1');
+test(!eq(startOfEpoch, randomDate),     'different dates are not equal 2');
+test(!eq(randomDate, now),              'different dates are not equal 3');
+test(eqUnixTime(startOfEpoch, 0),       'start of epoch');
+
+python.exit(fail ? 2 : 0);
