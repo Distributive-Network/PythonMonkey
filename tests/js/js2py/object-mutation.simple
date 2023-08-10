@@ -20,7 +20,7 @@ python.exec(pcode);
 const fun = python.eval("change_and_return");
 const obj2 = fun(obj);
 
-if (obj.a !== 5 && obj2["a"] !== 5)
+if (obj.a !== 5 || obj2["a"] !== 5)
 {
   console.error('Object isn\'t sharing memory.');
   throw new Error('Test failed');
@@ -28,7 +28,7 @@ if (obj.a !== 5 && obj2["a"] !== 5)
 
 obj.a = 1000;
 
-if (obj.a !== 1000 && obj2["a"] !== 1000)
+if (obj.a !== 1000 || obj2["a"] !== 1000)
 {
   console.error('Object isn\'t sharing memory.');
   throw new Error('Test failed');
