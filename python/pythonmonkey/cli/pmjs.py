@@ -5,6 +5,7 @@
 
 import sys, os, signal, getopt
 import readline
+import asyncio
 import pythonmonkey as pm
 from pythonmonkey.lib import pmdb
 
@@ -356,8 +357,11 @@ def main():
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        globalInitModule.patchGlobalRequire()
-        pm.runProgramModule(args[0], args, requirePath)
+        async def runJS():
+            globalInitModule.patchGlobalRequire()
+            pm.runProgramModule(args[0], args, requirePath)
+            await pm.wait() # blocks until all asynchronous calls finish
+        asyncio.run(runJS())
     elif (enterRepl or forceRepl):
         globalInitModule.initReplLibs()
         repl()
