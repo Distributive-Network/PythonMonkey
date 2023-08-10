@@ -1,0 +1,37 @@
+/**
+ * @file        js2py/object-mutation.simple
+ *              Simple test which shows that converting objects from JS => Python uses
+ *              shared memory, and changes made in either language will affect the object
+ *              in the other.
+ * @author      Joash Mathew, <joash@distributive.network>
+ * @date        July 2023
+ */
+'use strict';
+
+const obj = { a: 1 };
+const pcode = `
+def change_and_return(obj):
+  obj["a"] = 5;
+  return obj;
+`;
+
+python.exec(pcode);
+
+const fun = python.eval("change_and_return");
+const obj2 = fun(obj);
+
+if (obj.a !== 5 || obj2["a"] !== 5)
+{
+  console.error('Object isn\'t sharing memory.');
+  throw new Error('Test failed');
+}
+
+obj.a = 1000;
+
+if (obj.a !== 1000 || obj2["a"] !== 1000)
+{
+  console.error('Object isn\'t sharing memory.');
+  throw new Error('Test failed');
+}
+
+console.log('Test passed');
