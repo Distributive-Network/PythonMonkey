@@ -25,26 +25,23 @@ module.exports = {
   },
   rules: {
     'indent':                                   [ 'warn', 2, {
-        SwitchCase: 1,
-        ignoredNodes: ['CallExpression', 'ForStatement'],
-      }
-    ],
+      SwitchCase: 1,
+      ignoredNodes: ['CallExpression', 'ForStatement'],
+    }],
     'linebreak-style':                          [ 'error', 'unix' ],
-    'quotes':                                   [ 'warn', 'single' ],
     'func-call-spacing':                        [ 'off', 'never' ],
     'no-prototype-builtins':                    'off',
-    'quotes':                                   ['warn', 'single', 'avoid-escape'],
+    'quotes':                                   [ 'warn', 'single', 'avoid-escape' ],
     'no-empty': [ 'warn' ],
     'no-multi-spaces':                          [ 'off' ],
     'prettier/prettier':                        [ 'off' ],
     'vars-on-top':                              [ 'error' ],
     'no-var':                                   [ 'off' ],
     'spaced-comment':                           [ 'warn' ],
-    'brace-style':                              [ 'off' ],
+    'brace-style':                              [ 'warn', 'allman' ],
     'no-eval':                                  [ 'error' ],
     'object-curly-spacing':                     [ 'warn',       'always' ],
     'eqeqeq':                                   [ 'warn',       'always' ],
-    'no-dupe-keys':                             [ 'warn' ],
     'no-constant-condition':                    [ 'warn' ],
     'no-extra-boolean-cast':                    [ 'warn' ],
     'no-sparse-arrays':                         [ 'off' ],
@@ -60,16 +57,15 @@ module.exports = {
     'no-unused-expressions':                    [ 'warn',       { allowShortCircuit: true, allowTernary: true } ],
     'prefer-promise-reject-errors':             [ 'error' ],
     'no-throw-literal':                         [ 'error' ],
-    'semi':                                     [ 'off',        { omitLastInOneLineBlock: true }], /* does not work right with exports.X = function allmanStyle */
+    'semi':                                     [ 'warn'  ],
     'semi-style':                               [ 'warn',       'last' ],
-    'semi-spacing':                             [ 'error',      {'before': false, 'after': true}],
+    'semi-spacing':                             [ 'error',      { 'before': false, 'after': true }],
     'no-extra-semi':                            [ 'warn' ],
     'no-tabs':                                  [ 'error' ],
     'symbol-description':                       [ 'error' ],
     'operator-linebreak':                       [ 'warn',       'before' ],
     'new-cap':                                  [ 'warn' ],
     'consistent-this':                          [ 'error',      'that' ],
-    'no-use-before-define':                     [ 'error',      { functions: false, classes: false } ],
     'no-shadow':                                [ 'error' ],
     'no-label-var':                             [ 'error' ],
     'radix':                                    [ 'error' ],
@@ -89,10 +85,9 @@ module.exports = {
       allow: ['!!'] /* really only want to allow if(x) and if(!x) but not if(!!x) */
     }],
     'no-trailing-spaces': [ 'off', {
-        skipBlankLines: true,
-        ignoreComments: true
-      }
-                          ],
+      skipBlankLines: true,
+      ignoreComments: true
+    }],
     'no-unused-vars':                           ['warn',        {
       vars: 'all',
       args: 'none',

@@ -14,6 +14,7 @@
 
 namespace InternalBinding {
   extern JSFunctionSpec utils[];
+  extern JSFunctionSpec timers[];
 }
 
 JSObject *createInternalBindingsForNamespace(JSContext *cx, JSFunctionSpec *methodSpecs);
