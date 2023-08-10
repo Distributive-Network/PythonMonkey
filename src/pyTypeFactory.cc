@@ -106,6 +106,10 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
+    if (JS_ObjectIsBoundFunction(obj)) {
+      cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
+                                   // js::ESClass::Function only assigns to JSFunction objects by JS::GetBuiltinClass.
+    }
     switch (cls) {
     case js::ESClass::Boolean: {
         // TODO (Caleb Aikens): refactor out all `js::Unbox` calls
