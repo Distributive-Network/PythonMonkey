@@ -51,6 +51,10 @@ declare var console: import("console").Console;
 declare var atob: typeof import("base64").atob;
 declare var btoa: typeof import("base64").btoa;
 
+// Expose `setTimeout`/`clearTimeout` APIs
+declare var setTimeout: typeof import("timers").setTimeout;
+declare var clearTimeout: typeof import("timers").clearTimeout;
+
 // Keep this in sync with both https://hg.mozilla.org/releases/mozilla-esr102/file/a03fde6/js/public/Promise.h#l331
 //                        and  https://github.com/nodejs/node/blob/v20.2.0/deps/v8/include/v8-promise.h#L30
 declare enum PromiseState { Pending = 0, Fulfilled = 1, Rejected = 2 }
