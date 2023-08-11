@@ -253,6 +253,9 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
   if (rval->isObject()) {
     JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
+    if (JS_ObjectIsBoundFunction(&rval->toObject())) {
+      cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
+    }
   }
   bool rvalIsFunction = cls == js::ESClass::Function;   // function object
   bool rvalIsString = rval->isString() || cls == js::ESClass::String;   // string primitive or boxed String object

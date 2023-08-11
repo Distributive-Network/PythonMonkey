@@ -1,0 +1,20 @@
+/**
+ * @file        py2js/object.simple
+ *              Simple test which shows that sending objects to JS and getting them back into Python
+ *              works as expected.
+ * @author      Joash Mathew, <joash@distributive.network>
+ * @date        July 2023
+ */
+'use strict';
+
+const obj = python.eval('{"a": 1, "b": 2, "c": 3}');
+const throughJS = (x) => x;
+const jsObj = throughJS(obj);
+
+if (jsObj !== obj)
+{
+  console.error('expected ', obj, ' but got ', jsObj);
+  throw new Error('Test failed');
+}
+
+console.log('Test passed');

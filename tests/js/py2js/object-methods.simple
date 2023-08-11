@@ -1,0 +1,34 @@
+/**
+ * @file        py2js/object.simple
+ *              Simple test which shows that sending objects from Python to JS still retains
+ *              the ability to perform basic Object methods like Object.keys(), Object.values() and
+ *              Object.entries() on them.
+ * @author      Joash Mathew, <joash@distributive.network>
+ * @date        July 2023
+ */
+'use strict';
+
+const obj = python.eval('{ "a": 1, "b": 2, "c": 3 }');
+const throughJS = (x) => x;
+const jsObj = throughJS(obj);
+const standardJSObj = { a: 1, b: 2, c: 3 };
+
+if (JSON.stringify(Object.keys(jsObj)) !== JSON.stringify(Object.keys(standardJSObj)))
+{
+  console.error('The output of the PythonMonkey JS object does not match the output of a standard JS Object.');
+  throw new Error('Test failed');
+}
+
+if (JSON.stringify(Object.values(jsObj)) !== JSON.stringify(Object.values(standardJSObj)))
+{
+  console.error('The output of the PythonMonkey JS object does not match the output of a standard JS Object.');
+  throw new Error('Test failed');
+}
+
+if (JSON.stringify(Object.entries(jsObj)) !== JSON.stringify(Object.entries(standardJSObj)))
+{
+  console.error('The output of the PythonMonkey JS object does not match the output of a standard JS Object.');
+  throw new Error('Test failed');
+}
+
+console.log('Test passed');
