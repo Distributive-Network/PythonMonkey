@@ -42,11 +42,6 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey115.1.0-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
-      - name: Setup Poetry
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.5.1
       - name: Setup XCode
         if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey 115 ESR requires XCode SDK version at least 13.3
@@ -67,11 +62,6 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey115.1.0-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
-      - name: Setup Poetry
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.5.1
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         shell: powershell
