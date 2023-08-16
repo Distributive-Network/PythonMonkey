@@ -1,5 +1,15 @@
-OUTPUT_DIRECTORY       = @CMAKE_CURRENT_BINARY_DIR@/doc_doxygen/
-INPUT                  = "@CMAKE_CURRENT_SOURCE_DIR@/../src/" "@CMAKE_CURRENT_SOURCE_DIR@/../docs" "@CMAKE_CURRENT_SOURCE_DIR@/../include/"
+OUTPUT_DIRECTORY      = "@CMAKE_BINARY_DIR@/docs/"
+INPUT                 = "@CMAKE_CURRENT_SOURCE_DIR@" \
+                        "@CMAKE_SOURCE_DIR@/src/" \
+                        "@CMAKE_SOURCE_DIR@/include/" \
+                        "@CMAKE_SOURCE_DIR@/python/pythonmonkey/" \
+                        "@CMAKE_SOURCE_DIR@/python/pythonmonkey/builtin_modules"
 
+PROJECT_NAME = "PythonMonkey"
 EXTRACT_ALL = YES
 GENERATE_LATEX = NO
+GENERATE_XML = YES
+OPTIMIZE_OUTPUT_JAVA = YES
+
+FILE_PATTERNS = *.cc *.hh *.py *.pyi *.js *.ts
+EXTENSION_MAPPING = pyi=python js=javascript ts=javascript
