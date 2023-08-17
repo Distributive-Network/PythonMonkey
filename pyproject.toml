@@ -29,7 +29,7 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.8"
 pyreadline3 = { version = "^3.4.1", platform = "win32" }
-pminit = { version = ">=0.3.0", allow-prereleases = true }
+pminit = { version = "*", allow-prereleases = true }
 
 
 [tool.poetry-dynamic-versioning]
