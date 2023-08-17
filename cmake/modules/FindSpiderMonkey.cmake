@@ -59,7 +59,7 @@ set(SPIDERMONKEY_PATHS
 set(SPIDERMONKEY_HEADERS jsapi.h js/RequiredDefines.h)
 
 # SpiderMonkey include suffix paths
-set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS dist/include js/src include include/js include/mozjs-48a1 include/mozjs-102/)
+set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS include/mozjs-115/)
 
 # Find SpiderMonkey include path
 find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
@@ -70,7 +70,7 @@ find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
 )
 
 # SpiderMonkey libs
-set(SPIDERMONKEY_LIBRARY_NAMES libmozjs-102.so libmozjs-102.dylib mozjs-102.lib)
+set(SPIDERMONKEY_LIBRARY_NAMES libmozjs-115.so libmozjs-115.dylib mozjs-115.lib)
 
 set(SPIDERMONKEY_LIB_SUFFIX_PATHS js/src/build lib)
 
