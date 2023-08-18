@@ -38,6 +38,11 @@ vcs = "git"
 style = "pep440"
 bump = true
 
+[tool.poetry-dynamic-versioning.substitution]
+# Set the project version number in CMakeLists.txt
+files = [ "CMakeLists.txt" ]
+patterns = [ '(set\(PYTHONMONKEY_VERSION ")0("\))' ]
+
 
 [tool.poetry.build]
 script = "build.py"
