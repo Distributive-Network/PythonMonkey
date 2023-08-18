@@ -11,5 +11,26 @@ GENERATE_LATEX = NO
 GENERATE_XML = YES
 OPTIMIZE_OUTPUT_JAVA = YES
 
-FILE_PATTERNS = *.cc *.hh *.py *.pyi *.js *.ts
+FILE_PATTERNS = *.cc *.hh *.py *.pyi *.js *.ts *.md
 EXTENSION_MAPPING = pyi=python js=javascript ts=javascript
+
+# Doxygen Theme
+# https://jothepro.github.io/doxygen-awesome-css/
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_HEADER            = @CMAKE_CURRENT_SOURCE_DIR@/header.html
+HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome.css \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+HTML_EXTRA_FILES       = @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-paragraph-link.js \
+                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-interactive-toc.js
+HTML_COLORSTYLE        = LIGHT
+
+# Diagrams with Graphviz
+HAVE_DOT = YES
+DOT_IMAGE_FORMAT = svg
+DOT_TRANSPARENT = YES
+INTERACTIVE_SVG = YES
