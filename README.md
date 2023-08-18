@@ -62,12 +62,12 @@ Read this if you want to build a local version.
 1. You will need the following installed (which can be done automatically by running `./setup.sh`):
     - bash
     - cmake
-    - doxygen 
+    - Doxygen 1.9 series
     - graphviz
     - llvm
     - rust
     - python3.8 or later with header files (python3-dev)
-    - spidermonkey 102.2.0 or later
+    - spidermonkey 115.1.0 or later
     - npm (nodejs)
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
