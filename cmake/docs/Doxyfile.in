@@ -7,6 +7,8 @@ INPUT                 = "@CMAKE_CURRENT_SOURCE_DIR@" \
 
 PROJECT_NAME          = "PythonMonkey"
 PROJECT_NUMBER        = "  v@CMAKE_PROJECT_VERSION@"
+PROJECT_BRIEF         = ""
+PROJECT_LOGO          = "@CMAKE_CURRENT_SOURCE_DIR@/PythonMonkey-icon.png"
 
 EXTRACT_ALL = YES
 GENERATE_LATEX = NO
@@ -25,7 +27,8 @@ HTML_HEADER           = @CMAKE_CURRENT_SOURCE_DIR@/header.html
 HTML_EXTRA_STYLESHEET = @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome.css \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
-HTML_EXTRA_FILES      = @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+HTML_EXTRA_FILES      = @CMAKE_CURRENT_SOURCE_DIR@/favicon.ico \
+                        @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-paragraph-link.js \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-interactive-toc.js
