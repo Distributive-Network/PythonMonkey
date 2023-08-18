@@ -129,26 +129,26 @@ and install them by `pip install ./dist/*`.
 2. To use gdb, run `poetry run gdb python`.  
 See [Python Wiki: DebuggingWithGdb](https://wiki.python.org/moin/DebuggingWithGdb)
 
-If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python to start debugging - We have [the `launch.json` file configured for you](.vscode/launch.json).
+If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python to start debugging - We have [the `launch.json` file configured for you](https://github.com/Distributive-Network/PythonMonkey/blob/main/.vscode/launch.json).
 
 ## Examples
 
-* [examples/](examples/)
+* [examples/](https://github.com/Distributive-Network/PythonMonkey/tree/main/examples)
 * https://github.com/Distributive-Network/PythonMonkey-examples
 * https://github.com/Distributive-Network/PythonMonkey-Crypto-JS-Fullstack-Example
 
 ## API
 These methods are exported from the pythonmonkey module.
 
-### eval(code, evalOpts)
-### isCompilableUnit(code)
-### collect()
-### bigint(int)
-### `SpiderMonkeyError`
-### `JSObjectProxy`
-### `null`
+* eval(code, evalOpts)
+* isCompilableUnit(code)
+* collect()
+* bigint(int)
+* `SpiderMonkeyError`
+* `JSObjectProxy`
+* `null`
 
-See definitions in [python/pythonmonkey/pythonmonkey.pyi](python/pythonmonkey/pythonmonkey.pyi).
+See definitions in [python/pythonmonkey/pythonmonkey.pyi](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/pythonmonkey.pyi).
 
 ### require(moduleIdentifier)
 Return the exports of a CommonJS module identified by `moduleIdentifier`, using standard CommonJS
@@ -183,7 +183,9 @@ necessary unless the main entry point of your program is written in JavaScript.
 
 Care should be taken to ensure that only one program module is run per JS context.
 
-## [Built-In Functions](python/pythonmonkey/global.d.ts)
+## Built-In Functions
+
+See definitions in [python/pythonmonkey/global.d.ts](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/global.d.ts).
 
 - `console`
 - `atob`
