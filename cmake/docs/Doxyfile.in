@@ -1,5 +1,6 @@
 OUTPUT_DIRECTORY      = "@CMAKE_BINARY_DIR@/docs/"
 INPUT                 = "@CMAKE_CURRENT_SOURCE_DIR@" \
+                        "@CMAKE_SOURCE_DIR@/README.md" \
                         "@CMAKE_SOURCE_DIR@/src/" \
                         "@CMAKE_SOURCE_DIR@/include/" \
                         "@CMAKE_SOURCE_DIR@/python/pythonmonkey/" \
@@ -9,6 +10,9 @@ PROJECT_NAME          = "PythonMonkey"
 PROJECT_NUMBER        = "  v@CMAKE_PROJECT_VERSION@"
 PROJECT_BRIEF         = ""
 PROJECT_LOGO          = "@CMAKE_CURRENT_SOURCE_DIR@/PythonMonkey-icon.png"
+
+MARKDOWN_ID_STYLE = GITHUB
+USE_MDFILE_AS_MAINPAGE = "@CMAKE_SOURCE_DIR@/README.md"
 
 EXTRACT_ALL = YES
 GENERATE_LATEX = NO
