@@ -1,10 +1,9 @@
 OUTPUT_DIRECTORY      = "@CMAKE_BINARY_DIR@/docs/"
-INPUT                 = "@CMAKE_CURRENT_SOURCE_DIR@" \
-                        "@CMAKE_SOURCE_DIR@/README.md" \
+INPUT                 = "@CMAKE_SOURCE_DIR@/README.md" \
                         "@CMAKE_SOURCE_DIR@/src/" \
                         "@CMAKE_SOURCE_DIR@/include/" \
-                        "@CMAKE_SOURCE_DIR@/python/pythonmonkey/" \
-                        "@CMAKE_SOURCE_DIR@/python/pythonmonkey/builtin_modules"
+                        "@CMAKE_SOURCE_DIR@/python/pythonmonkey/"
+RECURSIVE             = YES
 
 PROJECT_NAME          = "PythonMonkey"
 PROJECT_NUMBER        = "  v@CMAKE_PROJECT_VERSION@"
