@@ -24,7 +24,12 @@ fi
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.69 # force to use Rust 1.69 because 1.70 has linking issues on Windows
 # Setup Poetry
 curl -sSL https://install.python-poetry.org | python3 - --version "1.5.1"
-poetry self add "poetry-dynamic-versioning[plugin]"
+if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  POETRY_BIN="$APPDATA/Python/Scripts/poetry"
+else
+  POETRY_BIN=`echo ~/.local/bin/poetry` # expand tilde
+fi
+$POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
