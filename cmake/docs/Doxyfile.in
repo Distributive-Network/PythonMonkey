@@ -18,6 +18,7 @@ EXTRACT_ALL = YES
 GENERATE_LATEX = NO
 GENERATE_XML = YES
 OPTIMIZE_OUTPUT_JAVA = YES
+STRIP_FROM_PATH = "@CMAKE_SOURCE_DIR@"
 
 FILE_PATTERNS = *.cc *.hh *.py *.pyi *.js *.ts *.md
 EXTENSION_MAPPING = pyi=python js=javascript ts=javascript
