@@ -129,7 +129,7 @@ and install them by `pip install ./dist/*`.
 2. To use gdb, run `poetry run gdb python`.  
 See [Python Wiki: DebuggingWithGdb](https://wiki.python.org/moin/DebuggingWithGdb)
 
-If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python to start debugging - We have [the `launch.json` file configured for you](https://github.com/Distributive-Network/PythonMonkey/blob/main/.vscode/launch.json).
+If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python file in the editor to start debugging - We have [the `launch.json` file configured for you](https://github.com/Distributive-Network/PythonMonkey/blob/main/.vscode/launch.json).
 
 ## Examples
 
