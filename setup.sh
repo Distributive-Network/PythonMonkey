@@ -9,8 +9,14 @@ CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/
 echo "Installing dependencies"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   sudo apt-get update --yes
-  sudo apt-get install --yes cmake doxygen graphviz llvm clang pkg-config m4 \
+  sudo apt-get install --yes cmake graphviz llvm clang pkg-config m4 \
     wget curl python3-distutils python3-dev
+  # Install Doxygen
+  # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
+  wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
+  tar xf doxygen-1.9.7.linux.bin.tar.gz
+  cd doxygen-1.9.7 && sudo make install && cd -
+  rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
