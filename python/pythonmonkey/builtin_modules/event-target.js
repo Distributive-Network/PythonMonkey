@@ -89,16 +89,16 @@ class EventTarget
 
     // Call "on" methods
     if (typeof this['on' + type] === 'function')
-      this['on' + type]();
+      this['on' + type].call(this, event);
 
     // Call listeners registered with addEventListener()
     if (!Object.hasOwn(this.#listeners, type))
       return;
     for (const listener of this.#listeners[type].values())
       if (typeof listener === 'function')
-        listener(event);
+        listener.call(this, event);
       else
-        listener.handleEvent(event);
+        listener.handleEvent.call(this, event);
   }
 
   /**
