@@ -9,7 +9,7 @@
 const { EventTarget, Event } = require('event-target');
 const { DOMException } = require('dom-exception');
 const { URL, URLSearchParams } = require('url');
-const { request } = require('XMLHttpRequest-internal');
+const { request, decodeStr } = require('XMLHttpRequest-internal');
 
 // exposed
 /**
@@ -420,7 +420,10 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   #getTextResponse()
   {
-    // TODO
+    // TODO: refactor using proper TextDecoder API
+    // TODO: handle encodings other than utf-8
+    this.#responseObject = decodeStr(this.#mergeReceivedBytes(), 'utf-8');
+    return this.#responseObject;
   }
 
   /**
@@ -438,16 +441,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       return this.#responseObject;
     if (this.#responseType === 'arraybuffer') // step 5
     {
-      // concatenate received bytes
-      let offset = 0;
-      const merged = new Uint8Array(this.#receivedLength);
-      for (const chunk of this.#receivedBytes)
-      {
-        merged.set(chunk, offset);
-        offset += chunk.length;
-      }
-      
-      this.#responseObject = merged.buffer;
+      this.#responseObject = this.#mergeReceivedBytes().buffer;
       return this.#responseObject;
     }
 
@@ -499,13 +493,31 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #responseType = '';
   /** 
    * cache for converting receivedBytes to the desired response type
-   * @type {ArrayBuffer}
+   * @type {ArrayBuffer | string}
    */
   #responseObject = null;
 
+  /**
+   * Get received bytes’s total length
+   */
   get #receivedLength()
   {
     return this.#receivedBytes.reduce((sum, chunk) => sum + chunk.length, 0);
+  }
+
+  /**
+   * Concatenate received bytes into one single Uint8Array
+   */
+  #mergeReceivedBytes()
+  {
+    let offset = 0;
+    const merged = new Uint8Array(this.#receivedLength);
+    for (const chunk of this.#receivedBytes)
+    {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return merged;
   }
 }
 

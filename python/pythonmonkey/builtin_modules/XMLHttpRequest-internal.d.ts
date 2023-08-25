@@ -17,3 +17,8 @@ export declare function request(
   processBodyChunk: (bytes: Uint8Array) => void,
   processEndOfBody: () => void,
 ): string;
+
+/**
+ * Decode data using the codec registered for encoding.
+ */
+export declare function decodeStr(data: Uint8Array, encoding?: string): string;

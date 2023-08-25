@@ -54,5 +54,9 @@ async def request(
         # readyState DONE
         processEndOfBody()
 
+def decodeStr(data: bytes, encoding='utf-8'): # XXX: Remove this once we get proper TextDecoder support
+    return str(data, encoding=encoding)
+
 # Module exports
 exports['request'] = request # type: ignore
+exports['decodeStr'] = decodeStr # type: ignore
