@@ -12,6 +12,10 @@ async def request(
     url: str,
     headers: dict,
     body: Union[str, Sequence[int]],
+    # callbacks for request body progress
+    processRequestBodyChunkLength: Callable[[int], None],
+    processRequestEndOfBody: Callable[[], None],
+    # callbacks for response progress
     processResponse: Callable[[Any], None],
     processBodyChunk: Callable[[bytearray], None],
     processEndOfBody: Callable[[], None],

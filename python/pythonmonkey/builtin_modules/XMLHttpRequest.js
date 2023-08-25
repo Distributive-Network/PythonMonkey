@@ -307,6 +307,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#requestURL.toString(),
       this.#requestHeaders,
       this.#requestBody ?? '',
+      processRequestBodyChunkLength,
+      processRequestEndOfBody,
       processResponse,
       processBodyChunk,
       processEndOfBody,

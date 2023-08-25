@@ -13,6 +13,10 @@ export declare function request(
   url: string,
   headers: Record<string, string>,
   body: string | Uint8Array,
+  // callbacks for request body progress
+  processRequestBodyChunkLength: (bytesLength: number) => void,
+  processRequestEndOfBody: () => void,
+  // callbacks for response progress
   processResponse: (response: any) => void,
   processBodyChunk: (bytes: Uint8Array) => void,
   processEndOfBody: () => void,
