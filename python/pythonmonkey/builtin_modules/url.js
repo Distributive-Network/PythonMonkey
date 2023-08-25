@@ -7,9 +7,9 @@
  */
 
 // Apply polyfills from core-js
-require("core-js/actual/dom-exception")
-require("core-js/actual/url")
-require("core-js/actual/url-search-params")
+require('./dom-exception');
+require('core-js/actual/url');
+require('core-js/actual/url-search-params');
 
 exports.URL = globalThis.URL;
 exports.URLSearchParams = globalThis.URLSearchParams;

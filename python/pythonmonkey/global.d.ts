@@ -47,6 +47,8 @@ declare function pmEval(code: string): any;
 // XXX: ↓↓↓ we must use "var" here
 declare var console: import("console").Console;
 
+declare var DOMException: typeof import("dom-exception").DOMException;
+
 // Expose `atob`/`btoa` as properties of the global object
 declare var atob: typeof import("base64").atob;
 declare var btoa: typeof import("base64").btoa;
