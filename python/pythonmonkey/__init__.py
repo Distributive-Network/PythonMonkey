@@ -13,10 +13,7 @@ del importlib
 require("console")
 require("base64")
 require("timers")
-## npm packages
-require("core-js/actual/dom-exception")
-require("core-js/actual/url")
-require("core-js/actual/url-search-params")
+require("url")
 
 # Add the `.keys()` method on `Object.prototype` to get JSObjectProxy dict() conversion working
 # Conversion from a dict-subclass to a strict dict by `dict(subclass)` internally calls the .keys() method to read the dictionary keys, 
