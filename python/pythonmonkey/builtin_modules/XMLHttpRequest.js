@@ -299,7 +299,10 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   get responseURL()
   {
-    // TODO
+    if (!this.#response)
+      return '';
+    else
+      return this.#response.url;
   }
 
   /**
@@ -307,7 +310,10 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   get status()
   {
-    // TODO
+    if (!this.#response)
+      return 0;
+    else
+      return this.#response.status;
   }
 
   /**
@@ -315,7 +321,10 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   get statusText()
   {
-    // TODO
+    if (!this.#response)
+      return '';
+    else
+      return this.#response.statusText;
   }
 
   /**
@@ -324,7 +333,10 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   getResponseHeader(name)
   {
-    // TODO
+    if (!this.#response)
+      return null;
+    else
+      return this.#response.getResponseHeader(name) ?? null;
   }
 
   /**
@@ -332,7 +344,10 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   getAllResponseHeaders()
   {
-    // TODO
+    if (!this.#response)
+      return '';
+    else
+      return this.#response.getAllResponseHeaders();
   }
 
   /**
