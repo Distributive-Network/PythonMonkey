@@ -100,6 +100,23 @@ class EventTarget
       else
         listener.handleEvent(event);
   }
+
+  /**
+   * Determine whether the target has any kind of event listeners
+   */
+  _hasAnyListeners()
+  {
+    return Object.values(this.#listeners).some(t => t.size > 0);
+  }
+
+  /**
+   * Determine whether the target has listeners of the given event type
+   * @param {string} [type]
+   */
+  _hasListeners(type)
+  {
+    return this.#listeners[type] && this.#listeners[type].size > 0;
+  }
 }
 
 if (!globalThis.Event)
