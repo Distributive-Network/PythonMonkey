@@ -5,13 +5,14 @@
 
 import aiohttp
 import yarl
-from typing import Union, Sequence, Callable, Any
+import io
+from typing import Union, ByteString, Callable, Any
 
 async def request(
     method: str,
     url: str,
     headers: dict,
-    body: Union[str, Sequence[int]],
+    body: Union[str, ByteString],
     # callbacks for request body progress
     processRequestBodyChunkLength: Callable[[int], None],
     processRequestEndOfBody: Callable[[], None],
@@ -21,13 +22,25 @@ async def request(
     processEndOfBody: Callable[[], None],
     /
 ):
+    class BytesPayloadWithProgress(aiohttp.BytesPayload):
+        _chunkMaxLength = 2**16 # aiohttp default
+
+        async def write(self, writer) -> None:
+            buf = io.BytesIO(self._value)
+            chunk = buf.read(self._chunkMaxLength)
+            while chunk:
+                await writer.write(chunk)
+                processRequestBodyChunkLength(len(chunk))
+                chunk = buf.read(self._chunkMaxLength)
+            processRequestEndOfBody()
+
     if isinstance(body, str):
         body = bytes(body, "utf-8")
 
     async with aiohttp.request(method=method,
                                url=yarl.URL(url, encoded=True),
                                headers=dict(headers),
-                               data=bytes(body)
+                               data=BytesPayloadWithProgress(body)
     ) as res:
         def getResponseHeader(name: str):
             return res.headers.get(name)
