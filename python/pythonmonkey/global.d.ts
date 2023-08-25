@@ -47,8 +47,6 @@ declare function pmEval(code: string): any;
 // XXX: ↓↓↓ we must use "var" here
 declare var console: import("console").Console;
 
-declare var DOMException: typeof import("dom-exception").DOMException;
-
 // Expose `atob`/`btoa` as properties of the global object
 declare var atob: typeof import("base64").atob;
 declare var btoa: typeof import("base64").btoa;
@@ -60,6 +58,9 @@ declare var clearTimeout: typeof import("timers").clearTimeout;
 // Expose `URL`/`URLSearchParams` APIs
 declare var URL: typeof import("url").URL;
 declare var URLSearchParams: typeof import("url").URLSearchParams;
+
+// Expose `XMLHttpRequest` (XHR) API
+declare var XMLHttpRequest: typeof import("XMLHttpRequest").XMLHttpRequest;
 
 // Keep this in sync with both https://hg.mozilla.org/releases/mozilla-esr102/file/a03fde6/js/public/Promise.h#l331
 //                        and  https://github.com/nodejs/node/blob/v20.2.0/deps/v8/include/v8-promise.h#L30

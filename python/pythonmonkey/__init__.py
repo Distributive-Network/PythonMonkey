@@ -14,6 +14,7 @@ require("console")
 require("base64")
 require("timers")
 require("url")
+require("XMLHttpRequest")
 
 # Add the `.keys()` method on `Object.prototype` to get JSObjectProxy dict() conversion working
 # Conversion from a dict-subclass to a strict dict by `dict(subclass)` internally calls the .keys() method to read the dictionary keys, 
