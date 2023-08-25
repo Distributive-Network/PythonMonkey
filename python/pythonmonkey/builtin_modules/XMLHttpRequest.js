@@ -9,6 +9,7 @@
 const { EventTarget, Event } = require('event-target');
 const { DOMException } = require('dom-exception');
 const { URL, URLSearchParams } = require('url');
+const { request } = require('XMLHttpRequest-internal');
 
 // exposed
 /**
@@ -124,6 +125,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#synchronousFlag = true;
     this.#requestHeaders = {}; // clear
     this.#response = null;
+    this.#receivedBytes = [];
     this.#responseObject = null;
 
     // step 12
@@ -216,8 +218,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     if (this.#uploadObject._hasAnyListeners())
       this.#uploadListenerFlag = true;
 
-    // step 6
-    // TODO: Let req be a new request, initialized as follows: 
+    // FIXME: do we have to initiate request here? (step 6)
 
     this.#uploadCompleteFlag = false; // step 7
     this.#timedOutFlag = false; // step 8
@@ -265,6 +266,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     };
 
     // step 11.9
+    let responseLength = 0;
     const processResponse = (response) =>
     {
       this.#response = response; // step 11.9.1
@@ -272,9 +274,45 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.dispatchEvent(new Event('readystatechange')); // step 11.9.5
       if (this.#state !== XMLHttpRequest.HEADERS_RECEIVED) // step 11.9.6
         return;
-      // TODO
+      responseLength = this.#response.contentLength; // step 11.9.8
     };
-    // TODO:
+
+    const processBodyChunk = (/** @type {Uint8Array} */ bytes) =>
+    {
+      this.#receivedBytes.push(bytes);
+      if (this.#state === XMLHttpRequest.HEADERS_RECEIVED)
+        this.#state = XMLHttpRequest.LOADING;
+      this.dispatchEvent(new Event('readystatechange'));
+      this.dispatchEvent(new ProgressEvent('progress', { loaded:this.#receivedLength, total:responseLength }));
+    };
+
+    /**
+     * @see https://xhr.spec.whatwg.org/#handle-response-end-of-body
+     */
+    const processEndOfBody = () =>
+    {
+      const transmitted = this.#receivedLength; // step 3
+      const length = responseLength || 0; // step 4
+      this.dispatchEvent(new ProgressEvent('progress', { loaded:transmitted, total:length })); // step 6
+      this.#state = XMLHttpRequest.DONE; // step 7
+      this.#sendFlag = false; // step 8
+      this.dispatchEvent(new Event('readystatechange')); // step 9
+      for (const eventType of ['load', 'loadend']) // step 10, step 11
+        this.dispatchEvent(new ProgressEvent(eventType, { loaded:transmitted, total:length }));
+    };
+
+    // send() step 6
+    request(
+      this.#requestMethod,
+      this.#requestURL.toString(),
+      this.#requestHeaders,
+      this.#requestBody ?? '',
+      processResponse,
+      processBodyChunk,
+      processEndOfBody,
+    );
+    
+    // TODO: handle timeout
   }
 
   /**
@@ -371,8 +409,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   {
     if (this.#state === XMLHttpRequest.LOADING || this.#state === XMLHttpRequest.DONE)
       throw new DOMException('responseType can only be set before send()', 'InvalidStateError');
-    if (!['', 'text', 'arraybuffer', 'json'].includes(t))
-      throw new DOMException('only responseType "text", "arraybuffer", or "json" is supported', 'NotSupportedError');
+    if (!['', 'text', 'arraybuffer'].includes(t))
+      throw new DOMException('only responseType "text" or "arraybuffer" is supported', 'NotSupportedError');
     this.#responseType = t;
   }
 
@@ -395,7 +433,25 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       return this.responseText;
     if (this.#state !== XMLHttpRequest.DONE) // step 2
       return null;
-    // TODO
+
+    if (this.#responseObject) // step 4
+      return this.#responseObject;
+    if (this.#responseType === 'arraybuffer') // step 5
+    {
+      // concatenate received bytes
+      let offset = 0;
+      const merged = new Uint8Array(this.#receivedLength);
+      for (const chunk of this.#receivedBytes)
+      {
+        merged.set(chunk, offset);
+        offset += chunk.length;
+      }
+      
+      this.#responseObject = merged.buffer;
+      return this.#responseObject;
+    }
+
+    throw new DOMException(`unsupported responseType "${this.#responseType}"`, 'InvalidStateError');
   }
 
   /**
@@ -428,6 +484,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #requestMethod = null;
   /** @type {URL} */
   #requestURL = null;
+  /** @type {{ [name: string]: string; }} */
   #requestHeaders = {};
   /** @type {string | Uint8Array | null} */
   #requestBody = null;
@@ -436,9 +493,20 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #uploadListenerFlag = false; // A flag, initially unset.
   #timedOutFlag = false; // A flag, initially unset.
   #response = null;
+  /** @type {Uint8Array[]} */
+  #receivedBytes = [];
   /** @type {ResponseType} */
   #responseType = '';
+  /** 
+   * cache for converting receivedBytes to the desired response type
+   * @type {ArrayBuffer}
+   */
   #responseObject = null;
+
+  get #receivedLength()
+  {
+    return this.#receivedBytes.reduce((sum, chunk) => sum + chunk.length, 0);
+  }
 }
 
 if (!globalThis.XMLHttpRequestEventTarget)
