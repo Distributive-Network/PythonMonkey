@@ -488,6 +488,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #uploadCompleteFlag = false; // A flag, initially unset.
   #uploadListenerFlag = false; // A flag, initially unset.
   #timedOutFlag = false; // A flag, initially unset.
+  /** @type {import('./XMLHttpRequest-internal').XHRResponse} */
   #response = null;
   /** @type {Uint8Array[]} */
   #receivedBytes = [];

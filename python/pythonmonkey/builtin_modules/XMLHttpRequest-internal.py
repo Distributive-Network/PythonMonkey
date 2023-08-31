@@ -6,7 +6,18 @@
 import aiohttp
 import yarl
 import io
-from typing import Union, ByteString, Callable, Any
+from typing import Union, ByteString, Callable, TypedDict
+
+class XHRResponse(TypedDict, total=True):
+    """
+    See definitions in `XMLHttpRequest-internal.d.ts`
+    """
+    url: str
+    status: int
+    statusText: str
+    contentLength: int
+    getResponseHeader: Callable[[str], Union[str, None]]
+    getAllResponseHeaders: Callable[[], str]
 
 async def request(
     method: str,
@@ -17,7 +28,7 @@ async def request(
     processRequestBodyChunkLength: Callable[[int], None],
     processRequestEndOfBody: Callable[[], None],
     # callbacks for response progress
-    processResponse: Callable[[Any], None],
+    processResponse: Callable[[XHRResponse], None],
     processBodyChunk: Callable[[bytearray], None],
     processEndOfBody: Callable[[], None],
     /
@@ -52,15 +63,15 @@ async def request(
             return "\r\n".join(headers)
 
         # readyState HEADERS_RECEIVED
-        responseData = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
+        responseData: XHRResponse = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
             'url': str(res.real_url),
             'status': res.status,
-            'statusText': res.reason,
+            'statusText': str(res.reason or ''),
 
             'getResponseHeader': getResponseHeader,
             'getAllResponseHeaders': getAllResponseHeaders,
             
-            'contentLength': res.content_length,
+            'contentLength': res.content_length or 0,
         }
         processResponse(responseData)
 

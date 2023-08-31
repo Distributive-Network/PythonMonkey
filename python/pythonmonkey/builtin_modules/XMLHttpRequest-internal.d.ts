@@ -6,6 +6,24 @@
  */
 
 /**
+ * `processResponse` callback's argument type
+ */
+export declare interface XHRResponse {
+  /** Response URL */
+  url: string;
+  /** HTTP status */
+  status: number;
+  /** HTTP status message */
+  statusText: string;
+  /** The `Content-Type` header value */
+  contentLength: number;
+  /** Implementation of the `xhr.getResponseHeader` method */
+  getResponseHeader(name: string): string | undefined;
+  /** Implementation of the `xhr.getAllResponseHeaders` method */
+  getAllResponseHeaders(): string;
+}
+
+/**
  * Send request
  */
 export declare function request(
@@ -17,7 +35,7 @@ export declare function request(
   processRequestBodyChunkLength: (bytesLength: number) => void,
   processRequestEndOfBody: () => void,
   // callbacks for response progress
-  processResponse: (response: any) => void,
+  processResponse: (response: XHRResponse) => void,
   processBodyChunk: (bytes: Uint8Array) => void,
   processEndOfBody: () => void,
 ): Promise<void>;
