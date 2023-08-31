@@ -20,7 +20,7 @@ export declare function request(
   processResponse: (response: any) => void,
   processBodyChunk: (bytes: Uint8Array) => void,
   processEndOfBody: () => void,
-): string;
+): Promise<void>;
 
 /**
  * Decode data using the codec registered for encoding.
