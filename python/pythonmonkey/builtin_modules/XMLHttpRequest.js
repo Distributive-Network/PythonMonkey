@@ -352,8 +352,11 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       return;
     if (this.#timedOutFlag) // step 2
       return this.#reportRequestError('timeout', new DOMException(e.toString(), 'TimeoutError'));
+    console.error(e); // similar to browsers, print out network errors even then the error will be handled by `xhr.onerror`
     if (this.#response === null /* network error */) // step 4
       return this.#reportRequestError('error', new DOMException(e.toString(), 'NetworkError'));
+    else // unknown errors
+      return this.#reportRequestError('error', new DOMException(e.toString(), 'InvalidStateError'));
   }
 
   /**
