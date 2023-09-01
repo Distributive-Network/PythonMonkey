@@ -63,7 +63,7 @@ async def request(
         async with aiohttp.request(method=method,
                                 url=yarl.URL(url, encoded=True),
                                 headers=dict(headers),
-                                data=BytesPayloadWithProgress(body),
+                                data=BytesPayloadWithProgress(body) if body else None,
                                 timeout=timeoutOptions,
         ) as res:
             def getResponseHeader(name: str):
