@@ -11,7 +11,11 @@ panic()
   echo "$*" >&2
   exit 2
 }
-cd `dirname "$0"`/../commonjs-official/tests/modules/1.0 || panic "could not change to test directory"
+
+cd `dirname "$0"`
+git submodule update --init --recursive || panic "could not checkout the required git submodule"
+
+cd ../commonjs-official/tests/modules/1.0 || panic "could not change to test directory"
 
 runTest()
 {
