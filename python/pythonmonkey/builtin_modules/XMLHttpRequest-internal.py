@@ -3,6 +3,7 @@
 # @author   Tom Tang <xmader@distributive.network>
 # @date     August 2023
 
+import asyncio
 import aiohttp
 import yarl
 import io
@@ -33,7 +34,8 @@ async def request(
     processBodyChunk: Callable[[bytearray], None],
     processEndOfBody: Callable[[], None],
     # callbacks for known exceptions
-    onTimeoutError: Callable[[TimeoutError], None],
+    onTimeoutError: Callable[[asyncio.TimeoutError], None],
+    onNetworkError: Callable[[aiohttp.ClientError], None],
     /
 ):
     class BytesPayloadWithProgress(aiohttp.BytesPayload):
@@ -91,8 +93,11 @@ async def request(
             
             # readyState DONE
             processEndOfBody()
-    except TimeoutError as e:
+    except asyncio.TimeoutError as e:
         onTimeoutError(e)
+        raise # rethrow
+    except aiohttp.ClientError as e:
+        onNetworkError(e)
         raise # rethrow
 
 def decodeStr(data: bytes, encoding='utf-8'): # XXX: Remove this once we get proper TextDecoder support

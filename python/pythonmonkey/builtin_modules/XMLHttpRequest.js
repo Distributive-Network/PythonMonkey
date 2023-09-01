@@ -329,7 +329,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       processBodyChunk,
       processEndOfBody,
       () => (this.#timedOutFlag = true), // onTimeoutError
-    ).catch(this.#handleErrors);
+      () => (this.#response = null /* network error */), // onNetworkError
+    ).catch((e) => this.#handleErrors(e));
   }
 
   /**
@@ -350,11 +351,13 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     if (!this.#sendFlag) // step 1
       return;
     if (this.#timedOutFlag) // step 2
-      return this.#reportRequestError('timeout', new DOMException('Timed out', 'TimeoutError'));
+      return this.#reportRequestError('timeout', new DOMException(e.toString(), 'TimeoutError'));
+    if (this.#response === null /* network error */) // step 4
+      return this.#reportRequestError('error', new DOMException(e.toString(), 'NetworkError'));
   }
 
   /**
-   * @see {https} ://xhr.spec.whatwg.org/#request-error-steps
+   * @see https://xhr.spec.whatwg.org/#request-error-steps
    * @param {string} event event type
    * @param {DOMException} exception
    */
@@ -362,6 +365,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   {
     this.#state = XMLHttpRequest.DONE; // step 1
     this.#sendFlag = false; // step 2
+
+    this.#response = null/* network error */; // step 3
 
     if (this.#synchronousFlag) // step 4
       throw exception;

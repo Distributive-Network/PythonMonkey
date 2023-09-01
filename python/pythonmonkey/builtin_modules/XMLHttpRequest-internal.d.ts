@@ -41,6 +41,7 @@ export declare function request(
   processEndOfBody: () => void,
   // callbacks for known exceptions
   onTimeoutError: (err: Error) => void,
+  onNetworkError: (err: Error) => void,
 ): Promise<void>;
 
 /**
