@@ -19,6 +19,7 @@ class XHRResponse(TypedDict, total=True):
     contentLength: int
     getResponseHeader: Callable[[str], Union[str, None]]
     getAllResponseHeaders: Callable[[], str]
+    abort: Callable[[], None]
 
 async def request(
     method: str,
@@ -73,6 +74,8 @@ async def request(
                     headers.append(f"{name.lower()}: {value}")
                 headers.sort()
                 return "\r\n".join(headers)
+            def abort():
+                res.close()
 
             # readyState HEADERS_RECEIVED
             responseData: XHRResponse = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
@@ -82,6 +85,7 @@ async def request(
 
                 'getResponseHeader': getResponseHeader,
                 'getAllResponseHeaders': getAllResponseHeaders,
+                'abort': abort,
                 
                 'contentLength': res.content_length or 0,
             }

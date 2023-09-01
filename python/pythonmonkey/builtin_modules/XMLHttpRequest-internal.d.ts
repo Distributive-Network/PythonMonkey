@@ -21,6 +21,8 @@ export declare interface XHRResponse {
   getResponseHeader(name: string): string | undefined;
   /** Implementation of the `xhr.getAllResponseHeaders` method */
   getAllResponseHeaders(): string;
+  /** Implementation of the `xhr.abort` method */
+  abort(): void;
 }
 
 /**

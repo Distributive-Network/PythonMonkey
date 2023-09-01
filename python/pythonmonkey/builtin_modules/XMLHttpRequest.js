@@ -62,6 +62,10 @@ const FORBIDDEN_REQUEST_METHODS = [
 ];
 
 // exposed
+/**
+ * Implement the `XMLHttpRequest` API (`XHR` for short) according to the spec.
+ * @see https://xhr.spec.whatwg.org/
+ */
 class XMLHttpRequest extends XMLHttpRequestEventTarget
 {
   // event handler
@@ -99,9 +103,6 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   open(method, url, async = true, username = null, password = null)
   {
-    // Reset
-    this.abort();
-
     // Normalize the method.
     // @ts-expect-error
     method = method.toString().toUpperCase();
@@ -233,7 +234,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     if (this.#uploadObject._hasAnyListeners())
       this.#uploadListenerFlag = true;
 
-    // FIXME: do we have to initiate request here? (step 6)
+    // FIXME: do we have to initiate request here instead of in #sendAsync? (step 6)
 
     this.#uploadCompleteFlag = false; // step 7
     this.#timedOutFlag = false; // step 8
@@ -390,9 +391,27 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     this.dispatchEvent(new ProgressEvent('loadend', { loaded:0, total:0 })); // step 8
   }
 
+  /**
+   * Cancels any network activity. 
+   * @see https://xhr.spec.whatwg.org/#the-abort()-method
+   */
   abort()
   {
-    // TODO
+    if (this.#response)
+      this.#response.abort(); // step 1
+
+    if (
+      (this.#state === XMLHttpRequest.OPENED && this.#sendFlag)
+      || this.#state === XMLHttpRequest.HEADERS_RECEIVED
+      || this.#state === XMLHttpRequest.LOADING
+    ) // step 2
+      return this.#reportRequestError('abort', new DOMException('Aborted.', 'AbortError'));
+
+    if (this.#state === XMLHttpRequest.DONE) // step 3
+    {
+      this.#state = XMLHttpRequest.UNSENT;
+      this.#response = null; /* network error */
+    }
   }
 
   // 
