@@ -163,6 +163,21 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   }
 
   /**
+   * Timeout time in **milliseconds**.  
+   * When set to a non-zero value will cause fetching to terminate after the given time has passed.
+   */
+  timeout = 0;
+
+  get withCredentials()
+  {
+    return false;
+  }
+  set withCredentials(flag)
+  {
+    throw new DOMException('xhr.withCredentials is not supported in PythonMonkey.', 'InvalidAccessError');
+  }
+
+  /**
    * Returns the associated XMLHttpRequestUpload object.  
    * It can be used to gather transmission information when data is transferred to a server. 
    */
@@ -307,14 +322,14 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#requestURL.toString(),
       this.#requestHeaders,
       this.#requestBody ?? '',
+      this.timeout,
       processRequestBodyChunkLength,
       processRequestEndOfBody,
       processResponse,
       processBodyChunk,
       processEndOfBody,
-    );
-    
-    // TODO: handle timeout
+      () => (this.#timedOutFlag = true), // onTimeoutError
+    ).catch(this.#handleErrors);
   }
 
   /**
@@ -324,6 +339,47 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   {
     throw new DOMException('synchronous XHR is not supported', 'NotSupportedError');
     // TODO: handle synchronous request
+  }
+
+  /**
+   * @see https://xhr.spec.whatwg.org/#handle-errors
+   * @param {Error} e 
+   */
+  #handleErrors(e)
+  {
+    if (!this.#sendFlag) // step 1
+      return;
+    if (this.#timedOutFlag) // step 2
+      return this.#reportRequestError('timeout', new DOMException('Timed out', 'TimeoutError'));
+  }
+
+  /**
+   * @see {https} ://xhr.spec.whatwg.org/#request-error-steps
+   * @param {string} event event type
+   * @param {DOMException} exception
+   */
+  #reportRequestError(event, exception)
+  {
+    this.#state = XMLHttpRequest.DONE; // step 1
+    this.#sendFlag = false; // step 2
+
+    if (this.#synchronousFlag) // step 4
+      throw exception;
+
+    this.dispatchEvent(new Event('readystatechange')); // step 5
+
+    if (!this.#uploadCompleteFlag) // step 6
+    {
+      this.#uploadCompleteFlag = true;
+      if (this.#uploadListenerFlag)
+      {
+        this.#uploadObject.dispatchEvent(new ProgressEvent(event, { loaded:0, total:0 }));
+        this.#uploadObject.dispatchEvent(new ProgressEvent('loadend', { loaded:0, total:0 }));
+      }
+    }
+
+    this.dispatchEvent(new ProgressEvent(event, { loaded:0, total:0 })); // step 7
+    this.dispatchEvent(new ProgressEvent('loadend', { loaded:0, total:0 })); // step 8
   }
 
   abort()
@@ -475,7 +531,6 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #uploadObject = new XMLHttpRequestUpload();
   #state = XMLHttpRequest.UNSENT; // One of unsent, opened, headers received, loading, and done; initially unsent.
   #sendFlag = false; // A flag, initially unset.
-  #timeout = 0; // An unsigned integer, initially 0.
   /** @type {Method} */
   #requestMethod = null;
   /** @type {URL} */

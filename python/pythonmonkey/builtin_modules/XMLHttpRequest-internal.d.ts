@@ -31,6 +31,7 @@ export declare function request(
   url: string,
   headers: Record<string, string>,
   body: string | Uint8Array,
+  timeoutMs: number,
   // callbacks for request body progress
   processRequestBodyChunkLength: (bytesLength: number) => void,
   processRequestEndOfBody: () => void,
@@ -38,6 +39,8 @@ export declare function request(
   processResponse: (response: XHRResponse) => void,
   processBodyChunk: (bytes: Uint8Array) => void,
   processEndOfBody: () => void,
+  // callbacks for known exceptions
+  onTimeoutError: (err: Error) => void,
 ): Promise<void>;
 
 /**

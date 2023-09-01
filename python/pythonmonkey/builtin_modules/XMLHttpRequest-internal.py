@@ -24,6 +24,7 @@ async def request(
     url: str,
     headers: dict,
     body: Union[str, ByteString],
+    timeoutMs: float,
     # callbacks for request body progress
     processRequestBodyChunkLength: Callable[[int], None],
     processRequestEndOfBody: Callable[[], None],
@@ -31,6 +32,8 @@ async def request(
     processResponse: Callable[[XHRResponse], None],
     processBodyChunk: Callable[[bytearray], None],
     processEndOfBody: Callable[[], None],
+    # callbacks for known exceptions
+    onTimeoutError: Callable[[TimeoutError], None],
     /
 ):
     class BytesPayloadWithProgress(aiohttp.BytesPayload):
@@ -48,39 +51,49 @@ async def request(
     if isinstance(body, str):
         body = bytes(body, "utf-8")
 
-    async with aiohttp.request(method=method,
-                               url=yarl.URL(url, encoded=True),
-                               headers=dict(headers),
-                               data=BytesPayloadWithProgress(body)
-    ) as res:
-        def getResponseHeader(name: str):
-            return res.headers.get(name)
-        def getAllResponseHeaders():
-            headers = []
-            for name, value in res.headers.items():
-                headers.append(f"{name.lower()}: {value}")
-            headers.sort()
-            return "\r\n".join(headers)
+    if timeoutMs > 0:
+        timeoutOptions = aiohttp.ClientTimeout(total=timeoutMs/1000) # convert to seconds
+    else:
+        timeoutOptions = aiohttp.ClientTimeout() # default timeout
 
-        # readyState HEADERS_RECEIVED
-        responseData: XHRResponse = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
-            'url': str(res.real_url),
-            'status': res.status,
-            'statusText': str(res.reason or ''),
+    try:
+        async with aiohttp.request(method=method,
+                                url=yarl.URL(url, encoded=True),
+                                headers=dict(headers),
+                                data=BytesPayloadWithProgress(body),
+                                timeout=timeoutOptions,
+        ) as res:
+            def getResponseHeader(name: str):
+                return res.headers.get(name)
+            def getAllResponseHeaders():
+                headers = []
+                for name, value in res.headers.items():
+                    headers.append(f"{name.lower()}: {value}")
+                headers.sort()
+                return "\r\n".join(headers)
 
-            'getResponseHeader': getResponseHeader,
-            'getAllResponseHeaders': getAllResponseHeaders,
+            # readyState HEADERS_RECEIVED
+            responseData: XHRResponse = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
+                'url': str(res.real_url),
+                'status': res.status,
+                'statusText': str(res.reason or ''),
+
+                'getResponseHeader': getResponseHeader,
+                'getAllResponseHeaders': getAllResponseHeaders,
+                
+                'contentLength': res.content_length or 0,
+            }
+            processResponse(responseData)
+
+            # readyState LOADING
+            async for data in res.content.iter_any():
+                processBodyChunk(bytearray(data)) # PythonMonkey only accepts the mutable bytearray type
             
-            'contentLength': res.content_length or 0,
-        }
-        processResponse(responseData)
-
-        # readyState LOADING
-        async for data in res.content.iter_any():
-            processBodyChunk(bytearray(data)) # PythonMonkey only accepts the mutable bytearray type
-        
-        # readyState DONE
-        processEndOfBody()
+            # readyState DONE
+            processEndOfBody()
+    except TimeoutError as e:
+        onTimeoutError(e)
+        raise # rethrow
 
 def decodeStr(data: bytes, encoding='utf-8'): # XXX: Remove this once we get proper TextDecoder support
     return str(data, encoding=encoding)
