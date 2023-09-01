@@ -75,11 +75,18 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   // 
   // states
   // 
-  static UNSENT = 0;
-  static OPENED = 1;
-  static HEADERS_RECEIVED = 2;
-  static LOADING = 3;
-  static DONE = 4;
+  /** @readonly */ static UNSENT           = 0;
+  /** @readonly */ static OPENED           = 1;
+  /** @readonly */ static HEADERS_RECEIVED = 2;
+  /** @readonly */ static LOADING          = 3;
+  /** @readonly */ static DONE             = 4;
+
+  /** @readonly */ UNSENT           = 0;
+  /** @readonly */ OPENED           = 1;
+  /** @readonly */ HEADERS_RECEIVED = 2;
+  /** @readonly */ LOADING          = 3;
+  /** @readonly */ DONE             = 4;
+
   /**
    * Returns client's state.
    */
