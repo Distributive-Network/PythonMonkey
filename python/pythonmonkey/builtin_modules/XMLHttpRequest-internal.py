@@ -7,6 +7,8 @@ import asyncio
 import aiohttp
 import yarl
 import io
+import platform
+import pythonmonkey as pm
 from typing import Union, ByteString, Callable, TypedDict
 
 class XHRResponse(TypedDict, total=True):
@@ -54,6 +56,10 @@ async def request(
     if isinstance(body, str):
         body = bytes(body, "utf-8")
 
+    # set default headers
+    headers=dict(headers)
+    headers.setdefault("user-agent", f"Python/{platform.python_version()} PythonMonkey/{pm.__version__}")
+
     if timeoutMs > 0:
         timeoutOptions = aiohttp.ClientTimeout(total=timeoutMs/1000) # convert to seconds
     else:
@@ -62,7 +68,7 @@ async def request(
     try:
         async with aiohttp.request(method=method,
                                 url=yarl.URL(url, encoded=True),
-                                headers=dict(headers),
+                                headers=headers,
                                 data=BytesPayloadWithProgress(body) if body else None,
                                 timeout=timeoutOptions,
         ) as res:
