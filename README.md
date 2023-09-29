@@ -50,7 +50,7 @@ js_eval("console.log")('hello, world')
 - [done] CommonJS module system .py loader, loads Python modules for use by JS
 - JS object->Python dict coercion supports inherited-property lookup (via __getattribute__?)
 - [done] Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
-- Python host environment supplies XMLHttpRequest (other project?)
+- [done] Python host environment supplies XMLHttpRequest (other project?)
 - Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client (other project?)
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
