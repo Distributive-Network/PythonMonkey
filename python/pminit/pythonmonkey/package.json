@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/Distributive-Network/PythonMonkey#readme",
   "dependencies": {
+    "core-js": "^3.32.0",
     "ctx-module": "^1.0.14"
   }
 }
