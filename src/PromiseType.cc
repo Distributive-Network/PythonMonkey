@@ -97,6 +97,8 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
                                                   // see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.add_done_callback
   PyEventLoop::Future future = PyEventLoop::Future(futureObj);
 
+  PyEventLoop::_locker->decCounter();
+
   PyObject *exception = future.getException();
   if (exception == NULL || PyErr_Occurred()) { // awaitable is cancelled, `futureObj.exception()` raises a CancelledError
     // Reject the promise with the CancelledError, or very unlikely, an InvalidStateError exception if the Future isn’t done yet
@@ -129,6 +131,8 @@ JSObject *PromiseType::toJsPromise(JSContext *cx) {
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return nullptr;
   PyEventLoop::Future future = loop.ensureFuture(pyObject);
+
+  PyEventLoop::_locker->incCounter();
 
   // Resolve or Reject the JS Promise once the python awaitable is done
   JS::PersistentRooted<JSObject *> *rootedPtr = new JS::PersistentRooted<JSObject *>(cx, promise); // `promise` is required to be rooted from here to the end of onDoneCallback
