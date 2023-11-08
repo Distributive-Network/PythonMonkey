@@ -47,9 +47,9 @@ bool idToIndex(JSContext *cx, JS::HandleId id, Py_ssize_t *index) {
   }
 }
 
-const char PyProxyHandler::family = 0;
+const char PyDictProxyHandler::family = 0;
 
-bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
+bool PyDictProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   PyObject *keys = PyDict_Keys(pyObject);
   size_t length = PyList_Size(keys);
   if (!props.reserve(length)) {
@@ -68,7 +68,7 @@ bool PyProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::
   return true;
 }
 
-bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::ObjectOpResult &result) const {
   PyObject *attrName = idToKey(cx, id);
   if (PyDict_DelItem(pyObject, attrName) < 0) {
@@ -77,12 +77,12 @@ bool PyProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId
   return result.succeed();
 }
 
-bool PyProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
   return hasOwn(cx, proxy, id, bp);
 }
 
-bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
+bool PyDictProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   JS::HandleValue receiver, JS::HandleId id,
   JS::MutableHandleValue vp) const {
   PyObject *attrName = idToKey(cx, id);
@@ -95,7 +95,7 @@ bool PyProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
   return true;
 }
 
-bool PyProxyHandler::getOwnPropertyDescriptor(
+bool PyDictProxyHandler::getOwnPropertyDescriptor(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
 ) const {
@@ -114,7 +114,7 @@ bool PyProxyHandler::getOwnPropertyDescriptor(
   return true;
 }
 
-bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
   JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
@@ -126,28 +126,28 @@ bool PyProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   return result.succeed();
 }
 
-bool PyProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
+bool PyDictProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
   JS::MutableHandleIdVector props) const {
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
-bool PyProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+bool PyDictProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
   PyObject *attrName = idToKey(cx, id);
   *bp = PyDict_Contains(pyObject, attrName) == 1;
   return true;
 }
 
-bool PyProxyHandler::getOwnEnumerablePropertyKeys(
+bool PyDictProxyHandler::getOwnEnumerablePropertyKeys(
   JSContext *cx, JS::HandleObject proxy,
   JS::MutableHandleIdVector props) const {
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
 // @TODO (Caleb Aikens) implement this
-void PyProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
+void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
 
-bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
+bool PyDictProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc,
   JS::ObjectOpResult &result) const {
@@ -262,4 +262,125 @@ bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::Hand
     return result.failCantDelete(); // report failure
   }
   return result.succeed(); // report success
+}
+
+const char PyObjectProxyHandler::family = 0;
+
+bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
+  PyObject *keys = PyObject_Dir(pyObject);
+  size_t keysLength = PyList_Size(keys);
+
+  PyObject *nonDunderKeys = PyList_New(0);
+  for (size_t i = 0; i < keysLength; i++) {
+    PyObject *key = PyList_GetItem(keys, i);
+    PyObject *isDunder = PyObject_CallMethod(key, "startswith", "(s)", "__");
+    if (Py_IsFalse(isDunder)) { // if key starts with "__", ignore it
+      PyList_Append(nonDunderKeys, key);
+    }
+  }
+
+  size_t length = PyList_Size(nonDunderKeys);
+
+  if (!props.reserve(length)) {
+    return false; // out of memory
+  }
+
+  for (size_t i = 0; i < length; i++) {
+    PyObject *key = PyList_GetItem(nonDunderKeys, i);
+    JS::RootedId jsId(cx);
+    if (!keyToId(key, &jsId)) {
+      // TODO (Caleb Aikens): raise exception here
+      return false; // key is not a str or int
+    }
+    props.infallibleAppend(jsId);
+  }
+  return true;
+}
+
+bool PyObjectProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::ObjectOpResult &result) const {
+  PyObject *attrName = idToKey(cx, id);
+  if (PyObject_SetAttr(pyObject, attrName, NULL) < 0) {
+    return result.failCantDelete(); // raises JS exception
+  }
+  return result.succeed();
+}
+
+bool PyObjectProxyHandler::has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  bool *bp) const {
+  return hasOwn(cx, proxy, id, bp);
+}
+
+bool PyObjectProxyHandler::get(JSContext *cx, JS::HandleObject proxy,
+  JS::HandleValue receiver, JS::HandleId id,
+  JS::MutableHandleValue vp) const {
+  PyObject *attrName = idToKey(cx, id);
+  if (!PyObject_HasAttr(pyObject, attrName)) {
+    vp.setUndefined(); // JS objects return undefined for nonpresent keys
+    return true;
+  }
+
+  PyObject *p = PyObject_GetAttr(pyObject, attrName);
+  vp.set(jsTypeFactory(cx, p));
+  return true;
+}
+
+bool PyObjectProxyHandler::getOwnPropertyDescriptor(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+) const {
+  PyObject *attrName = idToKey(cx, id);
+  PyObject *item = PyObject_GetAttr(pyObject, attrName);
+  if (!item) { // NULL if the key is not present
+    desc.set(mozilla::Nothing()); // JS objects return undefined for nonpresent keys
+  } else {
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        jsTypeFactory(cx, item),
+        {JS::PropertyAttribute::Writable, JS::PropertyAttribute::Enumerable}
+      )
+    ));
+  }
+  return true;
+}
+
+bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::HandleValue v, JS::HandleValue receiver,
+  JS::ObjectOpResult &result) const {
+  JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
+  PyObject *attrName = idToKey(cx, id);
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  if (PyObject_SetAttr(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+    return result.failCantSetInterposed(); // raises JS exception
+  }
+  return result.succeed();
+}
+
+bool PyObjectProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
+  JS::MutableHandleIdVector props) const {
+  return this->ownPropertyKeys(cx, proxy, props);
+}
+
+bool PyObjectProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  bool *bp) const {
+  PyObject *attrName = idToKey(cx, id);
+  *bp = PyObject_HasAttr(pyObject, attrName) == 1;
+  return true;
+}
+
+bool PyObjectProxyHandler::getOwnEnumerablePropertyKeys(
+  JSContext *cx, JS::HandleObject proxy,
+  JS::MutableHandleIdVector props) const {
+  return this->ownPropertyKeys(cx, proxy, props);
+}
+
+// @TODO (Caleb Aikens) implement this
+void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
+
+bool PyObjectProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
+  JS::HandleId id,
+  JS::Handle<JS::PropertyDescriptor> desc,
+  JS::ObjectOpResult &result) const {
+  // Block direct `Object.defineProperty` since we already have the `set` method
+  return result.failInvalidDescriptor();
 }

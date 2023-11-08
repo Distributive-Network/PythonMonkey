@@ -21,8 +21,6 @@
 
 #include <Python.h>
 
-JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
-
 bool keyToId(PyObject *key, JS::MutableHandleId idp) {
   if (PyUnicode_Check(key)) { // key is str type
     JS::RootedString idString(GLOBAL_CX);

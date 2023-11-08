@@ -11,12 +11,12 @@
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
-
 #include "include/BoolType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/JSFunctionProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
@@ -43,6 +43,8 @@
 
 #include <unordered_map>
 #include <vector>
+
+JSContext *GLOBAL_CX;
 
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 typedef struct {
@@ -85,6 +87,21 @@ PyTypeObject JSObjectProxyType = {
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+};
+
+PyTypeObject JSFunctionProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSFunctionProxy",
+  .tp_basicsize = sizeof(JSFunctionProxy),
+  // .tp_dealloc = (destructor)JSFunctionProxyMethodDefinitions::JSFunctionProxy_dealloc,
+  // .tp_repr = (reprfunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_repr,
+  .tp_call = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call,
+  // .tp_getattro = (getattrofunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_get,
+  // .tp_setattro = (setattrofunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_assign,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = PyDoc_STR("Javascript Function proxy object"),
+  // .tp_iter = (getiterfunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_iter,
+  .tp_new = JSFunctionProxyMethodDefinitions::JSFunctionProxy_new,
 };
 
 static void cleanup() {
@@ -389,6 +406,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   if (PyType_Ready(&JSObjectProxyType) < 0)
     return NULL;
+  if (PyType_Ready(&JSFunctionProxyType) < 0)
+    return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
@@ -414,7 +433,14 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError)) {
+  Py_INCREF(&JSFunctionProxyType);
+  if (PyModule_AddObject(pyModule, "JSFunctionProxy", (PyObject *)&JSFunctionProxyType) < 0) {
+    Py_DECREF(&JSFunctionProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError) < 0) {
     Py_DECREF(pyModule);
     return NULL;
   }
