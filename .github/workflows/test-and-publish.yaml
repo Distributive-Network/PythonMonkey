@@ -85,7 +85,7 @@ jobs:
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
         os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019', 'm2ci' ]
-        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
+        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
           # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12

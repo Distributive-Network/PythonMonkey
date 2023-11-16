@@ -29,7 +29,7 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.8"
 pyreadline3 = { version = "^3.4.1", platform = "win32" }
-aiohttp = { version = "^3.8.5", extras = ["speedups"] }
+aiohttp = { version = "^3.9.0b1", allow-prereleases = true, extras = ["speedups"] }
 pminit = { version = "*", allow-prereleases = true }
 
 
@@ -57,18 +57,11 @@ pmjs = "pythonmonkey.cli.pmjs:main"
 pytest = "^7.3.1"
 pip = "^23.1.2"
 numpy = [
-  # numpy hasn't released for Python 3.12 yet on PyPI
-  # TODO: use the PyPI build once the wheels are released for Python 3.12
-  {version = "^2.0.0.dev0", allow-prereleases = true, source = "anaconda", python = "3.12.*"},
-  {version = "^1.24.3", python = "<3.12"},
+  {version = "^1.26.1", python = ">=3.9,<3.13"},
+  {version = "^1.24.3", python = "3.8.*"},
 ]
 pminit = { path = "./python/pminit", develop = true }
 
-
-[[tool.poetry.source]]
-name = "anaconda"
-url = "https://pypi.anaconda.org/pythonmonkey/simple"
-priority = "explicit"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning==0.24.0"]
