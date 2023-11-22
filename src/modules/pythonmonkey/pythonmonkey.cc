@@ -44,6 +44,8 @@
 #include <unordered_map>
 #include <vector>
 
+JSContext *GLOBAL_CX;
+
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 typedef struct {
   PyObject_HEAD

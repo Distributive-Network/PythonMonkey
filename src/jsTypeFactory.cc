@@ -26,6 +26,7 @@
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
+#include <js/Equality.h>
 #include <js/Proxy.h>
 
 #include <Python.h>
@@ -168,7 +169,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     if (PyList_Check(object)) {
       proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
     } else {
-      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
+      proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, NULL);
     }
     returnType.setObject(*proxy);
   }
@@ -186,9 +187,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     // memoizePyTypeAndGCThing(p, returnType);
   }
   else {
-    std::string errorString("pythonmonkey cannot yet convert python objects of type: ");
-    errorString += Py_TYPE(object)->tp_name;
-    PyErr_SetString(PyExc_TypeError, errorString.c_str());
+    JS::RootedValue v(cx);
+    JSObject *proxy;
+    proxy = js::NewProxyObject(cx, new PyObjectProxyHandler(object), v, NULL);
+    returnType.setObject(*proxy);
   }
   return returnType;
 
