@@ -5,27 +5,30 @@
 
 #include <Python.h>
 
-#include <string>
+#include <js/Array.h>
+#include <js/ValueArray.h>
+
 
 ListType::ListType() : PyType(PyList_New(0)) {}
+
 ListType::ListType(PyObject *object) : PyType(object) {}
 
-PyType *ListType::get(int index) const {
-  return pyTypeFactory(PyList_GetItem(this->pyObject, index));
-}
+ListType::ListType(JSContext *cx, JS::HandleObject arrayObj) {
+  uint32_t length;
+  JS::GetArrayLength(cx, arrayObj, &length);
 
-void ListType::set(int index, PyType *object) {
-  PyList_SetItem(this->pyObject, index, object->getPyObject());
-}
+  PyObject *object = PyList_New((Py_ssize_t)length);
+  Py_XINCREF(object);
+  this->pyObject = object;
 
-void ListType::append(PyType *value) {
-  PyList_Append(this->pyObject, value->getPyObject());
-}
+  JS::RootedValue rval(cx);
+  JS::RootedObject arrayRootedObj(cx, arrayObj);
 
-int ListType::len() const {
-  return PyList_Size(this->pyObject);
-}
+  for (uint32_t index = 0; index < length; index++) {
+    JS_GetElement(cx, arrayObj, index, &rval);
 
-void ListType::sort() {
-  PyList_Sort(this->pyObject);
+    PyType *pyType = pyTypeFactory(cx, &arrayRootedObj, &rval);
+
+    PyList_SetItem(this->pyObject, index, pyType->getPyObject());
+  }
 }

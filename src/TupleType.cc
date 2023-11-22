@@ -19,11 +19,3 @@
 #include <string>
 
 TupleType::TupleType(PyObject *object) : PyType(object) {}
-
-PyType *TupleType::get(int index) const {
-  return pyTypeFactory(PyTuple_GetItem(this->pyObject, index));
-}
-
-int TupleType::len() const {
-  return PyTuple_Size(this->pyObject);
-}
