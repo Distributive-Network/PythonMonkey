@@ -100,9 +100,6 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
       if (js::GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
         return new DictType(((PyProxyHandler *)js::GetProxyHandler(obj))->pyObject);
       }
-      if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
-        return new ListType(((PyListProxyHandler *)js::GetProxyHandler(obj))->pyObject);
-      }
     }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
@@ -158,6 +155,9 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         StrType *s = new StrType(cx, unboxed.toString());
         memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
         return s;
+      }
+    case js::ESClass::Array: {
+        return new ListType(cx, obj);
       }
     default: {
         if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer

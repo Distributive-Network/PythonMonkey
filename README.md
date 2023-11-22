@@ -19,6 +19,8 @@ from pythonmonkey import eval as js_eval
 js_eval("console.log")('hello, world')
 ```
 
+TODO document eval options
+
 ### Goals
 - **Fast** and memory-efficient
 - Make writing code in either JS or Python a developer preference
@@ -33,6 +35,7 @@ js_eval("console.log")('hello, world')
 - JS Date objects are represented by Python datetime.datetime objects
 - Intrinsics (boolean, number, null, undefined) are passed by value
 - JS Functions are automatically wrapped so that they behave like Python functions, and vice-versa
+- Python Lists are represented by JS true Arrays
 
 ### Roadmap
 - [done] JS instrinsics coerce to Python intrinsics
@@ -54,6 +57,7 @@ js_eval("console.log")('hello, world')
 - Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client (other project?)
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
+- [done] Python List coerce to JS Arrays
 
 ## Build Instructions
 
@@ -233,7 +237,7 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 | Bool        | boolean
 | Function    | function
 | Dict        | object
-| List        | Array-like object
+| List        | Array
 | datetime    | Date object
 | awaitable   | Promise
 | Error       | Error object

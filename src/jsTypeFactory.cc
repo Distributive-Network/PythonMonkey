@@ -27,6 +27,7 @@
 #include <jsapi.h>
 #include <jsfriendapi.h>
 #include <js/Proxy.h>
+#include <js/Array.h>
 
 #include <Python.h>
 #include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
@@ -162,15 +163,26 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
-  else if (PyDict_Check(object) || PyList_Check(object)) {
-    JS::RootedValue v(cx);
-    JSObject *proxy;
-    if (PyList_Check(object)) {
-      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
-    } else {
-      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
-    }
+  else if (PyDict_Check(object)) {
+    JS::RootedValue v(cx); // TODO inline
+    JSObject *proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
     returnType.setObject(*proxy);
+  }
+  else if (PyList_Check(object)) {
+    JS::RootedValueVector jsItemVector(cx);
+    Py_ssize_t listSize = PyList_Size(object);
+    for (Py_ssize_t index = 0; index < listSize; index++) {
+      JS::Value jsValue = jsTypeFactorySafe(cx, PyList_GetItem(object, index));  // TODO use version with no error checking?
+      if (jsValue.isNull()) {
+        returnType.setNull();
+        return returnType;
+      }
+      jsItemVector.append(jsValue);
+    }
+
+    JS::HandleValueArray jsValueArray(jsItemVector);
+    JSObject *array = JS::NewArrayObject(cx, jsValueArray);
+    returnType.setObject(*array);
   }
   else if (object == Py_None) {
     returnType.setUndefined();
@@ -191,7 +203,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
-
 }
 
 JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
