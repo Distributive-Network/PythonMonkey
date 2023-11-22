@@ -19,8 +19,6 @@ from pythonmonkey import eval as js_eval
 js_eval("console.log")('hello, world')
 ```
 
-TODO document eval options
-
 ### Goals
 - **Fast** and memory-efficient
 - Make writing code in either JS or Python a developer preference
