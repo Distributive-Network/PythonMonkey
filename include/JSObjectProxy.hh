@@ -75,7 +75,7 @@ public:
   static PyObject *JSObjectProxy_get(JSObjectProxy *self, PyObject *key);
 
   /**
-   * @brief Getter method (.sq_contains), returns whether a key exists, used by the in operator
+   * @brief Test method (.sq_contains), returns whether a key exists, used by the in operator
    *
    * @param self - The JSObjectProxy
    * @param key - The key for the value in the JSObjectProxy
