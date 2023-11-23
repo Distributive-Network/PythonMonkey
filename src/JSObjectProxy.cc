@@ -82,7 +82,23 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
   JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-  return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+  PyType *pyType = pyTypeFactory(GLOBAL_CX, global, value);
+  delete value;
+  delete global;
+  return pyType->getPyObject();
+}
+
+int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, PyObject *key)
+{
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    // TODO (Caleb Aikens): raise exception here
+    return -1; // key is not a str or int
+  }
+
+  JS::RootedValue value(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, &value);
+  return value.isUndefined() ? 0 : 1;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
@@ -102,13 +118,6 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
   }
 
   return 0;
-}
-
-void JSObjectProxyMethodDefinitions::JSObjectProxy_set_helper(JS::HandleObject jsObject, PyObject *key, JS::HandleValue value)
-{
-  JS::RootedId id(GLOBAL_CX);
-  keyToId(key, &id);
-  JS_SetPropertyById(GLOBAL_CX, jsObject, id, value);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare(JSObjectProxy *self, PyObject *other, int op)
@@ -163,7 +172,8 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   // iterate recursively through members of self and check for equality
-  for (size_t i = 0; i < props.length(); i++)
+  size_t length = props.length();
+  for (size_t i = 0; i < length; i++)
   {
     JS::HandleId id = props[i];
     JS::RootedValue *key = new JS::RootedValue(GLOBAL_CX);
