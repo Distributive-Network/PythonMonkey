@@ -82,10 +82,8 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
   JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-  PyType *pyType = pyTypeFactory(GLOBAL_CX, global, value);
-  delete value;
-  delete global;
-  return pyType->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+  // TODO value and global appear to be leaking, but deleting them causes crashes
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, PyObject *key)
@@ -96,9 +94,9 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, 
     return -1; // key is not a str or int
   }
 
-  JS::RootedValue value(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, &value);
-  return value.isUndefined() ? 0 : 1;
+  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
+  return value->isUndefined() ? 0 : 1;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
