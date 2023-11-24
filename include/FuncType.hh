@@ -14,6 +14,8 @@
 #include "PyType.hh"
 #include "TypeEnum.hh"
 
+#include <jsapi.h>
+
 #include <Python.h>
 
 /**
@@ -22,6 +24,7 @@
 struct FuncType : public PyType {
 public:
   FuncType(PyObject *object);
+  FuncType(JSContext *cx, JS::HandleValue fval);
   const TYPE returnType = TYPE::FUNC;
   const char *getValue() const;
 };

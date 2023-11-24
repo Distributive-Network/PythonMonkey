@@ -14,6 +14,8 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
+#include "include/JSFunctionProxy.hh"
+#include "include/JSMethodProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
@@ -122,13 +124,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
-  else if (PyCFunction_Check(object) && PyCFunction_GetFunction(object) == callJSFunc) {
-    // If it's a wrapped JS function by us, return the underlying JS function rather than wrapping it again
-    PyObject *jsCxThisFuncTuple = PyCFunction_GetSelf(object);
-    JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
-    returnType.set(*jsFunc);
-  }
-  else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
+  else if (PyMethod_Check(object) || PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
     if (PyFunction_Check(object)) {
@@ -138,7 +134,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
 
     JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
-    JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
+    JS::RootedObject jsFuncObject(cx, JS_GetFunctionObject(jsFunc));
 
     // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
     js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
@@ -162,6 +158,19 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
+  }
+  else if (PyObject_TypeCheck(object, &JSMethodProxyType)) {
+    JS::RootedObject func(cx, *((JSMethodProxy *)object)->jsFunc);
+    PyObject *self = ((JSMethodProxy *)object)->self;
+
+    JS::Rooted<JS::ValueArray<1>> args(cx);
+    args[0].set(jsTypeFactory(cx, self));
+    JS::Rooted<JS::Value> boundFunction(cx);
+    JS_CallFunctionName(cx, func, "bind", args, &boundFunction);
+    returnType.set(boundFunction);
+  }
+  else if (PyObject_TypeCheck(object, &JSFunctionProxyType)) {
+    returnType.setObject(**((JSFunctionProxy *)object)->jsFunc);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
@@ -234,8 +243,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
   PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
 
-  JS::RootedObject *thisv = new JS::RootedObject(cx);
-  JS_ValueToObject(cx, callargs.thisv(), thisv);
+  JS::RootedObject *globalObject = new JS::RootedObject(cx, JS::CurrentGlobalOrNull(cx));
 
   if (!callargs.length()) {
     #if PY_VERSION_HEX >= 0x03090000
@@ -256,7 +264,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   PyObject *pyArgs = PyTuple_New(callargs.length());
   for (size_t i = 0; i < callargs.length(); i++) {
     JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
-    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
+    PyType *pyArg = pyTypeFactory(cx, globalObject, jsArg);
     if (!pyArg) return false; // error occurred
     PyObject *pyArgObj = pyArg->getPyObject();
     if (!pyArgObj) return false; // error occurred
