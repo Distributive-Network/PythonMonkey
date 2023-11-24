@@ -126,3 +126,15 @@ def test_eval_objects_jsproxy_delete():
 def test_eval_objects_jsproxy_compare():
     proxy = pm.eval("({a: 1, b:2})")
     assert proxy == {'a': 1.0, 'b': 2.0}
+
+def test_eval_objects_jsproxy_contains():
+    a = pm.eval("({'c':5})")
+    assert 'c' in a
+
+def test_eval_objects_jsproxy_does_not_contain():
+    a = pm.eval("({'c':5})")
+    assert not(4 in a)
+
+def test_eval_objects_jsproxy_does_not_contain_value():
+    a = pm.eval("({'c':5})")
+    assert not(5 in a)
