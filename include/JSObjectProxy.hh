@@ -75,15 +75,6 @@ public:
   static PyObject *JSObjectProxy_get(JSObjectProxy *self, PyObject *key);
 
   /**
-   * @brief Getter method (.sq_contains), returns whether a key exists, used by the in operator
-   *
-   * @param self - The JSObjectProxy
-   * @param key - The key for the value in the JSObjectProxy
-   * @return int 1 if `key` is in dict, 0 if not, and -1 on error
-   */
-  static int JSObjectProxy_contains(JSObjectProxy *self, PyObject *key);
-
-  /**
    * @brief Assign method (.mp_ass_subscript), assigns a key-value pair if value is non-NULL, or deletes a key-value pair if value is NULL
    *
    * @param self - The JSObjectProxy
@@ -92,6 +83,15 @@ public:
    * @return int -1 on exception, any other value otherwise
    */
   static int JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value);
+
+  /**
+   * @brief Helper function for various JSObjectProxy methods, sets a key-value pair on a JSObject given a python string key and a JS::Value value
+   *
+   * @param jsObject - The underlying backing store JSObject for the JSObjectProxy
+   * @param key - The key to be assigned or deleted
+   * @param value - The JS::Value to be assigned
+   */
+  static void JSObjectProxy_set_helper(JS::HandleObject jsObject, PyObject *key, JS::HandleValue value);
 
   /**
    * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyobject
@@ -111,7 +111,6 @@ public:
    * @param visited
    * @return bool - Whether the compared objects are equal or not
    */
-  // private
   static bool JSObjectProxy_richcompare_helper(JSObjectProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited);
 
   /**
@@ -140,10 +139,6 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
   .mp_length = (lenfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_length,
   .mp_subscript = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .mp_ass_subscript = (objobjargproc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign
-};
-
-static PySequenceMethods JSObjectProxy_sequence_methods = {
-  .sq_contains = (objobjproc)JSObjectProxyMethodDefinitions::JSObjectProxy_contains
 };
 
 /**

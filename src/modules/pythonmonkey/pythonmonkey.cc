@@ -74,7 +74,6 @@ PyTypeObject JSObjectProxyType = {
   .tp_basicsize = sizeof(JSObjectProxy),
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
   .tp_repr = (reprfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_repr,
-  .tp_as_sequence = &JSObjectProxy_sequence_methods,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
@@ -313,9 +312,9 @@ PyMethodDef PythonMonkeyMethods[] = {
 struct PyModuleDef pythonmonkey =
 {
   PyModuleDef_HEAD_INIT,
-  "pythonmonkey",                                         /* name of module */
-  "A module for Python to JavaScript interoperability",   /* module documentation, may be NULL */
-  -1,                                                     /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+  "pythonmonkey",                                   /* name of module */
+  "A module for python to JS interoperability",   /* module documentation, may be NULL */
+  -1,                                           /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
   PythonMonkeyMethods
 };
 
