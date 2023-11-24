@@ -128,9 +128,16 @@ def test_eval_objects_jsproxy_compare():
     assert proxy == {'a': 1.0, 'b': 2.0}
 
 def test_eval_objects_jsproxy_contains():
-    proxy = pm.eval('[1, 2, 3]')
-    assert 1 in proxy
+    pm.eval("let obj = {'c':5}")
+    a = pm.eval('obj')
+    assert 'c' in a
 
 def test_eval_objects_jsproxy_does_not_contain():
-    proxy = pm.eval('[1, 2, 3]')
-    assert not(4 in proxy)
+    pm.eval("let obj1 = {'c':5}")
+    a = pm.eval('obj1')
+    assert not(4 in a)
+
+def test_eval_objects_jsproxy_does_not_contain_value():
+    pm.eval("let obj2 = {'c':5}")
+    a = pm.eval('obj2')
+    assert not(5 in a)
