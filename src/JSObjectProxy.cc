@@ -264,25 +264,34 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, 
     Py_RETURN_NOTIMPLEMENTED;
   }
 
-  JS::Rooted<JS::ValueArray<3>> args(GLOBAL_CX);
-  args[0].setObjectOrNull(JS_NewPlainObject(GLOBAL_CX));
-  args[1].setObjectOrNull(self->jsObject);
-  JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
-  args[2].setObject(jValueOther.toObject());
+  if (!PyObject_TypeCheck(self, &JSObjectProxyType) && PyObject_TypeCheck(other, &JSObjectProxyType)) {
+    return PyDict_Type.tp_as_number->nb_or((PyObject *)&(self->dict), other);
+  } else {
+    JS::Rooted<JS::ValueArray<3>> args(GLOBAL_CX);
+    args[0].setObjectOrNull(JS_NewPlainObject(GLOBAL_CX));
+    args[1].setObjectOrNull(self->jsObject);  // this is null is left operand is real dict
+    JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
+    args[2].setObject(jValueOther.toObject());
 
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
 
-  // call Object.assign
-  JS::RootedValue Object(GLOBAL_CX);
-  JS_GetProperty(GLOBAL_CX, *global, "Object", &Object);
+    // call Object.assign
+    JS::RootedValue Object(GLOBAL_CX);
+    JS_GetProperty(GLOBAL_CX, *global, "Object", &Object);
 
-  JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
-  JS::RootedValue ret(GLOBAL_CX);
-  if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) return NULL;
-  return pyTypeFactory(GLOBAL_CX, global, &ret)->getPyObject();
+    JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
+    JS::RootedValue ret(GLOBAL_CX);
+
+    if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) return NULL;
+    return pyTypeFactory(GLOBAL_CX, global, &ret)->getPyObject();
+  }
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_ior(JSObjectProxy *self, PyObject *other) {
+  if (!PyDict_Check(self) || !PyDict_Check(other)) {
+    Py_RETURN_NOTIMPLEMENTED;
+  }
+
   JS::Rooted<JS::ValueArray<2>> args(GLOBAL_CX);
   args[0].setObjectOrNull(self->jsObject);
   JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
@@ -297,5 +306,5 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_ior(JSObjectProxy *self,
   JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
   JS::RootedValue ret(GLOBAL_CX);
   if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) return NULL;
-  return pyTypeFactory(GLOBAL_CX, global, &ret)->getPyObject();
+  return Py_NewRef((PyObject *)self);
 }
