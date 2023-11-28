@@ -142,7 +142,8 @@ public:
    * @brief Set union method, in place
    *
    * @param self - The JSObjectProxy
-   * @return PyObject* The resulting new dict
+   * @param other - The other PyObject to be or'd, expected to be dict or JSObjectProxy
+   * @return PyObject* The resulting new dict, must be same object as self
    */
   static PyObject *JSObjectProxy_ior(JSObjectProxy *self, PyObject *other);
 };
