@@ -21,6 +21,8 @@
 
 #include <Python.h>
 
+#include <object.h>
+
 JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 
 bool keyToId(PyObject *key, JS::MutableHandleId idp) {
