@@ -83,6 +83,7 @@ PyTypeObject JSObjectProxyType = {
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
+  .tp_methods = JSObjectProxy_methods,
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,

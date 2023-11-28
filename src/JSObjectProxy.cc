@@ -42,18 +42,23 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
   self->jsObject.set(nullptr);
+  PyObject_GC_UnTrack(self);
+  Py_TYPE(self)->tp_free((PyObject *)self);
   return;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
 {
-  PyObject *self = PyDict_Type.tp_new(subtype, args, kwds);
+  PyObject *self = PyDict_Type.tp_new(subtype, args, kwds); // SUPER CALL
   ((JSObjectProxy *)self)->jsObject = JS::RootedObject(GLOBAL_CX, nullptr);
   return self;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
+  if (PyDict_Type.tp_init((PyObject *)self, args, kwds) < 0) {
+    return -1;
+  }
   // make fresh JSObject for proxy
   self->jsObject.set(JS_NewPlainObject(GLOBAL_CX));
   return 0;
@@ -257,4 +262,26 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   Py_ReprLeave(cyclicKey);
   PyDict_DelItem(tsDict, cyclicKey);
   return str;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get_2(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs) {
+  printf("JSObjectProxy_get_2\n");
+
+  PyObject *key;
+  PyObject *default_value = Py_None;
+
+  if (!_PyArg_CheckPositional("get", nargs, 1, 2)) {
+    return NULL;
+  }
+  key = args[0];
+  if (nargs < 2) {
+    goto skip_optional;
+  }
+  default_value = args[1];
+skip_optional:
+  PyObject *value = JSObjectProxy_get(self, key);
+  if (value == NULL) {
+    value = default_value;
+  }
+  return value;
 }

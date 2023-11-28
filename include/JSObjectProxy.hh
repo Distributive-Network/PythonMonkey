@@ -129,6 +129,16 @@ public:
    * @return the string representation (a PyUnicodeObject) on success, NULL on failure
    */
   static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
+
+  /**
+   * @brief Get method, returns a value from the JSObjectProxy given a key, used by several built-in python methods as well as the [] operator
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* NULL on exception, the corresponding value otherwise
+   */
+  static PyObject *JSObjectProxy_get_2(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
+
+
 };
 
 
@@ -144,6 +154,34 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
 
 static PySequenceMethods JSObjectProxy_sequence_methods = {
   .sq_contains = (objobjproc)JSObjectProxyMethodDefinitions::JSObjectProxy_contains
+};
+
+static PyMethodDef JSObjectProxy_methods[] = {
+  // {"__contains__", (PyCFunction)dict___contains__, METH_O|METH_COEXIST, dict___contains____doc__}, TODO
+  // {"__getitem__", _PyCFunction_CAST(dict_subscript),        METH_O | METH_COEXIST,
+  //  getitem__doc__},
+  // {"__sizeof__",      _PyCFunction_CAST(dict_sizeof),       METH_NOARGS,
+  // sizeof__doc__},
+  {"get", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_get_2), METH_FASTCALL, ""},
+  /* DICT_SETDEFAULT_METHODDEF
+     DICT_POP_METHODDEF
+     DICT_POPITEM_METHODDEF
+     {"keys",            dictkeys_new,                   METH_NOARGS,
+     keys__doc__},
+     {"items",           dictitems_new,                  METH_NOARGS,
+     items__doc__},
+     {"values",          dictvalues_new,                 METH_NOARGS,
+     values__doc__},
+     {"update",          _PyCFunction_CAST(dict_update), METH_VARARGS | METH_KEYWORDS,
+     update__doc__},
+     DICT_FROMKEYS_METHODDEF
+     {"clear",           (PyCFunction)dict_clear,        METH_NOARGS,
+     clear__doc__},
+     {"copy",            (PyCFunction)dict_copy,         METH_NOARGS,
+     copy__doc__},
+     DICT___REVERSED___METHODDEF*/
+  // {"__class_getitem__", Py_GenericAlias, METH_O|METH_CLASS, PyDoc_STR("See PEP 585")},*/
+  {NULL, NULL}                  /* sentinel */
 };
 
 /**
