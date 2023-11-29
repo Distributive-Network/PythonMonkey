@@ -138,3 +138,48 @@ def test_eval_objects_jsproxy_does_not_contain():
 def test_eval_objects_jsproxy_does_not_contain_value():
     a = pm.eval("({'c':5})")
     assert not(5 in a)
+
+def test_eval_objects_jsproxy_or():
+    a = pm.eval("({'c':5})")
+    b = pm.eval("({'d':6})")
+    c = a | b
+    assert a == {'c': 5.0}  
+    assert c == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0} 
+
+def test_eval_objects_jsproxy_or_true_dict_right():
+    a = pm.eval("({'c':5})")
+    b = {'d': 6.0}
+    c = a | b
+    assert a == {'c': 5.0}  
+    assert c == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0} 
+
+def test_eval_objects_jsproxy_or_true_dict_left():
+    a = {'c':5}
+    b = pm.eval("({'d':6})")
+    c = a | b
+    assert a == {'c': 5.0}  
+    assert c == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0} 
+
+def test_eval_objects_jsproxy_inplace_or():
+    a = pm.eval("({'c':5})")
+    b = pm.eval("({'d':6})")
+    a |= b
+    assert a == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0}       
+
+def test_eval_objects_jsproxy_inplace_or_true_dict_right():
+    a = pm.eval("({'c':5})")
+    b = {'d':6.0}
+    a |= b
+    assert a == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0}       
+
+def test_eval_objects_jsproxy_inplace_or_true_dict_left():
+    a = {'c':5.0}
+    b = pm.eval("({'d':6})")
+    a |= b
+    assert a == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0}   

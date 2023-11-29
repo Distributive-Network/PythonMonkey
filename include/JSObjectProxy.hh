@@ -129,6 +129,24 @@ public:
    * @return the string representation (a PyUnicodeObject) on success, NULL on failure
    */
   static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
+
+  /**
+   * @brief Set union method
+   *
+   * @param self - The JSObjectProxy
+   * @param other - The other PyObject to be or'd, expected to be dict or JSObjectProxy
+   * @return PyObject* The resulting new dict
+   */
+  static PyObject *JSObjectProxy_or(JSObjectProxy *self, PyObject *other);
+
+  /**
+   * @brief Set union method, in place
+   *
+   * @param self - The JSObjectProxy
+   * @param other - The other PyObject to be or'd, expected to be dict or JSObjectProxy
+   * @return PyObject* The resulting new dict, must be same object as self
+   */
+  static PyObject *JSObjectProxy_ior(JSObjectProxy *self, PyObject *other);
 };
 
 
@@ -144,6 +162,11 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
 
 static PySequenceMethods JSObjectProxy_sequence_methods = {
   .sq_contains = (objobjproc)JSObjectProxyMethodDefinitions::JSObjectProxy_contains
+};
+
+static PyNumberMethods JSObjectProxy_number_methods = {
+  .nb_or = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_or,
+  .nb_inplace_or = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_ior
 };
 
 /**
