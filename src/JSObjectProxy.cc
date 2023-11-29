@@ -308,5 +308,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_ior(JSObjectProxy *self,
   JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
   JS::RootedValue ret(GLOBAL_CX);
   if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) return NULL;
-  return Py_NewRef((PyObject *)self);
+  Py_INCREF(self);
+  return (PyObject *)self;
 }
