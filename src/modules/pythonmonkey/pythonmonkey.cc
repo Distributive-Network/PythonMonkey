@@ -72,6 +72,7 @@ PyTypeObject JSObjectProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "pythonmonkey.JSObjectProxy",
   .tp_basicsize = sizeof(JSObjectProxy),
+  .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
   .tp_repr = (reprfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_repr,
   .tp_as_sequence = &JSObjectProxy_sequence_methods,

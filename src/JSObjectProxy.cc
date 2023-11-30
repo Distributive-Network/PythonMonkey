@@ -1,6 +1,6 @@
 /**
  * @file JSObjectProxy.cc
- * @author Caleb Aikens (caleb@distributive.network) & Tom Tang (xmader@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network), Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectProxy is a custom C-implemented python type that derives from dict. It acts as a proxy for JSObjects from Spidermonkey, and behaves like a dict would.
  * @version 0.1
  * @date 2023-06-26
@@ -86,9 +86,29 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
 
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
   JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
+
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-  return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
-  // TODO value and global appear to be leaking, but deleting them causes crashes
+
+  if (!value->isUndefined()) {
+    return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+  }
+  else {
+    // look through the methods for dispatch
+    for (size_t index = 0;; index++) {
+      const char *methodName = JSObjectProxyType.tp_methods[index].ml_name;
+      if (methodName == NULL) { // reached end of list
+        return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+      }
+      else if (PyUnicode_Check(key)) {
+        if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
+          return PyObject_GenericGetAttr((PyObject *)self, key);
+        }
+      }
+      else {
+        return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+      }
+    }
+  }
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, PyObject *key)
@@ -210,12 +230,11 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self) {
-  JSContext *cx = GLOBAL_CX;
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
+  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
 
   // Get **enumerable** own properties
-  JS::RootedIdVector props(cx);
-  if (!js::GetPropertyKeys(cx, self->jsObject, JSITER_OWNONLY, &props)) {
+  JS::RootedIdVector props(GLOBAL_CX);
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props)) {
     return NULL;
   }
 
@@ -225,11 +244,11 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
   PyObject *seq = PyTuple_New(length);
   for (size_t i = 0; i < length; i++) {
     JS::HandleId id = props[i];
-    PyObject *key = idToKey(cx, id);
+    PyObject *key = idToKey(GLOBAL_CX, id);
 
-    JS::RootedValue *jsVal = new JS::RootedValue(cx);
-    JS_GetPropertyById(cx, self->jsObject, id, jsVal);
-    PyObject *value = pyTypeFactory(cx, global, jsVal)->getPyObject();
+    JS::RootedValue *jsVal = new JS::RootedValue(GLOBAL_CX);
+    JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, jsVal);
+    PyObject *value = pyTypeFactory(GLOBAL_CX, global, jsVal)->getPyObject();
 
     PyTuple_SetItem(seq, i, PyTuple_Pack(2, key, value));
   }
@@ -264,9 +283,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   return str;
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get_2(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs) {
-  printf("JSObjectProxy_get_2\n");
-
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs) {
   PyObject *key;
   PyObject *default_value = Py_None;
 
@@ -277,11 +294,114 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get_2(JSObjectProxy *sel
   if (nargs < 2) {
     goto skip_optional;
   }
+
   default_value = args[1];
+
 skip_optional:
+
   PyObject *value = JSObjectProxy_get(self, key);
-  if (value == NULL) {
+  if (value == Py_None) {
     value = default_value;
   }
+  Py_XINCREF(value);
   return value;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs) {
+  PyObject *key;
+  PyObject *default_value = Py_None;
+
+  if (!_PyArg_CheckPositional("setdefault", nargs, 1, 2)) {
+    return NULL;
+  }
+  key = args[0];
+  if (nargs < 2) {
+    goto skip_optional;
+  }
+
+  default_value = args[1];
+
+skip_optional:
+
+  PyObject* value = JSObjectProxy_get(self, key);
+  if (value == Py_None) {
+    JSObjectProxy_assign(self, key, default_value);
+    Py_XINCREF(default_value);
+    return default_value;
+  }
+
+  Py_XINCREF(value);
+  return value;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs) {
+  PyObject *key;
+  PyObject *default_value = NULL;
+
+  if (!_PyArg_CheckPositional("pop", nargs, 1, 2)) {
+    return NULL;
+  }
+  key = args[0];
+  if (nargs < 2) {
+    goto skip_optional;
+  }
+  default_value = args[1];
+
+skip_optional:
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    // TODO (Caleb Aikens): raise exception here  PyObject *seq = PyTuple_New(length);
+    return NULL;
+  }
+
+  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
+  if (value->isUndefined()) {
+    if (default_value != NULL) {
+      Py_INCREF(default_value);
+      return default_value;
+    }
+    _PyErr_SetKeyError(key);
+    return NULL;
+  } else {
+    JS::ObjectOpResult ignoredResult;
+    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
+
+    return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+  }
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(JSObjectProxy *self) {
+  JS::RootedIdVector props(GLOBAL_CX);
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
+  {
+    // @TODO (Caleb Aikens) raise exception here
+    return NULL;
+  }
+
+  JS::ObjectOpResult ignoredResult;
+  size_t length = props.length();
+  for (size_t index = 0; index < length; index++) {
+    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, props[index], ignoredResult);
+  }
+
+  Py_RETURN_NONE;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProxy *self) {
+  JS::Rooted<JS::ValueArray<2>> args(GLOBAL_CX);
+  args[0].setObjectOrNull(JS_NewPlainObject(GLOBAL_CX));
+  args[1].setObjectOrNull(self->jsObject);
+
+  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+
+  // call Object.assign
+  JS::RootedValue Object(GLOBAL_CX);
+  JS_GetProperty(GLOBAL_CX, *global, "Object", &Object);
+
+  JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
+  JS::RootedValue ret(GLOBAL_CX);
+
+  if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) return NULL;
+  return pyTypeFactory(GLOBAL_CX, global, &ret)->getPyObject();
 }

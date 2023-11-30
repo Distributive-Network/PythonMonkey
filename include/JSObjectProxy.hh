@@ -131,14 +131,50 @@ public:
   static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
 
   /**
-   * @brief Get method, returns a value from the JSObjectProxy given a key, used by several built-in python methods as well as the [] operator
+   * @brief get method
    *
    * @param self - The JSObjectProxy
-   * @return PyObject* NULL on exception, the corresponding value otherwise
+   * @param args - arguments to the method
+   * @param nargs - number of args to the method
+   * @return PyObject* the value for key if first arg key is in the dictionary, else second arg default
    */
-  static PyObject *JSObjectProxy_get_2(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
+  static PyObject *JSObjectProxy_get_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
+  /**
+   * @brief setdefault method
+   *
+   * @param self - The JSObjectProxy
+   * @param args - arguments to the method
+   * @param nargs - number of args to the method
+   * @return PyObject* the value for key if first arg key is in the dictionary, else second default
+   */
+  static PyObject *JSObjectProxy_setdefault_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
+  /**
+   * @brief pop method
+   *
+   * @param self - The JSObjectProxy
+   * @param args - arguments to the method
+   * @param nargs - number of args to the method
+   * @return PyObject* If the first arg key is not found, return the second arg default if given; otherwise raise a KeyError
+   */
+  static PyObject *JSObjectProxy_pop_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
+
+  /**
+   * @brief clear method
+   *
+   * @param self - The JSObjectProxy
+   * @return None
+   */
+  static PyObject *JSObjectProxy_clear_method(JSObjectProxy *self);
+
+  /**
+   * @brief copy method
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* copy of the dict
+   */
+  static PyObject *JSObjectProxy_copy_method(JSObjectProxy *self);
 };
 
 
@@ -157,30 +193,20 @@ static PySequenceMethods JSObjectProxy_sequence_methods = {
 };
 
 static PyMethodDef JSObjectProxy_methods[] = {
-  // {"__contains__", (PyCFunction)dict___contains__, METH_O|METH_COEXIST, dict___contains____doc__}, TODO
-  // {"__getitem__", _PyCFunction_CAST(dict_subscript),        METH_O | METH_COEXIST,
-  //  getitem__doc__},
-  // {"__sizeof__",      _PyCFunction_CAST(dict_sizeof),       METH_NOARGS,
-  // sizeof__doc__},
-  {"get", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_get_2), METH_FASTCALL, ""},
-  /* DICT_SETDEFAULT_METHODDEF
-     DICT_POP_METHODDEF
-     DICT_POPITEM_METHODDEF
-     {"keys",            dictkeys_new,                   METH_NOARGS,
-     keys__doc__},
-     {"items",           dictitems_new,                  METH_NOARGS,
+  {"get", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_get_method), METH_FASTCALL, ""},
+  {"setdefault", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method), METH_FASTCALL, ""},
+  {"pop", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method), METH_FASTCALL, ""},
+  // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and a bit strange
+  // {"keys",            JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method,                   METH_NOARGS, ""},
+  /*   {"items",           dictitems_new,                  METH_NOARGS,
      items__doc__},
      {"values",          dictvalues_new,                 METH_NOARGS,
      values__doc__},
      {"update",          _PyCFunction_CAST(dict_update), METH_VARARGS | METH_KEYWORDS,
      update__doc__},
-     DICT_FROMKEYS_METHODDEF
-     {"clear",           (PyCFunction)dict_clear,        METH_NOARGS,
-     clear__doc__},
-     {"copy",            (PyCFunction)dict_copy,         METH_NOARGS,
-     copy__doc__},
-     DICT___REVERSED___METHODDEF*/
-  // {"__class_getitem__", Py_GenericAlias, METH_O|METH_CLASS, PyDoc_STR("See PEP 585")},*/
+     DICT_FROMKEYS_METHODDEF*/
+  {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, ""},
+  {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, ""},
   {NULL, NULL}                  /* sentinel */
 };
 
