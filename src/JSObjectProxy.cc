@@ -262,6 +262,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, PyObject *other) {
+  #if PY_VERSION_HEX < 0x03090000
+  // | is not supported on dicts in python3.8 or less, so only allow if both
+  // operands are JSObjectProxy
+  if (!PyObject_TypeCheck(self, &JSObjectProxyType) || !PyObject_TypeCheck(other, &JSObjectProxyType)) {
+    Py_RETURN_NOTIMPLEMENTED;
+  }
+  #endif
   if (!PyDict_Check(self) || !PyDict_Check(other)) {
     Py_RETURN_NOTIMPLEMENTED;
   }
