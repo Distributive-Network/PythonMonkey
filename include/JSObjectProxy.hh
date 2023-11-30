@@ -209,7 +209,6 @@ PyDoc_STRVAR(copy__doc__,
   "D.copy() -> a shallow copy of D");
 
 
-
 /**
  * @brief Struct for the methods that define the Mapping protocol
  *
@@ -220,10 +219,18 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
   .mp_ass_subscript = (objobjargproc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign
 };
 
+/**
+ * @brief Struct for the methods that define the Sequence protocol
+ *
+ */
 static PySequenceMethods JSObjectProxy_sequence_methods = {
   .sq_contains = (objobjproc)JSObjectProxyMethodDefinitions::JSObjectProxy_contains
 };
 
+/**
+ * @brief Struct for the other methods
+ *
+ */
 static PyMethodDef JSObjectProxy_methods[] = {
   {"get", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get_method, METH_FASTCALL, dict_get__doc__},
   {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
