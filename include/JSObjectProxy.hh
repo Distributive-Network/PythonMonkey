@@ -178,6 +178,38 @@ public:
 };
 
 
+// docs for methods, copied from cpython
+PyDoc_STRVAR(dict_get__doc__,
+  "get($self, key, default=None, /)\n"
+  "--\n"
+  "\n"
+  "Return the value for key if key is in the dictionary, else default.");
+
+PyDoc_STRVAR(dict_setdefault__doc__,
+  "setdefault($self, key, default=None, /)\n"
+  "--\n"
+  "\n"
+  "Insert key with a value of default if key is not in the dictionary.\n"
+  "\n"
+  "Return the value for key if key is in the dictionary, else default.");
+
+PyDoc_STRVAR(dict_pop__doc__,
+  "pop($self, key, default=<unrepresentable>, /)\n"
+  "--\n"
+  "\n"
+  "D.pop(k[,d]) -> v, remove specified key and return the corresponding value.\n"
+  "\n"
+  "If the key is not found, return the default if given; otherwise,\n"
+  "raise a KeyError.");
+
+PyDoc_STRVAR(clear__doc__,
+  "D.clear() -> None.  Remove all items from D.");
+
+PyDoc_STRVAR(copy__doc__,
+  "D.copy() -> a shallow copy of D");
+
+
+
 /**
  * @brief Struct for the methods that define the Mapping protocol
  *
@@ -193,20 +225,12 @@ static PySequenceMethods JSObjectProxy_sequence_methods = {
 };
 
 static PyMethodDef JSObjectProxy_methods[] = {
-  {"get", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_get_method), METH_FASTCALL, ""},
-  {"setdefault", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method), METH_FASTCALL, ""},
-  {"pop", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method), METH_FASTCALL, ""},
-  // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and a bit strange
-  // {"keys",            JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method,                   METH_NOARGS, ""},
-  /*   {"items",           dictitems_new,                  METH_NOARGS,
-     items__doc__},
-     {"values",          dictvalues_new,                 METH_NOARGS,
-     values__doc__},
-     {"update",          _PyCFunction_CAST(dict_update), METH_VARARGS | METH_KEYWORDS,
-     update__doc__},
-     DICT_FROMKEYS_METHODDEF*/
-  {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, ""},
-  {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, ""},
+  {"get", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_get_method), METH_FASTCALL, dict_get__doc__},
+  {"setdefault", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method), METH_FASTCALL, dict_setdefault__doc__},
+  {"pop", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method), METH_FASTCALL, dict_pop__doc__},
+  // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and quite a bit strange
+  {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, clear__doc__},
+  {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, copy__doc__},
   {NULL, NULL}                  /* sentinel */
 };
 
