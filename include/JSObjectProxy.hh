@@ -225,9 +225,9 @@ static PySequenceMethods JSObjectProxy_sequence_methods = {
 };
 
 static PyMethodDef JSObjectProxy_methods[] = {
-  {"get", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_get_method), METH_FASTCALL, dict_get__doc__},
-  {"setdefault", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method), METH_FASTCALL, dict_setdefault__doc__},
-  {"pop", _PyCFunction_CAST(JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method), METH_FASTCALL, dict_pop__doc__},
+  {"get", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get_method, METH_FASTCALL, dict_get__doc__},
+  {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
+  {"pop", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method, METH_FASTCALL, dict_pop__doc__},
   // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and quite a bit strange
   {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, clear__doc__},
   {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, copy__doc__},
