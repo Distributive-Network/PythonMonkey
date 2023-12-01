@@ -113,7 +113,3 @@ def test_copy():
 
     assert likes == {"color": "blue", "fruit": "apple", "pet": "dog"}
     assert otherLikes == {"color": "yellow", "fruit": "apple", "pet": "dog"}
-
-
-        
-
