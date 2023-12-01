@@ -1,4 +1,5 @@
 import pythonmonkey as pm
+import sys
 
 def test_eval_dicts():
     d = {"a":1}
@@ -138,3 +139,54 @@ def test_eval_objects_jsproxy_does_not_contain():
 def test_eval_objects_jsproxy_does_not_contain_value():
     a = pm.eval("({'c':5})")
     assert not(5 in a)
+
+def test_eval_objects_jsproxy_or():
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
+    a = pm.eval("({'c':5})")
+    b = pm.eval("({'d':6})")
+    c = a | b
+    assert a == {'c': 5.0}  
+    assert c == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0} 
+
+def test_eval_objects_jsproxy_or_true_dict_right():
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
+    a = pm.eval("({'c':5})")
+    b = {'d': 6.0}
+    c = a | b
+    assert a == {'c': 5.0}  
+    assert c == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0} 
+
+def test_eval_objects_jsproxy_or_true_dict_left():
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
+    a = {'c':5}
+    b = pm.eval("({'d':6})")
+    c = a | b
+    assert a == {'c': 5.0}  
+    assert c == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0} 
+
+def test_eval_objects_jsproxy_inplace_or():
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
+    a = pm.eval("({'c':5})")
+    b = pm.eval("({'d':6})")
+    a |= b
+    assert a == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0}       
+
+def test_eval_objects_jsproxy_inplace_or_true_dict_right():
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
+    a = pm.eval("({'c':5})")
+    b = {'d':6.0}
+    a |= b
+    assert a == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0}       
+
+def test_eval_objects_jsproxy_inplace_or_true_dict_left():
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
+    a = {'c':5.0}
+    b = pm.eval("({'d':6})")
+    a |= b
+    assert a == {'c': 5.0, 'd': 6.0}   
+    assert b == {'d': 6.0}   
