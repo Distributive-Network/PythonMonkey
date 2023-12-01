@@ -141,7 +141,7 @@ def test_eval_objects_jsproxy_does_not_contain_value():
     assert not(5 in a)
 
 def test_eval_objects_jsproxy_or():
-  if sys.version_info[0] >= 3 and sys.version_info[1] >=9: # | is not implemented for dicts in 3.8 or less
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
     a = pm.eval("({'c':5})")
     b = pm.eval("({'d':6})")
     c = a | b
@@ -150,7 +150,7 @@ def test_eval_objects_jsproxy_or():
     assert b == {'d': 6.0} 
 
 def test_eval_objects_jsproxy_or_true_dict_right():
-  if sys.version_info[0] >= 3 and sys.version_info[1] >=9: # | is not implemented for dicts in 3.8 or less
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
     a = pm.eval("({'c':5})")
     b = {'d': 6.0}
     c = a | b
@@ -159,7 +159,7 @@ def test_eval_objects_jsproxy_or_true_dict_right():
     assert b == {'d': 6.0} 
 
 def test_eval_objects_jsproxy_or_true_dict_left():
-  if sys.version_info[0] >= 3 and sys.version_info[1] >=9: # | is not implemented for dicts in 3.8 or less
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
     a = {'c':5}
     b = pm.eval("({'d':6})")
     c = a | b
@@ -168,7 +168,7 @@ def test_eval_objects_jsproxy_or_true_dict_left():
     assert b == {'d': 6.0} 
 
 def test_eval_objects_jsproxy_inplace_or():
-  if sys.version_info[0] >= 3 and sys.version_info[1] >=9: # | is not implemented for dicts in 3.8 or less
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
     a = pm.eval("({'c':5})")
     b = pm.eval("({'d':6})")
     a |= b
@@ -176,7 +176,7 @@ def test_eval_objects_jsproxy_inplace_or():
     assert b == {'d': 6.0}       
 
 def test_eval_objects_jsproxy_inplace_or_true_dict_right():
-  if sys.version_info[0] >= 3 and sys.version_info[1] >=9: # | is not implemented for dicts in 3.8 or less
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
     a = pm.eval("({'c':5})")
     b = {'d':6.0}
     a |= b
@@ -184,7 +184,7 @@ def test_eval_objects_jsproxy_inplace_or_true_dict_right():
     assert b == {'d': 6.0}       
 
 def test_eval_objects_jsproxy_inplace_or_true_dict_left():
-  if sys.version_info[0] >= 3 and sys.version_info[1] >=9: # | is not implemented for dicts in 3.8 or less
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
     a = {'c':5.0}
     b = pm.eval("({'d':6})")
     a |= b
