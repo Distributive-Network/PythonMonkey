@@ -130,7 +130,7 @@ public:
    */
   static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
   
-  /*
+  /**
    * @brief Set union operation
    *
    * @param self - The JSObjectProxy
