@@ -15,6 +15,7 @@
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
 #include "include/JSObjectProxy.hh"
+#include "include/JSArrayProxy.hh"
 #include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
@@ -163,26 +164,18 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
-  else if (PyDict_Check(object)) {
-    JS::RootedValue v(cx); // TODO inline
-    JSObject *proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
-    returnType.setObject(*proxy);
+  else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
+    returnType.setObject(*((JSArrayProxy *)object)->jsObject);
   }
-  else if (PyList_Check(object)) {
-    JS::RootedValueVector jsItemVector(cx);
-    Py_ssize_t listSize = PyList_Size(object);
-    for (Py_ssize_t index = 0; index < listSize; index++) {
-      JS::Value jsValue = jsTypeFactorySafe(cx, PyList_GetItem(object, index));  // TODO use version with no error checking?
-      if (jsValue.isNull()) {
-        returnType.setNull();
-        return returnType;
-      }
-      jsItemVector.append(jsValue);
+  else if (PyDict_Check(object) || PyList_Check(object)) {
+    JS::RootedValue v(cx);
+    JSObject *proxy;
+    if (PyList_Check(object)) {
+      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
+    } else {
+      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
     }
-
-    JS::HandleValueArray jsValueArray(jsItemVector);
-    JSObject *array = JS::NewArrayObject(cx, jsValueArray);
-    returnType.setObject(*array);
+    returnType.setObject(*proxy);
   }
   else if (object == Py_None) {
     returnType.setUndefined();

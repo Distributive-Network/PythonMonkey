@@ -40,6 +40,8 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
+  printf("JSObjectProxy_dealloc\n");
+
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
   self->jsObject.set(nullptr);
   return;
@@ -47,13 +49,16 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
 {
-  PyObject *self = PyDict_Type.tp_new(subtype, args, kwds);
+  printf("JSObjectProxy_new\n");
+  PyObject *self = PyDict_Type.tp_new(subtype, args, kwds); // SUPER CALL
   ((JSObjectProxy *)self)->jsObject = JS::RootedObject(GLOBAL_CX, nullptr);
   return self;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
 {
+  printf("JSObjectProxy_init\n");
+
   // make fresh JSObject for proxy
   self->jsObject.set(JS_NewPlainObject(GLOBAL_CX));
   return 0;
@@ -61,6 +66,8 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
 {
+  printf("JSObjectProxy_length\n");
+
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
   {
@@ -73,6 +80,8 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
 {
+  printf("JSObjectProxy_get\n");
+
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
     // TODO (Caleb Aikens): raise exception here
@@ -90,19 +99,23 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, PyObject *key)
 {
+  printf("JSObjectProxy_contains\n");
+
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
     // TODO (Caleb Aikens): raise exception here
     return -1; // key is not a str or int
   }
 
-  JS::RootedValue value(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, &value);
-  return value.isUndefined() ? 0 : 1;
+  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
+  return value->isUndefined() ? 0 : 1;
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
 {
+  printf("JSObjectProxy_assign\n");
+
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) { // invalid key
     // TODO (Caleb Aikens): raise exception here
@@ -122,6 +135,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare(JSObjectProxy *self, PyObject *other, int op)
 {
+  printf("JSObjectProxy_rich_compare\n");
 
   if (op != Py_EQ && op != Py_NE) {
     Py_RETURN_NOTIMPLEMENTED;
@@ -208,6 +222,8 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self) {
+  printf("JSObjectProxy_iter\n");
+
   JSContext *cx = GLOBAL_CX;
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(self->jsObject));
 
@@ -237,6 +253,8 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
+  printf("JSObjectProxy_repr\n");
+
   // Detect cyclic objects
   PyObject *objPtr = PyLong_FromVoidPtr(self->jsObject.get());
   // For `Py_ReprEnter`, we must get a same PyObject when visiting the same JSObject.

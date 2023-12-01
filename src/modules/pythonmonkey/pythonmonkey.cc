@@ -17,6 +17,7 @@
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/JSArrayProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
@@ -86,6 +87,27 @@ PyTypeObject JSObjectProxyType = {
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+};
+
+PyTypeObject JSArrayProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSArrayProxy",
+  .tp_basicsize = sizeof(JSArrayProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc,
+  .tp_repr = (reprfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_repr,
+  .tp_as_sequence = &JSArrayProxy_sequence_methods,
+  .tp_as_mapping = &JSArrayProxy_mapping_methods,
+  .tp_getattro = (getattrofunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get,
+  .tp_setattro = (setattrofunc)JSArrayProxyMethodDefinitions::JSArrayProxy_assign_key,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_DICT_SUBCLASS,
+  .tp_doc = PyDoc_STR("Javascript Array proxy list"),
+  .tp_richcompare = (richcmpfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare,
+  .tp_iter = (getiterfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_iter,                         // TODO review
+  .tp_methods = JSArrayProxy_methods,
+  .tp_base = &PyList_Type,
+  .tp_init = (initproc)JSArrayProxyMethodDefinitions::JSArrayProxy_init,
+  .tp_new = JSArrayProxyMethodDefinitions::JSArrayProxy_new,
 };
 
 static void cleanup() {
@@ -390,6 +412,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   if (PyType_Ready(&JSObjectProxyType) < 0)
     return NULL;
+  if (PyType_Ready(&JSArrayProxyType) < 0)
+    return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
@@ -411,6 +435,13 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&JSObjectProxyType);
   if (PyModule_AddObject(pyModule, "JSObjectProxy", (PyObject *)&JSObjectProxyType) < 0) {
     Py_DECREF(&JSObjectProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSArrayProxyType);
+  if (PyModule_AddObject(pyModule, "JSArrayProxy", (PyObject *)&JSArrayProxyType) < 0) {
+    Py_DECREF(&JSArrayProxyType);
     Py_DECREF(pyModule);
     return NULL;
   }

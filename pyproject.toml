@@ -2,7 +2,7 @@
 name = "pythonmonkey"
 version = "0" # automatically set by poetry-dynamic-versioning
 description = ""
-authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>", "Wes Garland <wes@distributive.network>", "Hamada Gasmallah <hamada@distributive.network>"]
+authors = ["Caleb Aikens <caleb@distributive.network>", "Tom Tang <xmader@distributive.network>", "Wes Garland <wes@distributive.network>", "Hamada Gasmallah <hamada@distributive.network>", "Philippe Laporte <philippe@distributive.network>"]
 readme = "README.md"
 packages = [
   { include = "pythonmonkey", from = "python" },
@@ -64,5 +64,5 @@ pminit = { path = "./python/pminit", develop = true }
 
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning==0.24.0"]
+requires = ["poetry-core>=1.1.1", "poetry-dynamic-versioning==1.1.1"]
 build-backend = "poetry_dynamic_versioning.backend"

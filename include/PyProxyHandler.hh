@@ -160,6 +160,29 @@ public:
 };
 
 /**
+ * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates
+ *    to handle coercion from python lists to JS Array-like objects
+ */
+struct PyListProxyHandler : public PyBaseProxyHandler {
+public:
+  PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
+  static const char family;
+
+  bool getOwnPropertyDescriptor(
+    JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+  ) const override;
+
+  bool defineProperty(
+    JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result
+  ) const override;
+
+  bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const override;
+  bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
+};
+
+/**
  * @brief Convert jsid to a PyObject to be used as dict keys
  */
 PyObject *idToKey(JSContext *cx, JS::HandleId id);

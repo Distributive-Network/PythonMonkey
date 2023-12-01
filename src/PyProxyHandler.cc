@@ -175,3 +175,92 @@ bool PyBaseProxyHandler::isExtensible(JSContext *cx, JS::HandleObject proxy,
   *extensible = false;
   return true;
 }
+
+const char PyListProxyHandler::family = 0;
+
+bool PyListProxyHandler::getOwnPropertyDescriptor(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
+) const {
+
+  // We're trying to get the "length" property
+  bool isLengthProperty;
+  if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "length", &isLengthProperty) && isLengthProperty) {
+    // proxy.length = len(pyObject)
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        JS::Int32Value(PySequence_Size(pyObject))
+      )
+    ));
+    return true;
+  }
+
+  // We're trying to get an item
+  Py_ssize_t index;
+  PyObject *item;
+  if (idToIndex(cx, id, &index) && (item = PySequence_GetItem(pyObject, index))) {
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        jsTypeFactory(cx, item),
+        {JS::PropertyAttribute::Writable, JS::PropertyAttribute::Enumerable}
+      )
+    ));
+  } else { // item not found in list, or not an int-like property key
+    desc.set(mozilla::Nothing());
+  }
+  return true;
+}
+
+bool PyListProxyHandler::defineProperty(
+  JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+  JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result
+) const {
+  Py_ssize_t index;
+  if (!idToIndex(cx, id, &index)) { // not an int-like property key
+    return result.failBadIndex();
+  }
+
+  if (desc.isAccessorDescriptor()) { // containing getter/setter
+    return result.failNotDataDescriptor();
+  }
+  if (!desc.hasValue()) {
+    return result.failInvalidDescriptor();
+  }
+
+  // FIXME (Tom Tang): memory leak
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  JS::RootedValue *itemV = new JS::RootedValue(cx, desc.value());
+  PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
+  if (PySequence_SetItem(pyObject, index, item) < 0) {
+    return result.failBadIndex();
+  }
+  return result.succeed();
+}
+
+bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
+  // Modified from https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/dom/base/RemoteOuterWindowProxy.cpp#l137
+  int32_t length = PySequence_Size(pyObject);
+  if (!props.reserve(length + 1)) {
+    return false;
+  }
+  // item indexes
+  for (int32_t i = 0; i < length; ++i) {
+    props.infallibleAppend(JS::PropertyKey::Int(i));
+  }
+  // the "length" property
+  props.infallibleAppend(JS::PropertyKey::NonIntAtom(JS_AtomizeString(cx, "length")));
+  return true;
+}
+
+bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const {
+  Py_ssize_t index;
+  if (!idToIndex(cx, id, &index)) {
+    return result.failBadIndex(); // report failure
+  }
+
+  // Set to undefined instead of actually deleting it
+  if (PySequence_SetItem(pyObject, index, Py_None) < 0) {
+    return result.failCantDelete(); // report failure
+  }
+  return result.succeed(); // report success
+}

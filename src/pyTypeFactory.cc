@@ -100,6 +100,9 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
       if (js::GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
         return new DictType(((PyProxyHandler *)js::GetProxyHandler(obj))->pyObject);
       }
+      if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
+        return new ListType(((PyListProxyHandler *)js::GetProxyHandler(obj))->pyObject);
+      }
     }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
@@ -197,7 +200,8 @@ PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
-  for (size_t i = 0; i < PyTuple_Size(args); i++) {
+  Py_ssize_t tupleSize = PyTuple_Size(args);
+  for (size_t i = 0; i < tupleSize; i++) {
     JS::Value jsValue = jsTypeFactory(cx, PyTuple_GetItem(args, i));
     if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
       return NULL; // Fail-fast
