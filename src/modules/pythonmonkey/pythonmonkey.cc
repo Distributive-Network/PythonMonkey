@@ -75,6 +75,7 @@ PyTypeObject JSObjectProxyType = {
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
   .tp_repr = (reprfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_repr,
+  .tp_as_number = &JSObjectProxy_number_methods,
   .tp_as_sequence = &JSObjectProxy_sequence_methods,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
