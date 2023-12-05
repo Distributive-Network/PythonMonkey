@@ -39,11 +39,13 @@ def test_setdefault_found_ignore_default():
 def test_setdefault_not_found_no_default():
     likes = pm.eval('({"color": "blue", "fruit": "apple", "pet": "dog"})')
     foundKey = likes.setdefault('colo')
+    assert likes['colo'] == None
     assert foundKey == None    
 
 def test_setdefault_not_found_with_default():
     likes = pm.eval('({"color": "blue", "fruit": "apple", "pet": "dog"})')
     foundKey = likes.setdefault('colo', 'yello')
+    assert likes['colo'] == 'yello'
     assert foundKey == 'yello'  
 
 def test_setdefault_no_params():
@@ -59,6 +61,7 @@ def test_setdefault_no_params():
 def test_pop_found():
     likes = pm.eval('({"color": "blue", "fruit": "apple", "pet": "dog"})')
     foundKey = likes.pop('color')
+    assert likes['color'] == None
     assert foundKey == 'blue'
 
 def test_pop_not_found():
@@ -89,6 +92,15 @@ def test_pop_not_found_with_default():
     likes = pm.eval('({"color": "blue", "fruit": "apple", "pet": "dog"})')
     foundKey = likes.pop('colo', 'unameit')
     assert foundKey == 'unameit'
+
+def test_pop_not_found_no_default():
+    likes = pm.eval('({"color": "blue", "fruit": "apple", "pet": "dog"})')
+    try:
+        likes.pop('colo')           
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'KeyError'>"
+        assert str(e) == "'colo'"        
 
 def test_pop_no_params():
     likes = pm.eval('({"color": "blue", "fruit": "apple", "pet": "dog"})')
