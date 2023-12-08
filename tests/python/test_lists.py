@@ -961,7 +961,6 @@ def test_slice_assign_own_array_no_match():
         assert str(type(e)) == "<class 'ValueError'>"
         assert str(e) == "attempt to assign sequence of size 0 to extended slice of size 2"           
 
-
 def test_slice_assign_pm_array_step_2():
     a = pm.eval("([1,2,3,4,5,6])")
     b = pm.eval("([1,2,3])")

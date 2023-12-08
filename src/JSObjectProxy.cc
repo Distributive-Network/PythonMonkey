@@ -44,7 +44,6 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
   self->jsObject.set(nullptr);
-  PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
   return;
 }
@@ -86,7 +85,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
   JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
 
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
- 
+
   // look through the methods for dispatch
   for (size_t index = 0;; index++) {
     const char *methodName = JSObjectProxyType.tp_methods[index].ml_name;
@@ -443,7 +442,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProx
   JS::Rooted<JS::ValueArray<2>> args(GLOBAL_CX);
   args[0].setObjectOrNull(JS_NewPlainObject(GLOBAL_CX));
   args[1].setObjectOrNull(self->jsObject);
-  
+
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
 
   // call Object.assign
@@ -454,4 +453,4 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProx
   JS::RootedValue ret(GLOBAL_CX);
   if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) return NULL;
   return pyTypeFactory(GLOBAL_CX, global, &ret)->getPyObject();
-}  
+}

@@ -129,7 +129,7 @@ public:
    * @return the string representation (a PyUnicodeObject) on success, NULL on failure
    */
   static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
-  
+
   /**
    * @brief Set union operation
    *

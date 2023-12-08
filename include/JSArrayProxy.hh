@@ -58,7 +58,7 @@ public:
   static int JSArrayProxy_init(JSArrayProxy *self, PyObject *args, PyObject *kwds);
 
   /**
-   * @brief Length method (.mp_length and .sq_length), returns the number of key-value pairs in the JSObject, used by the python len() method
+   * @brief Length method (.mp_length and .sq_length), returns the number of keys in the JSObject, used by the python len() method
    *
    * @param self - The JSArrayProxy
    * @return Py_ssize_t The length of the JSArrayProxy
@@ -66,7 +66,7 @@ public:
   static Py_ssize_t JSArrayProxy_length(JSArrayProxy *self);
 
   /**
-   * @brief returns a value from the JSArrayProxy given a key, used by several built-in python methods as well as the [] operator
+   * @brief returns a value from the JSArrayProxy given a key, or dispatches to the given key method if such method is found
    *
    * @param self - The JSArrayProxy
    * @param key - The key for the value in the JSArrayProxy
@@ -76,7 +76,7 @@ public:
 
 
 /**
- * @brief Getter method (.mp_subscript), returns a value from the JSArrayProxy given a key, used by several built-in python methods as well as the [] operator
+ * @brief Getter method (.mp_subscript), returns a value from the JSArrayProxy given a key which can be a slice, used by several built-in python methods as well as the [] and operator
  *
  * @param self - The JSArrayProxy
  * @param key - The key for the value in the JSArrayProxy
@@ -95,16 +95,7 @@ public:
   static int JSArrayProxy_assign_key(JSArrayProxy *self, PyObject *key, PyObject *value);
 
   /**
-   * @brief Helper function for various JSArrayProxy methods, sets a key-value pair on a JSObject given a python string key and a JS::Value value
-   *
-   * @param jsObject - The underlying backing store JSObject for the JSArrayProxy
-   * @param key - The key to be assigned or deleted
-   * @param value - The JS::Value to be assigned
-   */
-  static void JSArrayProxy_set_helper(JS::HandleObject jsObject, PyObject *key, JS::HandleValue value);
-
-  /**
-   * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyobject
+   * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyObject
    *
    * @param self - The JSArrayProxy
    * @param other - Any other PyObject
@@ -114,7 +105,7 @@ public:
   static PyObject *JSArrayProxy_richcompare(JSArrayProxy *self, PyObject *other, int op);
 
   /**
-   * @brief Return an iterator object to make JSArrayProxy iterable, emitting (key, value) tuples
+   * @brief Return an iterator object to make JSArrayProxy iterable
    *
    * @param self - The JSArrayProxy
    * @return PyObject* - iterator object
@@ -139,7 +130,7 @@ public:
   static PyObject *JSArrayProxy_concat(JSArrayProxy *self, PyObject *value);
 
   /**
-   * @brief repeat method (.sq_repeat)
+   * @brief repeat method (.sq_repeat), repeat self n number of time
    *
    * @param self - The JSArrayProxy
    * @param n The number of times to repeat
@@ -148,26 +139,7 @@ public:
   static PyObject *JSArrayProxy_repeat(JSArrayProxy *self, Py_ssize_t n);
 
   /**
-   * @brief Getter method (.sq_item), returns a value from the JSArrayProxy given an index, used by several built-in python methods as well as the [] operator
-   *
-   * @param self - The JSArrayProxy
-   * @param index - The index for the value in the JSArrayProxy
-   * @return PyObject* NULL on exception, the corresponding value otherwise
-   */
-  // static PyObject *JSArrayProxy_item(JSArrayProxy *self, Py_ssize_t index);
-
-  /**
-   * @brief Assign method (.sq_ass_item), assigns a value at index if value is non-NULL, or deletes a key-value pair if value is NULL
-   *
-   * @param self - The JSObjectProxy
-   * @param index - The index for the value in the JSArrayProxy
-   * @param value If NULL, the key-value pair is deleted, if not NULL then a key-value pair is assigned
-   * @return int -1 on exception, a0 on success
-   */
-  // static int JSArrayProxy_assign_index(JSArrayProxy *self, Py_ssize_t index, PyObject *value);
-
-  /**
-   * @brief Test contains method (.sq_contains), assigns a value at index if value is non-NULL, or deletes a key-value pair if value is NULL
+   * @brief Test contains method (.sq_contains)
    *
    * @param self - The JSObjectProxy
    * @param element - The element in the JSArrayProxy
@@ -176,28 +148,28 @@ public:
   static int JSArrayProxy_contains(JSArrayProxy *self, PyObject *element);
 
   /**
-   * @brief inplace_concat method (.sq_inplace_concat), concatenates
+   * @brief inplace_concat method (.sq_inplace_concat), concatenates in_place
    *
    * @param self - The JSArrayProxy
    * @param value - The value to be concatenated
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @return PyObject* self
    */
   static PyObject *JSArrayProxy_inplace_concat(JSArrayProxy *self, PyObject *value);
 
   /**
-   * @brief inplace_repeat method (.sq_inplace_repeat)
+   * @brief inplace_repeat method (.sq_inplace_repeat), repeats in_place
    *
    * @param self - The JSArrayProxy
    * @param n The number of times to repeat
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @return PyObject* self
    */
   static PyObject *JSArrayProxy_inplace_repeat(JSArrayProxy *self, Py_ssize_t n);
 
   /**
-   * @brief clear method (.tp_clear)
+   * @brief clear method, empties the array
    *
    * @param self - The JSArrayProxy
-   * @return 0 on success
+   * @return None
    */
   static PyObject *JSArrayProxy_clear(JSArrayProxy *self);
 
@@ -213,6 +185,8 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSArrayProxy
+   * @param visitproc - The function to be applied on each element of the list
+   * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg);
@@ -230,7 +204,7 @@ public:
    *
    * @param self - The JSArrayProxy
    * @param value - The value to be appended
-   * @return None
+   * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_append(JSArrayProxy *self, PyObject *value);
 
@@ -238,7 +212,9 @@ public:
    * @brief insert method
    *
    * @param self - The JSArrayProxy
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @param args - arguments to the insert method
+   * @param nargs - number of arguments to the insert method
+   * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_insert(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
@@ -247,7 +223,7 @@ public:
    *
    * @param self - The JSArrayProxy
    * @param value - The value to be appended
-   * @return None
+   * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_extend(JSArrayProxy *self, PyObject *iterable);
 
@@ -255,7 +231,9 @@ public:
    * @brief pop method
    *
    * @param self - The JSArrayProxy
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @param args - arguments to the pop method
+   * @param nargs - number of arguments to the pop method
+   * @return PyObject* NULL on exception, the corresponding value otherwise
    */
   static PyObject *JSArrayProxy_pop(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
@@ -264,7 +242,7 @@ public:
    *
    * @param self - The JSArrayProxy
    * @param value - The value to be appended
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_remove(JSArrayProxy *self, PyObject *value);
 
@@ -272,16 +250,18 @@ public:
    * @brief index method
    *
    * @param self - The JSArrayProxy
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @param args - arguments to the index method
+   * @param nargs - number of arguments to the index method
+   * @return PyObject* NULL on exception, the corresponding index of the found value as PyLong otherwise
    */
   static PyObject *JSArrayProxy_index(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
   /**
-   * @brief count method   Remove first occurrence of value
+   * @brief count method
    *
    * @param self - The JSArrayProxy
    * @param value - The value to be appended
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @return PyObject* NULL on exception, the corresponding count of the found value as PyLong otherwise
    */
   static PyObject *JSArrayProxy_count(JSArrayProxy *self, PyObject *value);
 
@@ -289,7 +269,7 @@ public:
    * @brief reverse method   Reverse list in place
    *
    * @param self - The JSArrayProxy
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_reverse(JSArrayProxy *self);
 
@@ -297,8 +277,9 @@ public:
    * @brief sort method   sort in place
    *
    * @param self - The JSArrayProxy
-   * @param value - The value to be appended
-   * @return PyObject* NULL on exception, the corresponding new value otherwise
+   * @param args - arguments to the sort method
+   * @param nargs - number of arguments to the sort method
+   * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames);
 };
@@ -322,8 +303,6 @@ static PySequenceMethods JSArrayProxy_sequence_methods = {
   .sq_length = (lenfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_length,
   .sq_concat = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_concat,
   .sq_repeat = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_repeat,
-  // .sq_item = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_item,   TODO how to exercise?
-  // .sq_ass_item = (ssizeobjargproc)JSArrayProxyMethodDefinitions::JSArrayProxy_assign_index,     TODO how to exercise?
   .sq_contains = (objobjproc)JSArrayProxyMethodDefinitions::JSArrayProxy_contains,
   .sq_inplace_concat = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_concat,
   .sq_inplace_repeat = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_repeat
