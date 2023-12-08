@@ -40,6 +40,7 @@ endif()
 set(SPIDERMONKEY_PATHS
   "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install"
   "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install/lib"
+  "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install/include/mozjs-115"
   ${SPIDERMONKEY_ROOT}
 	$ENV{SPIDERMONKEY_ROOT}
 	~/Library/Frameworks

@@ -14,7 +14,6 @@
 
 #include <Python.h>
 
-#include <unordered_map>
 
 /**
  * @brief The typedef for the backing store that will be used by JSArrayProxy objects. All it contains is a pointer to the JSObject
@@ -67,7 +66,7 @@ public:
   static Py_ssize_t JSArrayProxy_length(JSArrayProxy *self);
 
   /**
-   * @brief Getter method (.mp_subscript), returns a value from the JSArrayProxy given a key, used by several built-in python methods as well as the [] operator
+   * @brief returns a value from the JSArrayProxy given a key, used by several built-in python methods as well as the [] operator
    *
    * @param self - The JSArrayProxy
    * @param key - The key for the value in the JSArrayProxy
@@ -75,6 +74,15 @@ public:
    */
   static PyObject *JSArrayProxy_get(JSArrayProxy *self, PyObject *key);
 
+
+/**
+ * @brief Getter method (.mp_subscript), returns a value from the JSArrayProxy given a key, used by several built-in python methods as well as the [] operator
+ *
+ * @param self - The JSArrayProxy
+ * @param key - The key for the value in the JSArrayProxy
+ * @return PyObject* NULL on exception, the corresponding value otherwise
+ */
+  static PyObject *JSArrayProxy_get_subscript(JSArrayProxy *self, PyObject *key);
 
   /**
    * @brief Assign method (.mp_ass_subscript), assigns a key-value pair if value is non-NULL, or deletes a key-value pair if value is NULL
@@ -106,16 +114,6 @@ public:
   static PyObject *JSArrayProxy_richcompare(JSArrayProxy *self, PyObject *other, int op);
 
   /**
-   * @brief Helper function for JSArrayProxy_richcompare
-   *
-   * @param self - The PyObject on the left side of the operator (guaranteed to be a JSArrayProxy *)
-   * @param other - The PyObject on the right side of the operator
-   * @param visited
-   * @return bool - Whether the compared objects are equal or not
-   */
-  static bool JSArrayProxy_richcompare_helper(JSArrayProxy *self, PyObject *other, std::unordered_map<PyObject *, PyObject *> &visited);
-
-  /**
    * @brief Return an iterator object to make JSArrayProxy iterable, emitting (key, value) tuples
    *
    * @param self - The JSArrayProxy
@@ -138,7 +136,7 @@ public:
    * @param value - The value to be concatenated
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_concat(JSArrayProxy *self, PyObject *value);
+  static PyObject *JSArrayProxy_concat(JSArrayProxy *self, PyObject *value);
 
   /**
    * @brief repeat method (.sq_repeat)
@@ -147,7 +145,7 @@ public:
    * @param n The number of times to repeat
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-//  static PyObject *JSArrayProxy_repeat(JSArrayProxy *self, Py_ssize_t n);
+  static PyObject *JSArrayProxy_repeat(JSArrayProxy *self, Py_ssize_t n);
 
   /**
    * @brief Getter method (.sq_item), returns a value from the JSArrayProxy given an index, used by several built-in python methods as well as the [] operator
@@ -175,7 +173,7 @@ public:
    * @param element - The element in the JSArrayProxy
    * @return int 1 if element is in List, 0 if not, and -1 on error
    */
-  // static int JSArrayProxy_contains(JSArrayProxy *self, PyObject *element);
+  static int JSArrayProxy_contains(JSArrayProxy *self, PyObject *element);
 
   /**
    * @brief inplace_concat method (.sq_inplace_concat), concatenates
@@ -184,7 +182,7 @@ public:
    * @param value - The value to be concatenated
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_inplace_concat(JSArrayProxy *self, PyObject *value);
+  static PyObject *JSArrayProxy_inplace_concat(JSArrayProxy *self, PyObject *value);
 
   /**
    * @brief inplace_repeat method (.sq_inplace_repeat)
@@ -193,7 +191,7 @@ public:
    * @param n The number of times to repeat
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_inplace_repeat(JSArrayProxy *self, Py_ssize_t n);
+  static PyObject *JSArrayProxy_inplace_repeat(JSArrayProxy *self, Py_ssize_t n);
 
   /**
    * @brief clear method (.tp_clear)
@@ -201,7 +199,23 @@ public:
    * @param self - The JSArrayProxy
    * @return 0 on success
    */
-  // static int JSArrayProxy_clear(JSArrayProxy *self);
+  static PyObject *JSArrayProxy_clear(JSArrayProxy *self);
+
+  /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSArrayProxy
+   * @return 0 on success
+   */
+  static int JSArrayProxy_clear_slot(JSArrayProxy *self);
+
+  /**
+   * @brief .tp_traverse method
+   *
+   * @param self - The JSArrayProxy
+   * @return 0 on success
+   */
+  static int JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg);
 
   /**
    * @brief copy method
@@ -209,8 +223,7 @@ public:
    * @param self - The JSArrayProxy
    * @return a shallow copy of the list
    */
-  // static PyObject *JSArrayProxy_copy(JSArrayProxy *self);
-
+  static PyObject *JSArrayProxy_copy(JSArrayProxy *self);
 
   /**
    * @brief append method
@@ -219,7 +232,7 @@ public:
    * @param value - The value to be appended
    * @return None
    */
-  // static PyObject *JSArrayProxy_append(JSArrayProxy *self, PyObject *value);
+  static PyObject *JSArrayProxy_append(JSArrayProxy *self, PyObject *value);
 
   /**
    * @brief insert method
@@ -227,7 +240,7 @@ public:
    * @param self - The JSArrayProxy
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_insert(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
+  static PyObject *JSArrayProxy_insert(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
   /**
    * @brief extend method
@@ -236,7 +249,7 @@ public:
    * @param value - The value to be appended
    * @return None
    */
-  // static PyObject *JSArrayProxy_extend(JSArrayProxy *self, PyObject *iterable);
+  static PyObject *JSArrayProxy_extend(JSArrayProxy *self, PyObject *iterable);
 
   /**
    * @brief pop method
@@ -244,8 +257,7 @@ public:
    * @param self - The JSArrayProxy
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_pop(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
-
+  static PyObject *JSArrayProxy_pop(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
   /**
    * @brief remove method   Remove first occurrence of value
@@ -254,7 +266,7 @@ public:
    * @param value - The value to be appended
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_remove(JSArrayProxy *self, PyObject *value);
+  static PyObject *JSArrayProxy_remove(JSArrayProxy *self, PyObject *value);
 
   /**
    * @brief index method
@@ -262,15 +274,16 @@ public:
    * @param self - The JSArrayProxy
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_index(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
+  static PyObject *JSArrayProxy_index(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs);
 
   /**
    * @brief count method   Remove first occurrence of value
    *
    * @param self - The JSArrayProxy
+   * @param value - The value to be appended
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_count(JSArrayProxy *self, PyObject *value);
+  static PyObject *JSArrayProxy_count(JSArrayProxy *self, PyObject *value);
 
   /**
    * @brief reverse method   Reverse list in place
@@ -278,8 +291,7 @@ public:
    * @param self - The JSArrayProxy
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_reverse(JSArrayProxy *self);
-
+  static PyObject *JSArrayProxy_reverse(JSArrayProxy *self);
 
   /**
    * @brief sort method   sort in place
@@ -288,7 +300,7 @@ public:
    * @param value - The value to be appended
    * @return PyObject* NULL on exception, the corresponding new value otherwise
    */
-  // static PyObject *JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames);
+  static PyObject *JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames);
 };
 
 
@@ -298,7 +310,7 @@ public:
  */
 static PyMappingMethods JSArrayProxy_mapping_methods = {
   .mp_length = (lenfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_length,
-  .mp_subscript = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get,
+  .mp_subscript = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get_subscript,
   .mp_ass_subscript = (objobjargproc)JSArrayProxyMethodDefinitions::JSArrayProxy_assign_key
 };
 
@@ -308,33 +320,115 @@ static PyMappingMethods JSArrayProxy_mapping_methods = {
  */
 static PySequenceMethods JSArrayProxy_sequence_methods = {
   .sq_length = (lenfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_length,
-  /*.sq_concat = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_concat,
-     .sq_repeat = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_repeat,
-     .sq_item = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_item,
-     .sq_ass_item = (ssizeobjargproc)JSArrayProxyMethodDefinitions::JSArrayProxy_assign_index,
-     .sq_contains = (objobjproc)JSArrayProxyMethodDefinitions::JSArrayProxy_contains,
-     .sq_inplace_concat = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_concat,
-     .sq_inplace_repeat = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_repeat,*/
+  .sq_concat = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_concat,
+  .sq_repeat = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_repeat,
+  // .sq_item = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_item,   TODO how to exercise?
+  // .sq_ass_item = (ssizeobjargproc)JSArrayProxyMethodDefinitions::JSArrayProxy_assign_index,     TODO how to exercise?
+  .sq_contains = (objobjproc)JSArrayProxyMethodDefinitions::JSArrayProxy_contains,
+  .sq_inplace_concat = (binaryfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_concat,
+  .sq_inplace_repeat = (ssizeargfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_repeat
 };
+
+
+PyDoc_STRVAR(py_list_clear__doc__,
+  "clear($self, /)\n"
+  "--\n"
+  "\n"
+  "Remove all items from list.");
+
+PyDoc_STRVAR(list_copy__doc__,
+  "copy($self, /)\n"
+  "--\n"
+  "\n"
+  "Return a shallow copy of the list.");
+
+PyDoc_STRVAR(list_append__doc__,
+  "append($self, object, /)\n"
+  "--\n"
+  "\n"
+  "Append object to the end of the list.");
+
+PyDoc_STRVAR(list_insert__doc__,
+  "insert($self, index, object, /)\n"
+  "--\n"
+  "\n"
+  "Insert object before index.");
+
+PyDoc_STRVAR(py_list_extend__doc__,
+  "extend($self, iterable, /)\n"
+  "--\n"
+  "\n"
+  "Extend list by appending elements from the iterable.");
+
+PyDoc_STRVAR(list_pop__doc__,
+  "pop($self, index=-1, /)\n"
+  "--\n"
+  "\n"
+  "Remove and return item at index (default last).\n"
+  "\n"
+  "Raises IndexError if list is empty or index is out of range.");
+
+PyDoc_STRVAR(list_remove__doc__,
+  "remove($self, value, /)\n"
+  "--\n"
+  "\n"
+  "Remove first occurrence of value.\n"
+  "\n"
+  "Raises ValueError if the value is not present.");
+
+PyDoc_STRVAR(list_index__doc__,
+  "index($self, value, start=0, stop=sys.maxsize, /)\n"
+  "--\n"
+  "\n"
+  "Return first index of value.\n"
+  "\n"
+  "Raises ValueError if the value is not present.");
+
+
+PyDoc_STRVAR(list_count__doc__,
+  "count($self, value, /)\n"
+  "--\n"
+  "\n"
+  "Return number of occurrences of value.");
+
+PyDoc_STRVAR(list_reverse__doc__,
+  "reverse($self, /)\n"
+  "--\n"
+  "\n"
+  "Reverse *IN PLACE*.");
+
+PyDoc_STRVAR(list_sort__doc__,
+  "sort($self, /, *, key=None, reverse=False)\n"
+  "--\n"
+  "\n"
+  "Sort the list in ascending order and return None.\n"
+  "\n"
+  "The sort is in-place (i.e. the list itself is modified) and stable (i.e. the\n"
+  "order of two equal elements is maintained).\n"
+  "\n"
+  "If a key function is given, apply it once to each list item and sort them,\n"
+  "ascending or descending, according to their function values.\n"
+  "\n"
+  "The reverse flag can be set to sort in descending order.");
+
+
 
 /**
  * @brief Struct for the other methods
  *
  */
 static PyMethodDef JSArrayProxy_methods[] = {
-  // {"__getitem__", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_get, METH_O|METH_COEXIST,
-  // PyDoc_STR("__getitem__($self, index, /)\n--\n\nReturn self[index].")},
-  // {"clear", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_clear, METH_NOARGS, ""},
-  // {"copy", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_copy, METH_NOARGS, ""},
-  // {"append", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_append, METH_O, ""},
-  // {"insert", _PyCFunction_CAST(JSArrayProxyMethodDefinitions::JSArrayProxy_insert), METH_FASTCALL, ""},
-  // {"extend", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_extend, METH_O, ""},
-  // {"pop", _PyCFunction_CAST(JSArrayProxyMethodDefinitions::JSArrayProxy_pop), METH_FASTCALL, ""}, // TODO can empty string be null?
-  // {"remove", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_remove, METH_O, ""},
-  // {"index", _PyCFunction_CAST(JSArrayProxyMethodDefinitions::JSArrayProxy_remove), METH_FASTCALL, ""},
-  // {"count", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_remove, METH_O, ""},
-  // {"reverse", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_reverse, METH_NOARGS, ""},
-  // {"sort", _PyCFunction_CAST(JSArrayProxyMethodDefinitions::JSArrayProxy_sort), METH_FASTCALL|METH_KEYWORDS, ""},
+  {"clear", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_clear, METH_NOARGS, py_list_clear__doc__},
+  {"copy", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_copy, METH_NOARGS, list_copy__doc__},
+  {"append", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_append, METH_O, list_append__doc__},
+  {"insert", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_insert, METH_FASTCALL, list_insert__doc__},
+  {"extend", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_extend, METH_O, py_list_extend__doc__},
+  {"pop", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_pop, METH_FASTCALL, list_pop__doc__},
+  {"remove", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_remove, METH_O, list_remove__doc__},
+  {"index", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_index, METH_FASTCALL, list_index__doc__},
+  {"count", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_count, METH_O, list_count__doc__},
+  {"reverse", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_reverse, METH_NOARGS, list_reverse__doc__},
+  {"sort", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_sort, METH_FASTCALL|METH_KEYWORDS, list_sort__doc__},
   {NULL, NULL}                       /* sentinel */
 };
 

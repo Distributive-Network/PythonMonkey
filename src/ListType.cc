@@ -1,12 +1,8 @@
 #include "include/ListType.hh"
+#include "include/PyType.hh"
+#include "include/JSArrayProxy.hh"
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
-#include "include/JSArrayProxy.hh"
-#include "include/PyType.hh"
-#include "include/pyTypeFactory.hh"
-
-#include <jsfriendapi.h>
-#include <jsapi.h>
 
 #include <Python.h>
 
