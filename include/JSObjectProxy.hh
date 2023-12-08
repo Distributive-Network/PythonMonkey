@@ -75,7 +75,7 @@ public:
   static PyObject *JSObjectProxy_get(JSObjectProxy *self, PyObject *key);
 
   /**
-   * @brief Getter method (.sq_contains), returns whether a key exists, used by the in operator
+   * @brief Test method (.sq_contains), returns whether a key exists, used by the in operator
    *
    * @param self - The JSObjectProxy
    * @param key - The key for the value in the JSObjectProxy
@@ -129,7 +129,102 @@ public:
    * @return the string representation (a PyUnicodeObject) on success, NULL on failure
    */
   static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
+  
+  /**
+   * @brief Set union operation
+   *
+   * @param self - The JSObjectProxy
+   * @param other - The other PyObject to be or'd, expected to be dict or JSObjectProxy
+   * @return PyObject* The resulting new dict
+   */
+  static PyObject *JSObjectProxy_or(JSObjectProxy *self, PyObject *other);
+
+  /**
+   * @brief Set union operation, in place
+   *
+   * @param self - The JSObjectProxy
+   * @param other - The other PyObject to be or'd, expected to be dict or JSObjectProxy
+   * @return PyObject* The resulting new dict, must be same object as self
+   */
+  static PyObject *JSObjectProxy_ior(JSObjectProxy *self, PyObject *other);
+
+  /**
+   * @brief get method
+   *
+   * @param self - The JSObjectProxy
+   * @param args - arguments to the method
+   * @param nargs - number of args to the method
+   * @return PyObject* the value for key if first arg key is in the dictionary, else second arg default
+   */
+  static PyObject *JSObjectProxy_get_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
+
+  /**
+   * @brief setdefault method
+   *
+   * @param self - The JSObjectProxy
+   * @param args - arguments to the method
+   * @param nargs - number of args to the method
+   * @return PyObject* the value for key if first arg key is in the dictionary, else second default
+   */
+  static PyObject *JSObjectProxy_setdefault_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
+
+  /**
+   * @brief pop method
+   *
+   * @param self - The JSObjectProxy
+   * @param args - arguments to the method
+   * @param nargs - number of args to the method
+   * @return PyObject* If the first arg key is not found, return the second arg default if given; otherwise raise a KeyError
+   */
+  static PyObject *JSObjectProxy_pop_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs);
+
+  /**
+   * @brief clear method
+   *
+   * @param self - The JSObjectProxy
+   * @return None
+   */
+  static PyObject *JSObjectProxy_clear_method(JSObjectProxy *self);
+
+  /**
+   * @brief copy method
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* copy of the dict
+   */
+  static PyObject *JSObjectProxy_copy_method(JSObjectProxy *self);
 };
+
+
+// docs for methods, copied from cpython
+PyDoc_STRVAR(dict_get__doc__,
+  "get($self, key, default=None, /)\n"
+  "--\n"
+  "\n"
+  "Return the value for key if key is in the dictionary, else default.");
+
+PyDoc_STRVAR(dict_setdefault__doc__,
+  "setdefault($self, key, default=None, /)\n"
+  "--\n"
+  "\n"
+  "Insert key with a value of default if key is not in the dictionary.\n"
+  "\n"
+  "Return the value for key if key is in the dictionary, else default.");
+
+PyDoc_STRVAR(dict_pop__doc__,
+  "pop($self, key, default=<unrepresentable>, /)\n"
+  "--\n"
+  "\n"
+  "D.pop(k[,d]) -> v, remove specified key and return the corresponding value.\n"
+  "\n"
+  "If the key is not found, return the default if given; otherwise,\n"
+  "raise a KeyError.");
+
+PyDoc_STRVAR(clear__doc__,
+  "D.clear() -> None.  Remove all items from D.");
+
+PyDoc_STRVAR(copy__doc__,
+  "D.copy() -> a shallow copy of D");
 
 
 /**
@@ -142,8 +237,31 @@ static PyMappingMethods JSObjectProxy_mapping_methods = {
   .mp_ass_subscript = (objobjargproc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign
 };
 
+/**
+ * @brief Struct for the methods that define the Sequence protocol
+ *
+ */
 static PySequenceMethods JSObjectProxy_sequence_methods = {
   .sq_contains = (objobjproc)JSObjectProxyMethodDefinitions::JSObjectProxy_contains
+};
+
+static PyNumberMethods JSObjectProxy_number_methods = {
+  .nb_or = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_or,
+  .nb_inplace_or = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_ior
+};
+
+/**
+ * @brief Struct for the other methods
+ *
+ */
+static PyMethodDef JSObjectProxy_methods[] = {
+  {"get", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get_method, METH_FASTCALL, dict_get__doc__},
+  {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
+  {"pop", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method, METH_FASTCALL, dict_pop__doc__},
+  // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and quite a bit strange
+  {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, clear__doc__},
+  {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, copy__doc__},
+  {NULL, NULL}                  /* sentinel */
 };
 
 /**
