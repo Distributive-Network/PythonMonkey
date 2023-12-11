@@ -471,6 +471,15 @@ def test_pop_no_arg():
     assert a == [1]
     assert b == 2
 
+def test_pop_empty_list():
+    a = pm.eval('([])')
+    try:
+        a.pop()     
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'IndexError'>"
+        assert str(e) == "pop from empty list"  
+
 def test_pop_list_no_arg():
     a = pm.eval("[1,[2,3]]")
     b = a.pop()
