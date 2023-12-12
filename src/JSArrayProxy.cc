@@ -424,7 +424,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
     Py_RETURN_NOTIMPLEMENTED;
   }
 
-  if (self == (JSArrayProxy *)other && (op == Py_EQ || op == Py_NE)) { // TODO How is this potential bad cast allowed?
+  if (self == (JSArrayProxy *)other && (op == Py_EQ || op == Py_NE)) {
     if (op == Py_EQ) {
       Py_RETURN_TRUE;
     }
@@ -761,7 +761,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_copy(JSArrayProxy *self) {
   JS::Rooted<JS::ValueArray<2>> jArgs(GLOBAL_CX);
   jArgs[0].setInt32(0);
   jArgs[1].setInt32(JSArrayProxy_length(self));
-  JS::RootedValue *jReturnedArray = new JS::RootedValue(GLOBAL_CX);   // TODO use stack alloc
+  JS::RootedValue *jReturnedArray = new JS::RootedValue(GLOBAL_CX);
   if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "slice", jArgs, jReturnedArray)) {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
     return NULL;
@@ -828,7 +828,6 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_insert(JSArrayProxy *self,
   Py_RETURN_NONE;
 }
 
-// TODO needs to be on the heap?
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_extend(JSArrayProxy *self, PyObject *iterable) {
   // Special cases:
   // 1) lists and tuples which can use PySequence_Fast ops
@@ -855,7 +854,6 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_extend(JSArrayProxy *self,
     PyObject **src = PySequence_Fast_ITEMS(iterable);
     for (Py_ssize_t i = 0; i < n; i++) {
       PyObject *o = src[i];
-      Py_INCREF(o);   // TODO in or out
       JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, o));
       JS_SetElement(GLOBAL_CX, self->jsObject, m + i, jValue);
     }
@@ -934,7 +932,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_pop(JSArrayProxy *self, Py
     return NULL;
   }
 
-  JS::Rooted<JS::ValueArray<2>> jArgs(GLOBAL_CX);   // TODO needs to be on the heap?
+  JS::Rooted<JS::ValueArray<2>> jArgs(GLOBAL_CX);
   jArgs[0].setInt32(index);
   jArgs[1].setInt32(1);
 
