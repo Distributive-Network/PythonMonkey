@@ -755,6 +755,11 @@ def test_sort_with_function_wrong_type():
         assert str(type(e)) == "<class 'TypeError'>"
         assert str(e) == "'int' object is not callable"       
 
+def test_tricky_sort():
+    a = pm.eval("[6, -2, 2, -7]")
+    a.sort()
+    assert a == [-7, -2, 2, 6]  
+
 #iter
 def iter_min():
     a = pm.eval("([7,9,1,2,3,4,5,6])")
