@@ -183,6 +183,18 @@ def test_repr_non_empty_array():
     assert repr(pyArray) == expected
     assert str(pyArray) == expected 
 
+def test_repr_recursion():
+    pyArray = pm.eval("""
+    () => {
+        let arr = [1,2];
+        arr.push(arr);
+        return arr;
+    }
+    """)()
+    expected = "[1.0, 2.0, [...]]"
+    assert repr(pyArray) == expected
+    assert str(pyArray) == expected    
+
 #concat
 def test_concat_wrong_type():
     likes = pm.eval('([1,2])')
@@ -234,7 +246,8 @@ def test_repeat_zero():
 def test_repeat_once():
     a = pm.eval("[1,2]")
     b = a * 1
-    assert b == [1,2]    
+    assert b == [1,2]  
+    assert a is not b  
 
 def test_repeat_twice():
     a = pm.eval("[1,2]")
@@ -533,7 +546,7 @@ def test_remove_no_args():
         assert str(type(e)) == "<class 'TypeError'>"
         assert str(e) == "JSArrayProxy.remove() takes exactly one argument (0 given)"   
 
-def test_remove_no_args():
+def test_remove_not_found():
     a = pm.eval('([1,2])')
     try:
         a.remove(3)     

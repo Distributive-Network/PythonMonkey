@@ -530,9 +530,9 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
   if (_PyUnicodeWriter_WriteChar(&writer, '[') < 0) {
     goto error;
   }
-
+  
   /* Do repr() on each element.  Note that this may mutate the list, so must refetch the list size on each iteration. */
-  for (Py_ssize_t index = 0; index < selfLength /*JSArrayProxy_length(self)*/; ++index) {
+  for (Py_ssize_t index = 0; index < JSArrayProxy_length(self); index++) {
     if (index > 0) {
       if (_PyUnicodeWriter_WriteASCIIString(&writer, ", ", 2) < 0) {
         goto error;
@@ -542,7 +542,12 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
     JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
     JS_GetElement(GLOBAL_CX, self->jsObject, index, elementVal);
 
-    PyObject *s = PyObject_Repr(pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject());
+    PyObject *s;
+    if (&elementVal->toObject() == self->jsObject.get()) {
+      s = PyObject_Repr((PyObject *)self);
+    } else {
+      s = PyObject_Repr(pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject());
+    }
     if (s == NULL) {
       goto error;
     }
@@ -626,10 +631,9 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_concat(JSArrayProxy *self,
       JS_SetElement(GLOBAL_CX, jCombinedArray, sizeSelf + inputIdx, elementVal);
     }
   } else {
-    JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    JS::RootedObject jRootedValue = JS::RootedObject(GLOBAL_CX, jValue.toObjectOrNull());
     for (Py_ssize_t inputIdx = 0; inputIdx < sizeValue; inputIdx++) {
-      JS_GetElement(GLOBAL_CX, jRootedValue, inputIdx, &elementVal);
+      PyObject *item = PyList_GetItem(value, inputIdx);
+      elementVal.set(jsTypeFactory(GLOBAL_CX, item));
       JS_SetElement(GLOBAL_CX, jCombinedArray, sizeSelf + inputIdx, elementVal);
     }
   }
@@ -829,9 +833,6 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_insert(JSArrayProxy *self,
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_extend(JSArrayProxy *self, PyObject *iterable) {
-  // Special cases:
-  // 1) lists and tuples which can use PySequence_Fast ops
-  // 2) extending self to self requires making a copy first
   if (PyList_CheckExact(iterable) || PyTuple_CheckExact(iterable) || (PyObject *)self == iterable) {
     iterable = PySequence_Fast(iterable, "argument must be iterable");
     if (!iterable) {
@@ -846,10 +847,9 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_extend(JSArrayProxy *self,
     }
 
     Py_ssize_t m = JSArrayProxy_length(self);
-    // It should not be possible to allocate a list large enough to cause
-    // an overflow on any relevant platform.
+
     JS::SetArrayLength(GLOBAL_CX, self->jsObject, m + n);
-    //
+
     // populate the end of self with iterable's items.
     PyObject **src = PySequence_Fast_ITEMS(iterable);
     for (Py_ssize_t i = 0; i < n; i++) {

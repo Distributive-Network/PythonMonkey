@@ -9,6 +9,9 @@
  *
  */
 
+#ifndef PythonMonkey_JSArrayProxy_
+#define PythonMonkey_JSArrayProxy_
+
 
 #include <jsapi.h>
 
@@ -415,3 +418,5 @@ static PyMethodDef JSArrayProxy_methods[] = {
  * @brief Struct for the JSArrayProxyType, used by all JSArrayProxy objects
  */
 extern PyTypeObject JSArrayProxyType;
+
+#endif
