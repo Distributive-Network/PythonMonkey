@@ -1073,6 +1073,108 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_reverse(JSArrayProxy *self
   Py_RETURN_NONE;
 }
 
+// private
+static bool sort_compare_key_func(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject callee(cx, &args.callee());
+
+  JS::RootedValue keyFunc(cx);
+  if (!JS_GetProperty(cx, callee, "_key_func_param", &keyFunc)) {
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+    return false;
+  }
+  PyObject *keyfunc = (PyObject *)keyFunc.toPrivate();
+
+  JS::RootedValue reverseValue(cx);
+  if (!JS_GetProperty(cx, callee, "_reverse_param", &reverseValue)) {
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+    return false;
+  }
+  bool reverse = reverseValue.toBoolean();
+
+
+  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(&args.callee()));
+
+  JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX, args[0]);
+  PyObject *args_0 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+  PyObject *args_0_result = PyObject_CallFunction(keyfunc, "O", args_0);
+  if (!args_0_result) {
+    return false;
+  }
+
+  elementVal = new JS::RootedValue(GLOBAL_CX, args[1]);
+  PyObject *args_1 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+  PyObject *args_1_result = PyObject_CallFunction(keyfunc, "O", args_1);
+  if (!args_1_result) {
+    return false;
+  }
+
+  int cmp = PyObject_RichCompareBool(args_0_result, args_1_result, Py_LT);
+  if (cmp > 0) {
+    args.rval().setInt32(reverse ? 1 : -1);
+  } else if (cmp == 0) {
+    cmp = PyObject_RichCompareBool(args_0_result, args_1_result, Py_EQ);
+    if (cmp > 0) {
+      args.rval().setInt32(0);
+    }
+    else if (cmp == 0) {
+      args.rval().setInt32(reverse ? -1 : 1);
+    }
+    else {
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
+
+  return true;
+}
+
+// private
+static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject callee(cx, &args.callee());
+  JS::RootedValue reverseValue(cx);
+  if (!JS_GetProperty(cx, callee, "_reverse_param", &reverseValue)) {
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+    return false;
+  }
+  bool reverse = reverseValue.toBoolean();
+
+  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(&args.callee()));
+
+  JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX, args[0]);
+  PyObject *args_0 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+
+  elementVal = new JS::RootedValue(GLOBAL_CX, args[1]);
+  PyObject *args_1 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+
+  int cmp = PyObject_RichCompareBool(args_0, args_1, Py_LT);
+  if (cmp > 0) {
+    args.rval().setInt32(reverse ? 1 : -1);
+  }
+  else if (cmp == 0) {
+    cmp = PyObject_RichCompareBool(args_0, args_1, Py_EQ);
+    if (cmp > 0) {
+      args.rval().setInt32(0);
+    }
+    else if (cmp == 0) {
+      args.rval().setInt32(reverse ? -1 : 1);
+    }
+    else {
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
+
+  return true;
+}
+
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames) {
   #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
 
@@ -1130,26 +1232,116 @@ skip_optional_kwonly:
   if (JSArrayProxy_length(self) > 1) {
     JS::RootedValue jReturnedArray(GLOBAL_CX);
     if (keyfunc != Py_None) {
-      if (!PyFunction_Check(keyfunc) && !PyCFunction_Check(keyfunc)) {
-        PyErr_Format(PyExc_TypeError, "'%.200s' object is not callable", Py_TYPE(keyfunc)->tp_name);
-        return NULL;
+      if (PyFunction_Check(keyfunc)) {
+        // we got a python key function, check if two-argument js style or standard python 1-arg
+        PyObject *code = PyFunction_GetCode(keyfunc);
+        if (((PyCodeObject *)code)->co_argcount == 1) {
+          // adapt to python style, provide js-style comp wrapper that does it the python way, which is < based with calls to keyFunc
+          JS::RootedObject funObj(GLOBAL_CX, JS_GetFunctionObject(JS_NewFunction(GLOBAL_CX, sort_compare_key_func, 2, 0, NULL)));
+
+          JS::RootedValue privateValue(GLOBAL_CX, JS::PrivateValue(keyfunc));
+          if (!JS_SetProperty(GLOBAL_CX, funObj, "_key_func_param", privateValue)) {  // JS::SetReservedSlot(functionObj, KeyFuncSlot, JS::PrivateValue(keyfunc)); does not work
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            return NULL;
+          }
+
+          JS::RootedValue reverseValue(GLOBAL_CX);
+          reverseValue.setBoolean(reverse);
+          if (!JS_SetProperty(GLOBAL_CX, funObj, "_reverse_param", reverseValue)) {
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            return NULL;
+          }
+
+          JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
+          jArgs[0].setObject(*funObj);
+          if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "sort", jArgs, &jReturnedArray)) {
+            if (!PyErr_Occurred()) {
+              PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            }
+            return NULL;
+          }
+        }
+        else {
+          // two-arg js-style
+          JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
+          jArgs[0].set(jsTypeFactory(GLOBAL_CX, keyfunc));
+          if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "sort", jArgs, &jReturnedArray)) {
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            return NULL;
+          }
+
+          if (reverse) {
+            JSArrayProxy_reverse(self);
+          }
+        }
       }
-      JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
-      jArgs[0].set(jsTypeFactory(GLOBAL_CX, keyfunc));
-      if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "sort", jArgs, &jReturnedArray)) {
-        PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+      else if (PyCFunction_Check(keyfunc)) {
+        // check if builtin 1-arg python or js 2-arg compare
+        int flags = PyCFunction_GetFlags((PyObject *)keyfunc);
+
+        if (flags & METH_VARARGS) {
+          // we got a JS compare function, use it as-is
+          JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
+          jArgs[0].set(jsTypeFactory(GLOBAL_CX, keyfunc));
+          if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "sort", jArgs, &jReturnedArray)) {
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            return NULL;
+          }
+
+          if (reverse) {
+            JSArrayProxy_reverse(self);
+          }
+        }
+        else {
+          // we got a built-in python function
+          JS::RootedObject funObj(GLOBAL_CX, JS_GetFunctionObject(JS_NewFunction(GLOBAL_CX, sort_compare_key_func, 2, 0, NULL)));
+
+          JS::RootedValue privateValue(GLOBAL_CX, JS::PrivateValue(keyfunc));
+          if (!JS_SetProperty(GLOBAL_CX, funObj, "_key_func_param", privateValue)) {  // JS::SetReservedSlot(functionObj, KeyFuncSlot, JS::PrivateValue(keyfunc)); does not work
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            return NULL;
+          }
+
+          JS::RootedValue reverseValue(GLOBAL_CX);
+          reverseValue.setBoolean(reverse);
+          if (!JS_SetProperty(GLOBAL_CX, funObj, "_reverse_param", reverseValue)) {
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            return NULL;
+          }
+
+          JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
+          jArgs[0].setObject(*funObj);
+          if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "sort", jArgs, &jReturnedArray)) {
+            if (!PyErr_Occurred()) {
+              PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            }
+            return NULL;
+          }
+        }
+      }
+      else {
+        PyErr_Format(PyExc_TypeError, "'%.200s' object is not callable", Py_TYPE(keyfunc)->tp_name);
         return NULL;
       }
     }
     else {
-      if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "sort", JS::HandleValueArray::empty(), &jReturnedArray)) {
+      // adapt to python style, provide js-style comp wrapper that does it the python way, which is < based
+      JSFunction *cmpFunction = JS_NewFunction(GLOBAL_CX, sort_compare_default, 2, 0, NULL);
+      JS::RootedObject funObj(GLOBAL_CX, JS_GetFunctionObject(cmpFunction));
+
+      JS::RootedValue reverseValue(GLOBAL_CX);
+      reverseValue.setBoolean(reverse);
+      if (!JS_SetProperty(GLOBAL_CX, funObj, "_reverse_param", reverseValue)) {
         PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
         return NULL;
       }
-    }
 
-    if (reverse) {
-      JSArrayProxy_reverse(self);
+      JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
+      jArgs[0].setObject(*funObj);
+      if (!JS_CallFunctionName(GLOBAL_CX, self->jsObject, "sort", jArgs, &jReturnedArray)) {
+        PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+        return NULL;
+      }
     }
   }
   Py_RETURN_NONE;

@@ -711,13 +711,23 @@ def test_sort_with_js_function():
     a.sort(key=myFunc)
     assert a == ['BMW', 'Ford', 'Mitsubishi', 'VW']    
 
-# TODO does not report exception for one-arg function
-#def test_sort_with_one_arg_function():
-#    def myFunc(e):
-#        return len(e)     
-#    a = pm.eval("(['Ford', 'Mitsubishi', 'BMW', 'VW'])")
-#    a.sort(key=myFunc)
-#    assert a == ['VW', 'BMW', 'Ford', 'Mitsubishi']  
+def test_sort_with_one_arg_function():
+    def myFunc(e):
+        return len(e)     
+    a = pm.eval("(['Ford', 'Mitsubishi', 'BMW', 'VW'])")
+    a.sort(key=myFunc)
+    assert a == ['VW', 'BMW', 'Ford', 'Mitsubishi'] 
+
+def test_sort_with_one_arg_function_wrong_data_type():
+    def myFunc(e):
+        return len(e)     
+    a = pm.eval('([1,2,3,4])')
+    try:
+        a.sort(key=myFunc)   
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'TypeError'>"
+        assert str(e) == "object of type 'float' has no len()"    
 
 def test_sort_with_function_and_reverse_false():
     def myFunc(e,f):
@@ -759,6 +769,30 @@ def test_tricky_sort():
     a = pm.eval("[6, -2, 2, -7]")
     a.sort()
     assert a == [-7, -2, 2, 6]  
+
+def test_tricky_sort_reverse():
+    a = pm.eval("[6, -2, 2, -7]")
+    a.sort(reverse=True)
+    assert a == [6, 2, -2, -7]  
+
+def test_sort_with_builtin_function():     # + wrong type of entries
+    a = pm.eval("(['Ford', 'Mitsubishi', 'BMW', 'VW'])")
+    a.sort(key=len)
+    assert a == ['VW', 'BMW', 'Ford', 'Mitsubishi']     
+
+def test_sort_with_builtin_function_and_reverse():     # + wrong type of entries
+    a = pm.eval("(['Ford', 'Mitsubishi', 'BMW', 'VW'])")
+    a.sort(key=len, reverse=True)
+    assert a == ['Mitsubishi', 'Ford', 'BMW', 'VW']        
+
+def test_sort_with_builtin_function_wrong_data_type():
+    a = pm.eval('([1,2,3,4])')
+    try:
+        a.sort(key=len)   
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'TypeError'>"
+        assert str(e) == "object of type 'float' has no len()"       
 
 #iter
 def iter_min():
