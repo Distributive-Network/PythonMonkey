@@ -1279,7 +1279,7 @@ skip_optional_kwonly:
         // check if builtin 1-arg python or js 2-arg compare
         int flags = PyCFunction_GetFlags((PyObject *)keyfunc);
 
-        if (flags & METH_VARARGS) {
+        if (flags & METH_VARARGS && !(flags & METH_KEYWORDS)) {
           // we got a JS compare function, use it as-is
           JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
           jArgs[0].set(jsTypeFactory(GLOBAL_CX, keyfunc));
