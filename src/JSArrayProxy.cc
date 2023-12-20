@@ -743,7 +743,6 @@ int JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot(JSArrayProxy *self) {
 }
 
 int JSArrayProxyMethodDefinitions::JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg) {
-  // TODO untested
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
   for (Py_ssize_t i = JSArrayProxy_length(self); --i >= 0; ) {
     JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
