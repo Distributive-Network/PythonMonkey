@@ -530,7 +530,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
   if (_PyUnicodeWriter_WriteChar(&writer, '[') < 0) {
     goto error;
   }
-  
+
   /* Do repr() on each element.  Note that this may mutate the list, so must refetch the list size on each iteration. */
   for (Py_ssize_t index = 0; index < JSArrayProxy_length(self); index++) {
     if (index > 0) {
@@ -794,7 +794,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_insert(JSArrayProxy *self,
 
   {
     Py_ssize_t ival = -1;
-    PyObject *iobj = _PyNumber_Index(args[0]);
+    PyObject *iobj = PyNumber_Index(args[0]);
     if (iobj != NULL) {
       ival = PyLong_AsSsize_t(iobj);
       Py_DECREF(iobj);
@@ -904,7 +904,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_pop(JSArrayProxy *self, Py
 
   if (nargs >= 1) {
     Py_ssize_t ival = -1;
-    PyObject *iobj = _PyNumber_Index(args[0]);
+    PyObject *iobj = PyNumber_Index(args[0]);
     if (iobj != NULL) {
       ival = PyLong_AsSsize_t(iobj);
       Py_DECREF(iobj);
