@@ -530,7 +530,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
   if (_PyUnicodeWriter_WriteChar(&writer, '[') < 0) {
     goto error;
   }
-  
+
   /* Do repr() on each element.  Note that this may mutate the list, so must refetch the list size on each iteration. */
   for (Py_ssize_t index = 0; index < JSArrayProxy_length(self); index++) {
     if (index > 0) {
@@ -752,6 +752,7 @@ int JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot(JSArrayProxy *self) {
 }
 
 int JSArrayProxyMethodDefinitions::JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg) {
+  // TODO untested
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
   for (Py_ssize_t i = JSArrayProxy_length(self); --i >= 0; ) {
     JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);

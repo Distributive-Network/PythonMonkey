@@ -56,6 +56,7 @@ js_eval("console.log")('hello, world')
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
 - [done] Python List coerce to JS Arrays
+- [done] JS Arrays coerce to Python Lists
 
 ## Build Instructions
 
@@ -250,7 +251,7 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 | function             | Function
 | object - most        | pythonmonkey.JSObjectProxy (Dict)
 | object - Date        | datetime
-| object - Array       | List
+| object - Array       | pythonmonkey.JSArrayProxy (List)
 | object - Promise     | awaitable
 | object - ArrayBuffer | Buffer
 | object - type arrays | Buffer

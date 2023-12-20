@@ -1,0 +1,827 @@
+import pythonmonkey as pm
+
+def test_assign():
+    items = [1,2,3]
+    pm.eval("(arr) => {arr[0] = 42}")(items)
+    assert items[0] == 42
+
+def test_get():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr[1]}")(result, items)
+    assert result[0] == 2
+
+def test_get_length():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.length}")(result, items)
+    assert result[0] == 3    
+
+def test_missing_func():
+    items = [1,2,3]
+    try:
+        pm.eval("(arr) => {arr.after()}")(items)         
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__('TypeError: arr.after is not a function')        
+
+#reverse
+def test_reverse():
+    items = [1,2,3]
+    pm.eval("(arr) => {arr.reverse()}")(items)
+    assert items == [3,2,1]   
+
+def test_reverse_size_one():
+    items = [1]
+    pm.eval("(arr) => {arr.reverse()}")(items)
+    assert items == [1]  
+
+def test_reverse_size_zero():
+    items = []
+    pm.eval("(arr) => {arr.reverse()}")(items)
+    assert items == []      
+
+def test_reverse_returns_undefined():
+    items = [1,2,3]
+    pm.eval("(arr) => {arr[0] = arr.reverse()}")(items)
+    assert items == [None,2,1]      
+
+
+def test_reverse_ignores_extra_args():
+    items = [1,2,3]
+    pm.eval("(arr) => {arr.reverse(9)}")(items)
+    assert items == [3,2,1]   
+
+#pop
+def test_pop():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.pop()}")(result, items)
+    assert items == [1,2]
+    assert result[0] == 3      
+
+def test_pop_empty():
+    items = []
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.pop()}")(result, items)
+    assert items == []
+    assert result[0] == None       
+
+def test_pop_ignore_extra_args():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.pop(1)}")(result, items)
+    assert items == [1,2]
+    assert result[0] == 3      
+
+#at
+def test_at_no_arg():
+    items = [1,2,3]
+    try:
+        pm.eval("(arr) => {arr.at()}")(items)         
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__('TypeError: at: At least 1 argument required, but only 0 passed')      
+           
+def test_at():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.at(0)}")(result, items)
+    assert result[0] == 1  
+
+def test_at_wrong_index_type():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.at('f')}")(result, items)
+    assert result[0] == 1      
+
+def test_at_index_too_large():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.at(10)}")(result, items)
+    assert result[0] == None      
+    
+def test_at_index_negative():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.at(-2)}")(result, items)
+    assert result[0] == 2   
+
+#join
+def test_join_no_arg():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
+    assert result[0] == '1,2,3'    
+
+def test_join_no_arg_diff_types():
+    items = [1,False,"END"]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
+    assert result[0] == '1,false,END'     
+
+def test_join_no_arg_with_embedded_list_type():
+    items = [1,[2,3],"END"]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
+    assert result[0] == '1,2,3,END'   
+
+def test_join_with_sep():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join('-')}")(result, items)
+    assert result[0] == '1-2-3'
+
+#toString
+def test_toString():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.toString()}")(result, items)
+    assert result[0] == '1,2,3'  
+
+#push
+def test_push():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.push(4)}")(result, items)
+    assert items == [1,2,3,4]
+    assert result[0] == 4       
+
+def test_push_no_arg():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.push()}")(result, items)
+    assert items == [1,2,3,]
+    assert result[0] == 3 
+
+def test_push_two_args():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.push(4,false)}")(result, items)
+    assert items == [1,2,3,4,False]
+    assert result[0] == 5   
+
+def test_push_list():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.push([4,5])}")(result, items)
+    assert items == [1,2,3,[4,5]]
+    assert result[0] == 4   
+
+#shift
+def test_shift():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.shift()}")(result, items)
+    assert items == [2,3]
+    assert result[0] == 1    
+
+def test_shift_empty():
+    items = []
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.shift()}")(result, items)
+    assert items == []
+    assert result[0] == None   
+
+#unshift     
+def test_unshift_zero_arg():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.unshift()}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == 3
+
+def test_unshift_one_arg():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.unshift(6)}")(result, items)
+    assert items == [6,1,2,3]
+    assert result[0] == 4    
+
+def test_unshift_two_args():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.unshift(6,7)}")(result, items)
+    assert items == [6,7,1,2,3]
+    assert result[0] == 5      
+
+#concat
+def test_concat_primitive():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.concat(4)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [1,2,3,4]
+
+def test_concat_array():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.concat([4,5])}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [1,2,3,4,5]    
+
+def test_concat_empty_arg():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.concat()}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [1,2,3]  
+
+def test_concat_two_arrays():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.concat([7,8], [0,1])}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [1,2,3,7,8,0,1]         
+
+def test_concat_mix():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.concat([7,8], true, [0,1])}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [1,2,3,7,8,True, 0,1]    
+
+#slice
+def test_slice():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.slice(1,2)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [2]   
+
+def test_slice_start_zero():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.slice(0,2)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [1,2]      
+
+def test_slice_stop_length():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.slice(1,3)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [2,3]     
+
+def test_slice_stop_beyond_length():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.slice(1,4)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [2,3]   
+
+def test_slice_start_negative():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.slice(-3,-1)}")(result, items)
+    assert result[0] == [1,2]      
+
+#indexOf
+def test_indexOf():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(1)}")(result, items)
+    assert result[0] == 0     
+
+def test_indexOf_with_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(3, 1)}")(result, items)
+    assert result[0] == 2 
+
+def test_indexOf_with_negative_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(3, -2)}")(result, items)
+    assert result[0] == 2 
+
+def test_indexOf_zero_size():
+    items = []
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(1)}")(result, items)
+    assert result[0] == -1    
+
+def test_indexOf_start_beyond_length():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(1, 10)}")(result, items)
+    assert result[0] == -1    
+
+def test_indexOf_not_found():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(10)}")(result, items)
+    assert result[0] == -1   
+
+#lastIndexOf
+def test_lastIndexOf():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(1)}")(result, items)
+    assert result[0] == 0    
+
+def test_lastIndexOf_dup():
+    items = [1,2,3,1]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(1)}")(result, items)
+    assert result[0] == 3    
+
+def test_lastIndexOf_with_from_index():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(1, 2)}")(result, items)
+    assert result[0] == 0       
+
+def test_lastIndexOf_with_from_index_greater_than_size():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(1, 10)}")(result, items)
+    assert result[0] == 0    
+
+def test_lastIndexOf_with_negative_from_index():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(1, -2)}")(result, items)
+    assert result[0] == 0                     
+
+def test_lastIndexOf_not_found():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(3, 0)}")(result, items)
+    assert result[0] == -1   
+
+#splice
+def test_splice_no_args():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice()}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == []     
+
+def test_splice_one_arg():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1)}")(result, items)
+    assert items == [1]
+    assert result[0] == [2,3]      
+
+def test_splice_one_arg_negative():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(-2)}")(result, items)
+    assert items == [1]
+    assert result[0] == [2,3]    
+
+def test_splice_two_args_negative_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1, -1)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == []  
+
+def test_splice_two_args_zero_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1, 0)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == []       
+
+def test_splice_two_args_one_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1, 1)}")(result, items)
+    assert items == [1,3]
+    assert result[0] == [2]   
+
+def test_splice_two_args_two_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1, 2)}")(result, items)
+    assert items == [1]
+    assert result[0] == [2,3]      
+
+def test_splice_three_args_zero_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1,0,5)}")(result, items)
+    assert items == [1,5,2,3]
+    assert result[0] == []   
+
+def test_splice_three_args_one_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1,1,5)}")(result, items)
+    assert items == [1,5,3]
+    assert result[0] == [2] 
+
+def test_splice_three_args_two_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1,2,5)}")(result, items)
+    assert items == [1,5]
+    assert result[0] == [2,3]     
+
+def test_splice_four_args_zero_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1,0,5,6)}")(result, items)
+    assert items == [1,5,6,2,3]
+    assert result[0] == []   
+
+def test_splice_four_args_one_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1,1,5,6)}")(result, items)
+    assert items == [1,5,6,3]
+    assert result[0] == [2] 
+
+def test_splice_four_args_two_count():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.splice(1,2,5,6)}")(result, items)
+    assert items == [1,5,6]
+    assert result[0] == [2,3]                               
+
+#fill
+def test_fill_returns_ref_to_self():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8)}")(result, items)
+    assert items == [8,8,8]
+    assert result[0] == [8,8,8]
+    result[0][0] = 9
+    assert items == [9,8,8]
+
+def test_fill_other_type():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(false)}")(result, items)
+    assert items == [False,False,False]  
+
+def test_fill_with_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,1)}")(result, items)
+    assert items == [1,8,8] 
+
+def test_fill_with_start_negative():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,-2)}")(result, items)
+    assert items == [1,8,8]    
+
+def test_fill_with_start_too_high():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,7)}")(result, items)
+    assert items == [1,2,3]      
+
+def test_fill_with_stop():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,1,2)}")(result, items)
+    assert items == [1,8,3]    
+
+def test_fill_with_negative_stop():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,1,-1)}")(result, items)
+    assert items == [1,8,3]    
+
+def test_fill_with_stop_too_high():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,1,10)}")(result, items)
+    assert items == [1,8,8]  
+
+#copyWithin
+def test_copyWithin_returns_ref_to_self():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(0,1)}")(result, items)
+    assert items == [2,3,3]
+    assert result[0] == [2,3,3]
+    result[0][0] = 9
+    assert items == [9,3,3]       
+
+def test_copyWithin():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(0,1)}")(result, items)
+    assert items == [2,3,3]
+    assert result[0] == [2,3,3]
+    result[0][0] = 9
+    assert items == [9,3,3]    
+
+def test_copyWithin_no_args():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin()}")(result, items)
+    assert items == [1,2,3]     
+
+def test_copyWithin_target_only_overwrite_all():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(0)}")(result, items)
+    assert items == [1,2,3]  
+
+def test_copyWithin_target_only():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1)}")(result, items)
+    assert items == [1,1,2]     
+
+def test_copyWithin_negative_target_only():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(-1)}")(result, items)
+    assert items == [1,2,1] 
+
+def test_copyWithin_target_too_large():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(10)}")(result, items)
+    assert items == [1,2,3]     
+
+def test_copyWithin_target_and_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1, 2)}")(result, items)
+    assert items == [1,3,3]   
+
+def test_copyWithin_target_and_start_too_large():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1, 2)}")(result, items)
+    assert items == [1,3,3]       
+
+def test_copyWithin_target_and_negative_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1, -1)}")(result, items)
+    assert items == [1,3,3]   
+
+def test_copyWithin_target_and_start_and_end():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1,2,3)}")(result, items)
+    assert items == [1,3,3,4,5]    
+
+def test_copyWithin_target_and_start_and_negative_end():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1,2,-2)}")(result, items)
+    assert items == [1,3,3,4,5]    
+
+#includes
+def test_includes():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes(1)}")(result, items)
+    assert result[0] == True   
+
+def test_includes_other_type():
+    items = [1,2,'Hi']
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes('Hi')}")(result, items)
+    assert result[0] == True         
+
+def test_includes_not():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes(5)}")(result, items)
+    assert result[0] == False   
+
+def test_includes_not_other_type():
+    items = [1,2,'Hi']
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes('Joe')}")(result, items)
+    assert result[0] == False   
+
+def test_includes_too_few_args():
+    items = [4,2,6,7]
+    try:
+        pm.eval("(arr) => {arr.includes()}")(items)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: includes: At least 1 argument required, but only 0 passed")   
+
+
+#sort
+def test_sort_empty():
+    items = []
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
+    assert result[0] == items
+    assert items == []
+
+def test_sort_numbers():
+    items = [4,2,6,7]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
+    assert result[0] == items
+    assert items == [2,4,6,7]
+
+def test_sort_strings():
+    items = ['Four', 'Three', 'One']   
+    pm.eval("(arr) => {arr.sort()}")(items)
+    assert items == ['Four', 'One', 'Three']    
+
+def test_sort_with_two_args_keyfunc():
+    items = [4,2,6,7]
+    def myFunc(e,f):
+        return len(e) - len(f)  
+    try:
+        pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'TypeError'>"
+        assert str(e).__contains__("myFunc() missing 1 required positional argument: 'f'")   
+
+def test_sort_with_one_arg_keyfunc():
+    items = ['Four', 'Three', 'One']   
+    def myFunc(e):
+        return len(e)  
+    pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)
+    assert items == ['One', 'Four', 'Three']
+
+def test_sort_with_builtin_keyfunc():
+    items = ['Four', 'Three', 'One']   
+    pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, len)
+    assert items == ['One', 'Four', 'Three']
+
+def test_sort_with_builtin_keyfunc_wrong_data_type():
+    items = [4,2,6,7]  
+    try:
+        pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, len)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'TypeError'>"
+        assert str(e).__contains__("object of type 'int' has no len()")   
+
+def test_sort_with_js_func():
+    items = ['Four', 'Three', 'One']  
+    result = [None]
+    myFunc = pm.eval("((a, b) => a.toLocaleUpperCase() < b.toLocaleUpperCase() ? -1 : 1)")
+    pm.eval("(result, arr, compareFun) => {result[0] = arr.sort(compareFun)}")(result, items, myFunc)
+    assert result[0] == items
+    assert items == ['Four', 'One', 'Three'] 
+
+def test_sort_with_js_func_wrong_data_type():
+    items = [4,2,6,7]
+    myFunc = pm.eval("((a, b) => a.toLocaleUpperCase() < b.toLocaleUpperCase() ? -1 : 1)")
+    try:
+        pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: a.toLocaleUpperCase is not a function")       
+
+#forEach
+def test_forEach():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.forEach((element) => result[0] += element)}")(result, items)
+    assert items == ['Four', 'Three', 'One']   
+    assert result == ['FourThreeOne'] 
+
+def test_forEach_check_index():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.forEach((element, index) => result[0] += index)}")(result, items) 
+    assert result == ['012']    
+
+def test_forEach_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.forEach((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]        
+
+def test_forEach_check_this_arg():
+    items = ['Four', 'Three', 'One'] 
+    result = [None]
+    pm.eval("(result, arr) => {class Counter { constructor() { this.count = 0;} add(array) { array.forEach(function countEntry(entry) { ++this.count; }, this);}} const obj = new Counter(); obj.add(arr); result[0] = obj.count;}")(result, items)  
+    assert result == [3]  
+
+def test_forEach_too_few_args():
+    items = [4,2,6,7]
+    try:
+        pm.eval("(arr) => {arr.forEach()}")(items)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: forEach: At least 1 argument required, but only 0 passed")          
+
+#map   
+def test_map():
+    items = [4,2,6,7]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.map((x) => x * x)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == [16,4,36,49]
+
+def test_map_too_few_args():
+    items = [4,2,6,7]
+    try:
+        pm.eval("(arr) => {arr.map()}")(items)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: map: At least 1 argument required, but only 0 passed")     
+
+def test_map_check_index():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.map((element, index) => result[0] += index)}")(result, items) 
+    assert result == ['012']    
+
+def test_map_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.map((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]           
+    
+#filter
+def test_filter():
+    words = ['spray', 'elite', 'exuberant', 'destruction', 'present']
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.filter((word) => word.length > 6)}")(result, words)
+    assert words == ['spray', 'elite', 'exuberant', 'destruction', 'present']
+    assert result[0] == ['exuberant', 'destruction', 'present']
+
+def test_filter_too_few_args():
+    items = [4,2,6,7]
+    try:
+        pm.eval("(arr) => {arr.filter()}")(items)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: filter: At least 1 argument required, but only 0 passed")         
+
+#reduce  index, array param, too few args same as previous few
+def test_reduce():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue, 0)}")(result, items)
+    assert items == [1,2,3,4,5]
+    assert result[0] == 15
+
+def test_reduce_float():
+    items = [1.9, 4.6, 9.3, 16.5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue, 0)}")(result, items)
+    assert result[0] == 32.3    
+
+def test_reduce_string():
+    items = ['Hi', 'There']
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue, "")}")(result, items)
+    assert result[0] == 'HiThere'    
+
+def test_reduce_initial_value_not_zero():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue, 5)}")(result, items)
+    assert items == [1,2,3,4,5]
+    assert result[0] == 20  
+
+def test_reduce_no_initial_value():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue)}")(result, items)
+    assert items == [1,2,3,4,5]
+    assert result[0] == 15   
+
+def test_reduce_list_meaningless():
+    items = [['Hi', 'There']]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((x) => x * 2)}")(result, items)
+    assert result[0] == ['Hi', 'There']  
+
+#reduceRight
+def test_reduceRight_list_concat():
+    items = [[0, 1],[2, 3],[4, 5]]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue) => accumulator.concat(currentValue))}")(result, items)
+    assert result[0] == [4, 5, 2, 3, 0, 1]
+
+def test_reduceRight_list_concat_with_initial_value():
+    items = [[0, 1],[2, 3],[4, 5]]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue) => accumulator.concat(currentValue), [7,8])}")(result, items)
+    assert result[0] == [7, 8, 4, 5, 2, 3, 0, 1]
+
+def test_reduceRight():
+    items = [0,1,2,3,4]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue, index, array) => accumulator + currentValue)}")(result, items)
+    assert result[0] == 10    
+
+def test_reduceRight_float():
+    items = [1.9, 4.6, 9.3, 16.5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue, index, array) => accumulator + currentValue)}")(result, items)
+    assert result[0] == 32.3      

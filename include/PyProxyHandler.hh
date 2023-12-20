@@ -1,7 +1,7 @@
 /**
  * @file PyProxy.hh
- * @author Caleb Aikens (caleb@distributive.network)
- * @brief Struct for creating JS proxy objects. Used by DictType for object coercion
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
+ * @brief Struct for creating JS proxy objects. Used by DictType for object coercion and by ListType for List coercion
  * @version 0.1
  * @date 2023-04-20
  *
@@ -29,6 +29,14 @@ public:
   bool preventExtensions(JSContext *cx, JS::HandleObject proxy, JS::ObjectOpResult &result) const override final;
   bool isExtensible(JSContext *cx, JS::HandleObject proxy, bool *extensible) const override final;
 };
+
+enum ProxySlots {PyObjectSlot};
+
+typedef struct {
+  const char *name;      /* The name of the method */
+  JSNative call;         /* The C function that implements it */
+  uint16_t nargs;        /* The argument count for the method */
+} JSMethodDef;
 
 /**
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates to handle coercion from python dicts to JS Objects
@@ -180,6 +188,9 @@ public:
 
   bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const override;
   bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
+  bool isArray(JSContext *cx, JS::HandleObject proxy, JS::IsArrayAnswer *answer) const override;
+  bool getBuiltinClass(JSContext *cx, JS::Handle<JSObject *> obj, js::ESClass *cls) const override;
+  const char *className(JSContext *cx, JS::HandleObject proxy) const override;
 };
 
 /**

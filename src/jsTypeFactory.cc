@@ -172,6 +172,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     JSObject *proxy;
     if (PyList_Check(object)) {
       proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
+      JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     } else {
       proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
     }
@@ -195,6 +196,25 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     errorString += Py_TYPE(object)->tp_name;
     PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
+  return returnType;
+}
+
+JS::Value jsTypeFactoryCopy(JSContext *cx, PyObject *object) {
+  JS::RootedValue returnType(cx);
+  if (PyList_Check(object)) {
+    Py_ssize_t listSize = PyList_Size(object);
+    JSObject *array = JS::NewArrayObject(cx, listSize);
+    JS::RootedObject arrayObj(cx, array);
+    for (Py_ssize_t index = 0; index < listSize; index++) {
+      JS::RootedValue jsValue(cx, jsTypeFactorySafe(cx, PyList_GetItem(object, index)));
+      JS_SetElement(cx, arrayObj, index, jsValue);
+    }
+    returnType.setObject(*array);
+  }
+  else {
+    returnType.setUndefined();
+  }
+
   return returnType;
 }
 
@@ -239,7 +259,9 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::RootedObject *thisv = new JS::RootedObject(cx);
   JS_ValueToObject(cx, callargs.thisv(), thisv);
 
-  if (!callargs.length()) {
+  unsigned int callArgsLength = callargs.length();
+
+  if (!callArgsLength) {
     #if PY_VERSION_HEX >= 0x03090000
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
     #else
@@ -255,8 +277,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   // populate python args tuple
-  PyObject *pyArgs = PyTuple_New(callargs.length());
-  for (size_t i = 0; i < callargs.length(); i++) {
+  PyObject *pyArgs = PyTuple_New(callArgsLength);
+  for (size_t i = 0; i < callArgsLength; i++) {
     JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
     PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
     if (!pyArg) return false; // error occurred
