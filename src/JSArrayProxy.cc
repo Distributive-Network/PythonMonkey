@@ -175,21 +175,14 @@ static int list_ass_slice(JSArrayProxy *self, Py_ssize_t ilow, Py_ssize_t ihigh,
   size_t s;
   int result = -1;              /* guilty until proved innocent */
 #define b ((PyListObject *)v)
+  Py_ssize_t selfLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length(self);
   if (v == NULL) {
     n = 0;
   }
   else {
-    Py_ssize_t vLength;
-    if (PyObject_TypeCheck(v, &JSArrayProxyType)) {
-      vLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)v);
-    }
-    else {
-      vLength = Py_SIZE(b);
-    }
-
     if ((PyListObject *)self == b) {
       /* Special case "a[i:j] = a" -- copy b first */
-      v = list_slice(self, 0, vLength);
+      v = list_slice(self, 0, selfLength);
       if (v == NULL) {
         return result;
       }
@@ -205,8 +198,6 @@ static int list_ass_slice(JSArrayProxy *self, Py_ssize_t ilow, Py_ssize_t ihigh,
     n = PySequence_Fast_GET_SIZE(v_as_SF);
     vitem = PySequence_Fast_ITEMS(v_as_SF);
   }
-
-  Py_ssize_t selfLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length(self);
 
   if (ilow < 0) {
     ilow = 0;
@@ -795,7 +786,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_insert(JSArrayProxy *self,
 
   {
     Py_ssize_t ival = -1;
-    PyObject *iobj = _PyNumber_Index(args[0]);
+    PyObject *iobj = PyNumber_Index(args[0]);
     if (iobj != NULL) {
       ival = PyLong_AsSsize_t(iobj);
       Py_DECREF(iobj);
@@ -905,7 +896,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_pop(JSArrayProxy *self, Py
 
   if (nargs >= 1) {
     Py_ssize_t ival = -1;
-    PyObject *iobj = _PyNumber_Index(args[0]);
+    PyObject *iobj = PyNumber_Index(args[0]);
     if (iobj != NULL) {
       ival = PyLong_AsSsize_t(iobj);
       Py_DECREF(iobj);

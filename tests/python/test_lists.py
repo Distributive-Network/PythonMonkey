@@ -342,7 +342,7 @@ def test_clear_with_arg():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "JSArrayProxy.clear() takes no arguments (1 given)"     
+        assert str(e).__contains__('clear() takes no arguments (1 given)')         
 
 #copy
 def test_copy():
@@ -359,7 +359,7 @@ def test_copy_with_arg():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "JSArrayProxy.copy() takes no arguments (1 given)"        
+        assert str(e).__contains__('copy() takes no arguments (1 given)')          
 
 #append
 def test_append():
@@ -544,7 +544,7 @@ def test_remove_no_args():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "JSArrayProxy.remove() takes exactly one argument (0 given)"   
+        assert str(e).__contains__('remove() takes exactly one argument (0 given)')    
 
 def test_remove_not_found():
     a = pm.eval('([1,2])')
@@ -680,7 +680,7 @@ def test_reverse_too_many_args():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "JSArrayProxy.reverse() takes no arguments (1 given)"     
+        assert str(e).__contains__('reverse() takes no arguments (1 given)')       
 
 #sort
 def test_sort():
