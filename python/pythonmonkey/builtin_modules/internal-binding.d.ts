@@ -6,7 +6,7 @@
 
 /**
  * Note: `internalBinding` APIs are generally unsafe as they do not perform argument type checking, etc.
- *       Argument checking should be done in JavaScript side.
+ *       Argument checking should be done on the JavaScript side.
  */
 declare function internalBinding(namespace: string): any; // catch-all
 

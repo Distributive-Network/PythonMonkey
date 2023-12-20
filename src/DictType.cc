@@ -10,7 +10,6 @@
 
 #include <Python.h>
 
-#include <string>
 
 DictType::DictType() {
   this->pyObject = PyDict_New();
@@ -24,13 +23,4 @@ DictType::DictType(JSContext *cx, JS::Handle<JS::Value> jsObject) {
   JS_ValueToObject(cx, jsObject, &obj);
   proxy->jsObject.set(obj);
   this->pyObject = (PyObject *)proxy;
-}
-
-void DictType::set(PyType *key, PyType *value) {
-  PyDict_SetItem(this->pyObject, key->getPyObject(), value->getPyObject());
-}
-
-PyType *DictType::get(PyType *key) const {
-  PyObject *retrieved_object = PyDict_GetItem(this->pyObject, key->getPyObject());
-  return retrieved_object != NULL ? pyTypeFactory(retrieved_object) : nullptr;
 }

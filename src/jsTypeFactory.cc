@@ -15,6 +15,7 @@
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
 #include "include/JSObjectProxy.hh"
+#include "include/JSArrayProxy.hh"
 #include "include/PyProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
@@ -27,6 +28,7 @@
 #include <jsapi.h>
 #include <jsfriendapi.h>
 #include <js/Proxy.h>
+#include <js/Array.h>
 
 #include <Python.h>
 #include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
@@ -162,6 +164,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
+  else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
+    returnType.setObject(*((JSArrayProxy *)object)->jsObject);
+  }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
     JSObject *proxy;
@@ -191,7 +196,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
-
 }
 
 JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {

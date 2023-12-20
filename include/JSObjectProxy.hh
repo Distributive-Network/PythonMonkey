@@ -9,6 +9,9 @@
  *
  */
 
+#ifndef PythonMonkey_JSObjectProxy_
+#define PythonMonkey_JSObjectProxy_
+
 #include <jsapi.h>
 
 #include <Python.h>
@@ -129,7 +132,7 @@ public:
    * @return the string representation (a PyUnicodeObject) on success, NULL on failure
    */
   static PyObject *JSObjectProxy_repr(JSObjectProxy *self);
-  
+
   /**
    * @brief Set union operation
    *
@@ -268,3 +271,5 @@ static PyMethodDef JSObjectProxy_methods[] = {
  * @brief Struct for the JSObjectProxyType, used by all JSObjectProxy objects
  */
 extern PyTypeObject JSObjectProxyType;
+
+#endif
