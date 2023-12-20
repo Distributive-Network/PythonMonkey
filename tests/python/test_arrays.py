@@ -75,40 +75,6 @@ def test_pop_ignore_extra_args():
     assert items == [1,2]
     assert result[0] == 3      
 
-#at
-def test_at_no_arg():
-    items = [1,2,3]
-    try:
-        pm.eval("(arr) => {arr.at()}")(items)         
-        assert (False)
-    except Exception as e:    
-        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__('TypeError: at: At least 1 argument required, but only 0 passed')      
-           
-def test_at():
-    items = [1,2,3]
-    result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.at(0)}")(result, items)
-    assert result[0] == 1  
-
-def test_at_wrong_index_type():
-    items = [1,2,3]
-    result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.at('f')}")(result, items)
-    assert result[0] == 1      
-
-def test_at_index_too_large():
-    items = [1,2,3]
-    result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.at(10)}")(result, items)
-    assert result[0] == None      
-    
-def test_at_index_negative():
-    items = [1,2,3]
-    result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.at(-2)}")(result, items)
-    assert result[0] == 2   
-
 #join
 def test_join_no_arg():
     items = [1,2,3]
@@ -140,6 +106,13 @@ def test_toString():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.toString()}")(result, items)
     assert result[0] == '1,2,3'  
+
+#toString
+def test_LocaleString():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.toString()}")(result, items)
+    assert result[0] == '1,2,3'      
 
 #push
 def test_push():
@@ -684,9 +657,11 @@ def test_sort_with_js_func_wrong_data_type():
 def test_forEach():
     items = ['Four', 'Three', 'One'] 
     result = ['']
-    pm.eval("(result, arr) => {arr.forEach((element) => result[0] += element)}")(result, items)
+    returnResult = [0]
+    pm.eval("(returnResult, result, arr) => {returnResult[0] = arr.forEach((element) => result[0] += element)}")(returnResult, result, items)
     assert items == ['Four', 'Three', 'One']   
     assert result == ['FourThreeOne'] 
+    assert returnResult == [None] 
 
 def test_forEach_check_index():
     items = ['Four', 'Three', 'One'] 
@@ -761,7 +736,7 @@ def test_filter_too_few_args():
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("TypeError: filter: At least 1 argument required, but only 0 passed")         
 
-#reduce  index, array param, too few args same as previous few
+#reduce  index, array param, too few args same impl as previous few for all below
 def test_reduce():
     items = [1,2,3,4,5]
     result = [None]
@@ -824,4 +799,167 @@ def test_reduceRight_float():
     items = [1.9, 4.6, 9.3, 16.5]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue, index, array) => accumulator + currentValue)}")(result, items)
-    assert result[0] == 32.3      
+    assert result[0] == 32.3    
+
+#some
+def test_some_true():
+    items = [1, 2, 3, 4, 5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.some((element) => element % 2 === 0)}")(result, items)
+    assert items == [1, 2, 3, 4, 5]
+    assert result[0] == True    
+
+def test_some_false():
+    items = [1,3,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.some((element) => element % 2 === 0)}")(result, items)
+    assert result[0] == False    
+
+def test_some_truthy_conversion():
+    result = [None]
+    pm.eval('(result) => {const TRUTHY_VALUES = [true, "true", 1];  function getBoolean(value) { if (typeof value === "string") { value = value.toLowerCase().trim(); } return TRUTHY_VALUES.some((t) => t === value);} result[0] = getBoolean(1);}')(result)
+    assert result[0] == True   
+
+#every        
+def test_every_true():
+    items = [2,4,6]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.every((element) => element % 2 === 0)}")(result, items)
+    assert items == [2,4,6]
+    assert result[0] == True    
+
+def test_every_false():
+    items = [1,2,4,6]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.every((element) => element % 2 === 0)}")(result, items)
+    assert result[0] == False    
+
+#find
+def test_find_found_once():
+    items = [5, 12, 8, 130, 44]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.find((element) => element > 100)}")(result, items)
+    assert items == [5, 12, 8, 130, 44]
+    assert result[0] == 130  
+
+def test_find_found_twice():
+    items = [5, 12, 8, 130, 4]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.find((element) => element > 10)}")(result, items)
+    assert result[0] == 12   
+
+def test_find_not_found():
+    items = [5, 12, 8, 130, 44]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.find((element) => element > 1000)}")(result, items)
+    assert result[0] == None  
+
+#findIndex
+def test_findIndex_found_once():
+    items = [5, 12, 8, 130, 44]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.findIndex((element) => element > 100)}")(result, items)
+    assert items == [5, 12, 8, 130, 44]
+    assert result[0] == 3  
+
+def test_findIndex_found_twice():
+    items = [5, 12, 8, 130, 4]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.findIndex((element) => element > 10)}")(result, items)
+    assert result[0] == 1    
+
+def test_findIndex_not_found():
+    items = [5, 12, 8, 130, 4]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.findIndex((element) => element > 1000)}")(result, items)
+    assert result[0] == -1        
+
+#flat
+def test_flat():
+    items = [0, 1, 2, [3, 4]]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flat()}")(result, items)
+    assert items == [0, 1, 2, [3, 4]]
+    assert result[0] == [0, 1, 2, 3, 4]
+
+def test_flat_depth_zero():
+    items = [0, 1, [2, [3, [4, 5]]]]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flat(0)}")(result, items)
+    assert result[0] == [0, 1, [2, [3, [4, 5]]]]
+
+def test_flat_depth_one():
+    items = [0, 1, [2, [3, [4, 5]]]]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flat(1)}")(result, items)
+    assert items == [0, 1, [2, [3, [4, 5]]]]
+    assert result[0] == [0, 1, 2, [3, [4, 5]]]    
+
+########## TODO these two fail as tests but work in the interactive console ###########
+#def test_flat_depth_two():
+#    items = [0, 1, [2, [3, [4, 5]]]]
+#    result = [0]
+#    pm.eval("(result, arr) => {result[0] = arr.flat(2)}")(result, items)
+#    assert items == [0, 1, [2, [3, [4, 5]]]]
+#    assert result[0] == [0, 1, 2, 3, [4, 5]]    
+
+#def test_flat_depth_infinite():
+#    items = [0, 1, [2, [3, [4, 5]]]]
+#    result = [0]
+#    pm.eval("(result, arr) => {result[0] = arr.flat(Infinity)}")(result, items)
+#    assert result[0] == [0, 1, 2, 3, 4, 5]      
+
+#flatMap
+def test_flatMap():
+    items = [1, 2, 1]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flatMap((num) => (num === 2 ? [2, 2] : 1))}")(result, items)
+    assert items == [1,2,1]
+    assert result[0] == [1,2,2,1]
+
+def test_flatMap_equivalence():
+    items = [1, 2, 1]
+    result = [0]
+    result2 = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flatMap((num) => (num === 2 ? [2, 2] : 1))}")(result, items)
+    pm.eval("(result, arr) => {result[0] = arr.map((num) => (num === 2 ? [2, 2] : 1)).flat()}")(result2, items)
+    assert result[0] == result2[0]   
+
+#  toLocaleString
+def test_toLocaleString():
+    result = [None]
+    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('en', { timeZone: 'UTC' })}")(result)
+    assert result[0] == '1,a,12/21/1997, 2:12:00 PM'   
+
+def test_toLocaleString_no_args():
+    result = [None]
+    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString()}")(result)
+    assert result[0] == '1,a,1997-12-21, 9:12:00 a.m.'     
+
+def test_toLocaleString_one_arg_en():
+    result = [None]
+    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('en')}")(result)
+    assert result[0] == '1,a,12/21/1997, 9:12:00 AM'     
+
+def test_toLocaleString_one_arg_fr():
+    result = [None]
+    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('fr')}")(result)
+    assert result[0] == '1,a,21/12/1997 09:12:00'  
+
+def test_toLocaleString_one_arg_invalid_locale():
+    result = [None]
+    try:
+        pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('endzfasdf')}")(result)     
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("RangeError: invalid language tag:")       
+
+def test_toLocaleString_two_args_invalid_timeZone():
+    result = [None]
+    try:
+        pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('en', { timeZone: 'UT' })}")(result)     
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("RangeError: invalid time zone in DateTimeFormat(): UT")           

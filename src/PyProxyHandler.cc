@@ -224,94 +224,6 @@ static bool array_pop(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-static bool array_at(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  if (!args.requireAtLeast(cx, "at", 1)) {
-    return false;
-  }
-
-  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
-  if (!proxy) {
-    return false;
-  }
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
-  int64_t index;
-  if (!JS::ToInt64(cx, args[0], &index)) {
-    return false;
-  }
-
-  Py_ssize_t selfSize = PyList_GET_SIZE(self);
-
-  if (index < 0) {
-    index += selfSize;
-  }
-
-  if (index < 0 || index >= selfSize) {
-    args.rval().setUndefined();
-    return true;
-  }
-
-  PyObject *result = PyList_GetItem(self, (Py_ssize_t)index);
-
-  args.rval().set(jsTypeFactory(cx, result));
-  return true;
-}
-
-static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
-  if (!proxy) {
-    return false;
-  }
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
-  // convert to JSArray (copy) then call join on it
-  JS::RootedObject selfCopy(cx, &jsTypeFactoryCopy(cx, self).toObject());
-
-  JS::RootedString sepstr(cx);
-  if (args.hasDefined(0)) {
-    sepstr = JS::ToString(cx, args[0]);
-    if (!sepstr) {
-      return false;
-    }
-  } else {
-    sepstr = JS_NewStringCopyZ(cx, ",");
-  }
-
-  JS::Rooted<JS::ValueArray<1>> jArgs(cx);
-  jArgs[0].setString(sepstr);
-  JS::RootedValue jRet(cx);
-  if (!JS_CallFunctionName(cx, selfCopy, "join", jArgs, &jRet)) {
-    return false;
-  }
-
-  args.rval().setString(jRet.toString());
-  return true;
-}
-
-static bool array_toString(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
-  if (!proxy) {
-    return false;
-  }
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
-  JS::RootedObject selfCopy(cx, &jsTypeFactoryCopy(cx, self).toObject());
-
-  JS::RootedValue jRet(cx);
-  if (!JS_CallFunctionName(cx, selfCopy, "toString", JS::HandleValueArray::empty(), &jRet)) {
-    return false;
-  }
-
-  args.rval().setString(jRet.toString());
-  return true;
-}
-
 static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely the function name is in there...review JSAPI examples
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
@@ -643,9 +555,12 @@ static bool array_sort(JSContext *cx, unsigned argc, JS::Value *vp) {
         if (flags & METH_VARARGS && !(flags & METH_KEYWORDS)) {
           // it's a JS func
 
+          // We don't want to put in all the sort code so we'll tolerate the following slight O(n) inefficiency
+
           // copy to JS for sorting
           JS::RootedObject selfCopy(cx, &jsTypeFactoryCopy(cx, self).toObject());
 
+          // sort
           JS::RootedValue jReturnedArray(cx);
           JS::HandleValueArray jArgs(args);
           if (!JS_CallFunctionName(cx, selfCopy, "sort", jArgs, &jReturnedArray)) {
@@ -830,8 +745,11 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-static bool array_copy_func(JSContext *cx, JS::CallArgs args, const char *fName, JS::MutableHandle<JS::Value> rval) {
-  if (!args.requireAtLeast(cx, fName, 1)) {
+// private util
+static bool array_copy_func(JSContext *cx, unsigned argc, JS::Value *vp, const char *fName, bool checkRequireAtLeastOne = true) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (checkRequireAtLeastOne && !args.requireAtLeast(cx, fName, 1)) {
     return false;
   }
 
@@ -844,117 +762,81 @@ static bool array_copy_func(JSContext *cx, JS::CallArgs args, const char *fName,
   JS::RootedObject selfCopy(cx, &jsTypeFactoryCopy(cx, self).toObject());
 
   JS::HandleValueArray jArgs(args);
+  JS::RootedValue rval(cx);
 
-  if (!JS_CallFunctionName(cx, selfCopy, fName, jArgs, rval)) {
+  if (!JS_CallFunctionName(cx, selfCopy, fName, jArgs, &rval)) {
     return false;
   }
+
+  args.rval().set(rval);
 
   return true;
 }
 
 static bool array_includes(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedValue jRet(cx);
-
-  if (!array_copy_func(cx, args, "includes", &jRet)) {
-    return false;
-  }
-
-  args.rval().setBoolean(jRet.toBoolean());
-  return true;
+  return array_copy_func(cx, argc, vp, "includes");
 }
 
 static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedValue jRet(cx);
-
-  if (!array_copy_func(cx, args, "forEach", &jRet)) {
-    return false;
-  }
-
-  args.rval().setUndefined();
-  return true;
+  return array_copy_func(cx, argc, vp, "forEach");
 }
 
 static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedValue jRet(cx);
-
-  if (!array_copy_func(cx, args, "map", &jRet)) {
-    return false;
-  }
-
-  args.rval().setObject(jRet.toObject());
-  return true;
+  return array_copy_func(cx, argc, vp, "map");
 }
 
 static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedValue jRet(cx);
-
-  if (!array_copy_func(cx, args, "filter", &jRet)) {
-    return false;
-  }
-
-  args.rval().setObject(jRet.toObject());
-  return true;
+  return array_copy_func(cx, argc, vp, "filter");
 }
 
 static bool array_reduce(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedValue jRet(cx);
-
-  if (!array_copy_func(cx, args, "reduce", &jRet)) {
-    return false;
-  }
-
-  if (jRet.isNumber()) {
-    args.rval().setNumber(jRet.toNumber());
-  }
-  else if (jRet.isString()) {
-    args.rval().setString(jRet.toString());
-  }
-  else if (jRet.isObject()) {
-    args.rval().setObject(jRet.toObject());
-  }
-
-  return true;
+  return array_copy_func(cx, argc, vp, "reduce");
 }
 
 static bool array_reduceRight(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  return array_copy_func(cx, argc, vp, "reduceRight");
+}
 
-  JS::RootedValue jRet(cx);
+static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "some");
+}
 
-  if (!array_copy_func(cx, args, "reduceRight", &jRet)) {
-    return false;
-  }
+static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "every");
+}
 
-  if (jRet.isNumber()) {
-    args.rval().setNumber(jRet.toNumber());
-  }
-  else if (jRet.isString()) {
-    args.rval().setString(jRet.toString());
-  }
-  else if (jRet.isObject()) {
-    args.rval().setObject(jRet.toObject());
-  }
+static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "find");
+}
 
-  return true;
+static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "findIndex");
+}
+
+static bool array_flat(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "flat", false);
+}
+
+static bool array_flatMap(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "flatMap");
+}
+
+static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "join", false);
+}
+
+static bool array_toString(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "toString", false);
+}
+
+static bool array_toLocaleString(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "toLocaleString", false);
 }
 
 
 static JSMethodDef array_methods[] = {
   {"reverse", array_reverse, 0},
   {"pop", array_pop, 0},
-  {"at", array_at, 1},
-  {"join", array_join, 1},
-  {"toString", array_toString, 0},
   {"push", array_push, 1},
   {"shift", array_shift, 0},
   {"unshift", array_unshift, 1},
@@ -972,6 +854,15 @@ static JSMethodDef array_methods[] = {
   {"filter", array_filter, 1},
   {"reduce", array_reduce, 1},
   {"reduceRight", array_reduceRight, 1},
+  {"some", array_some, 1},
+  {"every", array_every, 1},
+  {"find", array_find, 1},
+  {"findIndex", array_findIndex, 1},
+  {"flat", array_flat, 1},
+  {"flatMap", array_flatMap, 1},
+  {"join", array_join, 1},
+  {"toString", array_toString, 0},
+  {"toLocaleString", array_toLocaleString, 0},
   {NULL, NULL}
 };
 
