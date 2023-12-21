@@ -833,6 +833,10 @@ static bool array_toLocaleString(JSContext *cx, unsigned argc, JS::Value *vp) {
   return array_copy_func(cx, argc, vp, "toLocaleString", false);
 }
 
+static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "valueOf", false);
+}
+
 
 static JSMethodDef array_methods[] = {
   {"reverse", array_reverse, 0},
@@ -863,9 +867,11 @@ static JSMethodDef array_methods[] = {
   {"join", array_join, 1},
   {"toString", array_toString, 0},
   {"toLocaleString", array_toLocaleString, 0},
+  {"valueOf", array_valueOf, 0},
   {NULL, NULL}
 };
 
+static bool sawValueOf = false;
 
 bool PyListProxyHandler::getOwnPropertyDescriptor(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
@@ -873,6 +879,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 ) const {
   // see if we're calling a function
   if (id.isString()) {
+    JS::RootedString message(cx, id.toString());
     for (size_t index = 0;; index++) {
       bool isThatFunction;
       const char *methodName = array_methods[index].name;
@@ -897,7 +904,6 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   // We're trying to get the "length" property
   bool isLengthProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "length", &isLengthProperty) && isLengthProperty) {
-    // proxy.length = len(pyObject)
     desc.set(mozilla::Some(
       JS::PropertyDescriptor::Data(
         JS::Int32Value(PyList_Size(pyObject))
@@ -977,6 +983,7 @@ bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::Hand
 }
 
 bool PyListProxyHandler::isArray(JSContext *cx, JS::HandleObject proxy, JS::IsArrayAnswer *answer) const {
+  *answer = JS::IsArrayAnswer::Array;
   return true;
 }
 
@@ -987,5 +994,5 @@ bool PyListProxyHandler::getBuiltinClass(JSContext *cx, JS::Handle<JSObject *> o
 
 const char *PyListProxyHandler::className(JSContext *cx, JS::HandleObject proxy) const {
   // TODO untested
-  return "object";
+  return "Array";
 }

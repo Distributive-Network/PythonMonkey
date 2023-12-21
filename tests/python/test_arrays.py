@@ -925,41 +925,51 @@ def test_flatMap_equivalence():
     pm.eval("(result, arr) => {result[0] = arr.map((num) => (num === 2 ? [2, 2] : 1)).flat()}")(result2, items)
     assert result[0] == result2[0]   
 
-#  toLocaleString
+#valueOf
+def test_valueOf():
+    items = [1, 2, 1]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.valueOf()}")(result, items)
+    assert result[0] == [1,2,1] 
+
+#toLocaleString
 def test_toLocaleString():
+    prices = ["￥7", 500, 8123, 12]
     result = [None]
-    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('en', { timeZone: 'UTC' })}")(result)
-    assert result[0] == '1,a,12/21/1997, 2:12:00 PM'   
+    pm.eval("(result, arr) => {result[0] = arr.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' })}")(result, prices)
+    assert result[0] == '￥7,￥500,￥8,123,￥12'   
 
 def test_toLocaleString_no_args():
+    prices = ["￥7", 500, 8123, 12]
     result = [None]
-    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString()}")(result)
-    assert result[0] == '1,a,1997-12-21, 9:12:00 a.m.'     
+    pm.eval("(result, arr) => {result[0] = arr.toLocaleString()}")(result, prices)
+    assert result[0] == '￥7,500,8,123,12'     
 
-def test_toLocaleString_one_arg_en():
+def test_toLocaleString_one_arg_():
+    prices = ["￥7", 500, 8123, 12]
     result = [None]
-    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('en')}")(result)
-    assert result[0] == '1,a,12/21/1997, 9:12:00 AM'     
-
-def test_toLocaleString_one_arg_fr():
-    result = [None]
-    pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('fr')}")(result)
-    assert result[0] == '1,a,21/12/1997 09:12:00'  
+    pm.eval("(result, arr) => {result[0] = arr.toLocaleString('ja-JP')}")(result, prices)
+    assert result[0] == '￥7,500,8,123,12'     
 
 def test_toLocaleString_one_arg_invalid_locale():
+    prices = ["￥7", 500, 8123, 12]
     result = [None]
     try:
-        pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('endzfasdf')}")(result)     
+        pm.eval("(result, arr) => {result[0] = arr.toLocaleString('asfasfsafsdf')}")(result, prices)   
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("RangeError: invalid language tag:")       
 
-def test_toLocaleString_two_args_invalid_timeZone():
+def test_toLocaleString_two_args_invalid_currency():
+    prices = ["￥7", 500, 8123, 12]
     result = [None]
     try:
-        pm.eval("(result) => {array1 = [1, 'a', new Date('21 Dec 1997 14:12:00 UTC')]; result[0] = array1.toLocaleString('en', { timeZone: 'UT' })}")(result)     
+        pm.eval("(result, arr) => {result[0] = arr.toLocaleString('ja-JP', { style: 'currency', currency: 'JPYsdagasfgas' })}")(result, prices)    
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("RangeError: invalid time zone in DateTimeFormat(): UT")           
+        assert str(e).__contains__("RangeError: invalid currency code in NumberFormat():")       
+
+#entries
+                    
