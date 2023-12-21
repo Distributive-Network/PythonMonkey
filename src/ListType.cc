@@ -16,6 +16,6 @@ ListType::ListType(PyObject *object) : PyType(object) {}
 
 ListType::ListType(JSContext *cx, JS::HandleObject jsArrayObj) {
   JSArrayProxy *proxy = (JSArrayProxy *)PyObject_CallObject((PyObject *)&JSArrayProxyType, NULL);
-  proxy->jsObject.set(jsArrayObj);
+  proxy->jsArray.set(jsArrayObj);
   this->pyObject = (PyObject *)proxy;
 }

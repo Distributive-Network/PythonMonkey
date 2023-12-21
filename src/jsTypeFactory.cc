@@ -165,7 +165,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
   else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
-    returnType.setObject(*((JSArrayProxy *)object)->jsObject);
+    returnType.setObject(*((JSArrayProxy *)object)->jsArray);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
