@@ -331,8 +331,8 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_ior(JSObjectProxy *self,
   JS_GetProperty(GLOBAL_CX, *global, "Object", &Object);
 
   JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
-  JS::RootedValue *ret = new JS::RootedValue(GLOBAL_CX);
-  if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, ret)) {
+  JS::RootedValue ret(GLOBAL_CX);
+  if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
