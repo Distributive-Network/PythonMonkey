@@ -729,7 +729,7 @@ def test_sort_with_one_arg_function_wrong_data_type():
         assert str(type(e)) == "<class 'TypeError'>"
         assert str(e) == "object of type 'float' has no len()"    
 
-def test_sort_with_function_and_reverse_false():
+def test_sort_with_function_two_arg_and_reverse_false():
     def myFunc(e,f):
         return len(e) - len(f)     
     a = pm.eval("(['Ford', 'Mitsubishi', 'BMW', 'VW'])")
