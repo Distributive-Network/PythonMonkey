@@ -176,6 +176,14 @@ public:
   PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
   static const char family;
 
+  /**
+   * @brief Handles python object reference count when JS Proxy object is finalized
+   *
+   * @param gcx pointer to JS::GCContext
+   * @param proxy the proxy object being finalized
+   */
+  void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
+
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
