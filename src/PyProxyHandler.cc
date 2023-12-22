@@ -988,6 +988,12 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   return true;
 }
 
+void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
+  // TODO
+ // PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+ // Py_DECREF(self);
+}
+
 bool PyListProxyHandler::defineProperty(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result

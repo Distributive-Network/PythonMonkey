@@ -173,6 +173,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     if (PyList_Check(object)) {
       proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
       JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
+      //Py_INCREF(object); TODO
     } else {
       proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
     }
