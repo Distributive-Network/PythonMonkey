@@ -169,7 +169,7 @@ public:
 
 /**
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates
- *    to handle coercion from python lists to JS Array-like objects
+ *    to handle coercion from python lists to JS Array objects
  */
 struct PyListProxyHandler : public PyBaseProxyHandler {
 public:

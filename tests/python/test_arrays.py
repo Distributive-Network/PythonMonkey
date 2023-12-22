@@ -931,6 +931,9 @@ def test_valueOf():
     result = [0]
     pm.eval("(result, arr) => {result[0] = arr.valueOf()}")(result, items)
     assert result[0] == [1,2,1] 
+    result[0][1] = 5
+    assert result[0] == [1,5,1]
+    assert items == [1,5,1]
 
 #toLocaleString
 def test_toLocaleString():
@@ -972,4 +975,50 @@ def test_toLocaleString_two_args_invalid_currency():
         assert str(e).__contains__("RangeError: invalid currency code in NumberFormat():")       
 
 #entries
-                    
+def test_entries_next():
+    items = ['a', 'b', 'c']
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.entries(); result[0] = result[0].next().value}")(result, items)
+    assert items == ['a', 'b', 'c']
+    assert result[0] == [0, 'a']      
+
+def test_entries_next_next():
+    items = ['a', 'b', 'c']
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(result, items)
+    assert result[0] == [1, 'b']    
+
+def test_entries_next_next_undefined():
+    items = ['a']
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(result, items)
+    assert result[0] == None  
+
+#keys this gets TypeError: iterator is not iterable
+#def test_keys():
+#    items = ['a', 'b', 'c']
+#    result = [7,8,9]
+#    pm.eval("(result, arr) => { index = 0; iterator = arr.keys(); for (const key of iterator) { result[index] = key; index++;} }")(result, items)
+#    assert result == [0,1,2]    
+
+#values
+def test_values():
+    items = ['a', 'b', 'c']
+    result = [7,8,9]
+    pm.eval("(result, arr) => { index = 0; iterator = arr.values(); for (const key of iterator) { result[index] = key; index++;} }")(result, items)
+    items[0] = 'd'
+    assert result == ['a', 'b', 'c']
+
+#constructor property
+def test_constructor_creates_array():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { result[0] = arr.constructor; result[0] = new result[0]; result[0][0] = 9}")(result, items)
+    assert result[0] == [9]     
+
+#length property
+def test_constructor_creates_array():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { result[0] = arr.length}")(result, items)
+    assert result[0] == 2          

@@ -834,7 +834,31 @@ static bool array_toLocaleString(JSContext *cx, unsigned argc, JS::Value *vp) {
 }
 
 static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "valueOf", false);
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  // return ref to self
+  args.rval().set(jsTypeFactory(cx, self));
+  return true;
+}
+
+static bool array_entries(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "entries", false);
+}
+
+/*  see note in tests
+   static bool array_keys(JSContext *cx, unsigned argc, JS::Value *vp) {
+   return array_copy_func(cx, argc, vp, "keys", false);
+   }
+ */
+
+static bool array_values(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "values", false);
 }
 
 
@@ -868,10 +892,12 @@ static JSMethodDef array_methods[] = {
   {"toString", array_toString, 0},
   {"toLocaleString", array_toLocaleString, 0},
   {"valueOf", array_valueOf, 0},
-  {NULL, NULL}
+  {"entries", array_entries, 0},
+  // {"keys", array_keys, 0},
+  {"values", array_values, 0},
+  {NULL, NULL, 0}
 };
 
-static bool sawValueOf = false;
 
 bool PyListProxyHandler::getOwnPropertyDescriptor(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
@@ -879,7 +905,6 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 ) const {
   // see if we're calling a function
   if (id.isString()) {
-    JS::RootedString message(cx, id.toString());
     for (size_t index = 0;; index++) {
       bool isThatFunction;
       const char *methodName = array_methods[index].name;
@@ -901,7 +926,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     }
   }
 
-  // We're trying to get the "length" property
+  // "length" property
   bool isLengthProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "length", &isLengthProperty) && isLengthProperty) {
     desc.set(mozilla::Some(
@@ -912,7 +937,42 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     return true;
   }
 
-  // We're trying to get an item
+  // "constructor" property
+  bool isConstructorProperty;
+  if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
+    JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
+
+    JS::RootedValue Array(cx);
+    if (!JS_GetProperty(cx, global, "Array", &Array)) {
+      return false;
+    }
+
+    JS::RootedObject rootedArray(cx, Array.toObjectOrNull());
+
+    JS::RootedValue Array_Prototype(cx);
+    if (!JS_GetProperty(cx, rootedArray, "prototype", &Array_Prototype)) {
+      return false;
+    }
+
+    JS::RootedObject rootedArrayPrototype(cx, Array_Prototype.toObjectOrNull());
+
+    JS::RootedValue Array_Prototype_Constructor(cx);
+    if (!JS_GetProperty(cx, rootedArrayPrototype, "constructor", &Array_Prototype_Constructor)) {
+      return false;
+    }
+
+    JS::RootedObject rootedArrayPrototypeConstructor(cx, Array_Prototype_Constructor.toObjectOrNull());
+
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        JS::ObjectValue(*rootedArrayPrototypeConstructor),
+        {JS::PropertyAttribute::Enumerable}
+      )
+    ));
+    return true;
+  }
+
+  //  item
   Py_ssize_t index;
   PyObject *item;
   if (idToIndex(cx, id, &index) && (item = PyList_GetItem(pyObject, index))) {
