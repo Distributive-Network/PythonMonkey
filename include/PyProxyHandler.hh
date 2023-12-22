@@ -1,7 +1,7 @@
 /**
- * @file PyProxy.hh
+ * @file PyProxyHandler.hh
  * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
- * @brief Struct for creating JS proxy objects. Used by DictType for object coercion and by ListType for List coercion
+ * @brief Structs for creating JS proxy objects. Used by DictType for object coercion and by ListType for List coercion
  * @version 0.1
  * @date 2023-04-20
  *
