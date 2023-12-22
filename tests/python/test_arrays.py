@@ -105,15 +105,8 @@ def test_toString():
     items = [1,2,3]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.toString()}")(result, items)
-    assert result[0] == '1,2,3'  
-
-#toString
-def test_LocaleString():
-    items = [1,2,3]
-    result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.toString()}")(result, items)
-    assert result[0] == '1,2,3'      
-
+    assert result[0] == '1,2,3'
+    
 #push
 def test_push():
     items = [1,2,3]
