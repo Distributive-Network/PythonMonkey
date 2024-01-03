@@ -194,6 +194,7 @@ def test_concat_empty_arg():
     pm.eval("(result, arr) => {result[0] = arr.concat()}")(result, items)
     assert items == [1,2,3]
     assert result[0] == [1,2,3]  
+    assert items is not result[0]
 
 def test_concat_two_arrays():
     items = [1,2,3]
