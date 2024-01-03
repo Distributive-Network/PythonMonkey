@@ -40,13 +40,14 @@ def test_reverse_size_one():
 def test_reverse_size_zero():
     items = []
     pm.eval("(arr) => {arr.reverse()}")(items)
-    assert items == []      
+    assert items == []          
 
-def test_reverse_returns_undefined():
+def test_reverse_returns_reference():
     items = [1,2,3]
-    pm.eval("(arr) => {arr[0] = arr.reverse()}")(items)
-    assert items == [None,2,1]      
-
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reverse(); result[0][0] = 4}")(result, items)
+    assert result[0] == [4,2,1]
+    assert items == [4,2,1]      
 
 def test_reverse_ignores_extra_args():
     items = [1,2,3]
@@ -99,6 +100,18 @@ def test_join_with_sep():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.join('-')}")(result, items)
     assert result[0] == '1-2-3'
+
+def test_join_none():
+    items = [None,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
+    assert result[0] == ',2,3'    
+
+def test_join_null():
+    items = [pm.null,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
+    assert result[0] == ',2,3'           
 
 #toString
 def test_toString():
@@ -208,7 +221,18 @@ def test_concat_mix():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.concat([7,8], true, [0,1])}")(result, items)
     assert items == [1,2,3]
-    assert result[0] == [1,2,3,7,8,True, 0,1]    
+    assert result[0] == [1,2,3,7,8,True,0,1]    
+
+def test_concat_object_element():
+    d = {"a":1}
+    items = [1, 2, d]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.concat()}")(result, items)
+    assert items == [1, 2, d]
+    assert result[0] == [1, 2, d]
+    assert items is not result[0]
+    assert d is items[2]
+    assert d is result[0][2]    
 
 #slice
 def test_slice():
@@ -217,6 +241,14 @@ def test_slice():
     pm.eval("(result, arr) => {result[0] = arr.slice(1,2)}")(result, items)
     assert items == [1,2,3]
     assert result[0] == [2]   
+
+def test_slice_copy():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.slice(0,3)}")(result, items)
+    assert items == [1,2,3]
+    assert result[0] == [1,2,3]
+    assert items is not result[0]    
 
 def test_slice_start_zero():
     items = [1,2,3]
@@ -988,12 +1020,12 @@ def test_entries_next_next_undefined():
     pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(result, items)
     assert result[0] == None  
 
-#keys this gets TypeError: iterator is not iterable
-#def test_keys():
-#    items = ['a', 'b', 'c']
-#    result = [7,8,9]
-#    pm.eval("(result, arr) => { index = 0; iterator = arr.keys(); for (const key of iterator) { result[index] = key; index++;} }")(result, items)
-#    assert result == [0,1,2]    
+#keys
+def test_keys():
+    items = ['a', 'b', 'c']
+    result = [7,8,9]
+    pm.eval("(result, arr) => { index = 0; iterator = arr.keys(); for (const key of iterator) { result[index] = key; index++;} }")(result, items)
+    assert result == ['0','1','2']    
 
 #values
 def test_values():
@@ -1015,4 +1047,32 @@ def test_constructor_creates_array():
     items = [1,2]
     result = [0]
     pm.eval("(result, arr) => { result[0] = arr.length}")(result, items)
-    assert result[0] == 2          
+    assert result[0] == 2      
+
+#iterator symbol property
+def test_iterator_type_function():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { result[0] = typeof arr[Symbol.iterator]}")(result, items)
+    assert result[0] == 'function'         
+
+def test_iterator_first_next():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { result[0] = arr[Symbol.iterator]().next()}")(result, items)
+    assert result[0].value == 1    
+    assert result[0].done == False     
+
+def test_iterator_second_next():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); result[0] = iterator.next()}")(result, items)
+    assert result[0].value == 2    
+    assert result[0].done == False 
+
+def test_iterator_last_next():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); iterator.next(); result[0] = iterator.next()}")(result, items)
+    assert result[0].value == None    
+    assert result[0].done == True                    

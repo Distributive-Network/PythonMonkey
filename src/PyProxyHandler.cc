@@ -195,7 +195,7 @@ static bool array_reverse(JSContext *cx, unsigned argc, JS::Value *vp) {
     PyList_Reverse(self);
   }
 
-  args.rval().setUndefined();
+  args.rval().set(jsTypeFactory(cx, self));
   return true;
 }
 
@@ -852,11 +852,9 @@ static bool array_entries(JSContext *cx, unsigned argc, JS::Value *vp) {
   return array_copy_func(cx, argc, vp, "entries", false);
 }
 
-/*  see note in tests
-   static bool array_keys(JSContext *cx, unsigned argc, JS::Value *vp) {
-   return array_copy_func(cx, argc, vp, "keys", false);
-   }
- */
+static bool array_keys(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return array_copy_func(cx, argc, vp, "keys", false);
+}
 
 static bool array_values(JSContext *cx, unsigned argc, JS::Value *vp) {
   return array_copy_func(cx, argc, vp, "values", false);
@@ -894,7 +892,7 @@ static JSMethodDef array_methods[] = {
   {"toLocaleString", array_toLocaleString, 0},
   {"valueOf", array_valueOf, 0},
   {"entries", array_entries, 0},
-  // {"keys", array_keys, 0},
+  {"keys", array_keys, 0},
   {"values", array_values, 0},
   {NULL, NULL, 0}
 };
@@ -973,7 +971,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     return true;
   }
 
-  // iterator symbol property
+  // symbol property
   if (id.isSymbol()) {
     JS::RootedSymbol rootedSymbol(cx, id.toSymbol());
 
@@ -1010,6 +1008,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // TODO
   // PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  // printf("finalize self=%p\n", self);
   // Py_DECREF(self);
 }
 
