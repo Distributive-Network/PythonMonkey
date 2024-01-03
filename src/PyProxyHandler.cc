@@ -1,11 +1,11 @@
 /**
  * @file PyProxyHandler.cc
- * @author Caleb Aikens (caleb@distributive.network)
- * @brief Struct for creating JS proxy objects. Used by DictType for object coercion
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
+ * @brief Struct for creating JS proxy objects. Used by DictType for object coercion TODO
  * @version 0.1
  * @date 2023-04-20
  *
- * Copyright (c) 2023 Distributive Corp.
+ * Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -19,6 +19,7 @@
 #include <jsfriendapi.h>
 #include <js/Conversions.h>
 #include <js/Proxy.h>
+#include <js/Symbol.h>
 
 #include <Python.h>
 
@@ -972,6 +973,24 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     return true;
   }
 
+  // iterator symbol property
+  if (id.isSymbol()) {
+    JS::RootedSymbol rootedSymbol(cx, id.toSymbol());
+
+    if (JS::GetSymbolCode(rootedSymbol) == JS::SymbolCode::iterator) {
+      JSFunction *newFunction = JS_NewFunction(cx, array_values, 0, 0, NULL);
+      if (!newFunction) return false;
+      JS::RootedObject funObj(cx, JS_GetFunctionObject(newFunction));
+      desc.set(mozilla::Some(
+        JS::PropertyDescriptor::Data(
+          JS::ObjectValue(*funObj),
+          {JS::PropertyAttribute::Enumerable}
+        )
+      ));
+      return true;
+    }
+  }
+
   //  item
   Py_ssize_t index;
   PyObject *item;
@@ -990,8 +1009,8 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // TODO
- // PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
- // Py_DECREF(self);
+  // PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  // Py_DECREF(self);
 }
 
 bool PyListProxyHandler::defineProperty(
