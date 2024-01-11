@@ -291,7 +291,7 @@ def test_slice_start_negative():
 
 #indexOf
 def test_indexOf():
-    items = [1,2,3]
+    items = [1,2,3,1]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.indexOf(1)}")(result, items)
     assert result[0] == 0     
