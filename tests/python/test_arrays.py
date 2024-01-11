@@ -1049,10 +1049,8 @@ def test_valueOf():
     items = [1, 2, 1]
     result = [0]
     pm.eval("(result, arr) => {result[0] = arr.valueOf()}")(result, items)
-    assert result[0] == [1,2,1] 
-    result[0][1] = 5
-    assert result[0] == [1,5,1]
-    assert items == [1,5,1]
+    assert items == [1,2,1] 
+    assert result[0] is items
 
 #toLocaleString
 def test_toLocaleString():
