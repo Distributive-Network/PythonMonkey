@@ -198,7 +198,6 @@ public:
   bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
   bool isArray(JSContext *cx, JS::HandleObject proxy, JS::IsArrayAnswer *answer) const override;
   bool getBuiltinClass(JSContext *cx, JS::Handle<JSObject *> obj, js::ESClass *cls) const override;
-  const char *className(JSContext *cx, JS::HandleObject proxy) const override;
 };
 
 /**

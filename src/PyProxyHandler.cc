@@ -11,6 +11,7 @@
 
 #include "include/PyProxyHandler.hh"
 
+#include "include/JSArrayProxy.hh"
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
@@ -20,6 +21,7 @@
 #include <js/Conversions.h>
 #include <js/Proxy.h>
 #include <js/Symbol.h>
+#include <js/friend/ErrorMessages.h>
 
 #include <Python.h>
 
@@ -192,9 +194,12 @@ static bool array_reverse(JSContext *cx, unsigned argc, JS::Value *vp) {
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
   if (PyList_GET_SIZE(self) > 1) {
-    PyList_Reverse(self);
+    if (PyList_Reverse(self) < 0) {
+      return false;
+    }
   }
 
+  // return ref to self
   args.rval().set(jsTypeFactory(cx, self));
   return true;
 }
@@ -239,7 +244,9 @@ static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely 
   for (unsigned index = 0; index < numArgs; index++) {
     JS::RootedValue *elementVal = new JS::RootedValue(cx);
     elementVal->set(args[index].get());
-    PyList_Append(self, pyTypeFactory(cx, global, elementVal)->getPyObject());
+    if (PyList_Append(self, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+      return false;
+    }
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
@@ -263,7 +270,12 @@ static bool array_shift(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   PyObject *result = PyList_GetItem(self, 0);
-  PySequence_DelItem(self, 0);
+  if (!result) {
+    return false;
+  }
+  if (PySequence_DelItem(self, 0) < 0) {
+    return false;
+  }
 
   args.rval().set(jsTypeFactory(cx, result));
   return true;
@@ -282,35 +294,16 @@ static bool array_unshift(JSContext *cx, unsigned argc, JS::Value *vp) { // sure
   for (int index = args.length() - 1; index >= 0; index--) {
     JS::RootedValue *elementVal = new JS::RootedValue(cx);
     elementVal->set(args[index].get());
-    PyList_Insert(self, 0, pyTypeFactory(cx, global, elementVal)->getPyObject());
+    if (PyList_Insert(self, 0, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+      return false;
+    }
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
   return true;
 }
 
-static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
-  if (!proxy) {
-    return false;
-  }
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
-  JS::RootedObject selfCopy(cx, &jsTypeFactoryCopy(cx, self).toObject());
-
-  JS::HandleValueArray jArgs(args);
-
-  JS::RootedValue jRet(cx);
-  if (!JS_CallFunctionName(cx, selfCopy, "concat", jArgs, &jRet)) {
-    return false;
-  }
-
-  args.rval().setObject(jRet.toObject());
-  return true;
-}
-
+// private util
 static inline uint64_t normalizeSliceTerm(int64_t value, uint64_t length) {
   if (value < 0) {
     value += length;
@@ -360,6 +353,9 @@ static bool array_slice(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   PyObject *result = PyList_GetSlice(self, (Py_ssize_t)start, (Py_ssize_t)stop);
+  if (!result) {
+    return false;
+  }
 
   args.rval().set(jsTypeFactory(cx, result));
   return true;
@@ -422,32 +418,6 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-static bool array_lastIndexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  if (!args.requireAtLeast(cx, "lastIndexOf", 1)) {
-    return false;
-  }
-
-  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
-  if (!proxy) {
-    return false;
-  }
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
-  JS::RootedObject selfCopy(cx, &jsTypeFactoryCopy(cx, self).toObject());
-
-  JS::HandleValueArray jArgs(args);
-
-  JS::RootedValue jRet(cx);
-  if (!JS_CallFunctionName(cx, selfCopy, "lastIndexOf", jArgs, &jRet)) {
-    return false;
-  }
-
-  args.rval().setInt32(jRet.toInt32());
-  return true;
-}
-
 static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
@@ -503,17 +473,27 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // get deleted items for return value
   PyObject *deleted = PyList_GetSlice(self, actualStart, actualStart + actualDeleteCount);
+  if (!deleted) {
+    return false;
+  }
 
   // build list for SetSlice call
   PyObject *inserted = PyList_New(insertCount);
+  if (!inserted) {
+    return false;
+  }
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   for (int index = 0; index < insertCount; index++) {
     JS::RootedValue *elementVal = new JS::RootedValue(cx, args[index + 2].get());
-    PyList_SetItem(inserted, index, pyTypeFactory(cx, global, elementVal)->getPyObject());
+    if (PyList_SetItem(inserted, index, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+      return false;
+    }
   }
 
-  PyList_SetSlice(self, actualStart, actualStart + actualDeleteCount, inserted);
+  if (PyList_SetSlice(self, actualStart, actualStart + actualDeleteCount, inserted) < 0) {
+    return false;
+  }
 
   args.rval().set(jsTypeFactory(cx, deleted));
   return true;
@@ -611,8 +591,6 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   unsigned int argsLength = args.length();
 
-  JS::RootedValue *fillValue = new JS::RootedValue(cx, args[0].get());
-
   int64_t relativeStart;
   if (argsLength > 1) {
     if (!JS::ToInt64(cx, args.get(1), &relativeStart)) {
@@ -647,7 +625,10 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   for (int index = actualStart; index < actualEnd; index++) {
-    PyList_SetItem(self, index, pyTypeFactory(cx, global, fillValue)->getPyObject());
+    JS::RootedValue *fillValue = new JS::RootedValue(cx, args[0].get());
+    if (PyList_SetItem(self, index, pyTypeFactory(cx, global, fillValue)->getPyObject()) < 0) {
+      return false;
+    }
   }
 
   // return ref to self
@@ -724,7 +705,9 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     while (count > 0) {
       PyObject *itemStart = PyList_GetItem(self, actualStart);
-      PyList_SetItem(self, actualTarget, itemStart);
+      if (PyList_SetItem(self, actualTarget, itemStart) < 0) {
+        return false;
+      }
 
       actualStart--;
       actualTarget--;
@@ -733,7 +716,9 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
   } else {
     while (count > 0) {
       PyObject *itemStart = PyList_GetItem(self, actualStart);
-      PyList_SetItem(self, actualTarget, itemStart);
+      if (PyList_SetItem(self, actualTarget, itemStart) < 0) {
+        return false;
+      }
 
       actualStart++;
       actualTarget++;
@@ -746,11 +731,68 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-// private util
-static bool array_copy_func(JSContext *cx, unsigned argc, JS::Value *vp, const char *fName, bool checkRequireAtLeastOne = true) {
+static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
-  if (checkRequireAtLeastOne && !args.requireAtLeast(cx, fName, 1)) {
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+
+  Py_ssize_t selfSize = PyList_GET_SIZE(self);
+
+  PyObject *result = PyList_New(selfSize);
+
+  for (Py_ssize_t index = 0; index < selfSize; index++) {
+    PyList_SetItem(result, index, PyList_GetItem(self, index));
+  }
+
+  unsigned numArgs = args.length();
+  for (unsigned index = 0; index < numArgs; index++) {
+    JS::RootedValue *elementVal = new JS::RootedValue(cx);
+    elementVal->set(args[index].get());
+
+    PyObject *item = pyTypeFactory(cx, global, elementVal)->getPyObject();
+    if (PyObject_TypeCheck(item, &JSArrayProxyType)) {
+      // flatten the array only a depth 1
+      Py_ssize_t itemLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)item);
+      for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
+        elementVal = new JS::RootedValue(cx);
+        if (!JS_GetElement(cx, ((JSArrayProxy *)item)->jsArray, flatIndex, elementVal)) {
+          return false;
+        }
+        if (PyList_Append(result, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+          return false;
+        }
+      }
+    }
+    else if (PyObject_TypeCheck(item, &PyList_Type)) {
+      // flatten the array only at depth 1
+      Py_ssize_t itemLength = PyList_GET_SIZE(item);
+      for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
+        if (PyList_Append(result, PyList_GetItem(item, flatIndex)) < 0) {
+          return false;
+        }
+      }
+    }
+    else {
+      if (PyList_Append(result, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+        return false;
+      }
+    }
+  }
+
+  args.rval().set(jsTypeFactory(cx, result));
+  return true;
+}
+
+static bool array_lastIndexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "lastIndexOf", 1)) {
     return false;
   }
 
@@ -760,78 +802,1039 @@ static bool array_copy_func(JSContext *cx, unsigned argc, JS::Value *vp, const c
   }
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
-  JS::RootedObject selfCopy(cx, &jsTypeFactoryCopy(cx, self).toObject());
+  Py_ssize_t selfLength = PyList_GET_SIZE(self);
 
-  JS::HandleValueArray jArgs(args);
-  JS::RootedValue rval(cx);
-
-  if (!JS_CallFunctionName(cx, selfCopy, fName, jArgs, &rval)) {
-    return false;
+  if (selfLength == 0) {
+    args.rval().setInt32(-1);
+    return true;
   }
 
-  args.rval().set(rval);
+  uint64_t start = selfLength - 1;
+  if (args.length() > 1) {
+    int64_t n;
+    if (!JS::ToInt64(cx, args[1], &n)) {
+      return false;
+    }
 
+    if (n < 0) {
+      double d = double(selfLength) + n;
+      if (d < 0) {
+        args.rval().setInt32(-1);
+        return true;
+      }
+      start = uint64_t(d);
+    } else if (n < double(start)) {
+      start = uint64_t(n);
+    }
+  }
+
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0].get());
+  PyObject *element = pyTypeFactory(cx, global, elementVal)->getPyObject();
+  for (int64_t index = start; index >= 0; index--) {
+    PyObject *item = PyList_GetItem(self, index);
+    Py_INCREF(item);
+    int cmp = PyObject_RichCompareBool(item, element, Py_EQ);
+    Py_DECREF(item);
+    if (cmp < 0) {
+      return false;
+    }
+    else if (cmp == 1) {
+      args.rval().setInt32(index);
+      return true;
+    }
+  }
+
+  args.rval().setInt32(-1);
   return true;
 }
 
 static bool array_includes(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "includes");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "includes", 1)) {
+    return false;
+  }
+
+  if (!array_indexOf(cx, argc, vp)) {
+    return false;
+  }
+
+  args.rval().setBoolean(args.rval().get().toInt32() >= 0 ? true : false);
+  return true;
 }
 
 static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "forEach");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "forEach", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "forEach: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue rval(cx);
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
+    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[1].setInt32(index);
+    jArgs[2].set(selfValue);
+
+    if (args.length() > 1) {
+      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
+        delete rootedThisArg;
+        return false;
+      }
+    }
+    else {
+      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
+        return false;
+      }
+    }
+  }
+
+  if (rootedThisArg) {
+    delete rootedThisArg;
+  }
+
+  args.rval().setUndefined();
+  return true;
 }
 
 static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "map");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "map", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    // Decompiling the faulty arg is not accessible through the JSAPI so we do the best effort for the error message
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "map: callback");
+    return false;
+  }
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+
+  JSObject *retArray = JS::NewArrayObject(cx, len);
+  JS::RootedObject rootedRetArray(cx, retArray);
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue rval(cx);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  for (Py_ssize_t index = 0; index < len; index++) {
+    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[1].setInt32(index);
+    jArgs[2].set(selfValue);
+
+    if (args.length() > 1) {
+      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
+        delete rootedThisArg;
+        return false;
+      }
+    }
+    else {
+      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
+        return false;
+      }
+    }
+
+    JS_SetElement(cx, rootedRetArray, index, rval);
+  }
+
+  if (rootedThisArg) {
+    delete rootedThisArg;
+  }
+
+  args.rval().setObject(*retArray);
+  return true;
 }
 
 static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "filter");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "filter", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "filter: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue rval(cx);
+
+  JS::RootedValueVector retVector(cx);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+  for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
+    JS::Value item = jsTypeFactorySafe(cx, PyList_GetItem(self, index));
+    jArgs[0].set(item);
+    jArgs[1].setInt32(index);
+    jArgs[2].set(selfValue);
+
+    if (args.length() > 1) {
+      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
+        delete rootedThisArg;
+        return false;
+      }
+    }
+    else {
+      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
+        return false;
+      }
+    }
+
+    if (rval.toBoolean()) {
+      if (!retVector.append(item)) {
+        return false;
+      }
+    }
+  }
+
+  if (rootedThisArg) {
+    delete rootedThisArg;
+  }
+
+  JS::HandleValueArray jsValueArray(retVector);
+  JSObject *retArray = JS::NewArrayObject(cx, jsValueArray);
+
+  args.rval().setObject(*retArray);
+  return true;
 }
 
 static bool array_reduce(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "reduce");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "reduce", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "reduce: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<4>> jArgs(cx);
+  JS::RootedValue *accumulator;
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+
+  if (args.length() > 1) {
+    accumulator = new JS::RootedValue(cx, args[1].get());
+  }
+  else {
+    if (len == 0) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_EMPTY_ARRAY_REDUCE);
+      return false;
+    }
+    accumulator = new JS::RootedValue(cx, jsTypeFactory(cx, PyList_GetItem(self, 0)));
+  }
+
+  for (Py_ssize_t index = args.length() > 1 ? 0 : 1; index < len; index++) {
+    jArgs[0].set(*accumulator);
+    jArgs[1].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[2].setInt32(index);
+    jArgs[3].set(selfValue);
+
+    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, accumulator)) {
+      delete accumulator;
+      return false;
+    }
+  }
+
+  args.rval().set(accumulator->get());
+  delete accumulator;
+  return true;
 }
 
 static bool array_reduceRight(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "reduceRight");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "reduceRight", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "reduceRight: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<4>> jArgs(cx);
+  JS::RootedValue *accumulator;
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+
+  if (args.length() > 1) {
+    accumulator = new JS::RootedValue(cx, args[1].get());
+  }
+  else {
+    if (len == 0) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_EMPTY_ARRAY_REDUCE);
+      return false;
+    }
+    accumulator = new JS::RootedValue(cx, jsTypeFactory(cx, PyList_GetItem(self, len - 1)));
+  }
+
+  for (int64_t index = args.length() > 1 ? len - 1 : len - 2; index >= 0; index--) {
+    jArgs[0].set(*accumulator);
+    jArgs[1].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[2].setInt32(index);
+    jArgs[3].set(selfValue);
+
+    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, accumulator)) {
+      delete accumulator;
+      return false;
+    }
+  }
+
+  args.rval().set(accumulator->get());
+  delete accumulator;
+  return true;
 }
 
 static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "some");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "some", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "some: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue rval(cx);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+  for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
+    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[1].setInt32(index);
+    jArgs[2].set(selfValue);
+
+    if (args.length() > 1) {
+      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
+        delete rootedThisArg;
+        return false;
+      }
+    }
+    else {
+      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
+        return false;
+      }
+    }
+
+    if (rval.toBoolean()) {
+      if (rootedThisArg) {
+        delete rootedThisArg;
+      }
+      args.rval().setBoolean(true);
+      return true;
+    }
+  }
+
+  if (rootedThisArg) {
+    delete rootedThisArg;
+  }
+
+  args.rval().setBoolean(false);
+  return true;
 }
 
 static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "every");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "every", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "every: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue rval(cx);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+  for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
+    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[1].setInt32(index);
+    jArgs[2].set(selfValue);
+
+    if (args.length() > 1) {
+      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
+        delete rootedThisArg;
+        return false;
+      }
+    }
+    else {
+      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
+        return false;
+      }
+    }
+
+    if (!rval.toBoolean()) {
+      if (rootedThisArg) {
+        delete rootedThisArg;
+      }
+      args.rval().setBoolean(false);
+      return true;
+    }
+  }
+
+  if (rootedThisArg) {
+    delete rootedThisArg;
+  }
+
+  args.rval().setBoolean(true);
+  return true;
 }
 
 static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "find");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "find", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "find: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue rval(cx);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+  for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
+    JS::Value item = jsTypeFactorySafe(cx, PyList_GetItem(self, index));
+    jArgs[0].set(item);
+    jArgs[1].setInt32(index);
+    jArgs[2].set(selfValue);
+
+    if (args.length() > 1) {
+      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
+        delete rootedThisArg;
+        return false;
+      }
+    }
+    else {
+      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
+        return false;
+      }
+    }
+
+    if (rval.toBoolean()) {
+      if (rootedThisArg) {
+        delete rootedThisArg;
+      }
+      args.rval().set(item);
+      return true;
+    }
+  }
+
+  if (rootedThisArg) {
+    delete rootedThisArg;
+  }
+
+  args.rval().setUndefined();
+  return true;
 }
 
 static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "findIndex");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "findIndex", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "findIndex: callback");
+    return false;
+  }
+
+  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue rval(cx);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+  for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
+    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[1].setInt32(index);
+    jArgs[2].set(selfValue);
+
+    if (args.length() > 1) {
+      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
+        delete rootedThisArg;
+        return false;
+      }
+    }
+    else {
+      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
+        return false;
+      }
+    }
+
+    if (rval.toBoolean()) {
+      if (rootedThisArg) {
+        delete rootedThisArg;
+      }
+      args.rval().setInt32(index);
+      return true;
+    }
+  }
+
+  if (rootedThisArg) {
+    delete rootedThisArg;
+  }
+
+  args.rval().setInt32(-1);
+  return true;
+}
+
+// private
+static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
+  JSObject *retArray, PyObject *source,
+  Py_ssize_t sourceLen, uint32_t start, uint32_t depth) {
+  uint32_t targetIndex = start;
+
+  JS::RootedObject rootedGlobal(cx, global);
+
+  JS::RootedValue elementVal(cx);
+  for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
+    if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
+      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, &elementVal);
+    }
+    else if (PyObject_TypeCheck(source, &PyList_Type)) {
+      elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
+    }
+
+    PyObject *element = pyTypeFactory(cx, &rootedGlobal, &elementVal)->getPyObject();
+
+    bool shouldFlatten;
+    if (depth > 0) {
+      shouldFlatten = PyObject_TypeCheck(element, &JSArrayProxyType) || PyObject_TypeCheck(element, &PyList_Type);
+    } else {
+      shouldFlatten = false;
+    }
+
+    if (shouldFlatten) {
+      Py_ssize_t elementLen;
+      if (PyObject_TypeCheck(element, &JSArrayProxyType)) {
+        elementLen = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)element);
+      }
+      else if (PyObject_TypeCheck(element, &PyList_Type)) {
+        elementLen = PyList_GET_SIZE(element);
+      }
+
+      targetIndex = FlattenIntoArray(cx, global,
+        retArray,
+        element,
+        elementLen,
+        targetIndex,
+        depth - 1
+      );
+    }
+    else {
+      JS::RootedObject rootedRetArray(cx, retArray);
+
+      uint32_t length;
+      JS::GetArrayLength(cx, rootedRetArray, &length);
+      if (targetIndex >= length) {
+        JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
+      }
+
+      JS_SetElement(cx, rootedRetArray, targetIndex, elementVal);
+
+      targetIndex++;
+    }
+  }
+
+  return targetIndex;
+}
+
+// private
+static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject global,
+  JSObject *retArray, PyObject *source,
+  Py_ssize_t sourceLen, uint32_t start, uint32_t depth,
+  JS::HandleValue callBack, JS::HandleObject thisArg) {
+  uint32_t targetIndex = start;
+
+  JS::RootedObject rootedGlobal(cx, global);
+  JS::RootedValue sourceValue(cx, jsTypeFactorySafe(cx, source));
+  JS::Rooted<JS::ValueArray<3>> jArgs(cx);
+  JS::RootedValue elementVal(cx);
+  JS::RootedValue retVal(cx);
+
+  for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
+    if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
+      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, &elementVal);
+    }
+    else if (PyObject_TypeCheck(source, &PyList_Type)) {
+      elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
+    }
+
+    jArgs[0].set(elementVal);
+    jArgs[1].setInt32(sourceIndex);
+    jArgs[2].set(sourceValue);
+    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &retVal)) {
+      return false;
+    }
+
+    PyObject *element = pyTypeFactory(cx, &rootedGlobal, &retVal)->getPyObject();
+
+    bool shouldFlatten;
+    if (depth > 0) {
+      shouldFlatten = PyObject_TypeCheck(element, &JSArrayProxyType) || PyObject_TypeCheck(element, &PyList_Type);
+    } else {
+      shouldFlatten = false;
+    }
+
+    Py_ssize_t elementLen;
+    if (PyObject_TypeCheck(element, &JSArrayProxyType)) {
+      elementLen = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)element);
+    }
+    else if (PyObject_TypeCheck(element, &PyList_Type)) {
+      elementLen = PyList_GET_SIZE(element);
+    }
+
+    if (shouldFlatten) {
+      targetIndex = FlattenIntoArrayWithCallBack(cx, global,
+        retArray,
+        element,
+        elementLen,
+        targetIndex,
+        depth - 1,
+        callBack,
+        thisArg
+      );
+    }
+    else {
+      JS::RootedObject rootedRetArray(cx, retArray);
+
+      uint32_t length;
+      JS::GetArrayLength(cx, rootedRetArray, &length);
+
+      if (PyObject_TypeCheck(element, &JSArrayProxyType) || PyObject_TypeCheck(element, &PyList_Type)) {
+        // flatten array callBack result to depth 1
+        JS::RootedValue elementIndexVal(cx);
+        for (uint32_t elementIndex = 0; elementIndex < elementLen; elementIndex++, targetIndex++) {
+          if (PyObject_TypeCheck(element, &JSArrayProxyType)) {
+            JS_GetElement(cx, ((JSArrayProxy *)element)->jsArray, elementIndex, &elementIndexVal);
+          }
+          else {
+            elementIndexVal.set(jsTypeFactory(cx, PyList_GetItem(element, elementIndex)));
+          }
+
+          if (targetIndex >= length) {
+            JS::SetArrayLength(cx, rootedRetArray, length = targetIndex + 1);
+          }
+
+          JS_SetElement(cx, rootedRetArray, targetIndex, elementIndexVal);
+        }
+
+        return targetIndex;
+      }
+      else {
+        if (targetIndex >= length) {
+          JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
+        }
+
+        JS_SetElement(cx, rootedRetArray, targetIndex, retVal);
+
+        targetIndex++;
+      }
+    }
+  }
+
+  return targetIndex;
 }
 
 static bool array_flat(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "flat", false);
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  Py_ssize_t sourceLen = PyList_GET_SIZE(self);
+
+  uint32_t depthNum;
+  if (args.length() > 0) {
+    depthNum = args[0].get().toInt32();
+  }
+  else {
+    depthNum = 1;
+  }
+
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+
+  JSObject *retArray = JS::NewArrayObject(cx, sourceLen); // min end length
+
+  FlattenIntoArray(cx, *global, retArray, self, sourceLen, 0, depthNum);
+
+  args.rval().setObject(*retArray);
+  return true;
 }
 
 static bool array_flatMap(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "flatMap");
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "flatMap", 1)) {
+    return false;
+  }
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  Py_ssize_t sourceLen = PyList_GET_SIZE(self);
+
+  JS::Value callbackfn = args[0].get();
+
+  if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_FUNCTION, "flatMap: callback");
+    return false;
+  }
+
+  JS::RootedValue callBack(cx, callbackfn);
+
+  JS::RootedObject *rootedThisArg = nullptr;
+  if (args.length() > 1) {
+    JS::Value thisArg = args[1].get();
+    if (!thisArg.isObjectOrNull()) {
+      JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
+      return false;
+    }
+
+    // TODO support null, currently gets TypeError
+    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+  }
+
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+
+  JSObject *retArray = JS::NewArrayObject(cx, sourceLen); // min end length
+
+  FlattenIntoArrayWithCallBack(cx, *global, retArray, self, sourceLen, 0, 1, callBack, *rootedThisArg);
+
+  delete rootedThisArg;
+
+  args.rval().setObject(*retArray);
+  return true;
 }
 
 static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "join", false);
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  Py_ssize_t selfLength = PyList_GET_SIZE(self);
+
+  if (selfLength == 0) {
+    args.rval().setString(JS_NewStringCopyZ(cx, ""));
+    return true;
+  }
+
+  JS::RootedString *rootedSeparator;
+  if (args.hasDefined(0)) {
+    rootedSeparator = new JS::RootedString(cx, JS::ToString(cx, args[0]));
+  }
+  else {
+    rootedSeparator = new JS::RootedString(cx, JS_NewStringCopyZ(cx, ","));
+  }
+
+  JSString *writer = JS_NewStringCopyZ(cx, "");
+  JS::RootedString rootedWriter(cx);
+
+  for (Py_ssize_t index = 0; index < selfLength; index++) {
+    rootedWriter.set(writer);
+    if (index > 0) {
+      writer = JS_ConcatStrings(cx, rootedWriter, *rootedSeparator);
+      rootedWriter.set(writer);
+    }
+
+    JS::RootedValue element(cx, jsTypeFactory(cx, PyList_GetItem(self, index)));
+    if (!element.isNullOrUndefined()) {
+      JS::RootedValue rval(cx);
+
+      JS::RootedObject retObject(cx);
+
+      if (!JS_ValueToObject(cx, element, &retObject)) {
+        delete rootedSeparator;
+        return false;
+      }
+
+      if (!JS_CallFunctionName(cx, retObject, "toString", JS::HandleValueArray::empty(), &rval)) {
+        delete rootedSeparator;
+        return false;
+      }
+
+      JS::RootedString retString(cx, rval.toString());
+      writer = JS_ConcatStrings(cx, rootedWriter, retString);
+    }
+  }
+
+  delete rootedSeparator;
+
+  args.rval().setString(writer);
+  return true;
 }
 
 static bool array_toString(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "toString", false);
+  return array_join(cx, argc, vp);
 }
 
 static bool array_toLocaleString(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "toLocaleString", false);
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  Py_ssize_t selfLength = PyList_GET_SIZE(self);
+
+  if (selfLength == 0) {
+    args.rval().setString(JS_NewStringCopyZ(cx, ""));
+    return true;
+  }
+
+  JS::RootedString rootedSeparator(cx, JS_NewStringCopyZ(cx, ","));
+
+  JSString *writer = JS_NewStringCopyZ(cx, "");
+  JS::RootedString rootedWriter(cx);
+
+  JS::HandleValueArray jArgs(args);
+
+  for (Py_ssize_t index = 0; index < selfLength; index++) {
+    rootedWriter.set(writer);
+    if (index > 0) {
+      writer = JS_ConcatStrings(cx, rootedWriter, rootedSeparator);
+      rootedWriter.set(writer);
+    }
+
+    JS::RootedValue element(cx, jsTypeFactory(cx, PyList_GetItem(self, index)));
+    if (!element.isNullOrUndefined()) {
+      JS::RootedValue rval(cx);
+
+      JS::RootedObject retObject(cx);
+
+      if (!JS_ValueToObject(cx, element, &retObject)) {
+        return false;
+      }
+
+      if (!JS_CallFunctionName(cx, retObject, "toLocaleString", jArgs, &rval)) {
+        return false;
+      }
+
+      JS::RootedString retString(cx, rval.toString());
+      writer = JS_ConcatStrings(cx, rootedWriter, retString);
+    }
+  }
+
+  args.rval().setString(writer);
+  return true;
 }
 
 static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
@@ -848,16 +1851,180 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
+
+
+// ListIterator
+
+
+#define ITEM_KIND_KEY 0
+#define ITEM_KIND_VALUE 1
+#define ITEM_KIND_KEY_AND_VALUE 2
+
+enum {
+  ListIteratorSlotIteratedObject,
+  ListIteratorSlotNextIndex,
+  ListIteratorSlotItemKind,
+  ListIteratorSlotCount
+};
+
+static JSClass listIteratorClass = {"ListIterator", JSCLASS_HAS_RESERVED_SLOTS(ListIteratorSlotCount)};
+
+static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  JS::RootedObject thisObj(cx);
+  if (!args.computeThis(cx, &thisObj)) return false; // TODO needed ?
+
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(thisObj, ListIteratorSlotIteratedObject);
+
+  JS::RootedValue rootedNextIndex(cx, JS::GetReservedSlot(thisObj, ListIteratorSlotNextIndex));
+  JS::RootedValue rootedItemKind(cx, JS::GetReservedSlot(thisObj, ListIteratorSlotItemKind));
+
+  int32_t nextIndex;
+  int32_t itemKind;
+  if (!JS::ToInt32(cx, rootedNextIndex, &nextIndex) || !JS::ToInt32(cx, rootedItemKind, &itemKind)) return false;
+
+  JS::RootedObject result(cx, JS_NewPlainObject(cx));
+  if (!result) return false;
+
+  Py_ssize_t len = PyList_GET_SIZE(self);
+
+  if (nextIndex >= len) {
+    // UnsafeSetReservedSlot(obj, ITERATOR_SLOT_TARGET, null); // TODO lose ref
+    JS::RootedValue done(cx, JS::BooleanValue(true));
+    if (!JS_SetProperty(cx, result, "done", done)) return false;
+    args.rval().setObject(*result);
+    return result;
+  }
+
+  JS::SetReservedSlot(thisObj, ListIteratorSlotNextIndex, JS::Int32Value(nextIndex + 1));
+
+  JS::RootedValue done(cx, JS::BooleanValue(false));
+  if (!JS_SetProperty(cx, result, "done", done)) return false;
+
+  if (itemKind == ITEM_KIND_VALUE) {
+    PyObject *item = PyList_GetItem(self, nextIndex);
+    if (!item) {
+      return false;
+    }
+    JS::RootedValue value(cx, jsTypeFactory(cx, item));
+    if (!JS_SetProperty(cx, result, "value", value)) return false;
+  }
+  else if (itemKind == ITEM_KIND_KEY_AND_VALUE) {
+    JS::Rooted<JS::ValueArray<2>> items(cx);
+
+    JS::RootedValue rootedNextIndex(cx, JS::Int32Value(nextIndex));
+    items[0].set(rootedNextIndex);
+
+    PyObject *item = PyList_GetItem(self, nextIndex);
+    if (!item) {
+      return false;
+    }
+    JS::RootedValue value(cx, jsTypeFactory(cx, item));
+    items[1].set(value);
+
+    JS::RootedValue pair(cx);
+    JSObject *array = JS::NewArrayObject(cx, items);
+    pair.setObject(*array);
+    if (!JS_SetProperty(cx, result, "value", pair)) return false;
+  }
+  else { // itemKind == ITEM_KIND_KEY
+    JS::RootedValue value(cx, JS::Int32Value(nextIndex));
+    if (!JS_SetProperty(cx, result, "value", value)) return false;
+  }
+
+  args.rval().setObject(*result);
+  return true;
+}
+
+static JSFunctionSpec list_iterator_methods[] = {
+  JS_FN("next", iterator_next, 0, JSPROP_ENUMERATE),
+  JS_FS_END
+};
+
+static bool ListIteratorConstructor(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  if (!args.isConstructing()) {
+    JS_ReportErrorASCII(cx, "You must call this constructor with 'new'");
+    return false;
+  }
+
+  JS::RootedObject thisObj(cx, JS_NewObjectForConstructor(cx, &listIteratorClass, args));
+  if (!thisObj) {
+    return false;
+  }
+
+  args.rval().setObject(*thisObj);
+  return true;
+}
+
+static bool DefineListIterator(JSContext *cx, JS::HandleObject global) {
+  JS::RootedObject iteratorPrototype(cx);
+  if (!JS_GetClassPrototype(cx, JSProto_Iterator, &iteratorPrototype)) {
+    return false;
+  }
+
+  JS::RootedObject protoObj(cx,
+    JS_InitClass(cx, global,
+      nullptr, iteratorPrototype,
+      "ListIterator",
+      ListIteratorConstructor, 0,
+      nullptr, list_iterator_methods,
+      nullptr, nullptr)
+  );
+
+  return protoObj; // != nullptr
+}
+
+// private util
+static bool array_iterator_func(JSContext *cx, unsigned argc, JS::Value *vp, int itemKind) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
+
+  JS::RootedValue constructor_val(cx);
+  if (!JS_GetProperty(cx, global, "ListIterator", &constructor_val)) return false;
+  if (!constructor_val.isObject()) {
+    if (!DefineListIterator(cx, global)) {
+      return false;
+    }
+
+    if (!JS_GetProperty(cx, global, "ListIterator", &constructor_val)) return false;
+    if (!constructor_val.isObject()) {
+      JS_ReportErrorASCII(cx, "ListIterator is not a constructor");
+      return false;
+    }
+  }
+  JS::RootedObject constructor(cx, &constructor_val.toObject());
+
+  JS::RootedObject obj(cx);
+  if (!JS::Construct(cx, constructor_val, JS::HandleValueArray::empty(), &obj)) return false;
+  if (!obj) return false;
+
+  JS::SetReservedSlot(obj, ListIteratorSlotIteratedObject, JS::PrivateValue((void *)self));
+  JS::SetReservedSlot(obj, ListIteratorSlotNextIndex, JS::Int32Value(0));
+  JS::SetReservedSlot(obj, ListIteratorSlotItemKind, JS::Int32Value(itemKind));
+
+  args.rval().setObject(*obj);
+  return true;
+}
+
 static bool array_entries(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "entries", false);
+  return array_iterator_func(cx, argc, vp, ITEM_KIND_KEY_AND_VALUE);
 }
 
 static bool array_keys(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "keys", false);
+  return array_iterator_func(cx, argc, vp, ITEM_KIND_KEY);
 }
 
 static bool array_values(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return array_copy_func(cx, argc, vp, "values", false);
+  return array_iterator_func(cx, argc, vp, ITEM_KIND_VALUE);
 }
 
 
@@ -989,7 +2156,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     }
   }
 
-  //  item
+  // item
   Py_ssize_t index;
   PyObject *item;
   if (idToIndex(cx, id, &index) && (item = PyList_GetItem(pyObject, index))) {
@@ -1010,6 +2177,8 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   // printf("finalize self=%p\n", self);
   // Py_DECREF(self);
+
+  // JS::SetReservedSlot(proxy, PyObjectSlot, nullptr));
 }
 
 bool PyListProxyHandler::defineProperty(
@@ -1074,9 +2243,4 @@ bool PyListProxyHandler::isArray(JSContext *cx, JS::HandleObject proxy, JS::IsAr
 bool PyListProxyHandler::getBuiltinClass(JSContext *cx, JS::Handle<JSObject *> obj, js::ESClass *cls) const {
   *cls = js::ESClass::Array;
   return true;
-}
-
-const char *PyListProxyHandler::className(JSContext *cx, JS::HandleObject proxy) const {
-  // TODO untested
-  return "Array";
 }

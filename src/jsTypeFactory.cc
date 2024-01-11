@@ -173,7 +173,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     if (PyList_Check(object)) {
       proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
       JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
-      //Py_INCREF(object); TODO
+      // Py_INCREF(object); TODO
     } else {
       proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
     }
@@ -197,25 +197,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     errorString += Py_TYPE(object)->tp_name;
     PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
-  return returnType;
-}
-
-JS::Value jsTypeFactoryCopy(JSContext *cx, PyObject *object) {
-  JS::RootedValue returnType(cx);
-  if (PyList_Check(object)) {
-    Py_ssize_t listSize = PyList_Size(object);
-    JSObject *array = JS::NewArrayObject(cx, listSize);
-    JS::RootedObject arrayObj(cx, array);
-    for (Py_ssize_t index = 0; index < listSize; index++) {
-      JS::RootedValue jsValue(cx, jsTypeFactorySafe(cx, PyList_GetItem(object, index)));
-      JS_SetElement(cx, arrayObj, index, jsValue);
-    }
-    returnType.setObject(*array);
-  }
-  else {
-    returnType.setUndefined();
-  }
-
   return returnType;
 }
 

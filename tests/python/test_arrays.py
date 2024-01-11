@@ -81,7 +81,13 @@ def test_join_no_arg():
     items = [1,2,3]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
-    assert result[0] == '1,2,3'    
+    assert result[0] == '1,2,3'     
+
+def test_join_empty_array():
+    items = []
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
+    assert result[0] == ''       
 
 def test_join_no_arg_diff_types():
     items = [1,False,"END"]
@@ -111,7 +117,13 @@ def test_join_null():
     items = [pm.null,2,3]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.join()}")(result, items)
-    assert result[0] == ',2,3'           
+    assert result[0] == ',2,3'  
+
+def test_join_utf8():
+    prices = ["￥7", 500, 8123, 12]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.join()}")(result, prices)
+    assert result[0] == '￥7,500,8123,12'               
 
 #toString
 def test_toString():
@@ -608,7 +620,6 @@ def test_includes_too_few_args():
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("TypeError: includes: At least 1 argument required, but only 0 passed")   
 
-
 #sort
 def test_sort_empty():
     items = []
@@ -669,6 +680,13 @@ def test_sort_with_js_func():
     assert result[0] == items
     assert items == ['Four', 'One', 'Three'] 
 
+#def test_sort_numbers_tricky():
+#    items = [1, 30, 4, 21, 100000]
+#    result = [None]
+#    pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
+#    assert result[0] is items
+#    assert items == [1, 100000, 21, 30, 4]    
+
 def test_sort_with_js_func_wrong_data_type():
     items = [4,2,6,7]
     myFunc = pm.eval("((a, b) => a.toLocaleUpperCase() < b.toLocaleUpperCase() ? -1 : 1)")
@@ -677,7 +695,7 @@ def test_sort_with_js_func_wrong_data_type():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("TypeError: a.toLocaleUpperCase is not a function")       
+        assert str(e).__contains__("TypeError: a.toLocaleUpperCase is not a function")   
 
 #forEach
 def test_forEach():
@@ -707,6 +725,28 @@ def test_forEach_check_this_arg():
     pm.eval("(result, arr) => {class Counter { constructor() { this.count = 0;} add(array) { array.forEach(function countEntry(entry) { ++this.count; }, this);}} const obj = new Counter(); obj.add(arr); result[0] = obj.count;}")(result, items)  
     assert result == [3]  
 
+def test_forEach_check_this_arg_wrong_type():
+    items = ['Four', 'Three', 'One'] 
+    result = [None]
+    a = 9
+    try:
+        pm.eval("(result, arr, a) => {class Counter { constructor() { this.count = 0;} add(array) { array.forEach(function countEntry(entry) { ++this.count; }, a);}} const obj = new Counter(); obj.add(arr); result[0] = obj.count;}")(result, items, a)       
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: 'this' argument is not an object or null")         
+
+# TODO should not pass
+def test_forEach_check_this_arg_null():
+    items = ['Four', 'Three', 'One'] 
+    result = [None]
+    try:
+        pm.eval("(result, arr) => {class Counter { constructor() { this.count = 0;} add(array) { array.forEach(function countEntry(entry) { ++this.count; }, null);}} const obj = new Counter(); obj.add(arr); result[0] = obj.count;}")(result, items)       
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: this is null")              
+
 def test_forEach_too_few_args():
     items = [4,2,6,7]
     try:
@@ -733,17 +773,27 @@ def test_map_too_few_args():
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("TypeError: map: At least 1 argument required, but only 0 passed")     
 
+def test_map_arg_wrong_type():
+    items = [4,2,6,7]
+    try:
+        pm.eval("(arr) => {arr.map(8)}")(items)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: map: callback is not a function")            
+
 def test_map_check_index():
     items = ['Four', 'Three', 'One'] 
     result = ['']
     pm.eval("(result, arr) => {arr.map((element, index) => result[0] += index)}")(result, items) 
     assert result == ['012']    
 
-def test_map_check_array():
+def test_map_check_array_mutation():
     items = ['Four', 'Three', 'One'] 
     result = ['']
-    pm.eval("(result, arr) => {arr.map((element, index, array) => result[0] = array)}")(result, items)
-    assert result == [items]           
+    pm.eval("(result, arr) => {arr.map((element, index, array) => {array[0] = 'Ten'; result[0] = array})}")(result, items)
+    assert result[0] == ['Ten', 'Three', 'One']
+    assert items == ['Ten', 'Three', 'One']
     
 #filter
 def test_filter():
@@ -762,13 +812,22 @@ def test_filter_too_few_args():
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("TypeError: filter: At least 1 argument required, but only 0 passed")         
 
-#reduce  index, array param, too few args same impl as previous few for all below
+#reduce  index, array param, wrong arg type, too few args same impl as previous few for all below
 def test_reduce():
     items = [1,2,3,4,5]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue, 0)}")(result, items)
     assert items == [1,2,3,4,5]
     assert result[0] == 15
+
+def test_reduce_empty_array_no_accumulator():
+    items = []
+    try:
+        pm.eval("(arr) => {arr.reduce((accumulator, currentValue) => accumulator + currentValue)}")(items)    
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("TypeError: reduce of empty array with no initial value")          
 
 def test_reduce_float():
     items = [1.9, 4.6, 9.3, 16.5]
@@ -794,7 +853,19 @@ def test_reduce_no_initial_value():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue)}")(result, items)
     assert items == [1,2,3,4,5]
-    assert result[0] == 15   
+    assert result[0] == 15  
+
+def test_reduce_length_one_with_initial_value():
+    items = [1]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue, 2)}")(result, items)
+    assert result[0] == 3       
+
+def test_reduce_length_one_no_initial_value():
+    items = [1]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduce((accumulator, currentValue) => accumulator + currentValue)}")(result, items)
+    assert result[0] == 1      
 
 def test_reduce_list_meaningless():
     items = [['Hi', 'There']]
@@ -819,7 +890,13 @@ def test_reduceRight():
     items = [0,1,2,3,4]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue, index, array) => accumulator + currentValue)}")(result, items)
-    assert result[0] == 10    
+    assert result[0] == 10  
+
+def test_reduceRight_with_initial_value():
+    items = [0,1,2,3,4]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue, index, array) => accumulator + currentValue, 5)}")(result, items)
+    assert result[0] == 15        
 
 def test_reduceRight_float():
     items = [1.9, 4.6, 9.3, 16.5]
@@ -908,6 +985,13 @@ def test_flat():
     assert items == [0, 1, 2, [3, 4]]
     assert result[0] == [0, 1, 2, 3, 4]
 
+def test_flat_with_js_array():
+    items = [0, 1, 2, [3, 4]]
+    result = [0]
+    pm.eval("(result, arr) => {arr[1] = [10,11]; result[0] = arr.flat()}")(result, items)
+    assert items == [0, [10, 11], 2, [3, 4]]
+    assert result[0] == [0, 10, 11, 2, 3, 4]
+
 def test_flat_depth_zero():
     items = [0, 1, [2, [3, [4, 5]]]]
     result = [0]
@@ -921,19 +1005,18 @@ def test_flat_depth_one():
     assert items == [0, 1, [2, [3, [4, 5]]]]
     assert result[0] == [0, 1, 2, [3, [4, 5]]]    
 
-########## TODO these two fail as tests but work in the interactive console ###########
-#def test_flat_depth_two():
-#    items = [0, 1, [2, [3, [4, 5]]]]
-#    result = [0]
-#    pm.eval("(result, arr) => {result[0] = arr.flat(2)}")(result, items)
-#    assert items == [0, 1, [2, [3, [4, 5]]]]
-#    assert result[0] == [0, 1, 2, 3, [4, 5]]    
+def test_flat_depth_two():
+    items = [0, 1, [2, [3, [4, 5]]]]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flat(2)}")(result, items)
+    assert items == [0, 1, [2, [3, [4, 5]]]]
+    assert result[0] == [0, 1, 2, 3, [4, 5]]    
 
-#def test_flat_depth_infinite():
-#    items = [0, 1, [2, [3, [4, 5]]]]
-#    result = [0]
-#    pm.eval("(result, arr) => {result[0] = arr.flat(Infinity)}")(result, items)
-#    assert result[0] == [0, 1, 2, 3, 4, 5]      
+def test_flat_depth_large():
+    items = [0, 1, [2, [3, [4, 5]]]]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flat(10)}")(result, items)
+    assert result[0] == [0, 1, 2, 3, 4, 5]      
 
 #flatMap
 def test_flatMap():
@@ -943,6 +1026,27 @@ def test_flatMap():
     assert items == [1,2,1]
     assert result[0] == [1,2,2,1]
 
+def test_flatMap_with_js_array():
+    items = [1,2,2,1]
+    result = [0]
+    pm.eval("(result, arr) => {arr[1] = [10,11]; result[0] = arr.flatMap((num) => (num === 2 ? [2, 2] : 1))}")(result, items)
+    assert items == [1, [10, 11], 2, 1]
+    assert result[0] == [1, 1, 2, 2, 1]  
+
+def test_flatMap_no_replace():
+    items = [1,2,[4,5]]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flatMap((num) => (num === 2 ? [2, 2] : 1))}")(result, items)
+    assert items == [1, 2, [4, 5]]
+    assert result[0] == [1, 2, 2, 1]    
+
+def test_flatMap_no_replace_depth_one():
+    items = [1,2,[4,5]]
+    result = [0]
+    pm.eval("(result, arr) => {result[0] = arr.flatMap((num) => (num === 2 ? [2, [2, 2]] : 1))}")(result, items)
+    assert items == [1, 2, [4, 5]]
+    assert result[0] == [1, 2, [2, 2], 1]       
+ 
 def test_flatMap_equivalence():
     items = [1, 2, 1]
     result = [0]
@@ -1018,17 +1122,17 @@ def test_entries_next_next_undefined():
     items = ['a']
     result = [0]
     pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(result, items)
-    assert result[0] == None  
+    assert result[0] == None    
 
 #keys
-def test_keys():
+def test_keys_iterator():
     items = ['a', 'b', 'c']
     result = [7,8,9]
     pm.eval("(result, arr) => { index = 0; iterator = arr.keys(); for (const key of iterator) { result[index] = key; index++;} }")(result, items)
-    assert result == ['0','1','2']    
+    assert result == [0,1,2]    
 
 #values
-def test_values():
+def test_values_iterator():
     items = ['a', 'b', 'c']
     result = [7,8,9]
     pm.eval("(result, arr) => { index = 0; iterator = arr.values(); for (const key of iterator) { result[index] = key; index++;} }")(result, items)
@@ -1074,5 +1178,5 @@ def test_iterator_last_next():
     items = [1,2]
     result = [0]
     pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); iterator.next(); result[0] = iterator.next()}")(result, items)
-    assert result[0].value == None    
+    assert result[0].value == None
     assert result[0].done == True                    
