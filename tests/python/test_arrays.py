@@ -1,4 +1,5 @@
 import pythonmonkey as pm
+from datetime import datetime
 
 def test_assign():
     items = [1,2,3]
@@ -538,7 +539,6 @@ def test_fill_object():
     assert items[0] is items[1] is items[2]    
 
 #copyWithin
-
 def test_copyWithin():
     items = [1,2,3]
     result = [None]
@@ -623,6 +623,12 @@ def test_copyWithin_target_and_start_too_small():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.copyWithin(1, -10)}")(result, items)
     assert items == [1,1,2]  
+
+def test_copyWithin_target_and_start_and_end_too_small():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1,2,-10)}")(result, items)
+    assert items == [1,2,3,4,5]    
 
 def test_copyWithin_target_and_start_and_end_too_large():
     items = [1,2,3,4,5]
@@ -802,7 +808,20 @@ def test_forEach_check_this_arg_wrong_type():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("TypeError: 'this' argument is not an object or null")         
+        assert str(e).__contains__("TypeError: 'this' argument is not an object or null")    
+
+# TODO python function support
+
+# this one does not get the result into items
+#def test_forEach_with_python_function():
+#    def func(element, index, array):
+#        return "to each his own"
+#    items = ['Four', 'Three', 'One'] 
+#    returnResult = [0]
+#    pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.forEach(func)}")(returnResult, items, func)
+#    assert items == ['to each his own', 'to each his own', 'to each his own']    
+#    assert returnResult == [None]         
+
 
 # TODO should not pass
 def test_forEach_check_this_arg_null():
@@ -832,6 +851,43 @@ def test_map():
     assert items == [4,2,6,7]
     assert result[0] == [16,4,36,49]
 
+def test_map_check_index():
+    items = [4,2,6,7]
+    result = ['']
+    pm.eval("(result, arr) => {arr.map((x, index) => result[0] += index)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == '0123'
+
+def test_map_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.map((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]
+    assert result[0] is items       
+
+def test_map_check_this_arg():
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.map(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [3]    
+
 def test_map_too_few_args():
     items = [4,2,6,7]
     try:
@@ -850,12 +906,6 @@ def test_map_arg_wrong_type():
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("TypeError: map: callback is not a function")            
 
-def test_map_check_index():
-    items = ['Four', 'Three', 'One'] 
-    result = ['']
-    pm.eval("(result, arr) => {arr.map((element, index) => result[0] += index)}")(result, items) 
-    assert result == ['012']    
-
 def test_map_check_array_mutation():
     items = ['Four', 'Three', 'One'] 
     result = ['']
@@ -870,6 +920,43 @@ def test_filter():
     pm.eval("(result, arr) => {result[0] = arr.filter((word) => word.length > 6)}")(result, words)
     assert words == ['spray', 'elite', 'exuberant', 'destruction', 'present']
     assert result[0] == ['exuberant', 'destruction', 'present']
+
+def test_filter_check_index():
+    items = [4,2,6,7]
+    result = ['']
+    pm.eval("(result, arr) => {arr.filter((x, index) => result[0] += index)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == '0123'
+
+def test_filter_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.filter((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]
+    assert result[0] is items    
+
+def test_filter_check_this_arg():
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.filter(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [3]       
 
 def test_filter_too_few_args():
     items = [4,2,6,7]
@@ -972,6 +1059,19 @@ def test_reduceRight_float():
     pm.eval("(result, arr) => {result[0] = arr.reduceRight((accumulator, currentValue, index, array) => accumulator + currentValue)}")(result, items)
     assert result[0] == 32.3    
 
+def test_reduceRight_check_index():
+    items = [1.9, 4.6, 9.3, 16.5]
+    result = ['']
+    pm.eval("(result, arr) => {arr.reduceRight((accumulator, currentValue, index, array) => {accumulator + currentValue; result[0] += index})}")(result, items)
+    assert result[0] == '210'    
+
+def test_reduceRight_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = [None]
+    pm.eval("(result, arr) => {arr.reduceRight((accumulator, currentValue, index, array) => {accumulator + currentValue; result[0] = array})}")(result, items)
+    assert result == [items]
+    assert result[0] is items        
+
 #some
 def test_some_true():
     items = [1, 2, 3, 4, 5]
@@ -984,7 +1084,44 @@ def test_some_false():
     items = [1,3,5]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.some((element) => element % 2 === 0)}")(result, items)
-    assert result[0] == False    
+    assert result[0] == False  
+
+def test_some_check_index():
+    items = [4,2,6,7]
+    result = ['']
+    pm.eval("(result, arr) => {arr.some((x, index) => result[0] += index)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == '0123'
+
+def test_some_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.some((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]
+    assert result[0] is items    
+
+def test_some_check_this_arg():
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.some(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [3]       
 
 def test_some_truthy_conversion():
     result = [None]
@@ -1017,6 +1154,43 @@ def test_every_false():
     pm.eval("(result, arr) => {result[0] = arr.every((element) => element % 2 === 0)}")(result, items)
     assert result[0] == False    
 
+def test_every_check_index():
+    items = [4,2,6,7]
+    result = ['']
+    pm.eval("(result, arr) => {arr.every((x, index) => result[0] += index)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == '0'
+
+def test_every_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.every((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]
+    assert result[0] is items    
+
+def test_every_check_this_arg():
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.every(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [1]      
+
 #find
 def test_find_found_once():
     items = [5, 12, 8, 130, 44]
@@ -1037,6 +1211,43 @@ def test_find_not_found():
     pm.eval("(result, arr) => {result[0] = arr.find((element) => element > 1000)}")(result, items)
     assert result[0] is None  
 
+def test_find_check_index():
+    items = [4,2,6,7]
+    result = ['']
+    pm.eval("(result, arr) => {arr.find((x, index) => result[0] += index)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == '0123'
+
+def test_find_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.find((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]
+    assert result[0] is items    
+
+def test_find_check_this_arg():
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.find(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [3]           
+
 #findIndex
 def test_findIndex_found_once():
     items = [5, 12, 8, 130, 44]
@@ -1055,7 +1266,44 @@ def test_findIndex_not_found():
     items = [5, 12, 8, 130, 4]
     result = [0]
     pm.eval("(result, arr) => {result[0] = arr.findIndex((element) => element > 1000)}")(result, items)
-    assert result[0] == -1        
+    assert result[0] == -1      
+
+def test_findIndex_check_index():
+    items = [4,2,6,7]
+    result = ['']
+    pm.eval("(result, arr) => {arr.findIndex((x, index) => result[0] += index)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == '0123'
+
+def test_findIndex_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.findIndex((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]
+    assert result[0] is items    
+
+def test_findIndex_check_this_arg():
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.findIndex(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [3]           
 
 #flat
 def test_flat():
@@ -1135,6 +1383,43 @@ def test_flatMap_equivalence():
     pm.eval("(result, arr) => {result[0] = arr.map((num) => (num === 2 ? [2, 2] : 1)).flat()}")(result2, items)
     assert result[0] == result2[0]   
 
+def test_flatMap_check_index():
+    items = [4,2,6,7]
+    result = ['']
+    pm.eval("(result, arr) => {arr.flatMap((x, index) => result[0] += index)}")(result, items)
+    assert items == [4,2,6,7]
+    assert result[0] == '0123'
+
+def test_flatMap_check_array():
+    items = ['Four', 'Three', 'One'] 
+    result = ['']
+    pm.eval("(result, arr) => {arr.flatMap((element, index, array) => result[0] = array)}")(result, items)
+    assert result == [items]
+    assert result[0] is items    
+
+def test_flatMap_check_this_arg():
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.flatMap(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [0]               
+
 #valueOf
 def test_valueOf():
     items = [1, 2, 1]
@@ -1149,6 +1434,18 @@ def test_toLocaleString():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' })}")(result, prices)
     assert result[0] == '￥7,￥500,￥8,123,￥12'   
+
+def test_toLocaleString_with_none():
+    prices = ["￥7", 500, 8123, None]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' })}")(result, prices)
+    assert result[0] == '￥7,￥500,￥8,123,'     
+
+def test_toLocaleString_with_null():
+    prices = ["￥7", 500, 8123, pm.null]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' })}")(result, prices)
+    assert result[0] == '￥7,￥500,￥8,123,'        
 
 def test_toLocaleString_no_args():
     prices = ["￥7", 500, 8123, 12]
@@ -1181,6 +1478,12 @@ def test_toLocaleString_two_args_invalid_currency():
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("RangeError: invalid currency code in NumberFormat():")       
+
+def test_toLocaleString_with_datetime():
+    prices = [500, datetime(year=2020, month=1, day=31, hour=13, minute=14, second=31)]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.toLocaleString('en', {timeZone: 'UTC'})}")(result, prices)
+    assert result[0] == '500,1/31/2020, 6:14:31 PM'          
 
 #entries
 def test_entries_next():
