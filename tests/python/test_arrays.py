@@ -340,7 +340,7 @@ def test_lastIndexOf_dup():
     assert result[0] == 3    
 
 def test_lastIndexOf_with_from_index():
-    items = [1,2,3]
+    items = [1,2,3,1]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(1, 2)}")(result, items)
     assert result[0] == 0       
