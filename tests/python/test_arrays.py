@@ -613,7 +613,7 @@ def test_sort_empty():
     items = []
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
-    assert result[0] == items
+    assert result[0] is items
     assert items == []
 
 def test_sort_numbers():
