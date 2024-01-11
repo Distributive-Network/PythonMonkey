@@ -1482,8 +1482,8 @@ def test_toLocaleString_two_args_invalid_currency():
 def test_toLocaleString_with_datetime():
     prices = [500, datetime(year=2020, month=1, day=31, hour=13, minute=14, second=31)]
     result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.toLocaleString('en', {timeZone: 'UTC'})}")(result, prices)
-    assert result[0] == '500,1/31/2020, 6:14:31 PM'          
+    pm.eval("(result, arr) => {result[0] = arr.toLocaleString('en-uk')}")(result, prices)
+    assert result[0] == '500,31/01/2020, 13:14:31'          
 
 #entries
 def test_entries_next():
