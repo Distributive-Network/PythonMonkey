@@ -1493,16 +1493,17 @@ static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
 
   JS::RootedObject rootedGlobal(cx, global);
 
-  JS::RootedValue elementVal(cx);
   for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
+    JS::RootedValue *elementVal = new JS::RootedValue(cx);
+
     if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
-      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, &elementVal);
+      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, elementVal);
     }
     else if (PyObject_TypeCheck(source, &PyList_Type)) {
-      elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
+      elementVal->set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
     }
 
-    PyObject *element = pyTypeFactory(cx, &rootedGlobal, &elementVal)->getPyObject();
+    PyObject *element = pyTypeFactory(cx, &rootedGlobal, elementVal)->getPyObject();
 
     bool shouldFlatten;
     if (depth > 0) {
@@ -1537,7 +1538,7 @@ static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
         JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
       }
 
-      JS_SetElement(cx, rootedRetArray, targetIndex, elementVal);
+      JS_SetElement(cx, rootedRetArray, targetIndex, *elementVal);
 
       targetIndex++;
     }
@@ -1567,14 +1568,16 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
       elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
     }
 
+    JS::RootedValue *retVal = new JS::RootedValue(cx);
+
     jArgs[0].set(elementVal);
     jArgs[1].setInt32(sourceIndex);
     jArgs[2].set(sourceValue);
-    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &retVal)) {
+    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, retVal)) {
       return false;
     }
 
-    PyObject *element = pyTypeFactory(cx, &rootedGlobal, &retVal)->getPyObject();
+    PyObject *element = pyTypeFactory(cx, &rootedGlobal, retVal)->getPyObject();
 
     bool shouldFlatten;
     if (depth > 0) {
@@ -1633,7 +1636,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
           JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
         }
 
-        JS_SetElement(cx, rootedRetArray, targetIndex, retVal);
+        JS_SetElement(cx, rootedRetArray, targetIndex, *retVal);
 
         targetIndex++;
       }
