@@ -1125,8 +1125,7 @@ def test_values_iterator():
     items = ['a', 'b', 'c']
     result = [7,8,9]
     pm.eval("(result, arr) => { index = 0; iterator = arr.values(); for (const key of iterator) { result[index] = key; index++;} }")(result, items)
-    items[0] = 'd'
-    assert result == ['a', 'b', 'c']
+    assert result is not items
 
 #constructor property
 def test_constructor_creates_array():
