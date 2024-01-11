@@ -324,7 +324,13 @@ def test_indexOf_not_found():
     items = [1,2,3]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.indexOf(10)}")(result, items)
-    assert result[0] == -1   
+    assert result[0] == -1  
+
+def test_indexOf_small_start():
+    items = [1,2,3,1]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(1, -10)}")(result, items)
+    assert result[0] == 0        
 
 #lastIndexOf
 def test_lastIndexOf():
@@ -362,6 +368,12 @@ def test_lastIndexOf_not_found():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(3, 0)}")(result, items)
     assert result[0] == -1   
+
+def test_lastIndexOf_small_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.lastIndexOf(1, -10)}")(result, items)
+    assert result[0] == -1      
 
 #splice
 def test_splice_no_args():
@@ -485,7 +497,13 @@ def test_fill_with_start_too_high():
     items = [1,2,3]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.fill(8,7)}")(result, items)
-    assert items == [1,2,3]      
+    assert items == [1,2,3]  
+
+def test_fill_with_stop_smaller_than_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,7,2)}")(result, items)
+    assert items == [1,2,3]          
 
 def test_fill_with_stop():
     items = [1,2,3]
@@ -499,11 +517,25 @@ def test_fill_with_negative_stop():
     pm.eval("(result, arr) => {result[0] = arr.fill(8,1,-1)}")(result, items)
     assert items == [1,8,3]    
 
+def test_fill_with_negative_stop_too_low():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.fill(8,1,-10)}")(result, items)
+    assert items == [1,2,3]       
+
 def test_fill_with_stop_too_high():
     items = [1,2,3]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.fill(8,1,10)}")(result, items)
     assert items == [1,8,8]  
+
+def test_fill_object():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {let a = {a:1}; result[0] = arr.fill(a)}")(result, items)
+    assert items == [{"a":1},{"a":1},{"a":1}]
+    assert items is result[0]
+    assert items[0] is items[1] is items[2]    
 
 #copyWithin
 
@@ -573,6 +605,36 @@ def test_copyWithin_target_and_start_and_negative_end():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.copyWithin(1,2,-2)}")(result, items)
     assert items == [1,3,3,4,5]    
+
+def test_copyWithin_target_too_small_and_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(-10,2)}")(result, items)
+    assert items == [3,2,3]  
+
+def test_copyWithin_target_greater_than_start():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => { result[0] = arr.copyWithin(2,1)}")(result, items)
+    assert items == [1,2,2]      
+
+def test_copyWithin_target_and_start_too_small():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1, -10)}")(result, items)
+    assert items == [1,1,2]  
+
+def test_copyWithin_target_and_start_and_end_too_large():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(2,1,10)}")(result, items)
+    assert items == [1,2,2,3,4]      
+
+def test_copyWithin_target_and_start_greater_than_end():
+    items = [1,2,3,4,5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(2,3,2)}")(result, items)
+    assert items == [1,2,3,4,5]     
 
 #includes
 def test_includes():

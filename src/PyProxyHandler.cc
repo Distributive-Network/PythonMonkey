@@ -624,9 +624,10 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  JS::RootedValue *fillValue = new JS::RootedValue(cx, args[0].get());
+  PyObject *fillValueItem = pyTypeFactory(cx, global, fillValue)->getPyObject();
   for (int index = actualStart; index < actualEnd; index++) {
-    JS::RootedValue *fillValue = new JS::RootedValue(cx, args[0].get());
-    if (PyList_SetItem(self, index, pyTypeFactory(cx, global, fillValue)->getPyObject()) < 0) {
+    if (PyList_SetItem(self, index, fillValueItem) < 0) {
       return false;
     }
   }
@@ -645,7 +646,7 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
-  uint64_t selfLength = (uint64_t)PyList_GET_SIZE(self);
+  int64_t selfLength = (uint64_t)PyList_GET_SIZE(self);
 
   unsigned int argsLength = args.length();
 
@@ -658,11 +659,11 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
     relativeTarget = 0;
   }
 
-  uint64_t actualTarget;
+  int64_t actualTarget;
   if (relativeTarget < 0) {
-    actualTarget = uint64_t(std::max(double(selfLength) + relativeTarget, 0.0));
+    actualTarget = int64_t(std::max(double(selfLength) + relativeTarget, 0.0));
   } else {
-    actualTarget = uint64_t(std::min(double(relativeTarget), double(selfLength)));
+    actualTarget = int64_t(std::min(double(relativeTarget), double(selfLength)));
   }
 
   int64_t relativeStart;
@@ -674,11 +675,11 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
     relativeStart = 0;
   }
 
-  uint64_t actualStart;
+  int64_t actualStart;
   if (relativeStart < 0) {
-    actualStart = uint64_t(std::max(double(selfLength) + relativeStart, 0.0));
+    actualStart = int64_t(std::max(double(selfLength) + relativeStart, 0.0));
   } else {
-    actualStart = uint64_t(std::min(double(relativeStart), double(selfLength)));
+    actualStart = int64_t(std::min(double(relativeStart), double(selfLength)));
   }
 
   int64_t relativeEnd;
@@ -690,11 +691,11 @@ static bool array_copyWithin(JSContext *cx, unsigned argc, JS::Value *vp) {
     relativeEnd = selfLength;
   }
 
-  uint64_t actualEnd;
+  int64_t actualEnd;
   if (relativeEnd < 0) {
-    actualEnd = uint64_t(std::max(double(selfLength) + relativeEnd, 0.0));
+    actualEnd = int64_t(std::max(double(selfLength) + relativeEnd, 0.0));
   } else {
-    actualEnd = uint64_t(std::min(double(relativeEnd), double(selfLength)));
+    actualEnd = int64_t(std::min(double(relativeEnd), double(selfLength)));
   }
 
   int64_t count = int64_t(std::min(actualEnd - actualStart, selfLength - actualTarget));
