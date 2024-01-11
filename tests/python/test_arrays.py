@@ -461,9 +461,7 @@ def test_fill_returns_ref_to_self():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.fill(8)}")(result, items)
     assert items == [8,8,8]
-    assert result[0] == [8,8,8]
-    result[0][0] = 9
-    assert items == [9,8,8]
+    assert items is result[0]
 
 def test_fill_other_type():
     items = [1,2,3]
