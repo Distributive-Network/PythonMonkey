@@ -553,8 +553,8 @@ def test_copyWithin_target_and_start():
 def test_copyWithin_target_and_start_too_large():
     items = [1,2,3]
     result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1, 2)}")(result, items)
-    assert items == [1,3,3]       
+    pm.eval("(result, arr) => {result[0] = arr.copyWithin(1, 10)}")(result, items)
+    assert items == [1,2,3]       
 
 def test_copyWithin_target_and_negative_start():
     items = [1,2,3]
