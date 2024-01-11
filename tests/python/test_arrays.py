@@ -665,7 +665,7 @@ def test_sort_with_js_func():
     result = [None]
     myFunc = pm.eval("((a, b) => a.toLocaleUpperCase() < b.toLocaleUpperCase() ? -1 : 1)")
     pm.eval("(result, arr, compareFun) => {result[0] = arr.sort(compareFun)}")(result, items, myFunc)
-    assert result[0] == items
+    assert result[0] is items
     assert items == ['Four', 'One', 'Three'] 
 
 #def test_sort_numbers_tricky():
