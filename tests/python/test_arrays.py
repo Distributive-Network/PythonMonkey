@@ -709,10 +709,27 @@ def test_forEach_check_array():
     assert result[0] is items        
 
 def test_forEach_check_this_arg():
-    items = ['Four', 'Three', 'One'] 
-    result = [None]
-    pm.eval("(result, arr) => {class Counter { constructor() { this.count = 0;} add(array) { array.forEach(function countEntry(entry) { ++this.count; }, this);}} const obj = new Counter(); obj.add(arr); result[0] = obj.count;}")(result, items)  
-    assert result == [3]  
+  items = ['Four', 'Three', 'One']
+  result = [None]
+  pm.eval(
+    """
+    (result, arr) => {
+      class Counter {
+        constructor()
+        {
+          this.count = 0;
+        }
+        add(array) {
+          array.forEach(function countEntry(entry) { ++this.count; }, this);
+        }
+      }
+      const obj = new Counter();
+      obj.add(arr);
+      result[0] = obj.count;
+    }
+    """
+  )(result, items)
+  assert result == [3]
 
 def test_forEach_check_this_arg_wrong_type():
     items = ['Four', 'Three', 'One'] 
