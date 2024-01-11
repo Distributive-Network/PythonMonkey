@@ -512,9 +512,7 @@ def test_copyWithin():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.copyWithin(0,1)}")(result, items)
     assert items == [2,3,3]
-    assert result[0] == [2,3,3]
-    result[0][0] = 9
-    assert items == [9,3,3]    
+    assert items is result[0]
 
 def test_copyWithin_no_args():
     items = [1,2,3]
