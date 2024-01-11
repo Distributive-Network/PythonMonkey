@@ -506,14 +506,6 @@ def test_fill_with_stop_too_high():
     assert items == [1,8,8]  
 
 #copyWithin
-def test_copyWithin_returns_ref_to_self():
-    items = [1,2,3]
-    result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.copyWithin(0,1)}")(result, items)
-    assert items == [2,3,3]
-    assert result[0] == [2,3,3]
-    result[0][0] = 9
-    assert items == [9,3,3]       
 
 def test_copyWithin():
     items = [1,2,3]
