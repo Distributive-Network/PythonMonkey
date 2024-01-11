@@ -909,8 +909,20 @@ def test_some_false():
 
 def test_some_truthy_conversion():
     result = [None]
-    pm.eval('(result) => {const TRUTHY_VALUES = [true, "true", 1];  function getBoolean(value) { if (typeof value === "string") { value = value.toLowerCase().trim(); } return TRUTHY_VALUES.some((t) => t === value);} result[0] = getBoolean(1);}')(result)
-    assert result[0] == True   
+    pm.eval(
+      """
+      (result) => {
+        const TRUTHY_VALUES = [true, "true", 1, {}];
+        function getBoolean(value) {
+          if (typeof value === "string") {
+            value = value.toLowerCase().trim();
+          } 
+           return TRUTHY_VALUES.some((t) => t === value);
+        }
+        result[0] = getBoolean(1);
+      }
+    """)(result)
+    assert result[0] == True  
 
 #every        
 def test_every_true():
