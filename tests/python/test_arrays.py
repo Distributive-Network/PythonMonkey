@@ -297,10 +297,10 @@ def test_indexOf():
     assert result[0] == 0     
 
 def test_indexOf_with_start():
-    items = [1,2,3]
+    items = [1,2,3,4,3]
     result = [None]
-    pm.eval("(result, arr) => {result[0] = arr.indexOf(3, 1)}")(result, items)
-    assert result[0] == 2 
+    pm.eval("(result, arr) => {result[0] = arr.indexOf(3, 3)}")(result, items)
+    assert result[0] == 4
 
 def test_indexOf_with_negative_start():
     items = [1,2,3]
