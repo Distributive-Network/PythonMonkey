@@ -944,7 +944,7 @@ def test_find_not_found():
     items = [5, 12, 8, 130, 44]
     result = [0]
     pm.eval("(result, arr) => {result[0] = arr.find((element) => element > 1000)}")(result, items)
-    assert result[0] == None  
+    assert result[0] is None  
 
 #findIndex
 def test_findIndex_found_once():
