@@ -67,7 +67,7 @@ def test_pop_empty():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.pop()}")(result, items)
     assert items == []
-    assert result[0] == None       
+    assert result[0] is None       
 
 def test_pop_ignore_extra_args():
     items = [1,2,3]
