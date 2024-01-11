@@ -705,7 +705,8 @@ def test_forEach_check_array():
     items = ['Four', 'Three', 'One'] 
     result = ['']
     pm.eval("(result, arr) => {arr.forEach((element, index, array) => result[0] = array)}")(result, items)
-    assert result == [items]        
+    assert result == [items]
+    assert result[0] is items        
 
 def test_forEach_check_this_arg():
     items = ['Four', 'Three', 'One'] 
