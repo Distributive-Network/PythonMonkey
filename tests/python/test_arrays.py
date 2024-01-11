@@ -620,7 +620,7 @@ def test_sort_numbers():
     items = [4,2,6,7]
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
-    assert result[0] == items
+    assert result[0] is items
     assert items == [2,4,6,7]
 
 def test_sort_strings():
