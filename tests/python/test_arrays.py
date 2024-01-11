@@ -174,7 +174,7 @@ def test_shift_empty():
     result = [None]
     pm.eval("(result, arr) => {result[0] = arr.shift()}")(result, items)
     assert items == []
-    assert result[0] == None   
+    assert result[0] is None   
 
 #unshift     
 def test_unshift_zero_arg():
