@@ -967,7 +967,7 @@ def test_filter_too_few_args():
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("TypeError: filter: At least 1 argument required, but only 0 passed")         
 
-#reduce  index, array param, wrong arg type, too few args same impl as previous few for all below
+#reduce
 def test_reduce():
     items = [1,2,3,4,5]
     result = [None]

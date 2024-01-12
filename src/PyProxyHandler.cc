@@ -515,6 +515,13 @@ static bool array_sort(JSContext *cx, unsigned argc, JS::Value *vp) {
       PyList_Sort(self);
     }
     else {
+      JS::Value callbackfn = args[0].get();
+
+      if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
+        JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_BAD_SORT_ARG, "sort: callback");
+        return false;
+      }
+
       JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
 
       PyObject *pyFunc = pyTypeFactory(cx, global, new JS::RootedValue(cx, args[0].get()))->getPyObject();
@@ -893,7 +900,7 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   Py_ssize_t len = PyList_GET_SIZE(self);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -902,7 +909,10 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
@@ -911,8 +921,7 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[2].set(selfValue);
 
     if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
-        delete rootedThisArg;
+      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
         return false;
       }
     }
@@ -921,10 +930,6 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
         return false;
       }
     }
-  }
-
-  if (rootedThisArg) {
-    delete rootedThisArg;
   }
 
   args.rval().setUndefined();
@@ -963,7 +968,7 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
   JS::RootedValue rval(cx);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -972,7 +977,10 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   for (Py_ssize_t index = 0; index < len; index++) {
@@ -981,8 +989,7 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[2].set(selfValue);
 
     if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
-        delete rootedThisArg;
+      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
         return false;
       }
     }
@@ -993,10 +1000,6 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     JS_SetElement(cx, rootedRetArray, index, rval);
-  }
-
-  if (rootedThisArg) {
-    delete rootedThisArg;
   }
 
   args.rval().setObject(*retArray);
@@ -1031,7 +1034,7 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   JS::RootedValueVector retVector(cx);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -1040,7 +1043,10 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   Py_ssize_t len = PyList_GET_SIZE(self);
@@ -1051,8 +1057,7 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[2].set(selfValue);
 
     if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
-        delete rootedThisArg;
+      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
         return false;
       }
     }
@@ -1067,10 +1072,6 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
         return false;
       }
     }
-  }
-
-  if (rootedThisArg) {
-    delete rootedThisArg;
   }
 
   JS::HandleValueArray jsValueArray(retVector);
@@ -1218,7 +1219,7 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
   JS::RootedValue rval(cx);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -1227,7 +1228,10 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   Py_ssize_t len = PyList_GET_SIZE(self);
@@ -1237,8 +1241,7 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[2].set(selfValue);
 
     if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
-        delete rootedThisArg;
+      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
         return false;
       }
     }
@@ -1255,10 +1258,6 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
       args.rval().setBoolean(true);
       return true;
     }
-  }
-
-  if (rootedThisArg) {
-    delete rootedThisArg;
   }
 
   args.rval().setBoolean(false);
@@ -1291,7 +1290,7 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
   JS::RootedValue rval(cx);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -1300,7 +1299,10 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   Py_ssize_t len = PyList_GET_SIZE(self);
@@ -1310,8 +1312,7 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[2].set(selfValue);
 
     if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
-        delete rootedThisArg;
+      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
         return false;
       }
     }
@@ -1322,16 +1323,9 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     if (!rval.toBoolean()) {
-      if (rootedThisArg) {
-        delete rootedThisArg;
-      }
       args.rval().setBoolean(false);
       return true;
     }
-  }
-
-  if (rootedThisArg) {
-    delete rootedThisArg;
   }
 
   args.rval().setBoolean(true);
@@ -1364,7 +1358,7 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
   JS::RootedValue rval(cx);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -1373,7 +1367,10 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   Py_ssize_t len = PyList_GET_SIZE(self);
@@ -1384,8 +1381,7 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[2].set(selfValue);
 
     if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
-        delete rootedThisArg;
+      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
         return false;
       }
     }
@@ -1396,16 +1392,9 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     if (rval.toBoolean()) {
-      if (rootedThisArg) {
-        delete rootedThisArg;
-      }
       args.rval().set(item);
       return true;
     }
-  }
-
-  if (rootedThisArg) {
-    delete rootedThisArg;
   }
 
   args.rval().setUndefined();
@@ -1438,7 +1427,7 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
   JS::RootedValue rval(cx);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -1447,7 +1436,10 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   Py_ssize_t len = PyList_GET_SIZE(self);
@@ -1457,8 +1449,7 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[2].set(selfValue);
 
     if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, *rootedThisArg, callBack, jArgs, &rval)) {
-        delete rootedThisArg;
+      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
         return false;
       }
     }
@@ -1469,16 +1460,9 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     if (rval.toBoolean()) {
-      if (rootedThisArg) {
-        delete rootedThisArg;
-      }
       args.rval().setInt32(index);
       return true;
     }
-  }
-
-  if (rootedThisArg) {
-    delete rootedThisArg;
   }
 
   args.rval().setInt32(-1);
@@ -1879,7 +1863,7 @@ static JSClass listIteratorClass = {"ListIterator", JSCLASS_HAS_RESERVED_SLOTS(L
 static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JS::RootedObject thisObj(cx);
-  if (!args.computeThis(cx, &thisObj)) return false; // TODO needed ?
+  if (!args.computeThis(cx, &thisObj)) return false;
 
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(thisObj, ListIteratorSlotIteratedObject);
 
@@ -1891,7 +1875,6 @@ static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   if (!JS::ToInt32(cx, rootedNextIndex, &nextIndex) || !JS::ToInt32(cx, rootedItemKind, &itemKind)) return false;
 
   JS::RootedObject result(cx, JS_NewPlainObject(cx));
-  if (!result) return false;
 
   Py_ssize_t len = PyList_GET_SIZE(self);
 
