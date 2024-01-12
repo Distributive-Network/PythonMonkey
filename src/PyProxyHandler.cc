@@ -1871,7 +1871,7 @@ static bool array_sort(JSContext *cx, unsigned argc, JS::Value *vp) {
       JS::Value callbackfn = args[0].get();
 
       if (!callbackfn.isObject() || !JS::IsCallable(&callbackfn.toObject())) {
-        JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_BAD_SORT_ARG, "sort: callback");
+        JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_BAD_SORT_ARG);
         return false;
       }
 
