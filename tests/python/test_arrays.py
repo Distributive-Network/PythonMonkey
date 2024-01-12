@@ -684,6 +684,13 @@ def test_sort_empty():
     assert result[0] is items
     assert items == []
 
+def test_sort_one():
+    items = [5]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
+    assert result[0] is items
+    assert items == [5]    
+
 def test_sort_numbers():
     items = [4,2,6,7]
     result = [None]
@@ -694,9 +701,27 @@ def test_sort_numbers():
 def test_sort_strings():
     items = ['Four', 'Three', 'One']   
     pm.eval("(arr) => {arr.sort()}")(items)
-    assert items == ['Four', 'One', 'Three']    
+    assert items == ['Four', 'One', 'Three']   
 
 def test_sort_with_two_args_keyfunc():
+    items = ['Four', 'Three', 'One']   
+    def myFunc(e, f):
+        return len(e) - len(f) 
+    pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
+    assert items == ['One', 'Four', 'Three'] 
+
+def test_sort_with_two_args_keyfunc_wrong_return_type():
+    items = ['Four', 'Three', 'One'] 
+    def myFunc(e,f):
+        return e + f 
+    try:
+        pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'TypeError'>"
+        assert str(e) == "incorrect compare function return type"      
+ 
+def test_sort_with_two_args_keyfunc_wrong_data_type():
     items = [4,2,6,7]
     def myFunc(e,f):
         return len(e) - len(f)  
@@ -705,28 +730,27 @@ def test_sort_with_two_args_keyfunc():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e).__contains__("myFunc() missing 1 required positional argument: 'f'")   
+        assert str(e) == "object of type 'float' has no len()"    
 
 def test_sort_with_one_arg_keyfunc():
     items = ['Four', 'Three', 'One']   
     def myFunc(e):
         return len(e)  
-    pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)
-    assert items == ['One', 'Four', 'Three']
+    try:
+        pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("invalid Array.prototype.sort argument")  
 
 def test_sort_with_builtin_keyfunc():
     items = ['Four', 'Three', 'One']   
-    pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, len)
-    assert items == ['One', 'Four', 'Three']
-
-def test_sort_with_builtin_keyfunc_wrong_data_type():
-    items = [4,2,6,7]  
     try:
         pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, len)      
         assert (False)
     except Exception as e:    
-        assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e).__contains__("object of type 'int' has no len()")   
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert str(e).__contains__("invalid Array.prototype.sort argument")    
 
 def test_sort_with_js_func():
     items = ['Four', 'Three', 'One']  
@@ -736,12 +760,12 @@ def test_sort_with_js_func():
     assert result[0] is items
     assert items == ['Four', 'One', 'Three'] 
 
-#def test_sort_numbers_tricky():
-#    items = [1, 30, 4, 21, 100000]
-#    result = [None]
-#    pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
-#    assert result[0] is items
-#    assert items == [1, 100000, 21, 30, 4]    
+def test_sort_numbers_tricky():
+    items = [1, 30, 4, 21, 100000]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.sort()}")(result, items)
+    assert result[0] is items
+    assert items == [1, 100000, 21, 30, 4]    
 
 def test_sort_with_js_func_wrong_data_type():
     items = [4,2,6,7]

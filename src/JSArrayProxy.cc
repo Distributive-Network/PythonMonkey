@@ -1085,17 +1085,17 @@ static bool sort_compare_key_func(JSContext *cx, unsigned argc, JS::Value *vp) {
   bool reverse = reverseValue.toBoolean();
 
 
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(&args.callee()));
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee()));
 
-  JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX, args[0]);
-  PyObject *args_0 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0]);
+  PyObject *args_0 = pyTypeFactory(cx, global, elementVal)->getPyObject();
   PyObject *args_0_result = PyObject_CallFunction(keyfunc, "O", args_0);
   if (!args_0_result) {
     return false;
   }
 
-  elementVal = new JS::RootedValue(GLOBAL_CX, args[1]);
-  PyObject *args_1 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+  elementVal = new JS::RootedValue(cx, args[1]);
+  PyObject *args_1 = pyTypeFactory(cx, global, elementVal)->getPyObject();
   PyObject *args_1_result = PyObject_CallFunction(keyfunc, "O", args_1);
   if (!args_1_result) {
     return false;
@@ -1135,13 +1135,13 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
   bool reverse = reverseValue.toBoolean();
 
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(&args.callee()));
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee()));
 
-  JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX, args[0]);
-  PyObject *args_0 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0]);
+  PyObject *args_0 = pyTypeFactory(cx, global, elementVal)->getPyObject();
 
-  elementVal = new JS::RootedValue(GLOBAL_CX, args[1]);
-  PyObject *args_1 = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+  elementVal = new JS::RootedValue(cx, args[1]);
+  PyObject *args_1 = pyTypeFactory(cx, global, elementVal)->getPyObject();
 
   int cmp = PyObject_RichCompareBool(args_0, args_1, Py_LT);
   if (cmp > 0) {
@@ -1249,6 +1249,17 @@ skip_optional_kwonly:
             if (!PyErr_Occurred()) {
               PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
             }
+            return NULL;
+          }
+
+          // cleanup
+          if (!JS_DeleteProperty(GLOBAL_CX, funObj, "_key_func_param")) {
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+            return NULL;
+          }
+
+          if (!JS_DeleteProperty(GLOBAL_CX, funObj, "_reverse_param")) {
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
             return NULL;
           }
         }
