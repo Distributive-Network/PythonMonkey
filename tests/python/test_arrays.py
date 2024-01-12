@@ -1418,7 +1418,7 @@ def test_flatMap_check_this_arg():
     }
     """
   )(result, items)
-  assert result == [0]               
+  assert result == [3]               
 
 #valueOf
 def test_valueOf():

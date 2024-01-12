@@ -885,7 +885,7 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
@@ -906,7 +906,7 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
-    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[0].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
@@ -957,7 +957,7 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
   JSObject *retArray = JS::NewArrayObject(cx, len);
   JS::RootedObject rootedRetArray(cx, retArray);
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
@@ -976,7 +976,7 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   for (Py_ssize_t index = 0; index < len; index++) {
-    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[0].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
@@ -1023,7 +1023,7 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
@@ -1045,7 +1045,7 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   Py_ssize_t len = PyList_GET_SIZE(self);
   for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
-    JS::Value item = jsTypeFactorySafe(cx, PyList_GetItem(self, index));
+    JS::Value item = jsTypeFactory(cx, PyList_GetItem(self, index));
     jArgs[0].set(item);
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
@@ -1100,7 +1100,7 @@ static bool array_reduce(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<4>> jArgs(cx);
@@ -1121,7 +1121,7 @@ static bool array_reduce(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   for (Py_ssize_t index = args.length() > 1 ? 0 : 1; index < len; index++) {
     jArgs[0].set(*accumulator);
-    jArgs[1].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[1].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[2].setInt32(index);
     jArgs[3].set(selfValue);
 
@@ -1156,7 +1156,7 @@ static bool array_reduceRight(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<4>> jArgs(cx);
@@ -1177,7 +1177,7 @@ static bool array_reduceRight(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   for (int64_t index = args.length() > 1 ? len - 1 : len - 2; index >= 0; index--) {
     jArgs[0].set(*accumulator);
-    jArgs[1].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[1].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[2].setInt32(index);
     jArgs[3].set(selfValue);
 
@@ -1212,7 +1212,7 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
@@ -1232,7 +1232,7 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   Py_ssize_t len = PyList_GET_SIZE(self);
   for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
-    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[0].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
@@ -1285,7 +1285,7 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
@@ -1305,7 +1305,7 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   Py_ssize_t len = PyList_GET_SIZE(self);
   for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
-    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[0].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
@@ -1358,7 +1358,7 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
@@ -1378,7 +1378,7 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   Py_ssize_t len = PyList_GET_SIZE(self);
   for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
-    JS::Value item = jsTypeFactorySafe(cx, PyList_GetItem(self, index));
+    JS::Value item = jsTypeFactory(cx, PyList_GetItem(self, index));
     jArgs[0].set(item);
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
@@ -1432,7 +1432,7 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedValue selfValue(cx, jsTypeFactorySafe(cx, self));
+  JS::RootedValue selfValue(cx, jsTypeFactory(cx, self));
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
@@ -1452,7 +1452,7 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   Py_ssize_t len = PyList_GET_SIZE(self);
   for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
-    jArgs[0].set(jsTypeFactorySafe(cx, PyList_GetItem(self, index)));
+    jArgs[0].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
@@ -1489,6 +1489,7 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
 static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
   JSObject *retArray, PyObject *source,
   Py_ssize_t sourceLen, uint32_t start, uint32_t depth) {
+
   uint32_t targetIndex = start;
 
   JS::RootedObject rootedGlobal(cx, global);
@@ -1552,10 +1553,11 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
   JSObject *retArray, PyObject *source,
   Py_ssize_t sourceLen, uint32_t start, uint32_t depth,
   JS::HandleValue callBack, JS::HandleObject thisArg) {
+
   uint32_t targetIndex = start;
 
   JS::RootedObject rootedGlobal(cx, global);
-  JS::RootedValue sourceValue(cx, jsTypeFactorySafe(cx, source));
+  JS::RootedValue sourceValue(cx, jsTypeFactory(cx, source));
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
   JS::RootedValue elementVal(cx);
   JS::RootedValue retVal(cx);
@@ -1573,7 +1575,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
     jArgs[0].set(elementVal);
     jArgs[1].setInt32(sourceIndex);
     jArgs[2].set(sourceValue);
-    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, retVal)) {
+    if (!JS_CallFunctionValue(cx, thisArg, callBack, jArgs, retVal)) {
       return false;
     }
 
@@ -1699,7 +1701,7 @@ static bool array_flatMap(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   JS::RootedValue callBack(cx, callbackfn);
 
-  JS::RootedObject *rootedThisArg = nullptr;
+  JS::RootedObject rootedThisArg(cx);
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
@@ -1708,16 +1710,17 @@ static bool array_flatMap(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
 
     // TODO support null, currently gets TypeError
-    rootedThisArg = new JS::RootedObject(cx, thisArg.toObjectOrNull());
+    rootedThisArg.set(thisArg.toObjectOrNull());
+  }
+  else {
+    rootedThisArg.set(nullptr);
   }
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
 
   JSObject *retArray = JS::NewArrayObject(cx, sourceLen); // min end length
 
-  FlattenIntoArrayWithCallBack(cx, *global, retArray, self, sourceLen, 0, 1, callBack, *rootedThisArg);
-
-  delete rootedThisArg;
+  FlattenIntoArrayWithCallBack(cx, *global, retArray, self, sourceLen, 0, 1, callBack, rootedThisArg);
 
   args.rval().setObject(*retArray);
   return true;
