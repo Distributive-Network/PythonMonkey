@@ -838,15 +838,8 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
-    if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
-        return false;
-      }
-    }
-    else {
-      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
-        return false;
-      }
+    if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
+      return false;
     }
   }
 
@@ -906,15 +899,8 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
-    if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
-        return false;
-      }
-    }
-    else {
-      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
-        return false;
-      }
+    if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
+      return false;
     }
 
     JS_SetElement(cx, rootedRetArray, index, rval);
@@ -974,15 +960,8 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
-    if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
-        return false;
-      }
-    }
-    else {
-      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
-        return false;
-      }
+    if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
+      return false;
     }
 
     if (rval.toBoolean()) {
@@ -1158,15 +1137,8 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
-    if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
-        return false;
-      }
-    }
-    else {
-      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
-        return false;
-      }
+    if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
+      return false;
     }
 
     if (rval.toBoolean()) {
@@ -1226,15 +1198,8 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
-    if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
-        return false;
-      }
-    }
-    else {
-      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
-        return false;
-      }
+    if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
+      return false;
     }
 
     if (!rval.toBoolean()) {
@@ -1295,15 +1260,8 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
-    if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
-        return false;
-      }
-    }
-    else {
-      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
-        return false;
-      }
+    if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
+      return false;
     }
 
     if (rval.toBoolean()) {
@@ -1363,15 +1321,8 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
 
-    if (args.length() > 1) {
-      if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
-        return false;
-      }
-    }
-    else {
-      if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &rval)) {
-        return false;
-      }
+    if (!JS_CallFunctionValue(cx, rootedThisArg, callBack, jArgs, &rval)) {
+      return false;
     }
 
     if (rval.toBoolean()) {
@@ -1931,7 +1882,6 @@ static bool array_sort(JSContext *cx, unsigned argc, JS::Value *vp) {
       PyObject *pyFunc = pyTypeFactory(cx, global, new JS::RootedValue(cx, args[0].get()))->getPyObject();
       // check if JS or Python function
       if (PyFunction_Check(pyFunc)) {
-
         // it's a user-defined python function, check has two arguments
         PyObject *code = PyFunction_GetCode(pyFunc);
         if (((PyCodeObject *)code)->co_argcount == 1) {
