@@ -158,6 +158,12 @@ bool PyProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   return result.failInvalidDescriptor();
 }
 
+bool PyProxyHandler::getBuiltinClass(JSContext *cx, JS::HandleObject proxy,
+  js::ESClass *cls) const {
+  *cls = js::ESClass::Object;
+  return true;
+}
+
 bool PyBaseProxyHandler::getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy,
   bool *isOrdinary,
   JS::MutableHandleObject protop) const {
@@ -2252,12 +2258,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 }
 
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  // TODO
-  // PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  // printf("finalize self=%p\n", self);
-  // Py_DECREF(self);
-
-  // JS::SetReservedSlot(proxy, PyObjectSlot, nullptr));
+  JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(nullptr));
 }
 
 bool PyListProxyHandler::defineProperty(
@@ -2319,7 +2320,7 @@ bool PyListProxyHandler::isArray(JSContext *cx, JS::HandleObject proxy, JS::IsAr
   return true;
 }
 
-bool PyListProxyHandler::getBuiltinClass(JSContext *cx, JS::Handle<JSObject *> obj, js::ESClass *cls) const {
+bool PyListProxyHandler::getBuiltinClass(JSContext *cx, JS::HandleObject proxy, js::ESClass *cls) const {
   *cls = js::ESClass::Array;
   return true;
 }

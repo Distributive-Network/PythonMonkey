@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2023-06-26
  *
- * Copyright (c) 2023 Distributive Corp.
+ * Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -44,6 +44,7 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
   self->jsObject.set(nullptr);
+  PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
   return;
 }
