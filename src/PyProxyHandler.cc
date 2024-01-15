@@ -1737,6 +1737,7 @@ static int invokeCallBack(PyObject *list, int index, JS::HandleValue leftValue, 
   return retVal.toInt32();
 }
 
+// Adapted from Kernigan&Ritchie's C book
 static void quickSort(PyObject *list, int left, int right, JSContext *cx, JS::HandleFunction callBack) {
   if (left >= right) {
     // base case
@@ -2195,19 +2196,10 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
     JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
 
-    JS::RootedValue Array(cx);
-    if (!JS_GetProperty(cx, global, "Array", &Array)) {
+    JS::RootedObject rootedArrayPrototype(cx);
+    if (!JS_GetClassPrototype(cx, JSProto_Array, &rootedArrayPrototype)) {
       return false;
     }
-
-    JS::RootedObject rootedArray(cx, Array.toObjectOrNull());
-
-    JS::RootedValue Array_Prototype(cx);
-    if (!JS_GetProperty(cx, rootedArray, "prototype", &Array_Prototype)) {
-      return false;
-    }
-
-    JS::RootedObject rootedArrayPrototype(cx, Array_Prototype.toObjectOrNull());
 
     JS::RootedValue Array_Prototype_Constructor(cx);
     if (!JS_GetProperty(cx, rootedArrayPrototype, "constructor", &Array_Prototype_Constructor)) {
