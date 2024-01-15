@@ -165,6 +165,8 @@ public:
     JS::HandleId id,
     JS::Handle<JS::PropertyDescriptor> desc,
     JS::ObjectOpResult &result) const override;
+
+  bool getBuiltinClass(JSContext *cx, JS::HandleObject proxy, js::ESClass *cls) const override;
 };
 
 /**
@@ -197,7 +199,7 @@ public:
   bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const override;
   bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
   bool isArray(JSContext *cx, JS::HandleObject proxy, JS::IsArrayAnswer *answer) const override;
-  bool getBuiltinClass(JSContext *cx, JS::Handle<JSObject *> obj, js::ESClass *cls) const override;
+  bool getBuiltinClass(JSContext *cx, JS::HandleObject proxy, js::ESClass *cls) const override;
 };
 
 /**
