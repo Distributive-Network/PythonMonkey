@@ -39,10 +39,7 @@ PyObject *JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_iter(JSArrayIterPr
 }
 
 PyObject *JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next(JSArrayIterProxy *self) {
-  PyListObject *seq;
-  PyObject *item;
-
-  seq = self->it.it_seq;
+  PyListObject *seq = self->it.it_seq;
   if (seq == NULL) {
     return NULL;
   }
