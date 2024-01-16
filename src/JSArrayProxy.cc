@@ -12,6 +12,8 @@
 
 #include "include/JSArrayProxy.hh"
 
+#include "include/JSArrayIterProxy.hh"
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
@@ -565,19 +567,14 @@ error:
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_iter(JSArrayProxy *self) {
-  const Py_ssize_t selfLength = JSArrayProxy_length(self);
-
-  PyObject *seq = PyList_New(selfLength);
-
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
-  for (size_t index = 0; index < selfLength; index++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
-    JS_GetElement(GLOBAL_CX, self->jsArray, index, elementVal);
-    PyList_SET_ITEM(seq, index, pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject());
+  JSArrayIterProxy *iterator = PyObject_GC_New(JSArrayIterProxy, &JSArrayIterProxyType);
+  if (iterator == NULL) {
+    return NULL;
   }
-
-  // Convert to a Python iterator
-  return PyObject_GetIter(seq);
+  iterator->it.it_index = 0;
+  Py_INCREF(self);
+  iterator->it.it_seq = (PyListObject *)self;
+  return (PyObject *)iterator;
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_concat(JSArrayProxy *self, PyObject *value) {

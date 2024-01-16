@@ -1,4 +1,5 @@
 import pythonmonkey as pm
+from functools import reduce 
 
 def test_eval_lists():
     d = [1]
@@ -805,10 +806,25 @@ def iter_max():
     b = max(a)
     assert b == 9   
 
-def iter_op():
+def iter_for():
     a = pm.eval("(['this is a test', 'another test'])")
     b = [item.upper() for item in a]
-    assert b ==  ['THIS IS A TEST', 'ANOTHER TEST']         
+    assert b ==  ['THIS IS A TEST', 'ANOTHER TEST']   
+
+def test_reduce():
+    a = pm.eval("([1, 3, 5, 6, 2])")
+    result = reduce(lambda a, b: a+b, a)
+    assert result == 17  
+
+def test_iter_next():
+    a = pm.eval("([1, 3, 5, 6, 2])")
+    iterator = iter(a)
+    try:
+        while True:
+            element = next(iterator)
+        assert(False)    
+    except StopIteration:
+        assert(True)   
 
 # slice subscript
 def test_slice_full_array_single_subscript():

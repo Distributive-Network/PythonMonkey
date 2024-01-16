@@ -17,6 +17,7 @@
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/JSArrayIterProxy.hh"
 #include "include/JSArrayProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
@@ -112,6 +113,22 @@ PyTypeObject JSArrayProxyType = {
   .tp_base = &PyList_Type,
   .tp_init = (initproc)JSArrayProxyMethodDefinitions::JSArrayProxy_init,
   .tp_new = JSArrayProxyMethodDefinitions::JSArrayProxy_new,
+};
+
+PyTypeObject JSArrayIterProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSArrayIterProxy",
+  .tp_basicsize = sizeof(JSArrayIterProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_dealloc,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = PyDoc_STR("Javascript Array proxy iterator"),
+  .tp_traverse =  (traverseproc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_traverse,
+  .tp_iter = (getiterfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_iter,
+  .tp_iternext = (iternextfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next,
+  .tp_methods = JSArrayIterProxy_methods,
+  .tp_base = &PyListIter_Type
 };
 
 static void cleanup() {
@@ -418,6 +435,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   if (PyType_Ready(&JSArrayProxyType) < 0)
     return NULL;
+  if (PyType_Ready(&JSArrayIterProxyType) < 0)
+    return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
@@ -446,6 +465,13 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&JSArrayProxyType);
   if (PyModule_AddObject(pyModule, "JSArrayProxy", (PyObject *)&JSArrayProxyType) < 0) {
     Py_DECREF(&JSArrayProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSArrayIterProxyType);
+  if (PyModule_AddObject(pyModule, "JSArrayIterProxy", (PyObject *)&JSArrayIterProxyType) < 0) {
+    Py_DECREF(&JSArrayIterProxyType);
     Py_DECREF(pyModule);
     return NULL;
   }
