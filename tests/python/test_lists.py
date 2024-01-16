@@ -917,11 +917,11 @@ def test_slice_assign_own_array():
     a[2:4] = a
     assert a == [1,2,1,2,3,4,5,6,5,6]     
 
-#def test_slice_assign_pm_array():
-#    a = pm.eval("([1,2,3,4,5,6])")
-#    b = pm.eval("([7,8])")
-#    a[2:4] = b
-#    assert a == [1,2,7,8,5,6]       
+def test_slice_assign_pm_array():
+    a = pm.eval("([1,2,3,4,5,6])")
+    b = pm.eval("([7,8])")
+    a[2:4] = b
+    assert a == [1,2,7,8,5,6]       
 
 def test_slice_assign_wrong_type():
     a = pm.eval('([1,2,3,4])')
@@ -1029,12 +1029,6 @@ def test_slice_assign_partial_array_negative_start_negative_stop():
     a[-5:-1:2] = [7,8]
     assert a == [1, 7, 3, 8, 5, 6]   
 
-#def test_slice_assign_pm_array_step_2():
-#    a = pm.eval("([1,2,3,4,5,6])")
-#    b = pm.eval("([1,2,3])")
-#    a[0:10:2] = b
-#    assert a == [1, 2, 2, 4, 3, 6]    
-
 def test_slice_assign_own_array_no_match():
     a = pm.eval("([1,2,3,4,5,6])")
     try:
@@ -1044,4 +1038,8 @@ def test_slice_assign_own_array_no_match():
         assert str(type(e)) == "<class 'ValueError'>"
         assert str(e) == "attempt to assign sequence of size 0 to extended slice of size 2"           
 
-  
+def test_slice_assign_pm_array_step_2():
+    a = pm.eval("([1,2,3,4,5,6])")
+    b = pm.eval("([1,2,3])")
+    a[0:10:2] = b
+    assert a == [1, 2, 2, 4, 3, 6]      
