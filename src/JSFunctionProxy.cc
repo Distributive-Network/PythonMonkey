@@ -20,6 +20,12 @@
 
 #include <Python.h>
 
+void JSFunctionProxyMethodDefinitions::JSFunctionProxy_dealloc(JSFunctionProxy *self)
+{
+  delete self->jsFunc;
+  return;
+}
+
 PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds) {
   JSFunctionProxy *self = (JSFunctionProxy *)subtype->tp_alloc(subtype, 0);
   if (self) {

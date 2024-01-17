@@ -81,7 +81,6 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
   }
   else if (rval->isString()) {
     StrType *s = new StrType(cx, rval->toString());
-    memoizePyTypeAndGCThing(s, *rval); // TODO (Caleb Aikens) consider putting this in the StrType constructor
     return s;
   }
   else if (rval->isSymbol()) {
@@ -138,7 +137,6 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         } else {
           f = new FuncType(cx, *rval);
         }
-        memoizePyTypeAndGCThing(f, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
         return f;
       }
     case js::ESClass::Number: {
@@ -155,7 +153,6 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
         StrType *s = new StrType(cx, unboxed.toString());
-        memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
         return s;
       }
     default: {

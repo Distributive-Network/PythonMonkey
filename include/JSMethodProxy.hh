@@ -33,6 +33,13 @@ typedef struct {
  */
 struct JSMethodProxyMethodDefinitions {
 public:
+/**
+ * @brief Deallocation method (.tp_dealloc), removes the reference to the underlying JSFunction before freeing the JSMethodProxy
+ *
+ * @param self - The JSMethodProxy to be free'd
+ */
+  static void JSMethodProxy_dealloc(JSMethodProxy *self);
+
   /**
    * @brief New method (.tp_new), creates a new instance of the JSMethodProxy type, exposed as the __new()__ method in python
    *

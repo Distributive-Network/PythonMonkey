@@ -241,11 +241,11 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 
 | JavaScript Type      | Python Type     |
 |:---------------------|:----------------|
-| string               | String
+| string               | pythonmonkey.JSStringProxy (String)
 | number               | Float
 | bigint               | pythonmonkey.bigint (Integer)
 | boolean              | Bool
-| function             | Function
+| function             | pythonmonkey.JSFunctionProxy || pythonmonkey.JSMethodProxy (Function || Method)
 | object - most        | pythonmonkey.JSObjectProxy (Dict)
 | object - Date        | datetime
 | object - Array       | List

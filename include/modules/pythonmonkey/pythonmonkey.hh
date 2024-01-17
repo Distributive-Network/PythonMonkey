@@ -24,6 +24,7 @@
 #define PythonMonkey_BigInt PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint") /**< macro for pythonmonkey.bigint class object */
 
 extern JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
+extern JS::PersistentRootedObject *jsFunctionRegistry; /**<// this is a FinalizationRegistry for JSFunctions that depend on Python functions. It is used to handle reference counts when the JSFunction is finalized */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 static JSAutoRealm *autoRealm; /**< pointer to PythonMonkey's AutoRealm */
 static JobQueue *JOB_QUEUE; /**< pointer to PythonMonkey's event-loop job queue */
@@ -33,27 +34,6 @@ static JobQueue *JOB_QUEUE; /**< pointer to PythonMonkey's event-loop job queue 
  *
  */
 static void cleanup();
-
-/**
- * @brief This function is used to memoize PyTypes and GCThings that use the same backing store for their data,
- * so that the JS garbage collector doesn't collect memory still in use by Python. It does this by storing the
- * pointers in an unordered_map, with the key being the PyType pointer, and the value being a vector of GCThing
- * pointers.
- *
- * @param pyType - Pointer to the PyType to be memoized
- * @param GCThing  - Pointer to the GCThing to be memoized
- */
-void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing);
-
-/**
- * @brief Callback function passed to JS_SetGCCallback to handle PythonMonkey shared memory
- *
- * @param cx - Pointer to the JS Context (not used)
- * @param status - enum specifying whether the Callback triggered at the beginning or end of the GC Cycle
- * @param reason - reason for the GC Cycle
- * @param data -
- */
-void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data);
 
 /**
  * @brief Function exposed by the python module that calls the spidermonkey garbage collector

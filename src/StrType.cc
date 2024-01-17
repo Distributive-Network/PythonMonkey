@@ -1,6 +1,7 @@
 #include "include/StrType.hh"
 
 #include "include/PyType.hh"
+#include "include/JSStringProxy.hh"
 
 #include <Python.h>
 
@@ -56,8 +57,10 @@ StrType::StrType(JSContext *cx, JSString *str) {
 
   size_t length = JS::GetLinearStringLength(lstr);
 
-  pyObject = (PyObject *)PyObject_New(PyUnicodeObject, &PyUnicode_Type); // new reference
+  pyObject = (PyObject *)PyObject_New(JSStringProxy, &JSStringProxyType); // new reference
   Py_INCREF(pyObject); // XXX: Why?
+
+  ((JSStringProxy *)pyObject)->jsString.setString((JSString *)lstr);
 
   // Initialize as legacy string (https://github.com/python/cpython/blob/v3.12.0b1/Include/cpython/unicodeobject.h#L78-L93)
   // see https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L1230-L1245

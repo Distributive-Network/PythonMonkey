@@ -19,6 +19,7 @@
 #include "include/JSFunctionProxy.hh"
 #include "include/JSMethodProxy.hh"
 #include "include/JSObjectProxy.hh"
+#include "include/JSStringProxy.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
@@ -42,17 +43,19 @@
 #include <Python.h>
 #include <datetime.h>
 
-#include <unordered_map>
-#include <vector>
-
 JSContext *GLOBAL_CX;
 
-typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
+JS::PersistentRootedObject *jsFunctionRegistry;
+
+bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
+  JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
+  Py_DECREF((PyObject *)callargs[0].toPrivate());
+  return true;
+}
+
 typedef struct {
   PyObject_HEAD
 } NullObject;
-
-std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
 
 static PyTypeObject NullType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
@@ -90,18 +93,24 @@ PyTypeObject JSObjectProxyType = {
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
 };
 
+PyTypeObject JSStringProxyType = {
+  .tp_name = "pythonmonkey.JSStringProxy",
+  .tp_basicsize = sizeof(JSStringProxy),
+  .tp_flags = Py_TPFLAGS_DEFAULT
+  | Py_TPFLAGS_UNICODE_SUBCLASS // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_LONG_SUBCLASS
+  | Py_TPFLAGS_BASETYPE,     // can be subclassed
+  .tp_doc = PyDoc_STR("Javascript String value"),
+  .tp_base = &PyUnicode_Type,   // extending the builtin int type
+};
+
 PyTypeObject JSFunctionProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "pythonmonkey.JSFunctionProxy",
   .tp_basicsize = sizeof(JSFunctionProxy),
-  // .tp_dealloc = (destructor)JSFunctionProxyMethodDefinitions::JSFunctionProxy_dealloc,
-  // .tp_repr = (reprfunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_repr,
+  .tp_dealloc = (destructor)JSFunctionProxyMethodDefinitions::JSFunctionProxy_dealloc,
   .tp_call = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call,
-  // .tp_getattro = (getattrofunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_get,
-  // .tp_setattro = (setattrofunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_assign,
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_doc = PyDoc_STR("Javascript Function proxy object"),
-  // .tp_iter = (getiterfunc)JSFunctionProxyMethodDefinitions::JSFunctionProxy_iter,
   .tp_new = JSFunctionProxyMethodDefinitions::JSFunctionProxy_new,
 };
 
@@ -109,68 +118,21 @@ PyTypeObject JSMethodProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "pythonmonkey.JSMethodProxy",
   .tp_basicsize = sizeof(JSMethodProxy),
-  // .tp_dealloc = (destructor)JSMethodProxyMethodDefinitions::JSMethodProxy_dealloc,
-  // .tp_repr = (reprfunc)JSMethodProxyMethodDefinitions::JSMethodProxy_repr,
+  .tp_dealloc = (destructor)JSMethodProxyMethodDefinitions::JSMethodProxy_dealloc,
   .tp_call = JSMethodProxyMethodDefinitions::JSMethodProxy_call,
-  // .tp_getattro = (getattrofunc)JSMethodProxyMethodDefinitions::JSMethodProxy_get,
-  // .tp_setattro = (setattrofunc)JSMethodProxyMethodDefinitions::JSMethodProxy_assign,
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_doc = PyDoc_STR("Javascript Method proxy object"),
-  // .tp_iter = (getiterfunc)JSMethodProxyMethodDefinitions::JSMethodProxy_iter,
   .tp_new = JSMethodProxyMethodDefinitions::JSMethodProxy_new,
 };
 
 static void cleanup() {
+  delete jsFunctionRegistry;
   delete autoRealm;
   delete global;
   delete JOB_QUEUE;
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
 }
-
-void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
-  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(GLOBAL_CX, GCThing);
-  PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
-
-  if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
-    std::vector<JS::PersistentRooted<JS::Value> *> gcVector(
-      {{RootedGCThing}});
-    PyTypeToGCThing.insert({{pyType, gcVector}});
-  }
-  else {
-    pyIt->second.push_back(RootedGCThing);
-  }
-}
-
-void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
-  if (status == JSGCStatus::JSGC_BEGIN) {
-    PyToGCIterator pyIt = PyTypeToGCThing.begin();
-    while (pyIt != PyTypeToGCThing.end()) {
-      PyObject *pyObj = pyIt->first->getPyObject();
-      // If the PyObject reference count is exactly 1, then the only reference to the object is the one
-      // we are holding, which means the object is ready to be free'd.
-      if (_PyGC_FINALIZED(pyObj) || pyObj->ob_refcnt == 1) { // PyObject_GC_IsFinalized is only available in Python 3.9+
-        for (JS::PersistentRooted<JS::Value> *rval: pyIt->second) { // for each related GCThing
-          bool found = false;
-          for (PyToGCIterator innerPyIt = PyTypeToGCThing.begin(); innerPyIt != PyTypeToGCThing.end(); innerPyIt++) { // for each other PyType pointer
-            if (innerPyIt != pyIt && std::find(innerPyIt->second.begin(), innerPyIt->second.end(), rval) != innerPyIt->second.end()) { // if the PyType is also related to the GCThing
-              found = true;
-              break;
-            }
-          }
-          // if this PyObject is the last PyObject that references this GCThing, then the GCThing can also be free'd
-          if (!found) {
-            delete rval;
-          }
-        }
-        pyIt = PyTypeToGCThing.erase(pyIt);
-      }
-      else {
-        pyIt++;
-      }
-    }
-  }
-};
 
 static PyObject *collect(PyObject *self, PyObject *args) {
   JS_GC(GLOBAL_CX);
@@ -387,7 +349,10 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  JS::RealmOptions options;
+  JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+  JS::RealmBehaviors behaviours = JS::RealmBehaviors();
+  creationOptions.setWeakRefsEnabled(JS::WeakRefSpecifier::EnabledWithCleanupSome); // enable FinalizationRegistry
+  JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
   global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   if (!global) {
@@ -404,7 +369,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
 
   autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
 
-  JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
   JS_DefineProperty(GLOBAL_CX, *global, "debuggerGlobal", debuggerGlobal, JSPROP_READONLY);
 
   // XXX: SpiderMonkey bug???
@@ -421,6 +385,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   if (PyType_Ready(&BigIntType) < 0)
     return NULL;
   if (PyType_Ready(&JSObjectProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSStringProxyType) < 0)
     return NULL;
   if (PyType_Ready(&JSFunctionProxyType) < 0)
     return NULL;
@@ -447,6 +413,13 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&JSObjectProxyType);
   if (PyModule_AddObject(pyModule, "JSObjectProxy", (PyObject *)&JSObjectProxyType) < 0) {
     Py_DECREF(&JSObjectProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSStringProxyType);
+  if (PyModule_AddObject(pyModule, "JSStringProxy", (PyObject *)&JSStringProxyType) < 0) {
+    Py_DECREF(&JSStringProxyType);
     Py_DECREF(pyModule);
     return NULL;
   }
@@ -479,6 +452,22 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     Py_DECREF(pyModule);
     return NULL;
   }
+
+  // initialize FinalizationRegistry of JSFunctions to Python Functions
+  JS::RootedValue FinalizationRegistry(GLOBAL_CX);
+  JS::RootedObject registryObject(GLOBAL_CX);
+
+  JS_GetProperty(GLOBAL_CX, *global, "FinalizationRegistry", &FinalizationRegistry);
+  JS::Rooted<JS::ValueArray<1>> args(GLOBAL_CX);
+  JSFunction *registryCallback = JS_NewFunction(GLOBAL_CX, functionRegistryCallback, 1, 0, NULL);
+  JS::RootedObject registryCallbackObject(GLOBAL_CX, JS_GetFunctionObject(registryCallback));
+  args[0].setObject(*registryCallbackObject);
+  if (!JS::Construct(GLOBAL_CX, FinalizationRegistry, args, &registryObject)) {
+    setSpiderMonkeyException(GLOBAL_CX);
+    return NULL;
+  }
+  jsFunctionRegistry = new JS::PersistentRootedObject(GLOBAL_CX);
+  jsFunctionRegistry->set(registryObject);
 
   return pyModule;
 }

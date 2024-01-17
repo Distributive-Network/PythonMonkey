@@ -144,8 +144,9 @@ bool PyDictProxyHandler::getOwnEnumerablePropertyKeys(
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
-// @TODO (Caleb Aikens) implement this
-void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
+void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
+  Py_DECREF(pyObject);
+}
 
 bool PyDictProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
@@ -208,6 +209,10 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     desc.set(mozilla::Nothing());
   }
   return true;
+}
+
+void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
+  Py_DECREF(pyObject);
 }
 
 bool PyListProxyHandler::defineProperty(
@@ -374,8 +379,9 @@ bool PyObjectProxyHandler::getOwnEnumerablePropertyKeys(
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
-// @TODO (Caleb Aikens) implement this
-void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
+void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
+  Py_DECREF(pyObject);
+}
 
 bool PyObjectProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,

@@ -39,8 +39,18 @@
 #define LOW_SURROGATE_END 0xDFFF
 #define BMP_END 0x10000
 
+#include <iostream>
+#include <codecvt>
+#include <locale>
+
+#include <unordered_map>
+
+std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
+
 struct PythonExternalString : public JSExternalStringCallbacks {
-  void finalize(char16_t *chars) const override {}
+  void finalize(char16_t *chars) const override {
+    Py_DECREF(charToPyObjectMap[chars]);
+  }
   size_t sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const override {
     return 0;
   }
@@ -103,12 +113,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     case (PyUnicode_2BYTE_KIND): {
+        charToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
         JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_2BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         returnType.setString(str);
         break;
       }
     case (PyUnicode_1BYTE_KIND): {
-
+        charToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
         JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         /* TODO (Caleb Aikens): this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
          * Ideally we submit a patch to Spidermonkey to make this part of their API with the following signature:
@@ -122,7 +133,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     }
-    memoizePyTypeAndGCThing(new StrType(object), returnType);
+    Py_INCREF(object);
   }
   else if (PyMethod_Check(object) || PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
@@ -135,12 +146,17 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
 
     JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
     JS::RootedObject jsFuncObject(cx, JS_GetFunctionObject(jsFunc));
-
     // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
     js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
     returnType.setObject(*jsFuncObject);
-    memoizePyTypeAndGCThing(new FuncType(object), returnType);
     Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
+
+    // add function to jsFunctionRegistry, to DECREF the PyObject when the JSFunction is finalized
+    JS::RootedValueArray<2> registerArgs(GLOBAL_CX);
+    registerArgs[0].setObject(*jsFuncObject);
+    registerArgs[1].setPrivate(object);
+    JS::RootedValue ignoredOutVal(GLOBAL_CX);
+    JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
   }
   else if (PyExceptionInstance_Check(object)) {
     JSObject *error = ExceptionType(object).toJsError(cx);
@@ -154,7 +170,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     BufferType *pmBuffer = new BufferType(object);
     JSObject *typedArray = pmBuffer->toJsTypedArray(cx); // may return null
     returnType.setObjectOrNull(typedArray);
-    memoizePyTypeAndGCThing(pmBuffer, returnType);
   }
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
@@ -168,6 +183,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     JS::Rooted<JS::Value> boundFunction(cx);
     JS_CallFunctionName(cx, func, "bind", args, &boundFunction);
     returnType.set(boundFunction);
+    // add function to jsFunctionRegistry, to DECREF the PyObject when the JSFunction is finalized
+    JS::RootedValueArray<2> registerArgs(GLOBAL_CX);
+    registerArgs[0].set(boundFunction);
+    registerArgs[1].setPrivate(object);
+    JS::RootedValue ignoredOutVal(GLOBAL_CX);
+    JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
   }
   else if (PyObject_TypeCheck(object, &JSFunctionProxyType)) {
     returnType.setObject(**((JSFunctionProxy *)object)->jsFunc);
@@ -192,8 +213,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     PromiseType *p = new PromiseType(object);
     JSObject *promise = p->toJsPromise(cx); // may return null
     returnType.setObjectOrNull(promise);
-    // nested awaitables would have already been GCed if finished
-    // memoizePyTypeAndGCThing(p, returnType);
   }
   else {
     JS::RootedValue v(cx);

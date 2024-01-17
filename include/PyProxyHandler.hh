@@ -293,6 +293,8 @@ public:
   PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
   static const char family;
 
+  void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
+
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
