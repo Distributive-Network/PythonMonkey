@@ -21,7 +21,8 @@
 // redeclare hidden type
 typedef struct {
   PyObject_HEAD
-  Py_ssize_t it_index;
+  int it_index;
+  bool reversed;
   PyListObject *it_seq;   /* Set to NULL when iterator is exhausted */
 } PyListIterObject;
 
@@ -72,7 +73,7 @@ public:
    */
   static PyObject *JSArrayIterProxy_next(JSArrayIterProxy *self);
 
- /**
+  /**
    * @brief length method
    *
    * @param self - The JSArrayIterProxy

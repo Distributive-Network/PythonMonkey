@@ -472,11 +472,11 @@ def test_extend_with_pm_list():
     assert a == [1,2,3,4]    
 
 # TODO iterable dict
-#def test_extend_with_own_dict():
-#    a = pm.eval("[1,2]")
-#    b = pm.eval("{'key':5}")
-#    a.extend(b)
-#    assert a == [1,2,"key"]
+def test_extend_with_own_dict():
+    a = pm.eval("[1,2]")
+    b = pm.eval("({'key':5, 'key2':6})")
+    a.extend(b)
+    assert a == [1,2,"key","key2"]
 
 #pop
 def test_pop_no_arg():
@@ -825,6 +825,14 @@ def test_iter_next():
         assert(False)    
     except StopIteration:
         assert(True)   
+
+#reverse_iter
+def iter_reverse():
+    a = pm.eval("(['7','9','1','2','3','4','5','6'])")
+    b = ""
+    for i in reversed(a):
+        b += i
+    assert b == '65432197' 
 
 # slice subscript
 def test_slice_full_array_single_subscript():

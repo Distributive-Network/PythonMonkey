@@ -57,14 +57,13 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
     return NULL; // key is not a str or int
   }
 
-  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
-
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
   // look through the methods for dispatch and return key if no method found
   for (size_t index = 0;; index++) {
     const char *methodName = JSArrayProxyType.tp_methods[index].ml_name;
     if (methodName == NULL) {   // reached end of list
+      JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
+      JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
+      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
       return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
     else if (PyUnicode_Check(key)) {
@@ -73,6 +72,9 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
       }
     }
     else {
+      JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
+      JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
+      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
       return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
   }
@@ -571,9 +573,24 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_iter(JSArrayProxy *self) {
   if (iterator == NULL) {
     return NULL;
   }
+  iterator->it.reversed = false;
   iterator->it.it_index = 0;
   Py_INCREF(self);
   iterator->it.it_seq = (PyListObject *)self;
+  PyObject_GC_Track(iterator);
+  return (PyObject *)iterator;
+}
+
+PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_iter_reverse(JSArrayProxy *self) {
+  JSArrayIterProxy *iterator = PyObject_GC_New(JSArrayIterProxy, &JSArrayIterProxyType);
+  if (iterator == NULL) {
+    return NULL;
+  }
+  iterator->it.reversed = true;
+  iterator->it.it_index = JSArrayProxyMethodDefinitions::JSArrayProxy_length(self) - 1;
+  Py_INCREF(self);
+  iterator->it.it_seq = (PyListObject *)self;
+  PyObject_GC_Track(iterator);
   return (PyObject *)iterator;
 }
 
