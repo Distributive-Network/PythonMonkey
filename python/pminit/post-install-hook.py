@@ -19,9 +19,11 @@ def main():
     # check if npm is installed on the system
     if (shutil.which(node_package_manager) is None):
         print("""
+⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️
 
-PythonMonkey Build Error:
 
+
+🐍🐒 PythonMonkey Build Error:
     
   *    It appears npm is not installed on this system.
   *    npm is required for PythonMonkey to build.
@@ -29,6 +31,7 @@ PythonMonkey Build Error:
   *    Refer to the documentation for installing NPM and Node.js here: https://nodejs.org/en/download
 
 
+⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️
         """)
         raise Exception("PythonMonkey build error: Unable to find npm on the system.")
     else:
