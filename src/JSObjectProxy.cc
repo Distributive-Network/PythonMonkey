@@ -11,6 +11,12 @@
 
 #include "include/JSObjectProxy.hh"
 
+#include "include/JSObjectIterProxy.hh"
+
+#include "include/JSObjectKeysProxy.hh"
+#include "include/JSObjectValuesProxy.hh"
+#include "include/JSObjectItemsProxy.hh"
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
@@ -46,7 +52,6 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
   self->jsObject.set(nullptr);
   PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
-  return;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
@@ -70,7 +75,6 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
     // @TODO (Caleb Aikens) raise exception here
     return -1;
   }
-
   return props.length();
 }
 
@@ -82,15 +86,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
     return NULL; // key is not a str or int
   }
 
-  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-
   // look through the methods for dispatch
   for (size_t index = 0;; index++) {
     const char *methodName = JSObjectProxyType.tp_methods[index].ml_name;
     if (methodName == NULL) { // reached end of list
+      JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
+      JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
+      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
       return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
     else if (PyUnicode_Check(key)) {
@@ -99,6 +101,10 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
       }
     }
     else {
+      JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
+      JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
+      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+
       return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
   }
@@ -111,7 +117,6 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, 
     // TODO (Caleb Aikens): raise exception here
     return -1; // key is not a str or int
   }
-
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
   JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
   return value->isUndefined() ? 0 : 1;
@@ -223,57 +228,205 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self) {
+  // key iteration
+  JSObjectIterProxy *iterator = PyObject_GC_New(JSObjectIterProxy, &JSObjectIterProxyType);
+  if (iterator == NULL) {
+    return NULL;
+  }
+  iterator->it.it_index = 0;
+  iterator->it.reversed = false;
+  iterator->it.kind = KIND_KEYS;
+  Py_INCREF(self);
+  iterator->it.di_dict = (PyDictObject *)self;
+  iterator->it.props = new JS::RootedIdVector(GLOBAL_CX);
+  // Get **enumerable** own properties
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, iterator->it.props)) {
+    return NULL;
+  }
+  PyObject_GC_Track(iterator);
+  return (PyObject *)iterator;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
+  Py_ssize_t i = Py_ReprEnter((PyObject *)self);
+  if (i != 0) {
+    return i > 0 ? PyUnicode_FromString("{...}") : NULL;
+  }
+
+  Py_ssize_t selfLength = JSObjectProxy_length(self);
+
+  if (selfLength == 0) {
+    Py_ReprLeave((PyObject *)self);
+    return PyUnicode_FromString("{}");
+  }
+
+  _PyUnicodeWriter writer;
+
+  _PyUnicodeWriter_Init(&writer);
+
+  writer.overallocate = 1;
+  /* "{" + "1: 2" + ", 3: 4" * (len - 1) + "}" */
+  writer.min_length = 1 + 4 + (2 + 4) * (selfLength - 1) + 1;
+
+  PyObject *key = NULL, *value = NULL;
+
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
 
-  // Get **enumerable** own properties
   JS::RootedIdVector props(GLOBAL_CX);
+
+  if (_PyUnicodeWriter_WriteChar(&writer, '{') < 0) {
+    goto error;
+  }
+
+  /* Do repr() on each key+value pair, and insert ": " between them. Note that repr may mutate the dict. */
+
+  // Get **enumerable** own properties
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props)) {
     return NULL;
   }
 
-  // Populate a Python tuple with (propertyKey, value) pairs from the JS object
-  // Similar to `Object.entries()`
-  size_t length = props.length();
-  PyObject *seq = PyTuple_New(length);
-  for (size_t i = 0; i < length; i++) {
-    JS::HandleId id = props[i];
-    PyObject *key = idToKey(GLOBAL_CX, id);
+  for (Py_ssize_t index = 0; index < selfLength; index++) {
+    if (index > 0) {
+      if (_PyUnicodeWriter_WriteASCIIString(&writer, ", ", 2) < 0) {
+        goto error;
+      }
+    }
 
-    JS::RootedValue *jsVal = new JS::RootedValue(GLOBAL_CX);
-    JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, jsVal);
-    PyObject *value = pyTypeFactory(GLOBAL_CX, global, jsVal)->getPyObject();
+    JS::HandleId id = props[index];
+    key = idToKey(GLOBAL_CX, id);
 
-    PyTuple_SetItem(seq, i, PyTuple_Pack(2, key, value));
+    // Prevent repr from deleting key or value during key format.
+    Py_INCREF(key);
+
+    PyObject *s = PyObject_Repr(key);
+
+    if (s == NULL) {
+      Py_DECREF(s);
+      goto error;
+    }
+
+    int res = _PyUnicodeWriter_WriteStr(&writer, s);
+
+    if (res < 0) {
+      goto error;
+    }
+
+    if (_PyUnicodeWriter_WriteASCIIString(&writer, ": ", 2) < 0) {
+      goto error;
+    }
+
+    JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
+    JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, elementVal);
+
+    if (&elementVal->toObject() == self->jsObject.get()) {
+      value = (PyObject *)self;
+    } else {
+      value = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+    }
+
+    Py_INCREF(value);
+    s = PyObject_Repr(value);
+
+    if (s == NULL) {
+      Py_DECREF(s);
+      goto error;
+    }
+
+    res = _PyUnicodeWriter_WriteStr(&writer, s);
+    Py_DECREF(s);
+    if (res < 0) {
+      goto error;
+    }
+
+    Py_CLEAR(key);
+    Py_CLEAR(value);
   }
 
-  // Convert to a Python iterator
-  return PyObject_GetIter(seq);
+  writer.overallocate = 0;
+  if (_PyUnicodeWriter_WriteChar(&writer, '}') < 0) {
+    goto error;
+  }
+
+  Py_ReprLeave((PyObject *)self);
+  return _PyUnicodeWriter_Finish(&writer);
+
+error:
+  Py_ReprLeave((PyObject *)self);
+  _PyUnicodeWriter_Dealloc(&writer);
+  Py_XDECREF(key);
+  Py_XDECREF(value);
+  return NULL;
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
-  // Detect cyclic objects
-  PyObject *objPtr = PyLong_FromVoidPtr(self->jsObject.get());
-  // For `Py_ReprEnter`, we must get a same PyObject when visiting the same JSObject.
-  // We cannot simply use the object returned by `PyLong_FromVoidPtr` because it won't reuse the PyLongObjects for ints not between -5 and 256.
-  // Instead, we store this PyLongObject in a global dict, using itself as the hashable key, effectively interning the PyLongObject.
-  PyObject *tsDict = PyThreadState_GetDict();
-  PyObject *cyclicKey = PyDict_SetDefault(tsDict, /*key*/ objPtr, /*value*/ objPtr); // cyclicKey = (tsDict[objPtr] ??= objPtr)
-  int status = Py_ReprEnter(cyclicKey);
-  if (status != 0) { // the object has already been processed
-    return status > 0 ? PyUnicode_FromString("[Circular]") : NULL;
+// private
+static int mergeFromSeq2(JSObjectProxy *self, PyObject *seq2) {
+  PyObject *it;         /* iter(seq2) */
+  Py_ssize_t i;         /* index into seq2 of current element */
+  PyObject *item;       /* seq2[i] */
+  PyObject *fast;       /* item as a 2-tuple or 2-list */
+
+  it = PyObject_GetIter(seq2);
+  if (it == NULL)
+    return -1;
+
+  for (i = 0;; ++i) {
+    PyObject *key, *value;
+    Py_ssize_t n;
+
+    fast = NULL;
+    item = PyIter_Next(it);
+    if (item == NULL) {
+      if (PyErr_Occurred())
+        goto Fail;
+      break;
+    }
+
+    /* Convert item to sequence, and verify length 2. */
+    fast = PySequence_Fast(item, "");
+    if (fast == NULL) {
+      if (PyErr_ExceptionMatches(PyExc_TypeError))
+        PyErr_Format(PyExc_TypeError,
+          "cannot convert dictionary update "
+          "sequence element #%zd to a sequence",
+          i);
+      goto Fail;
+    }
+    n = PySequence_Fast_GET_SIZE(fast);
+    if (n != 2) {
+      PyErr_Format(PyExc_ValueError,
+        "dictionary update sequence element #%zd "
+        "has length %zd; 2 is required",
+        i, n);
+      goto Fail;
+    }
+
+    /* Update/merge with this (key, value) pair. */
+    key = PySequence_Fast_GET_ITEM(fast, 0);
+    value = PySequence_Fast_GET_ITEM(fast, 1);
+    Py_INCREF(key);
+    Py_INCREF(value);
+
+    if (JSObjectProxyMethodDefinitions::JSObjectProxy_assign(self, key, value) < 0) {
+      Py_DECREF(key);
+      Py_DECREF(value);
+      goto Fail;
+    }
+
+    Py_DECREF(key);
+    Py_DECREF(value);
+    Py_DECREF(fast);
+    Py_DECREF(item);
   }
 
-  // Convert JSObjectProxy to a dict
-  PyObject *dict = PyDict_New();
-  // Update from the iterator emitting key-value pairs
-  //    see https://docs.python.org/3/c-api/dict.html#c.PyDict_MergeFromSeq2
-  PyDict_MergeFromSeq2(dict, JSObjectProxy_iter(self), /*override*/ false);
-  // Get the string representation of this dict
-  PyObject *str = PyObject_Repr(dict);
-
-  Py_ReprLeave(cyclicKey);
-  PyDict_DelItem(tsDict, cyclicKey);
-  return str;
+  i = 0;
+  goto Return;
+Fail:
+  Py_XDECREF(item);
+  Py_XDECREF(fast);
+  i = -1;
+Return:
+  Py_DECREF(it);
+  return Py_SAFE_DOWNCAST(i, Py_ssize_t, int);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, PyObject *other) {
@@ -319,30 +472,34 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, 
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_ior(JSObjectProxy *self, PyObject *other) {
-  if (!PyDict_Check(self) || !PyDict_Check(other)) {
-    Py_RETURN_NOTIMPLEMENTED;
+  if (PyDict_Check(other)) {
+    JS::Rooted<JS::ValueArray<2>> args(GLOBAL_CX);
+    args[0].setObjectOrNull(self->jsObject);
+    JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
+    args[1].setObject(jValueOther.toObject());
+
+    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+
+    // call Object.assign
+    JS::RootedValue Object(GLOBAL_CX);
+    if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
+      PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
+      return NULL;
+    }
+
+    JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
+    JS::RootedValue ret(GLOBAL_CX);
+    if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) {
+      PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
+      return NULL;
+    }
+  }
+  else {
+    if (mergeFromSeq2(self, other) < 0) {
+      return NULL;
+    }
   }
 
-  JS::Rooted<JS::ValueArray<2>> args(GLOBAL_CX);
-  args[0].setObjectOrNull(self->jsObject);
-  JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
-  args[1].setObject(jValueOther.toObject());
-
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-
-  // call Object.assign
-  JS::RootedValue Object(GLOBAL_CX);
-  if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
-    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
-    return NULL;
-  }
-
-  JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
-  JS::RootedValue ret(GLOBAL_CX);
-  if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) {
-    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
-    return NULL;
-  }
   Py_INCREF(self);
   return (PyObject *)self;
 }
@@ -475,4 +632,43 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProx
     return NULL;
   }
   return pyTypeFactory(GLOBAL_CX, global, ret)->getPyObject();
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectProxy *self, PyObject *args, PyObject *kwds) {
+  PyObject *arg = NULL;
+  int result = 0;
+
+  if (!PyArg_UnpackTuple(args, "update", 0, 1, &arg)) {
+    return NULL;
+  }
+  else if (arg != NULL) {
+    if (PyDict_CheckExact(arg) || PyObject_TypeCheck(arg, &JSObjectProxyType)) {
+      JSObjectProxyMethodDefinitions::JSObjectProxy_ior((JSObjectProxy *)self, arg);
+      result = 0;
+    } else { // iterable
+      result = mergeFromSeq2((JSObjectProxy *)self, arg);
+      if (result < 0) {
+        return NULL;
+      }
+    }
+  }
+
+  if (result == 0 && kwds != NULL) {
+    if (PyArg_ValidateKeywordArguments(kwds)) {
+      JSObjectProxyMethodDefinitions::JSObjectProxy_ior((JSObjectProxy *)self, kwds);
+    }
+  }
+  Py_RETURN_NONE;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method(JSObjectProxy *self) {
+  return _PyDictView_New((PyObject *)self, &JSObjectKeysProxyType);
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_values_method(JSObjectProxy *self) {
+  return _PyDictView_New((PyObject *)self, &JSObjectValuesProxyType);
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_items_method(JSObjectProxy *self) {
+  return _PyDictView_New((PyObject *)self, &JSObjectItemsProxyType);
 }
