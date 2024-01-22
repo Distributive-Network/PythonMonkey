@@ -250,7 +250,7 @@ PyObject *JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_intersect(JSObje
   }
 
   // if other is a set and self is smaller than other, reuse set intersection logic
-  if (PySet_CheckExact(other) && len_self <= PyObject_Size(other)) {
+  if (PySet_Check(other) && len_self <= PyObject_Size(other)) {
     return PyObject_CallMethod(other, "intersection", "O", self);
   }
 
