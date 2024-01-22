@@ -278,4 +278,38 @@ def test_update_inplace_or_iterable_wrong_type():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "cannot convert dictionary update sequence element #0 to a sequence"        
+        assert str(e) == "cannot convert dictionary update sequence element #0 to a sequence"       
+
+def test_instanceof_object():
+    items = {'a': 10}
+    result = [None]
+    pm.eval("(result, obj) => {result[0] = obj instanceof Object}")(result, items)
+    assert result[0] == True         
+
+def test_not_instanceof_string():
+    items = {'a': 10}
+    result = [None]
+    pm.eval("(result, obj) => {result[0] = obj instanceof String}")(result, items)
+    assert result[0] == False           
+
+#valueOf
+def test_valueOf():
+    items = {'a': 10}
+    result = [0]
+    pm.eval("(result, obj) => {result[0] = obj.valueOf()}")(result, items)
+    assert items == {'a': 10} 
+    assert result[0] is items
+
+# toString
+def test_toString():
+    items = {'a': 10}
+    result = [0]
+    pm.eval("(result, obj) => {result[0] = obj.toString()}")(result, items)
+    assert result[0] == '[object Object]'  
+
+# toLocaleString
+def test_toLocaleString():
+    items = {'a': 10}
+    result = [0]
+    pm.eval("(result, obj) => {result[0] = obj.toLocaleString()}")(result, items)
+    assert result[0] == '[object Object]'      

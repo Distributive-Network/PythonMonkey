@@ -16,7 +16,8 @@
 #include "include/FuncType.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/JSArrayProxy.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/PyDictProxyHandler.hh"
+#include "include/PyListProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
@@ -174,12 +175,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
       JS::RootedObject arrayPrototype(cx);
       JS_GetClassPrototype(cx, JSProto_Array, &arrayPrototype); // so that instanceof will work, not that prototype methods will
       proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, arrayPrototype.get());
-      JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     } else {
       JS::RootedObject objectPrototype(cx);
       JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
-      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, objectPrototype.get());
+      proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, objectPrototype.get());
     }
+    JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     returnType.setObject(*proxy);
   }
   else if (object == Py_None) {

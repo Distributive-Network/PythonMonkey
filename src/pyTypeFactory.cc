@@ -24,7 +24,8 @@
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
 #include "include/PromiseType.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/PyDictProxyHandler.hh"
+#include "include/PyListProxyHandler.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -97,8 +98,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
     if (JS::GetClass(obj)->isProxyObject()) {
-      if (js::GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
-        return new DictType(((PyProxyHandler *)js::GetProxyHandler(obj))->pyObject);
+      if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family) { // this is one of our proxies for python dicts
+        return new DictType(((PyDictProxyHandler *)js::GetProxyHandler(obj))->pyObject);
       }
       if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
         return new ListType(((PyListProxyHandler *)js::GetProxyHandler(obj))->pyObject);
