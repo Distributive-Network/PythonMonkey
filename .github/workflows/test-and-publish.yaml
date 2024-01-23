@@ -77,6 +77,10 @@ jobs:
           powershell -command 'Start-Process -Wait -FilePath "./MozillaBuildSetup-Latest.exe" -ArgumentList "/S"'
       - name: Build spidermonkey in MozillaBuild environment
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        env:
+          # Preserve MozillaBuild v4.0.x behaviour
+          # see https://groups.google.com/u/1/a/mozilla.org/g/dev-platform/c/hF51Q3j6ca8
+          USE_MINTTY: 0
         run: /c/mozilla-build/start-shell.bat -use-full-path -here ./setup.sh
   build-and-test:
     needs: [build-spidermonkey-unix, build-spidermonkey-win]
