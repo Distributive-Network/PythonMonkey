@@ -3,10 +3,12 @@
 ![Testing Suite](https://github.com/Kings-Distributed-Systems/PythonMonkey/actions/workflows/tests.yaml/badge.svg)
 
 ## About
-[PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
-using the Python engine to provide the JS host environment.
+[PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python Runtime,
+using the Python engine to provide the Javascript host environment. 
 
-This product is in an early stage, approximately 80% to MVP as of July 2023. It is under active development by [Distributive](https://distributive.network/).
+We feature JavaScript Array and Object methods on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API. 
+
+This product is in an intermmdiate stage, approximately 90% to MVP as of January 2024. It is under active development by [Distributive](https://distributive.network/).
 External contributions and feedback are welcome and encouraged.
 
 ### tl;dr
@@ -24,16 +26,17 @@ js_eval("console.log")('hello, world')
 - Make writing code in either JS or Python a developer preference
 - Use JavaScript libraries from Python
 - Use Python libraries from JavaScript
-- Same process runs both JS and Python VMs - no serialization, pipes, etc
+- The same process runs both JavaScript and Python VirtualMachines - no serialization, pipes, etc
+- Python Lists and Dicts behave as Javacript Arrays and Objects, and vice-versa, fully adapting to the given context.
 
 ### Data Interchange
-- Strings share immutable backing stores whenever possible (when allocating engine choses UCS-2 or Latin-1 internal string representation) to keep memory consumption under control, and to make it possible to move very large strings between JS and Python library code without memory-copy overhead.
+- Strings share immutable backing stores whenever possible (when allocating engine choses UCS-2 or Latin-1 internal string representation) to keep memory consumption under control, and to make it possible to move very large strings between JavaScript and Python library code without memory-copy overhead.
 - TypedArrays share mutable backing stores.
-- JS objects are represented by Python dicts
+- JS objects are represented by Python dicts through a Dict subclass for optimal compatibility. Similarly for JS arrays and Python lists.
 - JS Date objects are represented by Python datetime.datetime objects
 - Intrinsics (boolean, number, null, undefined) are passed by value
 - JS Functions are automatically wrapped so that they behave like Python functions, and vice-versa
-- Python Lists are represented by JS true Arrays
+- Python Lists are represented by JS true arrays and support all Array methods through a JS API Proxy. Similarly for Python Dicts and JS objects.
 
 ### Roadmap
 - [done] JS instrinsics coerce to Python intrinsics
@@ -49,14 +52,13 @@ js_eval("console.log")('hello, world')
 - [done] Python `require` function, returns a coerced dict of module exports
 - [done] Python functions coerce to JS function wrappers
 - [done] CommonJS module system .py loader, loads Python modules for use by JS
-- JS object->Python dict coercion supports inherited-property lookup (via __getattribute__?)
 - [done] Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
-- [done] Python host environment supplies XMLHttpRequest (other project?)
-- Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client (other project?)
+- [done] Python host environment supplies XMLHttpRequest
+- Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
-- [done] JS Arrays coerce to Python Lists, providing all List methods implemented on Arrays
-- [done] Python List coerce to JS Arrays, providing all Array methods implemented on Lists
+- [done] Python lists coerce to JS Arrays
+- [done] JS arrays coerce to Python lists
 
 ## Build Instructions
 
