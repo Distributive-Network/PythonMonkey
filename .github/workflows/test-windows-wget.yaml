@@ -1,0 +1,16 @@
+name: 'Test WGET'
+
+on:
+  push:
+  workflow_call:
+  workflow_dispatch:
+
+
+jobs:
+  test:
+    runs-on: windows-2019
+    steps:
+      - name: test-wget
+        shell: powershell
+        run: |
+          wget google.com 
