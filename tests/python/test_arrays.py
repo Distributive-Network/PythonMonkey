@@ -649,6 +649,30 @@ def test_includes():
     pm.eval("(result, arr) => {result[0] = arr.includes(1)}")(result, items)
     assert result[0] == True   
 
+def test_includes_start_index():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes(1, 1)}")(result, items)
+    assert result[0] == False
+
+def test_includes_start_index_negative():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes(1, -1)}")(result, items)
+    assert result[0] == False    
+
+def test_includes_start_index_negative_large():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes(1, -10)}")(result, items)
+    assert result[0] == True    
+
+def test_includes_start_index_large():
+    items = [1,2,3]
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr.includes(1, 10)}")(result, items)
+    assert result[0] == False          
+
 def test_includes_other_type():
     items = [1,2,'Hi']
     result = [None]
@@ -844,7 +868,25 @@ def test_forEach_check_this_arg_wrong_type():
 #    returnResult = [0]
 #    pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.forEach(func)}")(returnResult, items, func)
 #    assert items == ['to each his own', 'to each his own', 'to each his own']    
-#    assert returnResult == [None]         
+#    assert returnResult == [None]   
+
+#def test_forEach_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.forEach(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3    
 
 
 # TODO should not pass
@@ -936,6 +978,24 @@ def test_map_check_array_mutation():
     pm.eval("(result, arr) => {arr.map((element, index, array) => {array[0] = 'Ten'; result[0] = array})}")(result, items)
     assert result[0] == ['Ten', 'Three', 'One']
     assert items == ['Ten', 'Three', 'One']
+
+#def test_map_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.map(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3        
     
 #filter
 def test_filter():
@@ -989,7 +1049,25 @@ def test_filter_too_few_args():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("TypeError: filter: At least 1 argument required, but only 0 passed")         
+        assert str(e).__contains__("TypeError: filter: At least 1 argument required, but only 0 passed")   
+
+#def test_filter_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.filter(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3                  
 
 #reduce
 def test_reduce():
@@ -1164,6 +1242,24 @@ def test_some_truthy_conversion():
     """)(result)
     assert result[0] == True  
 
+#def test_some_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.some(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3        
+
 #every        
 def test_every_true():
     items = [2,4,6]
@@ -1213,7 +1309,25 @@ def test_every_check_this_arg():
     }
     """
   )(result, items)
-  assert result == [1]      
+  assert result == [1]   
+
+#def test_every_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.every(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3         
 
 #find
 def test_find_found_once():
@@ -1270,7 +1384,25 @@ def test_find_check_this_arg():
     }
     """
   )(result, items)
-  assert result == [3]           
+  assert result == [3]         
+
+#def test_find_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.find(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3        
 
 #findIndex
 def test_findIndex_found_once():
@@ -1327,7 +1459,25 @@ def test_findIndex_check_this_arg():
     }
     """
   )(result, items)
-  assert result == [3]           
+  assert result == [3]      
+
+#def test_findIndex_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.findIndex(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3           
 
 #flat
 def test_flat():
@@ -1442,7 +1592,25 @@ def test_flatMap_check_this_arg():
     }
     """
   )(result, items)
-  assert result == [3]               
+  assert result == [3]   
+
+#def test_flatMap_self():
+#  items = ['Four', 'Three', 'One']
+#  class Counter:
+#    def __init__(self):
+#      self.count = 0
+#    def increment(self):
+#      self.count += 1
+  
+#  obj = Counter()
+#  result = pm.eval("""
+#  (arr, increment, result) => {
+#    let jsObj = {count: 0}
+#    arr.flatMap(increment, jsObj);
+#    return jsObj.count;
+#  }
+#  """)(items, obj.increment)
+#  assert result == 3                  
 
 #valueOf
 def test_valueOf():

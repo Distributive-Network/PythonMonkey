@@ -839,7 +839,7 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
     rootedThisArg.set(nullptr);
   }
 
-  for (Py_ssize_t index = 0, toIndex = 0; index < len; index++) {
+  for (Py_ssize_t index = 0; index < len; index++) {
     jArgs[0].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[1].setInt32(index);
     jArgs[2].set(selfValue);
