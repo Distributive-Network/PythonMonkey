@@ -231,6 +231,8 @@ Where shared backing store is not possible, PythonMonkey will automatically emit
 the "real" data structure as its value authority. Only immutable intrinsics are copied. This means
 that if you update an object in JavaScript, the corresponding Dict in Python will be updated, etc.
 
+JavaScript Array and Object methods are implemented on Python List and Dictionaries, and vice-versa. 
+
 | Python Type | JavaScript Type |
 |:------------|:----------------|
 | String      | string
