@@ -1,11 +1,11 @@
 /**
- * @file PyProxy.hh
- * @author Caleb Aikens (caleb@distributive.network)
- * @brief Struct for creating JS proxy objects. Used by DictType for object coercion
+ * @file PyProxyHandler.hh
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
+ * @brief Structs for creating JS proxy objects. Used by DictType for object coercion and by ListType for List coercion
  * @version 0.1
  * @date 2023-04-20
  *
- * Copyright (c) 2023 Distributive Corp.
+ * Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -29,6 +29,14 @@ public:
   bool preventExtensions(JSContext *cx, JS::HandleObject proxy, JS::ObjectOpResult &result) const override final;
   bool isExtensible(JSContext *cx, JS::HandleObject proxy, bool *extensible) const override final;
 };
+
+enum ProxySlots {PyObjectSlot};
+
+typedef struct {
+  const char *name;      /* The name of the method */
+  JSNative call;         /* The C function that implements it */
+  uint16_t nargs;        /* The argument count for the method */
+} JSMethodDef;
 
 /**
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates to handle coercion from python dicts to JS Objects
@@ -157,16 +165,26 @@ public:
     JS::HandleId id,
     JS::Handle<JS::PropertyDescriptor> desc,
     JS::ObjectOpResult &result) const override;
+
+  bool getBuiltinClass(JSContext *cx, JS::HandleObject proxy, js::ESClass *cls) const override;
 };
 
 /**
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates
- *    to handle coercion from python lists to JS Array-like objects
+ *    to handle coercion from python lists to JS Array objects
  */
 struct PyListProxyHandler : public PyBaseProxyHandler {
 public:
   PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
   static const char family;
+
+  /**
+   * @brief Handles python object reference count when JS Proxy object is finalized
+   *
+   * @param gcx pointer to JS::GCContext
+   * @param proxy the proxy object being finalized
+   */
+  void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
@@ -180,6 +198,8 @@ public:
 
   bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const override;
   bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const override;
+  bool isArray(JSContext *cx, JS::HandleObject proxy, JS::IsArrayAnswer *answer) const override;
+  bool getBuiltinClass(JSContext *cx, JS::HandleObject proxy, js::ESClass *cls) const override;
 };
 
 /**

@@ -55,7 +55,8 @@ js_eval("console.log")('hello, world')
 - Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client (other project?)
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
-- [done] Python List coerce to JS Arrays
+- [done] JS Arrays coerce to Python Lists, providing all List methods implemented on Arrays
+- [done] Python List coerce to JS Arrays, providing all Array methods implemented on Lists
 
 ## Build Instructions
 

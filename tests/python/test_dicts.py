@@ -133,9 +133,11 @@ def test_eval_objects_jsproxy_inplace_or_true_dict_left():
     assert b == {'d': 6.0}   
     assert True == pm.eval("(o) => Object.preventExtensions(o) === o")({ "abc": 1 })
 
-def test_eval_objects_proxy_proto():
-    assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({})
-    assert pm.null == pm.eval("(o) => Object.getPrototypeOf(o)")({ "abc": 1 })
+def test_instanceof_object():
+    a = {'c':5.0}
+    result = [None]
+    pm.eval("(result, obj) => {result[0] = obj instanceof Object}")(result, a)
+    assert result[0] == True      
 
 def test_eval_objects_proxy_iterate():
     obj = pm.eval("({ a: 123, b: 'test' })")
@@ -252,4 +254,4 @@ def test_eval_objects_jsproxy_inplace_or_true_dict_left():
     b = pm.eval("({'d':6})")
     a |= b
     assert a == {'c': 5.0, 'd': 6.0}   
-    assert b == {'d': 6.0}       
+    assert b == {'d': 6.0}

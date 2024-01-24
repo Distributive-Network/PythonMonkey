@@ -165,15 +165,20 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
   else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
-    returnType.setObject(*((JSArrayProxy *)object)->jsObject);
+    returnType.setObject(*((JSArrayProxy *)object)->jsArray);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
     JSObject *proxy;
     if (PyList_Check(object)) {
-      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
+      JS::RootedObject arrayPrototype(cx);
+      JS_GetClassPrototype(cx, JSProto_Array, &arrayPrototype); // so that instanceof will work, not that prototype methods will
+      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, arrayPrototype.get());
+      JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     } else {
-      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
+      JS::RootedObject objectPrototype(cx);
+      JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
+      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, objectPrototype.get());
     }
     returnType.setObject(*proxy);
   }
@@ -239,7 +244,9 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::RootedObject *thisv = new JS::RootedObject(cx);
   JS_ValueToObject(cx, callargs.thisv(), thisv);
 
-  if (!callargs.length()) {
+  unsigned int callArgsLength = callargs.length();
+
+  if (!callArgsLength) {
     #if PY_VERSION_HEX >= 0x03090000
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
     #else
@@ -255,8 +262,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   // populate python args tuple
-  PyObject *pyArgs = PyTuple_New(callargs.length());
-  for (size_t i = 0; i < callargs.length(); i++) {
+  PyObject *pyArgs = PyTuple_New(callArgsLength);
+  for (size_t i = 0; i < callArgsLength; i++) {
     JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
     PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
     if (!pyArg) return false; // error occurred
