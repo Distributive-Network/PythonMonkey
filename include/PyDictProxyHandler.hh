@@ -48,7 +48,6 @@ public:
     JS::ObjectOpResult &result) const override;
   /**
    * @brief [[HasProperty]]
-   *  // printf("copy\n");
    * @param cx - pointer to JSContext
    * @param proxy - The proxy object who's propery we wish to check
    * @param id - key value of the property to check
