@@ -477,7 +477,10 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  JS::RealmOptions options;
+  JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+  JS::RealmBehaviors behaviours = JS::RealmBehaviors();
+  creationOptions.setIteratorHelpersEnabled(true);
+  JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
   global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   if (!global) {

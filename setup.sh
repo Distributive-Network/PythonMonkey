@@ -53,7 +53,6 @@ sed -i'' -e '/"winheap.cpp"/d' ./memory/mozalloc/moz.build # https://bugzilla.mo
 sed -i'' -e 's/"install-name-tool"/"install_name_tool"/' ./moz.configure # `install-name-tool` does not exist, but we have `install_name_tool`
 sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
-sed -i'' -e 's/bool iteratorHelpers_ = false;/bool iteratorHelpers_ = true;/g' ./js/public/RealmOptions.h  # turn this on, todo make it available to embedders, currently only available via command-line
 cd js/src
 mkdir -p _build
 cd _build
