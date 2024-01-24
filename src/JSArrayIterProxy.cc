@@ -45,19 +45,11 @@ PyObject *JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next(JSArrayIterPr
     return NULL;
   }
 
-  if (self->it.reversed) {
-    if (self->it.it_index >= 0) {
-      JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
-      JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)seq)->jsArray, self->it.it_index--, elementVal);
-      return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(((JSArrayProxy *)seq)->jsArray)), elementVal)->getPyObject();
-    }
-  }
-  else {
-    if (self->it.it_index < JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)seq)) {
-      JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
-      JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)seq)->jsArray, self->it.it_index++, elementVal);
-      return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(((JSArrayProxy *)seq)->jsArray)), elementVal)->getPyObject();
-    }
+  if ((self->it.reversed && self->it.it_index >= 0) || (!self->it.reversed && self->it.it_index < JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)seq))) {
+    JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
+    self->it.it_index += self->it.reversed ? -1 : 1;
+    JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)seq)->jsArray, self->it.it_index, elementVal);
+    return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(((JSArrayProxy *)seq)->jsArray)), elementVal)->getPyObject();
   }
 
   self->it.it_seq = NULL;
