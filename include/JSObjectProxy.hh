@@ -196,10 +196,47 @@ public:
    * @return PyObject* copy of the dict
    */
   static PyObject *JSObjectProxy_copy_method(JSObjectProxy *self);
+
+  /**
+   * @brief update method    update the dict with another dict or iterable
+   *
+   * @param self - The JSObjectProxy
+   * @param args - arguments to the sort method
+   * @param nargs - number of arguments to the sort method
+   * @return None
+   */
+  static PyObject *JSObjectProxy_update_method(JSObjectProxy *self, PyObject *args, PyObject *kwds);
+
+  /**
+   * @brief keys method
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* keys of the dict
+   */
+  static PyObject *JSObjectProxy_keys_method(JSObjectProxy *self);
+
+  /**
+   * @brief values method
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* values view of the dict
+   */
+  static PyObject *JSObjectProxy_values_method(JSObjectProxy *self);
+
+  /**
+   * @brief items method
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* items view of the dict
+   */
+  static PyObject *JSObjectProxy_items_method(JSObjectProxy *self);
 };
 
 
 // docs for methods, copied from cpython
+PyDoc_STRVAR(getitem__doc__,
+  "__getitem__($self, key, /)\n--\n\nReturn self[key].");
+
 PyDoc_STRVAR(dict_get__doc__,
   "get($self, key, default=None, /)\n"
   "--\n"
@@ -229,6 +266,25 @@ PyDoc_STRVAR(clear__doc__,
 PyDoc_STRVAR(copy__doc__,
   "D.copy() -> a shallow copy of D");
 
+PyDoc_STRVAR(keys__doc__,
+  "D.keys() -> a set-like object providing a view on D's keys");
+PyDoc_STRVAR(items__doc__,
+  "D.items() -> a set-like object providing a view on D's items");
+PyDoc_STRVAR(values__doc__,
+  "D.values() -> an object providing a view on D's values");
+
+PyDoc_STRVAR(update__doc__,
+  "D.update([E, ]**F) -> None.  Update D from dict/iterable E and F.\n\
+If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]\n\
+If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v\n\
+In either case, this is followed by: for k in F:  D[k] = F[k]");
+
+PyDoc_STRVAR(dict_keys__doc__,
+  "D.keys() -> a set-like object providing a view on D's keys");
+PyDoc_STRVAR(dict_items__doc__,
+  "D.items() -> a set-like object providing a view on D's items");
+PyDoc_STRVAR(dict_values__doc__,
+  "D.values() -> an object providing a view on D's values");
 
 /**
  * @brief Struct for the methods that define the Mapping protocol
@@ -258,12 +314,17 @@ static PyNumberMethods JSObjectProxy_number_methods = {
  *
  */
 static PyMethodDef JSObjectProxy_methods[] = {
+  {"__getitem__", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get, METH_O | METH_COEXIST, getitem__doc__},
   {"get", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get_method, METH_FASTCALL, dict_get__doc__},
   {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
   {"pop", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method, METH_FASTCALL, dict_pop__doc__},
   // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and quite a bit strange
   {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, clear__doc__},
   {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, copy__doc__},
+  {"update", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_update_method, METH_VARARGS | METH_KEYWORDS, update__doc__},
+  {"keys", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method, METH_NOARGS, dict_keys__doc__},
+  {"items", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_items_method, METH_NOARGS, dict_items__doc__},
+  {"values", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_values_method, METH_NOARGS, dict_values__doc__},
   {NULL, NULL}                  /* sentinel */
 };
 

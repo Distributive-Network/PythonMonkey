@@ -137,19 +137,28 @@ def test_instanceof_object():
     a = {'c':5.0}
     result = [None]
     pm.eval("(result, obj) => {result[0] = obj instanceof Object}")(result, a)
-    assert result[0] == True      
+    assert result[0] == True
 
+#iter
 def test_eval_objects_proxy_iterate():
     obj = pm.eval("({ a: 123, b: 'test' })")
     result = []
     for i in obj:
         result.append(i)
-    assert result == [('a', 123.0), ('b', 'test')]
+    assert result == ['a', 'b']
+
+def test_eval_objects_proxy_min():
+    obj = pm.eval("({ a: 123, b: 'test' })")
+    assert min(obj) == 'a'
+
+def test_eval_objects_proxy_max():
+    obj = pm.eval("({ a: 123, b: 'test' })")
+    assert max(obj) == 'b'
 
 def test_eval_objects_proxy_repr():
     obj = pm.eval("({ a: 123, b: 'test' , c: { d: 1 }})")
     obj.e = obj # supporting circular references
-    expected = "{'a': 123.0, 'b': 'test', 'c': {'d': 1.0}, 'e': [Circular]}"
+    expected = "{'a': 123.0, 'b': 'test', 'c': {'d': 1.0}, 'e': {...}}"
     assert repr(obj) == expected
     assert str(obj) == expected
 
@@ -159,8 +168,7 @@ def test_eval_objects_proxy_dict_conversion():
     assert type(obj) is not dict # dict subclass
     assert type(d) is dict # strict dict
     assert repr(d) == "{'a': 123.0, 'b': 'test', 'c': {'d': 1.0}}"
-    assert obj.keys() == ['a', 'b', 'c'] # Conversion from a dict-subclass to a strict dict internally calls the .keys() method
-    assert list(d.keys()) == obj.keys()
+    assert str(obj.keys()) == "dict_keys(['a', 'b', 'c'])"
     assert obj == d
 
 def test_eval_objects_jsproxy_get():
@@ -255,3 +263,19 @@ def test_eval_objects_jsproxy_inplace_or_true_dict_left():
     a |= b
     assert a == {'c': 5.0, 'd': 6.0}   
     assert b == {'d': 6.0}
+
+def test_eval_objects_jsproxy_inplace_or_true_dict_left_iterable_right():
+  if sys.version_info[0] >= 3 and sys.version_info[1] >= 9: # | is not implemented for dicts in 3.8 or less
+    a = {'c': 5}
+    a |= [('y', 3), ('z', 0)]
+    assert a == {'c': 5, 'y': 3, 'z':0}   
+
+def test_update_inplace_or_iterable_wrong_type():
+    car = pm.eval('({"brand": "Ford","model": "Mustang","year": 1964})')
+    a = [1,2]
+    try:
+        car |= a          
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'TypeError'>"
+        assert str(e) == "cannot convert dictionary update sequence element #0 to a sequence"        

@@ -1,4 +1,5 @@
 import pythonmonkey as pm
+from functools import reduce 
 
 def test_eval_lists():
     d = [1]
@@ -471,11 +472,11 @@ def test_extend_with_pm_list():
     assert a == [1,2,3,4]    
 
 # TODO iterable dict
-#def test_extend_with_own_dict():
-#    a = pm.eval("[1,2]")
-#    b = pm.eval("{'key':5}")
-#    a.extend(b)
-#    assert a == [1,2,"key"]
+def test_extend_with_own_dict():
+    a = pm.eval("[1,2]")
+    b = pm.eval("({'key':5, 'key2':6})")
+    a.extend(b)
+    assert a == [1,2,"key","key2"]
 
 #pop
 def test_pop_no_arg():
@@ -805,10 +806,33 @@ def iter_max():
     b = max(a)
     assert b == 9   
 
-def iter_op():
+def iter_for():
     a = pm.eval("(['this is a test', 'another test'])")
     b = [item.upper() for item in a]
-    assert b ==  ['THIS IS A TEST', 'ANOTHER TEST']         
+    assert b ==  ['THIS IS A TEST', 'ANOTHER TEST']   
+
+def test_reduce():
+    a = pm.eval("([1, 3, 5, 6, 2])")
+    result = reduce(lambda a, b: a+b, a)
+    assert result == 17  
+
+def test_iter_next():
+    a = pm.eval("([1, 3, 5, 6, 2])")
+    iterator = iter(a)
+    try:
+        while True:
+            element = next(iterator)
+        assert(False)    
+    except StopIteration:
+        assert(True)   
+
+#reverse_iter
+def iter_reverse():
+    a = pm.eval("(['7','9','1','2','3','4','5','6'])")
+    b = ""
+    for i in reversed(a):
+        b += i
+    assert b == '65432197' 
 
 # slice subscript
 def test_slice_full_array_single_subscript():

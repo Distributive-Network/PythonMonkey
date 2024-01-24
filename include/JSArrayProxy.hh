@@ -116,6 +116,14 @@ public:
   static PyObject *JSArrayProxy_iter(JSArrayProxy *self);
 
   /**
+   * @brief Return a reverse iterator object to make JSArrayProxy backwards iterable
+   *
+   * @param self - The JSArrayProxy
+   * @return PyObject* - iterator object
+   */
+  static PyObject *JSArrayProxy_iter_reverse(JSArrayProxy *self);
+
+  /**
    * @brief Compute a string representation of the JSArrayProxy
    *
    * @param self - The JSArrayProxy
@@ -393,13 +401,18 @@ PyDoc_STRVAR(list_sort__doc__,
   "\n"
   "The reverse flag can be set to sort in descending order.");
 
-
+PyDoc_STRVAR(list___reversed____doc__,
+  "__reversed__($self, /)\n"
+  "--\n"
+  "\n"
+  "Return a reverse iterator over the list.");
 
 /**
  * @brief Struct for the other methods
  *
  */
 static PyMethodDef JSArrayProxy_methods[] = {
+  {"__reversed__", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_iter_reverse, METH_NOARGS, list___reversed____doc__},
   {"clear", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_clear, METH_NOARGS, py_list_clear__doc__},
   {"copy", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_copy, METH_NOARGS, list_copy__doc__},
   {"append", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_append, METH_O, list_append__doc__},
