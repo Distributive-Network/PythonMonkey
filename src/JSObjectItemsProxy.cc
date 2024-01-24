@@ -18,7 +18,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/PyBaseProxyHandler.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
