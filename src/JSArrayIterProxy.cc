@@ -24,8 +24,6 @@
 
 void JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_dealloc(JSArrayIterProxy *self)
 {
-  // Py_XDECREF(self->it.it_seq);
-  // Py_TYPE(self)->tp_free((PyObject *)self);
   PyObject_GC_UnTrack(self);
   Py_XDECREF(self->it.it_seq);
   PyObject_GC_Del(self);
