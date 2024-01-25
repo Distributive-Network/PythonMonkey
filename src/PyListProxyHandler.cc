@@ -2099,7 +2099,10 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 }
 
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(nullptr));
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  if (PyGILState_GetThisThreadState()) {
+    Py_DECREF(self);
+  }
 }
 
 bool PyListProxyHandler::defineProperty(
