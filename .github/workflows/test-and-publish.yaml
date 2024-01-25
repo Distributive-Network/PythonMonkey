@@ -51,6 +51,7 @@ jobs:
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
       - name: Setup core dumping
+        if: ${{ matrix.os == 'ubuntu-20.04'}}
         run: |
           sudo mkdir -p /cores
           sudo chmod 777 /cores
