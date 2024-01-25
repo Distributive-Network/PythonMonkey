@@ -170,8 +170,7 @@ jobs:
         run: |
           sudo mkdir /cores
           sudo chmod 777 /cores
-          sudo bash -c 'echo "/var/crash/core_dump" > /proc/sys/kernel/core_pattern' 
-          # Allow core dumps
+          sudo bash -c 'echo "/cores/core_dump" > /proc/sys/kernel/core_pattern' 
           ulimit -c unlimited
       - name: Run Python tests (pytest)
         run: |
