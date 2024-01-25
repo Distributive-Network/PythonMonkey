@@ -167,8 +167,18 @@ bool PyDictProxyHandler::getOwnEnumerablePropertyKeys(
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
-// @TODO (Caleb Aikens) implement this
-void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {}
+// TODO not needed at this time since only called as part of cleanup function's js::DestroyContext call which is only called at cpython exit Py_AtExit in PyInit_pythonmonkey
+// put in some combination of the commented-out code below
+void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
+  /*PyThreadState *state = PyThreadState_Get(); 
+  PyThreadState *state = PyGILState_GetThisThreadState();
+  if (state) {
+    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+    PyGILState_STATE state = PyGILState_Ensure();
+    Py_DECREF(self);
+    PyGILState_Release(state);
+  }*/
+}
 
 bool PyDictProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
