@@ -2099,7 +2099,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 }
 
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  // PyThreadState * state = PyGILState_GetThisThreadState();
+   PyThreadState * state = PyGILState_GetThisThreadState();
   // printf("thread state=%p\n", state);
   // if (PyGILState_GetThisThreadState()) {
   //try{
