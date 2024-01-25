@@ -6,7 +6,7 @@
 [PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python Runtime,
 using the Python engine to provide the Javascript host environment. 
 
-We feature JavaScript Array and Object methods on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API. 
+We feature JavaScript Array and Object methods implemented on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API. 
 
 This product is in an intermediate stage, approximately 90% to MVP as of January 2024. It is under active development by [Distributive](https://distributive.network/).
 External contributions and feedback are welcome and encouraged.
