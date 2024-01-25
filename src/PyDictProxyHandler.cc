@@ -170,7 +170,7 @@ bool PyDictProxyHandler::getOwnEnumerablePropertyKeys(
 void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   if (PyGILState_GetThisThreadState()) {
-    Py_DECREF(self);
+    Py_XDECREF(self);
   }
 }
 

@@ -2101,7 +2101,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   if (PyGILState_GetThisThreadState()) {
-    Py_DECREF(self);
+    Py_XDECREF(self);
   }
 }
 
