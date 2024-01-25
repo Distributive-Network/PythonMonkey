@@ -2106,7 +2106,7 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   if (state) {
     PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
     PyGILState_STATE state = PyGILState_Ensure();
-    Py_DECREF(self);   // this causes problems
+    Py_DECREF(self);
     PyGILState_Release(state);
   }*/
 }
