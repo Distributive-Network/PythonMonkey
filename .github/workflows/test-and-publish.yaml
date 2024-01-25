@@ -50,6 +50,12 @@ jobs:
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
+      - name: Setup core dumping
+        run: |
+          sudo mkdir -p /cores
+          sudo chmod 777 /cores
+          sudo bash -c 'echo "/cores/core_dump" > /proc/sys/kernel/core_pattern' 
+          ulimit -c unlimited  
   build-spidermonkey-win:
     runs-on: windows-2019
     steps:
@@ -166,12 +172,6 @@ jobs:
         with:
           name: docs-${{ github.run_id }}-${{ github.sha }}
           path: ./build/docs/html/
-      - name: Setup core dumping
-        run: |
-          sudo mkdir /cores
-          sudo chmod 777 /cores
-          sudo bash -c 'echo "/cores/core_dump" > /proc/sys/kernel/core_pattern' 
-          ulimit -c unlimited
       - name: Run Python tests (pytest)
         run: |
           poetry run python -m pip install --force-reinstall --verbose ./dist/*
