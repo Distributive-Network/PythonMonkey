@@ -2099,12 +2099,12 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 }
 
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-   PyThreadState * state = PyGILState_GetThisThreadState();
+   //PyThreadState * state = PyGILState_GetThisThreadState();
   // printf("thread state=%p\n", state);
-  // if (PyGILState_GetThisThreadState()) {
+   if (PyGILState_GetThisThreadState()) {
   //try{
        PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
- // Py_DECREF(self);
+      Py_DECREF(self);
 
 
 
@@ -2112,9 +2112,7 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
     // TODO why does this ever happen
  // }
 
- 
- // Py_DECREF(self);
-  // }
+   }
 }
 
 bool PyListProxyHandler::defineProperty(
