@@ -2119,7 +2119,7 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   bool haveExit = false;
 
   for (i = 0; i < size; i++) {
-    // printf("%s\n", strings[i]);
+  //  printf("%s\n", strings[i]);
     if (strstr(strings[i], "Py_Exit")) {
       printf("found\n");
       haveExit = true;
@@ -2134,8 +2134,11 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   if (!haveExit) {
     printf("NOT found\n");
     PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+    PyGILState_STATE state = PyGILState_Ensure();
     Py_DECREF(self);
-  }
+    PyGILState_Release(state);
+  } 
+  else {}
 }
 
 bool PyListProxyHandler::defineProperty(
