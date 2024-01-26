@@ -232,7 +232,11 @@ void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
   }
 }
 
+JS::GCReason latestGCReason;
+
 void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
+  latestGCReason = reason;
+
   if (status == JSGCStatus::JSGC_BEGIN) {
     PyToGCIterator pyIt = PyTypeToGCThing.begin();
     while (pyIt != PyTypeToGCThing.end()) {
@@ -452,6 +456,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
   }
+
   Py_AtExit(cleanup);
 
   GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
