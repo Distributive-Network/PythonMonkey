@@ -2100,13 +2100,41 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
 
 extern JS::GCReason latestGCReason;
 
+#include <execinfo.h>
+#include <unistd.h>
+#include <string.h>
+
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
-    PyThreadState *state = PyGILState_GetThisThreadState();
-    if (state) {
-      PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-      Py_DECREF(self);
+  /*size_t size;
+     enum Constexpr {MAX_SIZE = 1024};
+     void *array[MAX_SIZE];
+     size = backtrace(array, MAX_SIZE);
+     backtrace_symbols_fd(array, size, STDOUT_FILENO);*/
+  char **strings;
+  size_t i, size;
+  enum Constexpr {MAX_SIZE = 1024};
+  void *array[MAX_SIZE];
+  size = backtrace(array, MAX_SIZE);
+  strings = backtrace_symbols(array, size);
+  bool haveExit = false;
+
+  for (i = 0; i < size; i++) {
+    // printf("%s\n", strings[i]);
+    if (strstr(strings[i], "Py_Exit")) {
+      printf("found\n");
+      haveExit = true;
     }
+  }
+
+  free(strings);
+
+
+
+  // if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
+  if (!haveExit) {
+    printf("NOT found\n");
+    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+    Py_DECREF(self);
   }
 }
 

@@ -170,13 +170,10 @@ bool PyDictProxyHandler::getOwnEnumerablePropertyKeys(
 extern JS::GCReason latestGCReason;
 
 void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
-   // PyThreadState *state = PyThreadState_Get();
-   // if (state) {
-      PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-      Py_DECREF(self);
-   // }
-  }
+  /*if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
+     PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+     Py_DECREF(self);
+     }*/
 }
 
 bool PyDictProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
