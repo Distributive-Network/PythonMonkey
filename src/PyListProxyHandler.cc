@@ -2098,6 +2098,8 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   return true;
 }
 
+extern JS::GCReason latestGCReason;
+
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
     PyThreadState *state = PyThreadState_Get();
