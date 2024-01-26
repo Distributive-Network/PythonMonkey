@@ -2105,40 +2105,38 @@ extern JS::GCReason latestGCReason;
 #include <string.h>
 
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  /*size_t size;
+  /*char **strings;
+     size_t i, size;
      enum Constexpr {MAX_SIZE = 1024};
      void *array[MAX_SIZE];
      size = backtrace(array, MAX_SIZE);
-     backtrace_symbols_fd(array, size, STDOUT_FILENO);*/
-  char **strings;
-  size_t i, size;
-  enum Constexpr {MAX_SIZE = 1024};
-  void *array[MAX_SIZE];
-  size = backtrace(array, MAX_SIZE);
-  strings = backtrace_symbols(array, size);
-  bool haveExit = false;
+     strings = backtrace_symbols(array, size);
+     bool haveExit = false;
 
-  for (i = 0; i < size; i++) {
-  //  printf("%s\n", strings[i]);
-    if (strstr(strings[i], "Py_Exit")) {
+     for (i = 0; i < size; i++) {
+     //  printf("%s\n", strings[i]);
+     if (strstr(strings[i], "Py_Exit")) {
       printf("found\n");
       haveExit = true;
-    }
-  }
+     }
+     }*/
 
-  free(strings);
-
-
+  // free(strings);
+  // PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  // printf("ref count is %d\n", Py_REFCNT(self));
 
   // if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
-  if (!haveExit) {
-    printf("NOT found\n");
-    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-    PyGILState_STATE state = PyGILState_Ensure();
+  // if (!haveExit) {
+  // printf("NOT found\n");
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  // PyGILState_STATE state = PyGILState_Ensure();
+  if (Py_REFCNT(self) > 1) {
+    printf("DECREF\n");
     Py_DECREF(self);
-    PyGILState_Release(state);
-  } 
-  else {}
+  }
+  // PyGILState_Release(state);
+  // }
+
 }
 
 bool PyListProxyHandler::defineProperty(

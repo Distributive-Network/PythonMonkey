@@ -176,13 +176,13 @@ jobs:
       - name: Run Python tests (pytest)
         run: |
           poetry run python -m pip install --force-reinstall --verbose ./dist/*
-          poetry run python -m pytest tests/python > output
+          poetry run python -m pytest tests/python
       - name: Upload any core dump    
         uses: actions/upload-artifact@v3
         if: ${{ failure() && matrix.os == 'ubuntu-20.04' }}
         with:
-          name: output
-          path: output    
+          name: cores
+          path: /cores    
       - name: Run JS tests (peter-jr)
         run: |
           poetry run bash ./peter-jr ./tests/js/
