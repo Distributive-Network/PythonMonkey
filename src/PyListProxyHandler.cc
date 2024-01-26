@@ -2098,12 +2098,13 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   return true;
 }
 
-extern JS::GCReason latestGCReason;
-
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
-    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-    Py_DECREF(self);
+    PyThreadState *state = PyThreadState_Get();
+    if (state) {
+      PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+      Py_DECREF(self);
+    }
   }
 }
 
