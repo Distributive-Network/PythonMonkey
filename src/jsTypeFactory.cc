@@ -180,7 +180,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
       JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
       proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, objectPrototype.get());
     }
-    Py_INCREF(object); // TODO leak! clean up in finalize
+    Py_INCREF(object);
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     returnType.setObject(*proxy);
   }
