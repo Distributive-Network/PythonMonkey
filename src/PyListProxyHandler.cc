@@ -2102,7 +2102,7 @@ extern JS::GCReason latestGCReason;
 
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   if (latestGCReason != JS::GCReason::DESTROY_RUNTIME) {
-    PyThreadState *state = PyGILState_GetThisThreadState()();
+    PyThreadState *state = PyGILState_GetThisThreadState();
     if (state) {
       PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
       Py_DECREF(self);
