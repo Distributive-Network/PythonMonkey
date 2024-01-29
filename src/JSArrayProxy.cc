@@ -63,7 +63,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
     if (methodName == NULL) {   // reached end of list
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
-      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
+      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsArray);
       return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
     else if (PyUnicode_Check(key)) {
@@ -74,7 +74,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
     else {
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
-      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
+      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsArray);
       return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
   }

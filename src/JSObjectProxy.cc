@@ -92,8 +92,8 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
     if (methodName == NULL) { // reached end of list
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-      return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
+      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
     else if (PyUnicode_Check(key)) {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
@@ -103,8 +103,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
     else {
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-
+      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
       return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
   }
