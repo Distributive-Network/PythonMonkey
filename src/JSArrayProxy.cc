@@ -64,7 +64,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
       JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsArray);
-      return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
     else if (PyUnicode_Check(key)) {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
@@ -75,7 +75,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
       JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsArray);
-      return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
   }
 }

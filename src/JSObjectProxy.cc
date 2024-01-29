@@ -104,7 +104,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
       JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
-      return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
   }
 }
