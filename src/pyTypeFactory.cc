@@ -213,6 +213,7 @@ PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   JS::HandleValueArray jsArgs(jsArgsVector);
   JS::Rooted<JS::Value> *jsReturnVal = new JS::Rooted<JS::Value>(cx);
   if (!JS_CallFunctionValue(cx, *thisObj, *jsFunc, jsArgs, jsReturnVal)) {
+    delete thisObj;
     setSpiderMonkeyException(cx);
     return NULL;
   }
