@@ -60,22 +60,16 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
   // look through the methods for dispatch and return key if no method found
   for (size_t index = 0;; index++) {
     const char *methodName = JSArrayProxyType.tp_methods[index].ml_name;
-    if (methodName == NULL) {   // reached end of list
+    if (methodName == NULL || !PyUnicode_Check(key)) {   // reached end of list
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
       JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsArray);
       return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
-    else if (PyUnicode_Check(key)) {
+    else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
         return PyObject_GenericGetAttr((PyObject *)self, key);
       }
-    }
-    else {
-      JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-      JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, value);
-      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsArray);
-      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
   }
 }
