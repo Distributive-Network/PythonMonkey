@@ -24,7 +24,9 @@
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
 #include "include/PromiseType.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/PyDictProxyHandler.hh"
+#include "include/PyListProxyHandler.hh"
+#include "include/PyObjectProxyHandler.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -154,6 +156,9 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         js::Unbox(cx, obj, &unboxed);
         StrType *s = new StrType(cx, unboxed.toString());
         return s;
+      }
+    case js::ESClass::Array: {
+        return new ListType(cx, obj);
       }
     default: {
         if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
