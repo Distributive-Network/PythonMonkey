@@ -1,11 +1,10 @@
 /**
  * @file pythonmonkey.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief This file defines the pythonmonkey module, along with its various functions.
- * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -68,7 +67,7 @@ static PyTypeObject NullType = {
 static PyTypeObject BigIntType = {
   .tp_name = "pythonmonkey.bigint",
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_LONG_SUBCLASS // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_LONG_SUBCLASS
+  | Py_TPFLAGS_LONG_SUBCLASS
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
   .tp_doc = PyDoc_STR("Javascript BigInt object"),
   .tp_base = &PyLong_Type,   // extending the builtin int type
@@ -88,7 +87,7 @@ PyTypeObject JSObjectProxyType = {
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
+  | Py_TPFLAGS_DICT_SUBCLASS,
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
@@ -108,7 +107,7 @@ PyTypeObject JSArrayProxyType = {
   .tp_as_sequence = &JSArrayProxy_sequence_methods,
   .tp_as_mapping = &JSArrayProxy_mapping_methods,
   .tp_getattro = (getattrofunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get,
-  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_DICT_SUBCLASS,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS,
   .tp_doc = PyDoc_STR("Javascript Array proxy list"),
   .tp_traverse = (traverseproc)JSArrayProxyMethodDefinitions::JSArrayProxy_traverse,
   .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot,
