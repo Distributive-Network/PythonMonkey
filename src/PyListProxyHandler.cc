@@ -2098,17 +2098,14 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   return true;
 }
 
-// TODO not needed at this time since only called as part of cleanup function's js::DestroyContext call which is only called at cpython exit Py_AtExit in PyInit_pythonmonkey
-// put in some combination of the commented-out code below
 void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  /*PyThreadState *state = PyThreadState_Get(); 
-  PyThreadState *state = PyGILState_GetThisThreadState();
-  if (state) {
-    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-    PyGILState_STATE state = PyGILState_Ensure();
+  // We cannot call Py_DECREF here when shutting down as the thread state is gone.
+  // Then, when shutting down, there is only on reference left, and we don't need
+  // to free the object since the entire process memory is being released.
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  if (Py_REFCNT(self) > 1) {
     Py_DECREF(self);
-    PyGILState_Release(state);
-  }*/
+  }
 }
 
 bool PyListProxyHandler::defineProperty(
