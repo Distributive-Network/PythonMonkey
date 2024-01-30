@@ -1,7 +1,7 @@
 # @file         require.py
 #               Implementation of CommonJS "require" for PythonMonkey. This implementation uses the
 #               ctx-module npm package to do the heavy lifting. That package makes a complete module
-#               system, obstensibly in a separate context, but our implementation here reuses the
+#               system, ostensibly in a separate context, but our implementation here reuses the
 #               PythonMonkey global context for both.
 #
 #               The context that ctx-module runs in needs a require function supporting
@@ -115,7 +115,7 @@ bootstrap.modules.vm.runInContext = function runInContext(code, _unused_contexti
 
 /**
  * The debug module has as its exports a function which may, depending on the DEBUG env var, emit
- * debugging statemnts to stdout. This is quick implementation of the node built-in.
+ * debugging statements to stdout. This is quick implementation of the node built-in.
  */
 bootstrap.modules.debug = function debug(selector)
 {
