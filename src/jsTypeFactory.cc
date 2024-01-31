@@ -19,6 +19,7 @@
 #include "include/JSObjectProxy.hh"
 #include "include/JSArrayProxy.hh"
 #include "include/PyDictProxyHandler.hh"
+#include "include/JSStringProxy.hh"
 #include "include/PyListProxyHandler.hh"
 #include "include/PyObjectProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
@@ -102,6 +103,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   else if (PyFloat_Check(object)) {
     returnType.setNumber(PyFloat_AsDouble(object));
+  }
+  else if (PyObject_TypeCheck(object, &JSStringProxyType)) {
+    returnType.setString(((JSStringProxy *)object)->jsString.toString());
   }
   else if (PyUnicode_Check(object)) {
     switch (PyUnicode_KIND(object)) {

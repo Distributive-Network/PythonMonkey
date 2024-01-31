@@ -741,7 +741,7 @@ def test_sort_with_two_args_keyfunc_wrong_return_type():
     try:
         pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
         assert (False)
-    except Exception as e:    
+    except Exception as e:  
         assert str(type(e)) == "<class 'TypeError'>"
         assert str(e) == "incorrect compare function return type"      
  
@@ -753,8 +753,8 @@ def test_sort_with_two_args_keyfunc_wrong_data_type():
         pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
         assert (False)
     except Exception as e:    
-        assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "object of type 'float' has no len()"    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert "object of type 'float' has no len()" in str(e)   
 
 def test_sort_with_one_arg_keyfunc():
     items = ['Four', 'Three', 'One']   
@@ -765,16 +765,16 @@ def test_sort_with_one_arg_keyfunc():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("invalid Array.prototype.sort argument")  
+        assert "takes 1 positional argument but 2 were given" in str(e)
 
 def test_sort_with_builtin_keyfunc():
     items = ['Four', 'Three', 'One']   
     try:
         pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, len)      
         assert (False)
-    except Exception as e:    
+    except Exception as e:  
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("invalid Array.prototype.sort argument")    
+        assert "len() takes exactly one argument (2 given)" in str(e)    
 
 def test_sort_with_js_func():
     items = ['Four', 'Three', 'One']  

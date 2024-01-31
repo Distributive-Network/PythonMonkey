@@ -13,6 +13,7 @@
 
 #include "include/jsTypeFactory.hh"
 #include "include/JSArrayProxy.hh"
+#include "include/JSFunctionProxy.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 
@@ -1581,11 +1582,20 @@ static int invokeCallBack(PyObject *list, int index, JS::HandleValue leftValue, 
     throw "JS_CallFunction failed";
   }
 
+  if (!retVal.isNumber()) {
+    PyErr_Format(PyExc_TypeError, "incorrect compare function return type");
+    return 0;
+  }
+
   return retVal.toInt32();
 }
 
 // Adapted from Kernigan&Ritchie's C book
 static void quickSort(PyObject *list, int left, int right, JSContext *cx, JS::HandleFunction callBack) {
+  if (PyErr_Occurred()) {
+    return;
+  }
+
   if (left >= right) {
     // base case
     return;
@@ -1597,7 +1607,11 @@ static void quickSort(PyObject *list, int left, int right, JSContext *cx, JS::Ha
 
   int last = left;
   for (int index = left + 1; index <= right; index++) {
-    if (invokeCallBack(list, index, leftValue, cx, callBack) < 0) {
+    int result = invokeCallBack(list, index, leftValue, cx, callBack);
+    if (PyErr_Occurred()) {
+      return;
+    }
+    if (result < 0) {
       swapItems(list, ++last, index);
     }
   }
@@ -1658,42 +1672,6 @@ static bool js_sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp)
   return true;
 }
 
-// private
-static bool js_sort_compare_key_func(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedObject callee(cx, &args.callee());
-
-  JS::RootedValue keyFunc(cx);
-  if (!JS_GetProperty(cx, callee, "_key_func_param", &keyFunc)) {
-    PyErr_Format(PyExc_SystemError, "JSAPI call failed");
-    return false;
-  }
-  PyObject *keyfunc = (PyObject *)keyFunc.toPrivate();
-
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee()));
-
-  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0]);
-  PyObject *args_0 = pyTypeFactory(cx, global, elementVal)->getPyObject();
-
-  elementVal = new JS::RootedValue(cx, args[1]);
-  PyObject *args_1 = pyTypeFactory(cx, global, elementVal)->getPyObject();
-
-  PyObject *result = PyObject_CallFunction(keyfunc, "OO", args_0, args_1);
-  if (!result) {
-    return false;
-  }
-
-  if (PyLong_Check(result)) {
-    args.rval().setInt32((int32_t)PyLong_AsLongLong(result));
-    return true;
-  }
-  else {
-    PyErr_Format(PyExc_TypeError, "incorrect compare function return type");
-    return false;
-  }
-}
-
 static bool array_sort(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
@@ -1724,62 +1702,17 @@ static bool array_sort(JSContext *cx, unsigned argc, JS::Value *vp) {
       }
 
       JS::RootedValue callBack(cx, callbackfn);
-
-      JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-
-      PyObject *pyFunc = pyTypeFactory(cx, global, new JS::RootedValue(cx, args[0].get()))->getPyObject();
-      // check if JS or Python function
-      if (PyFunction_Check(pyFunc)) {
-        // it's a user-defined python function, check has two arguments
-        PyObject *code = PyFunction_GetCode(pyFunc);
-        if (((PyCodeObject *)code)->co_argcount == 1) {
-          JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_BAD_SORT_ARG);
-          return false;
-        }
-        else {
-          JSFunction *compareFun = JS_NewFunction(cx, js_sort_compare_key_func, 2, 0, NULL);
-          JS::RootedFunction rootedFun(cx, compareFun);
-          JS::RootedObject rootedFunObj(cx, JS_GetFunctionObject(compareFun));
-
-          JS::RootedValue privateValue(cx, JS::PrivateValue(pyFunc));
-          if (!JS_SetProperty(cx, rootedFunObj, "_key_func_param", privateValue)) {  // JS::SetReservedSlot(functionObj, KeyFuncSlot, JS::PrivateValue(keyfunc)); does not work
-            PyErr_Format(PyExc_SystemError, "JSAPI call failed");
-            return NULL;
-          }
-
-          try {
-            quickSort(self, 0, len - 1, cx, rootedFun);
-          } catch (const char *message) {
-            return false;
-          }
-
-          // cleanup
-          if (!JS_DeleteProperty(cx, rootedFunObj, "_key_func_param")) {
-            PyErr_Format(PyExc_SystemError, "JSAPI call failed");
-            return false;
-          }
-        }
-      } else {
-        // it's either a JS function or a builtin python func
-        int flags = PyCFunction_GetFlags(pyFunc);
-
-        if (flags & METH_VARARGS && !(flags & METH_KEYWORDS)) {
-          // it's a user-defined JS func
-          JS::RootedFunction funObj(cx, JS_ValueToFunction(cx, callBack));
-
-          try {
-            quickSort(self, 0, len - 1, cx, funObj);
-          } catch (const char *message) {
-            return false;
-          }
-        }
-        else {
-          // it's a built-in python function
-          JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_BAD_SORT_ARG);
-          return false;
-        }
+      JS::RootedFunction rootedFun(cx, JS_ValueToFunction(cx, callBack));
+      try {
+        quickSort(self, 0, len - 1, cx, rootedFun);
+      } catch (const char *message) {
+        return false;
       }
     }
+  }
+
+  if (PyErr_Occurred()) {
+    return false;
   }
 
   // return ref to self

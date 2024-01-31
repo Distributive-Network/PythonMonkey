@@ -48,8 +48,6 @@
 #include <Python.h>
 #include <datetime.h>
 
-JSContext *GLOBAL_CX;
-
 JS::PersistentRootedObject *jsFunctionRegistry;
 
 bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
@@ -573,7 +571,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     Py_DECREF(pyModule);
     return NULL;
   }
-  
+
   Py_INCREF(&JSArrayIterProxyType);
   if (PyModule_AddObject(pyModule, "JSArrayIterProxy", (PyObject *)&JSArrayIterProxyType) < 0) {
     Py_DECREF(&JSArrayIterProxyType);

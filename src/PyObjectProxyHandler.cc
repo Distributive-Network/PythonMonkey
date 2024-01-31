@@ -1,12 +1,12 @@
 /**
  * @file PyObjectProxyHandler.cc
  * @author Caleb Aikens (caleb@distributive.network)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2024-01-30
- * 
+ *
  * Copyright (c) 2023 Distributive Corp.
- * 
+ *
  */
 
 #include "include/PyObjectProxyHandler.hh"
