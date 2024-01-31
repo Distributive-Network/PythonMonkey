@@ -434,7 +434,7 @@ def test_items_len():
 #    items = dishes.items()
 #    assert {('eggs', 2)} in items
     
-def test_values_update_object_updates_the_items():
+def test_items_update_object_updates_the_items():
     employee = pm.eval("({'name': 'Phil', 'age': 22})")
     dictionaryItems = employee.items()
     employee.update({('salary', 3500.0)})
