@@ -70,7 +70,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
 {
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return -1;
@@ -89,23 +89,16 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
   // look through the methods for dispatch
   for (size_t index = 0;; index++) {
     const char *methodName = JSObjectProxyType.tp_methods[index].ml_name;
-    if (methodName == NULL) { // reached end of list
+    if (methodName == NULL || !PyUnicode_Check(key)) {
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-      return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
+      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
-    else if (PyUnicode_Check(key)) {
+    else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
         return PyObject_GenericGetAttr((PyObject *)self, key);
       }
-    }
-    else {
-      JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-      JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-      JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-
-      return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
     }
   }
 }
@@ -186,7 +179,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return NULL;
