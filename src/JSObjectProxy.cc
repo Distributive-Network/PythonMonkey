@@ -70,7 +70,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyOb
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
 {
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return -1;
@@ -179,7 +179,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY | JSITER_HIDDEN, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
     // @TODO (Caleb Aikens) raise exception here
     return NULL;

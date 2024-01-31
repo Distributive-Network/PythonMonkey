@@ -286,3 +286,7 @@ def test_eval_functions_pyfunctions_strs():
             codepoint = random.randint(0x0000, 0xFFFF)
             string2 += chr(codepoint)
         assert caller(concatenate, string1, string2) == string1 + string2
+
+def test_globalThis():
+    obj = pm.eval('globalThis')
+    assert str(obj).__contains__("{'python': {'pythonMonkey':")
