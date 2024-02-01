@@ -3,6 +3,8 @@ import pythonmonkey as pm
 import random
 from datetime import datetime, timedelta, timezone
 import math
+from io import StringIO
+import sys
 
 def test_passes():
     assert True
@@ -290,3 +292,16 @@ def test_eval_functions_pyfunctions_strs():
 def test_globalThis():
     obj = pm.eval('globalThis')
     assert str(obj).__contains__("{'python': {'pythonMonkey':")
+
+def test_console_globalThis():
+    temp_out = StringIO()
+    sys.stdout = temp_out
+    pm.eval('console.log(globalThis)')
+    assert temp_out.getvalue().__contains__("{ python: \n   { pythonMonkey: \n")    
+
+def test_console_array():
+    temp_out = StringIO()
+    sys.stdout = temp_out
+    items = [1, 2, 3]
+    pm.eval('console.log')(items)
+    assert temp_out.getvalue() == "[ \x1b[33m1\x1b[39m, \x1b[33m2\x1b[39m, \x1b[33m3\x1b[39m ]\n"      
