@@ -24,8 +24,9 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   // FIXME (Tom Tang): memory leak, objects not free-ed
   // FIXME (Tom Tang): `job` function is going to be GC-ed ???
   auto global = new JS::RootedObject(cx, incumbentGlobal);
-  auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job));
-  auto callback = pyTypeFactory(cx, global, jobv)->getPyObject();
+  // auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job));
+  JS::RootedValue jobv(cx, JS::ObjectValue(*job));
+  auto callback = pyTypeFactory(cx, global, &jobv)->getPyObject();
 
   // Inform the JS runtime that the job queue is no longer empty
   JS::JobQueueMayNotBeEmpty(cx);

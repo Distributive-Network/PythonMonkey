@@ -61,12 +61,12 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
   }
 
   JS::HandleValueArray jsArgs(jsArgsVector);
-  JS::Rooted<JS::Value> *jsReturnVal = new JS::Rooted<JS::Value>(cx);
-  if (!JS_CallFunctionValue(cx, selfObject, jsFunc, jsArgs, jsReturnVal)) {
+  JS::RootedValue jsReturnVal(cx);
+  if (!JS_CallFunctionValue(cx, selfObject, jsFunc, jsArgs, &jsReturnVal)) {
     setSpiderMonkeyException(cx);
     return NULL;
   }
 
   JS::RootedObject globalObj(cx, JS::CurrentGlobalOrNull(cx));
-  return pyTypeFactory(cx, &globalObj, jsReturnVal)->getPyObject();
+  return pyTypeFactory(cx, &globalObj, &jsReturnVal)->getPyObject();
 }

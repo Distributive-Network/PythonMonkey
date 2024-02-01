@@ -352,7 +352,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   delete code;
 
   // evaluate source code
-  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  JS::RootedValue rval = new JS::RootedValue(GLOBAL_CX);
   if (!JS::Evaluate(GLOBAL_CX, options, source, rval)) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;

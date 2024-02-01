@@ -93,10 +93,10 @@ bool PyObjectProxyHandler::getOwnPropertyDescriptor(
 bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
-  JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
+  JS::RootedValue rootedV(cx, v);
   PyObject *attrName = idToKey(cx, id);
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  if (PyObject_SetAttr(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+  if (PyObject_SetAttr(pyObject, attrName, pyTypeFactory(cx, global, &rootedV)->getPyObject())) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();

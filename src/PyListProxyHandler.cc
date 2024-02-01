@@ -89,10 +89,10 @@ static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely 
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   unsigned numArgs = args.length();
+  JS::RootedValue elementVal(cx);
   for (unsigned index = 0; index < numArgs; index++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
-    elementVal->set(args[index].get());
-    if (PyList_Append(self, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+    elementVal.set(args[index].get());
+    if (PyList_Append(self, pyTypeFactory(cx, global, &elementVal)->getPyObject()) < 0) {
       return false;
     }
   }
@@ -139,10 +139,10 @@ static bool array_unshift(JSContext *cx, unsigned argc, JS::Value *vp) { // sure
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  JS::RootedValue elementVal(cx);
   for (int index = args.length() - 1; index >= 0; index--) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
-    elementVal->set(args[index].get());
-    if (PyList_Insert(self, 0, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+    elementVal.set(args[index].get());
+    if (PyList_Insert(self, 0, pyTypeFactory(cx, global, &elementVal)->getPyObject()) < 0) {
       return false;
     }
   }
@@ -253,8 +253,8 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0].get());
-  PyObject *result = PyObject_CallMethod(self, "index", "Oi", pyTypeFactory(cx, global, elementVal)->getPyObject(), start);
+  JS::RootedValue elementVal(cx, args[0].get());
+  PyObject *result = PyObject_CallMethod(self, "index", "Oi", pyTypeFactory(cx, global, &elementVal)->getPyObject(), start);
 
   if (!result) {
     PyErr_Clear();
@@ -331,10 +331,11 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
+  JS::RootedValue elementVal(cx);
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   for (int index = 0; index < insertCount; index++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx, args[index + 2].get());
-    if (PyList_SetItem(inserted, index, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+    elementVal.set(args[index + 2].get());
+    if (PyList_SetItem(inserted, index, pyTypeFactory(cx, global, &elementVal)->getPyObject()) < 0) {
       return false;
     }
   }
@@ -397,8 +398,8 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *fillValue = new JS::RootedValue(cx, args[0].get());
-  PyObject *fillValueItem = pyTypeFactory(cx, global, fillValue)->getPyObject();
+  JS::RootedValue fillValue(cx, args[0].get());
+  PyObject *fillValueItem = pyTypeFactory(cx, global, &fillValue)->getPyObject();
   for (int index = actualStart; index < actualEnd; index++) {
     if (PyList_SetItem(self, index, fillValueItem) < 0) {
       return false;
@@ -525,20 +526,19 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   unsigned numArgs = args.length();
+  JS::RootedValue elementVal(cx);
   for (unsigned index = 0; index < numArgs; index++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
-    elementVal->set(args[index].get());
+    elementVal.set(args[index].get());
 
-    PyObject *item = pyTypeFactory(cx, global, elementVal)->getPyObject();
+    PyObject *item = pyTypeFactory(cx, global, &elementVal)->getPyObject();
     if (PyObject_TypeCheck(item, &JSArrayProxyType)) {
       // flatten the array only a depth 1
       Py_ssize_t itemLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)item);
       for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
-        elementVal = new JS::RootedValue(cx);
-        if (!JS_GetElement(cx, ((JSArrayProxy *)item)->jsArray, flatIndex, elementVal)) {
+        if (!JS_GetElement(cx, ((JSArrayProxy *)item)->jsArray, flatIndex, &elementVal)) {
           return false;
         }
-        if (PyList_Append(result, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+        if (PyList_Append(result, pyTypeFactory(cx, global, &elementVal)->getPyObject()) < 0) {
           return false;
         }
       }
@@ -553,7 +553,7 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
       }
     }
     else {
-      if (PyList_Append(result, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+      if (PyList_Append(result, pyTypeFactory(cx, global, &elementVal)->getPyObject()) < 0) {
         return false;
       }
     }
@@ -603,8 +603,8 @@ static bool array_lastIndexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0].get());
-  PyObject *element = pyTypeFactory(cx, global, elementVal)->getPyObject();
+  JS::RootedValue elementVal(cx, args[0].get());
+  PyObject *element = pyTypeFactory(cx, global, &elementVal)->getPyObject();
   for (int64_t index = start; index >= 0; index--) {
     PyObject *item = PyList_GetItem(self, index);
     Py_INCREF(item);
@@ -1190,19 +1190,19 @@ static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
 
   uint32_t targetIndex = start;
 
+  JS::RootedValue elementVal(cx);
   JS::RootedObject rootedGlobal(cx, global);
 
   for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
 
     if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
-      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, elementVal);
+      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, &elementVal);
     }
     else if (PyObject_TypeCheck(source, &PyList_Type)) {
-      elementVal->set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
+      elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
     }
 
-    PyObject *element = pyTypeFactory(cx, &rootedGlobal, elementVal)->getPyObject();
+    PyObject *element = pyTypeFactory(cx, &rootedGlobal, &elementVal)->getPyObject();
 
     bool shouldFlatten;
     if (depth > 0) {
@@ -1237,7 +1237,7 @@ static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
         JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
       }
 
-      JS_SetElement(cx, rootedRetArray, targetIndex, *elementVal);
+      JS_SetElement(cx, rootedRetArray, targetIndex, elementVal);
 
       targetIndex++;
     }
@@ -1268,16 +1268,14 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
       elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
     }
 
-    JS::RootedValue *retVal = new JS::RootedValue(cx);
-
     jArgs[0].set(elementVal);
     jArgs[1].setInt32(sourceIndex);
     jArgs[2].set(sourceValue);
-    if (!JS_CallFunctionValue(cx, thisArg, callBack, jArgs, retVal)) {
+    if (!JS_CallFunctionValue(cx, thisArg, callBack, jArgs, &retVal)) {
       return false;
     }
 
-    PyObject *element = pyTypeFactory(cx, &rootedGlobal, retVal)->getPyObject();
+    PyObject *element = pyTypeFactory(cx, &rootedGlobal, &retVal)->getPyObject();
 
     bool shouldFlatten;
     if (depth > 0) {
@@ -1336,7 +1334,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
           JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
         }
 
-        JS_SetElement(cx, rootedRetArray, targetIndex, *retVal);
+        JS_SetElement(cx, rootedRetArray, targetIndex, retVal);
 
         targetIndex++;
       }
@@ -2059,8 +2057,8 @@ bool PyListProxyHandler::defineProperty(
 
   // FIXME (Tom Tang): memory leak
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *itemV = new JS::RootedValue(cx, desc.value());
-  PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
+  JS::RootedValue itemV(cx, desc.value());
+  PyObject *item = pyTypeFactory(cx, global, &itemV)->getPyObject();
   if (PyList_SetItem(pyObject, index, item) < 0) {
     return result.failBadIndex();
   }
