@@ -12,7 +12,6 @@
 #include "include/TupleType.hh"
 
 #include "include/PyType.hh"
-#include "include/pyTypeFactory.hh"
 
 #include <Python.h>
 
