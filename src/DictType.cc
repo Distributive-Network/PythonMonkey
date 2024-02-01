@@ -3,7 +3,6 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
-#include "include/pyTypeFactory.hh"
 
 #include <jsfriendapi.h>
 #include <jsapi.h>
