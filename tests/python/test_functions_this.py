@@ -1,4 +1,5 @@
 import pythonmonkey as pm
+import subprocess
 
 def test_python_functions_self():
   def pyFunc(param):
@@ -115,3 +116,10 @@ def test_JSMethodProxy_this():
   }
   """)(jsObj)
   assert pyObj == result[0] and 4 == result[1]  #TODO (Caleb Aikens) should `this` be `pyObj` or `jsObj` here?
+
+#require
+def test_require_this():
+    subprocess.check_call('npm install crypto-js', shell=True)
+    CryptoJS = pm.require('crypto-js')
+    cipher = CryptoJS.SHA256("Hello, World!").toString()
+    assert cipher == "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
