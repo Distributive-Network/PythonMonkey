@@ -176,13 +176,27 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   timeout = 0;
 
+  /**
+   * A boolean value that indicates whether or not cross-site `Access-Control` requests should be made using credentials such as cookies, authorization headers or TLS client certificates.  
+   * Setting withCredentials has no effect on same-origin requests.
+   * @see https://xhr.spec.whatwg.org/#the-withcredentials-attribute
+   */
   get withCredentials()
   {
-    return false;
+    return this.#crossOriginCredentials;
   }
   set withCredentials(flag)
   {
-    // do nothing
+    // step 1
+    if (this.#state !== XMLHttpRequest.UNSENT && this.#state !== XMLHttpRequest.OPENED)
+      // The XHR internal state should be UNSENT or OPENED.
+      throw new DOMException('XMLHttpRequest must not be sending.', 'InvalidStateError');
+    // step 2
+    if (this.#sendFlag)
+      throw new DOMException('send() has already been called', 'InvalidStateError');
+    // step 3
+    this.#crossOriginCredentials = flag;
+    // TODO: figure out what cross-origin means in PythonMonkey. Is it always same-origin request? What to send?
   }
 
   /**
@@ -565,6 +579,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #uploadObject = new XMLHttpRequestUpload();
   #state = XMLHttpRequest.UNSENT; // One of unsent, opened, headers received, loading, and done; initially unsent.
   #sendFlag = false; // A flag, initially unset.
+  #crossOriginCredentials = false; // A boolean, initially false.
   /** @type {Method} */
   #requestMethod = null;
   /** @type {URL} */
