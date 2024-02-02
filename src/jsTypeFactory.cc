@@ -302,7 +302,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   PyObject *pyArgs = PyTuple_New(callArgsLength);
   for (size_t i = 0; i < callArgsLength; i++) {
     JS::RootedValue jsArg(cx, callargs[i]);
-    PyType *pyArg = pyTypeFactory(cx, thisv, &jsArg);
+    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
     if (!pyArg) return false; // error occurred
     PyObject *pyArgObj = pyArg->getPyObject();
     if (!pyArgObj) return false; // error occurred

@@ -62,7 +62,7 @@ PyObject *getInternalBindingPyFn(JSContext *cx) {
   // FIXME (Tom Tang): memory leak, not free-ed
   JS::RootedObject *thisObj = new JS::RootedObject(cx, nullptr);
   JS::RootedValue jsFnVal(cx, JS::ObjectValue(*jsFn));
-  PyObject *pyFn = pyTypeFactory(cx, thisObj, &jsFnVal)->getPyObject();
+  PyObject *pyFn = pyTypeFactory(cx, thisObj, jsFnVal)->getPyObject();
 
   return pyFn;
 }

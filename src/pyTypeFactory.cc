@@ -68,32 +68,32 @@ PyType *pyTypeFactory(PyObject *object) {
   return pyType;
 }
 
-PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
-  if (rval->isUndefined()) {
+PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::HandleValue rval) {
+  if (rval.isUndefined()) {
     return new NoneType();
   }
-  else if (rval->isNull()) {
+  else if (rval.isNull()) {
     return new NullType();
   }
-  else if (rval->isBoolean()) {
-    return new BoolType(rval->toBoolean());
+  else if (rval.isBoolean()) {
+    return new BoolType(rval.toBoolean());
   }
-  else if (rval->isNumber()) {
-    return new FloatType(rval->toNumber());
+  else if (rval.isNumber()) {
+    return new FloatType(rval.toNumber());
   }
-  else if (rval->isString()) {
-    StrType *s = new StrType(cx, rval->toString());
+  else if (rval.isString()) {
+    StrType *s = new StrType(cx, rval.toString());
     return s;
   }
-  else if (rval->isSymbol()) {
+  else if (rval.isSymbol()) {
     printf("symbol type is not handled by PythonMonkey yet");
   }
-  else if (rval->isBigInt()) {
-    return new IntType(cx, rval->toBigInt());
+  else if (rval.isBigInt()) {
+    return new IntType(cx, rval.toBigInt());
   }
-  else if (rval->isObject()) {
+  else if (rval.isObject()) {
     JS::Rooted<JSObject *> obj(cx);
-    JS_ValueToObject(cx, *rval, &obj);
+    JS_ValueToObject(cx, rval, &obj);
     if (JS::GetClass(obj)->isProxyObject()) {
       if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family) { // this is one of our proxies for python dicts
         return new DictType(((PyDictProxyHandler *)js::GetProxyHandler(obj))->pyObject);
@@ -137,7 +137,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
           pyFunc = (PyObject *)(pyFuncVal.toPrivate());
           f = new FuncType(pyFunc);
         } else {
-          f = new FuncType(cx, *rval);
+          f = new FuncType(cx, rval);
         }
         return f;
       }
@@ -167,20 +167,20 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         }
       }
     }
-    return new DictType(cx, *rval);
+    return new DictType(cx, rval);
   }
-  else if (rval->isMagic()) {
+  else if (rval.isMagic()) {
     printf("magic type is not handled by PythonMonkey yet\n");
   }
 
   std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");
-  JS::RootedString str(cx, JS::ToString(cx, *rval));
+  JS::RootedString str(cx, JS::ToString(cx, rval));
   errorString += JS_EncodeStringToUTF8(cx, str).get();
   PyErr_SetString(PyExc_TypeError, errorString.c_str());
   return NULL;
 }
 
-PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
+PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::HandleValue rval) {
   PyType *v = pyTypeFactory(cx, thisObj, rval);
   if (PyErr_Occurred()) {
     // Clear Python error

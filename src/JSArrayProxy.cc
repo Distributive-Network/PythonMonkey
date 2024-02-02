@@ -65,7 +65,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
       JS::RootedValue value(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, &value);
       JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsArray);
-      return pyTypeFactory(GLOBAL_CX, thisObj, &value)->getPyObject();
+      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
@@ -86,7 +86,7 @@ static PyObject *list_slice(JSArrayProxy *self, Py_ssize_t ilow, Py_ssize_t ihig
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
     return NULL;
   }
-  return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), &jReturnedArray)->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), jReturnedArray)->getPyObject();
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get_subscript(JSArrayProxy *self, PyObject *key)
@@ -114,7 +114,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get_subscript(JSArrayProxy
     JS::RootedValue value(GLOBAL_CX);
     JS_GetPropertyById(GLOBAL_CX, self->jsArray, id, &value);
 
-    return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), &value)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), value)->getPyObject();
   }
   else if (PySlice_Check(key)) {
     Py_ssize_t start, stop, step, slicelength, index;
@@ -132,7 +132,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get_subscript(JSArrayProxy
       return list_slice(self, start, stop);
     }
     else {
-      JS::RootedObject jCombinedArray = JS::RootedObject(GLOBAL_CX, JS::NewArrayObject(GLOBAL_CX, slicelength));
+      JS::RootedObject jCombinedArray(GLOBAL_CX, JS::NewArrayObject(GLOBAL_CX, slicelength));
 
       JS::RootedValue elementVal(GLOBAL_CX);
       for (size_t cur = start, index = 0; index < slicelength; cur += (size_t)step, index++) {
@@ -143,7 +143,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get_subscript(JSArrayProxy
       JS::RootedValue jCombinedArrayValue(GLOBAL_CX);
       jCombinedArrayValue.setObjectOrNull(jCombinedArray);
 
-      return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), &jCombinedArrayValue)->getPyObject();
+      return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), jCombinedArrayValue)->getPyObject();
     }
   }
   else {
@@ -450,11 +450,11 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
   for (index = 0; index < selfLength && index < otherLength; index++) {
     JS_GetElement(GLOBAL_CX, self->jsArray, index, &elementVal);
 
-    PyObject *leftItem = pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject();
+    PyObject *leftItem = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
     PyObject *rightItem;
     if (PyObject_TypeCheck(other, &JSArrayProxyType)) {
       JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)other)->jsArray, index, &elementVal);
-      rightItem = pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject();
+      rightItem = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
     } else {
       rightItem = ((PyListObject *)other)->ob_item[index];
     }
@@ -491,7 +491,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
 
   JS_GetElement(GLOBAL_CX, self->jsArray, index, &elementVal);
   /* Compare the final item again using the proper operator */
-  return PyObject_RichCompare(pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject(), ((PyListObject *)other)->ob_item[index], op);
+  return PyObject_RichCompare(pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject(), ((PyListObject *)other)->ob_item[index], op);
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
@@ -534,7 +534,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
     if (&elementVal.toObject() == self->jsArray.get()) {
       s = PyObject_Repr((PyObject *)self);
     } else {
-      s = PyObject_Repr(pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject());
+      s = PyObject_Repr(pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject());
     }
     if (s == NULL) {
       goto error;
@@ -614,7 +614,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_concat(JSArrayProxy *self,
     }
   }
 
-  JS::RootedObject jCombinedArray = JS::RootedObject(GLOBAL_CX, JS::NewArrayObject(GLOBAL_CX, (size_t)sizeSelf + (size_t)sizeValue));
+  JS::RootedObject jCombinedArray(GLOBAL_CX, JS::NewArrayObject(GLOBAL_CX, (size_t)sizeSelf + (size_t)sizeValue));
 
   JS::RootedValue elementVal(GLOBAL_CX);
 
@@ -636,8 +636,8 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_concat(JSArrayProxy *self,
     }
   }
 
-  JS::RootedValue *jCombinedArrayValue = new JS::RootedValue(GLOBAL_CX);
-  jCombinedArrayValue->setObjectOrNull(jCombinedArray);
+  JS::RootedValue jCombinedArrayValue(GLOBAL_CX);
+  jCombinedArrayValue.setObjectOrNull(jCombinedArray);
 
   return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), jCombinedArrayValue)->getPyObject();
 }
@@ -652,7 +652,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repeat(JSArrayProxy *self,
     return PyErr_NoMemory();
   }
 
-  JS::RootedObject jCombinedArray = JS::RootedObject(GLOBAL_CX, JS::NewArrayObject(GLOBAL_CX, input_size * n));
+  JS::RootedObject jCombinedArray(GLOBAL_CX, JS::NewArrayObject(GLOBAL_CX, input_size * n));
   // repeat within new array
   // one might think of using copyWithin but in SpiderMonkey it's implemented in JS!
   JS::RootedValue elementVal(GLOBAL_CX);
@@ -666,7 +666,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repeat(JSArrayProxy *self,
   JS::RootedValue jCombinedArrayValue(GLOBAL_CX);
   jCombinedArrayValue.setObjectOrNull(jCombinedArray);
 
-  return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), &jCombinedArrayValue)->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), jCombinedArrayValue)->getPyObject();
 }
 
 int JSArrayProxyMethodDefinitions::JSArrayProxy_contains(JSArrayProxy *self, PyObject *element) {
@@ -674,11 +674,12 @@ int JSArrayProxyMethodDefinitions::JSArrayProxy_contains(JSArrayProxy *self, PyO
   int cmp;
 
   Py_ssize_t numElements = JSArrayProxy_length(self);
+
   JS::RootedValue elementVal(GLOBAL_CX);
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
   for (index = 0, cmp = 0; cmp == 0 && index < numElements; ++index) {
     JS_GetElement(GLOBAL_CX, self->jsArray, index, &elementVal);
-    PyObject *item = pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject();
+    PyObject *item = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
     Py_INCREF(item);
     cmp = PyObject_RichCompareBool(item, element, Py_EQ);
     Py_DECREF(item);
@@ -758,8 +759,8 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_copy(JSArrayProxy *self) {
   JS::Rooted<JS::ValueArray<2>> jArgs(GLOBAL_CX);
   jArgs[0].setInt32(0);
   jArgs[1].setInt32(JSArrayProxy_length(self));
-  JS::RootedValue *jReturnedArray = new JS::RootedValue(GLOBAL_CX);
-  if (!JS_CallFunctionName(GLOBAL_CX, self->jsArray, "slice", jArgs, jReturnedArray)) {
+  JS::RootedValue jReturnedArray(GLOBAL_CX);
+  if (!JS_CallFunctionName(GLOBAL_CX, self->jsArray, "slice", jArgs, &jReturnedArray)) {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
     return NULL;
   }
@@ -940,7 +941,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_pop(JSArrayProxy *self, Py
   JS::RootedValue elementVal(GLOBAL_CX);
   JS_GetElement(GLOBAL_CX, rootedReturnedArray, 0, &elementVal);
 
-  return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), &elementVal)->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray)), elementVal)->getPyObject();
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_remove(JSArrayProxy *self, PyObject *value) {
@@ -950,7 +951,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_remove(JSArrayProxy *self,
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
   for (Py_ssize_t index = 0; index < selfSize; index++) {
     JS_GetElement(GLOBAL_CX, self->jsArray, index, &elementVal);
-    PyObject *obj = pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject();
+    PyObject *obj = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
     Py_INCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
     Py_DECREF(obj);
@@ -1016,7 +1017,7 @@ skip_optional:
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
   for (Py_ssize_t index = start; index < stop && index < selfSize; index++) {
     JS_GetElement(GLOBAL_CX, self->jsArray, index, &elementVal);
-    PyObject *obj = pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject();
+    PyObject *obj = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
     Py_INCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
     Py_DECREF(obj);
@@ -1040,7 +1041,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_count(JSArrayProxy *self, 
   JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsArray));
   for (Py_ssize_t index = 0; index < length; index++) {
     JS_GetElement(GLOBAL_CX, self->jsArray, index, &elementVal);
-    PyObject *obj = pyTypeFactory(GLOBAL_CX, global, &elementVal)->getPyObject();
+    PyObject *obj = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
     Py_INCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
     Py_DECREF(obj);
@@ -1090,14 +1091,14 @@ static bool sort_compare_key_func(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee()));
 
   JS::RootedValue elementVal0(cx, args[0]);
-  PyObject *args_0 = pyTypeFactory(cx, global, &elementVal0)->getPyObject();
+  PyObject *args_0 = pyTypeFactory(cx, global, elementVal0)->getPyObject();
   PyObject *args_0_result = PyObject_CallFunction(keyfunc, "O", args_0);
   if (!args_0_result) {
     return false;
   }
 
   JS::RootedValue elementVal1(cx, args[1]);
-  PyObject *args_1 = pyTypeFactory(cx, global, &elementVal1)->getPyObject();
+  PyObject *args_1 = pyTypeFactory(cx, global, elementVal1)->getPyObject();
   PyObject *args_1_result = PyObject_CallFunction(keyfunc, "O", args_1);
   if (!args_1_result) {
     return false;
@@ -1140,10 +1141,10 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee()));
 
   JS::RootedValue elementVal0(cx, args[0]);
-  PyObject *args_0 = pyTypeFactory(cx, global, &elementVal0)->getPyObject();
+  PyObject *args_0 = pyTypeFactory(cx, global, elementVal0)->getPyObject();
 
   JS::RootedValue elementVal1(cx, args[1]);
-  PyObject *args_1 = pyTypeFactory(cx, global, &elementVal1)->getPyObject();
+  PyObject *args_1 = pyTypeFactory(cx, global, elementVal1)->getPyObject();
 
   int cmp = PyObject_RichCompareBool(args_0, args_1, Py_LT);
   if (cmp > 0) {

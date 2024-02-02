@@ -359,7 +359,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // translate to the proper python type
-  PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, rval);
+  PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, *rval);
   if (PyErr_Occurred()) {
     return NULL;
   }

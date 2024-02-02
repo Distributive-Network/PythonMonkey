@@ -26,7 +26,7 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   auto global = new JS::RootedObject(cx, incumbentGlobal);
   // auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job));
   JS::RootedValue jobv(cx, JS::ObjectValue(*job));
-  auto callback = pyTypeFactory(cx, global, &jobv)->getPyObject();
+  auto callback = pyTypeFactory(cx, global, jobv)->getPyObject();
 
   // Inform the JS runtime that the job queue is no longer empty
   JS::JobQueueMayNotBeEmpty(cx);

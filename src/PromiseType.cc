@@ -43,7 +43,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedObject *thisv = new JS::RootedObject(cx);
   args.computeThis(cx, thisv); // thisv is the global object, not the promise
   JS::RootedValue resultArg(cx, args[0]);
-  PyObject *result = pyTypeFactory(cx, thisv, &resultArg)->getPyObject();
+  PyObject *result = pyTypeFactory(cx, thisv, resultArg)->getPyObject();
   if (state == JS::PromiseState::Rejected && !PyExceptionInstance_Check(result)) {
     // Wrap the result object into a SpiderMonkeyError object
     // because only *Exception objects can be thrown in Python `raise` statement and alike
