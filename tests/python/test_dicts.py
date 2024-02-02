@@ -1,5 +1,6 @@
 import pythonmonkey as pm
 import sys
+import subprocess
 
 def test_eval_dicts():
     d = {"a":1}
@@ -312,4 +313,15 @@ def test_toLocaleString():
     items = {'a': 10}
     result = [0]
     pm.eval("(result, obj) => {result[0] = obj.toLocaleString()}")(result, items)
-    assert result[0] == '[object Object]'      
+    assert result[0] == '[object Object]'
+    
+#repr
+def test_repr_max_recursion_depth():
+    subprocess.check_call('npm install crypto-js', shell=True)
+    CryptoJS = pm.require('crypto-js')
+    try:
+        repr(CryptoJS)          
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'RecursionError'>"
+        assert str(e) == "maximum recursion depth exceeded while getting the repr of an object"   
