@@ -35,11 +35,11 @@ PyType *pyTypeFactory(PyObject *object);
  * @param rval - Pointer to the JS::Value who's type and value we wish to encapsulate
  * @return PyType* - Pointer to a PyType object corresponding to the JS::Value
  */
-PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval);
+PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::HandleValue rval);
 /**
  * @brief same to pyTypeFactory, but it's guaranteed that no error would be set on the Python error stack, instead
  * return `pythonmonkey.null` on error
  */
-PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval);
+PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::HandleValue rval);
 
 #endif
