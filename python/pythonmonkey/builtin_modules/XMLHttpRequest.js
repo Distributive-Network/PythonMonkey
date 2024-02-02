@@ -182,7 +182,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   }
   set withCredentials(flag)
   {
-    throw new DOMException('xhr.withCredentials is not supported in PythonMonkey.', 'InvalidAccessError');
+    // do nothing
   }
 
   /**
