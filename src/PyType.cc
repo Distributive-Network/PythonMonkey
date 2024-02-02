@@ -1,5 +1,4 @@
 #include "include/PyType.hh"
-
 #include "include/TypeEnum.hh"
 
 #include <Python.h>

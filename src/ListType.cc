@@ -2,12 +2,7 @@
 #include "include/PyType.hh"
 #include "include/JSArrayProxy.hh"
 
-#include "include/modules/pythonmonkey/pythonmonkey.hh"
-
 #include <Python.h>
-
-
-
 
 
 ListType::ListType() : PyType(PyList_New(0)) {}

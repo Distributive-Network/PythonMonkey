@@ -1,6 +1,5 @@
 #include "include/DictType.hh"
 
-#include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
 

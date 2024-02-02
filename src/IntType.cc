@@ -1,7 +1,5 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
-
 #include "include/IntType.hh"
-
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"
 

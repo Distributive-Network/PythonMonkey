@@ -1,5 +1,4 @@
 #include "include/StrType.hh"
-
 #include "include/PyType.hh"
 #include "include/JSStringProxy.hh"
 

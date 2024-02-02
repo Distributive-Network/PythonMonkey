@@ -2,7 +2,6 @@
  * @file PromiseType.cc
  * @author Tom Tang (xmader@distributive.network)
  * @brief Struct for representing Promises
- * @version 0.1
  * @date 2023-03-29
  *
  * @copyright Copyright (c) 2023
@@ -10,9 +9,7 @@
  */
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
-
 #include "include/PromiseType.hh"
-
 #include "include/PyEventLoop.hh"
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"

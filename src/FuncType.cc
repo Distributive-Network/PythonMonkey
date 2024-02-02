@@ -1,6 +1,4 @@
 #include "include/FuncType.hh"
-
-#include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/JSFunctionProxy.hh"
 #include "include/PyType.hh"
 
