@@ -118,7 +118,7 @@ def test_JSMethodProxy_this():
   assert pyObj == result[0] and 4 == result[1]  #TODO (Caleb Aikens) should `this` be `pyObj` or `jsObj` here?
 
 #require
-def test_require_this():
+def test_require_correct_this():
     subprocess.check_call('npm install crypto-js', shell=True)
     CryptoJS = pm.require('crypto-js')
     cipher = CryptoJS.SHA256("Hello, World!").toString()
