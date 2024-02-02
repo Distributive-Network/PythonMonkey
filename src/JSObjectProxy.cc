@@ -292,13 +292,12 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     Py_INCREF(key);
 
     PyObject *s = PyObject_Repr(key);
-
     if (s == NULL) {
-      Py_DECREF(s);
       goto error;
     }
 
     int res = _PyUnicodeWriter_WriteStr(&writer, s);
+    Py_DECREF(s);
 
     if (res < 0) {
       goto error;
@@ -316,12 +315,10 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     } else {
       value = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
     }
-
     Py_INCREF(value);
-    s = PyObject_Repr(value);
 
+    s = PyObject_Repr(value);
     if (s == NULL) {
-      Py_DECREF(s);
       goto error;
     }
 
