@@ -357,7 +357,7 @@ exports['today'] = date.today()
 # Troubleshooting Tips
 
 ## CommonJS (require)
-If you are having trouble with the CommonJS require function, set environment variable `DEBUG='ctx-module*'` and you can see the filenames it tries to laod.
+If you are having trouble with the CommonJS require function, set environment variable `DEBUG='ctx-module*'` and you can see the filenames it tries to load.
 
 ## pmdb
 
