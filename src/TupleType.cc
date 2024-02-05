@@ -1,5 +1,4 @@
 #include "include/TupleType.hh"
-#include "include/PyType.hh"
 
 #include <Python.h>
 
