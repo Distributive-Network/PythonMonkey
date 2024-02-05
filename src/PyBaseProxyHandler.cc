@@ -10,7 +10,9 @@
 
 
 #include "include/PyBaseProxyHandler.hh"
+
 #include <jsapi.h>
+
 #include <Python.h>
 
 
