@@ -324,4 +324,5 @@ def test_repr_max_recursion_depth():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'RecursionError'>"
-        assert str(e) == "maximum recursion depth exceeded while getting the repr of an object"   
+        assert str(e) == "maximum recursion depth exceeded while getting the repr of an object"
+    subprocess.check_call('npm uninstall crypto-js', shell=True)       
