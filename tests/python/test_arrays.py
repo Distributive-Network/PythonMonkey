@@ -1752,4 +1752,12 @@ def test_iterator_last_next():
     result = [0]
     pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); iterator.next(); result[0] = iterator.next()}")(result, items)
     assert result[0].value == None
-    assert result[0].done == True                    
+    assert result[0].done == True      
+
+#Array.from
+def test_array_from():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { result[0] = Array.from(arr)}")(result, items)
+    assert result[0] == [1,2]
+    assert result[0] is not items                  
