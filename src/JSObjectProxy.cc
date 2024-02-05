@@ -39,7 +39,7 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
     idString.set(JS_NewStringCopyUTF8Z(GLOBAL_CX, utf8Chars));
     return JS_StringToId(GLOBAL_CX, idString, idp);
   } else if (PyLong_Check(key)) { // key is int type
-    uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // raise OverflowError if the value of pylong is out of range for a unsigned long
+    uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // TODO raise OverflowError if the value of pylong is out of range for a unsigned long
     return JS_IndexToId(GLOBAL_CX, keyAsInt, idp);
   } else {
     return false; // fail
@@ -48,7 +48,6 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
-  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
   self->jsObject.set(nullptr);
   PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
@@ -72,7 +71,6 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
     return -1;
   }
   return props.length();
@@ -181,7 +179,6 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
     return NULL;
   }
 
@@ -561,7 +558,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method(JSObjectProxy
 skip_optional:
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here  PyObject *seq = PyTuple_New(length);
+    // TODO (Caleb Aikens): raise exception here
     return NULL;
   }
 
@@ -588,7 +585,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(JSObjectPro
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
     return NULL;
   }
 

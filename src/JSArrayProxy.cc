@@ -750,11 +750,6 @@ int JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot(JSArrayProxy *self) {
   return 0;
 }
 
-int JSArrayProxyMethodDefinitions::JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg) {
-  // TODO
-  return 0;
-}
-
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_copy(JSArrayProxy *self) {
   JS::Rooted<JS::ValueArray<2>> jArgs(GLOBAL_CX);
   jArgs[0].setInt32(0);

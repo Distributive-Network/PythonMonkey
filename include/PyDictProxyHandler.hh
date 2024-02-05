@@ -40,7 +40,7 @@ public:
    * @param cx - pointer to JSContext
    * @param proxy - The proxy object who's property we wish to delete
    * @param id - The key we wish to delete
-   * @param result - @TODO (Caleb Aikens) read up on JS::ObjectOpResult
+   * @param result - operation result
    * @return true - call succeeded
    * @return false - call failed and an exception has been raised
    */
@@ -49,7 +49,7 @@ public:
   /**
    * @brief [[HasProperty]]
    * @param cx - pointer to JSContext
-   * @param proxy - The proxy object who's propery we wish to check
+   * @param proxy - The proxy object who's property we wish to check
    * @param id - key value of the property to check
    * @param bp - out-paramter: true if object has property, false if not
    * @return true - call succeeded
@@ -64,8 +64,8 @@ public:
    * @param proxy The proxy object who's property we wish to set
    * @param id Key of the property we wish to set
    * @param v Value that we wish to set the property to
-   * @param receiver @TODO (Caleb Aikens) read ECMAScript docs about this
-   * @param result @TODO (Caleb Aikens) read ECMAScript docs about this
+   * @param receiver unused
+   * @param result operation result
    * @return true call succeed
    * @return false call failed and an exception has been raised
    */
@@ -79,7 +79,6 @@ public:
    * @param proxy - The proxy object who's keys we output
    * @param props - out-parameter of object IDsoverride;
 
-     // @TODO (Caleb Aikens) The following are Spidermonkey-unique extensions, need to read into them more
      /**
    * @return true - call succeeded
    * @return false - call failed and an exception has been raised
@@ -87,10 +86,7 @@ public:
   bool enumerate(JSContext *cx, JS::HandleObject proxy,
     JS::MutableHandleIdVector props) const override;
 
-  // @TODO (Caleb Aikens) The following are Spidermonkey-unique extensions, need to read into them more
   /**
-   * @brief @TODO (Caleb Aikens) read up on what this trap does exactly
-   *
    * @param cx pointer to JSContext
    * @param proxy The proxy object who's property we wish to check
    * @param id  Key of the property we wish to check
@@ -100,13 +96,12 @@ public:
    */
   bool hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     bool *bp) const override;
+
   /**
-   * @brief @TODO (Caleb Aikens) read up on what this trap does exactly
    *
    * @param cx - pointer to JSContext
    * @param proxy - The proxy object who's keys we outputoverride;
 
-     // @TODO (Caleb Aikens) The following are Spidermonkey-unique extensions, need to read into them more
      /**
    * @param props - out-parameter of object IDs
    * @return true - call succeeded
