@@ -2165,14 +2165,14 @@ bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, 
 bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const {
   Py_ssize_t index;
   if (!idToIndex(cx, id, &index)) {
-    return result.failBadIndex(); // report failure
+    return result.failBadIndex();
   }
 
   // Set to undefined instead of actually deleting it
   if (PyList_SetItem(pyObject, index, Py_None) < 0) {
-    return result.failCantDelete(); // report failure
+    return result.failCantDelete();
   }
-  return result.succeed(); // report success
+  return result.succeed();
 }
 
 bool PyListProxyHandler::isArray(JSContext *cx, JS::HandleObject proxy, JS::IsArrayAnswer *answer) const {
