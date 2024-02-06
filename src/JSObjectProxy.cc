@@ -71,6 +71,7 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return -1;
   }
   return props.length();
@@ -179,6 +180,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
 
@@ -585,6 +587,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(JSObjectPro
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
 
