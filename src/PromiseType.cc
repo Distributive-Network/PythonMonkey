@@ -22,7 +22,8 @@
 
 #include <Python.h>
 
-#define PY_FUTURE_OBJ_SLOT 0 // slot id to access the python object in JS callbacks
+// slot ids to access the python object in JS callbacks
+#define PY_FUTURE_OBJ_SLOT 0
 #define PROMISE_OBJ_SLOT 1
 
 static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
