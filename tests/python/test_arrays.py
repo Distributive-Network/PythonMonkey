@@ -1768,14 +1768,21 @@ def test_array_from():
     assert result[0] == [1,2]
     assert result[0] is not items    
 
-# assign generic dict to non-existent slot
-def test_generic_dict_bad_index():
+# bad index size expansion
+def test_assign_generic_dict_bad_index():
     items = [1,2,3]
     result = []
-    try:
-        pm.eval("(result, arr) => {result[0] = arr[Symbol.iterator]() }")(result, items)   
-        assert (False)
-    except Exception as e:    
-        assert str(type(e)) == "<class 'IndexError'>"
-        assert str(e) == ("list assignment index out of range")   
+    pm.eval("(result, arr) => {result[0] = arr[Symbol.iterator]() }")(result, items) 
+    assert repr(result) == "[<NULL>]"
                  
+def test_assign_bad_index():
+    items = [1,2,3]
+    result = []
+    pm.eval("(result, arr) => {result[0] = 4}")(result, items) 
+    assert result[0] == 4
+
+def test_assign_bad_index():
+    items = [1,2,3]
+    result = []
+    pm.eval("(result, arr) => {result[0] = 4; result[5] = 6}")(result, items) 
+    assert result == [4, None, None, None, None, 6]
