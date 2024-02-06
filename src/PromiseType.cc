@@ -24,7 +24,6 @@
 
 #define PY_FUTURE_OBJ_SLOT 0 // slot id to access the python object in JS callbacks
 #define PROMISE_OBJ_SLOT 1
-// slot id must be less than 2 (https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/JSFunction.h#l866), otherwise it will access to arbitrary unsafe memory locations
 
 static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
