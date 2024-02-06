@@ -2065,7 +2065,11 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
    */
   if (allocated >= newsize && newsize >= (allocated >> 1)) {
     assert(self->ob_item != NULL || newsize == 0);
+    #if PY_VERSION_HEX >= 0x03090000 // 3.9
     Py_SET_SIZE(self, newsize);
+    #else
+    Py_SIZE(self) = newsize;
+    #endif
     return 0;
   }
 
@@ -2101,7 +2105,11 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
     return -1;
   }
   self->ob_item = items;
+  #if PY_VERSION_HEX >= 0x03090000 // 3.9
   Py_SET_SIZE(self, newsize);
+  #else
+  Py_SIZE(self) = newsize;
+  #endif
   self->allocated = new_allocated;
   return 0;
 }
