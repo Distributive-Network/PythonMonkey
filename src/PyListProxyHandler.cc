@@ -2129,13 +2129,13 @@ bool PyListProxyHandler::defineProperty(
   if (PyList_SetItem(pyObject, index, item) < 0) {
     // expand
     Py_XINCREF(item);
-    Py_ssize_t len = PyList_GET_SIZE(pyObject);
+    Py_ssize_t oldLen = PyList_GET_SIZE(pyObject);
     if (list_resize((PyListObject *)pyObject, index + 1) < 0) {
       Py_XDECREF(item);
       return result.failBadIndex();
     }
     PyList_SET_ITEM((PyListObject *)pyObject, index, item);
-    for (int i = len; i < index; i++) {
+    for (int i = oldLen; i < index; i++) {
       Py_INCREF(Py_None);
       PyList_SET_ITEM((PyListObject *)pyObject, i, Py_None);
     }
