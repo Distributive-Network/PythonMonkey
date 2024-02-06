@@ -1,3 +1,14 @@
+/**
+ * @file PyEventLoop.cc
+ * @author Tom Tang (xmader@distributive.network)
+ * @brief Send jobs to the Python event-loop
+ * @date 2023-04-05
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
+
 #include "include/PyEventLoop.hh"
 
 #include <Python.h>
