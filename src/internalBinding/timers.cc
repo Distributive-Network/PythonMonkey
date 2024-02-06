@@ -36,21 +36,14 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-// TODO (Tom Tang): move argument checks to the JavaScript side
 static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
   using AsyncHandle = PyEventLoop::AsyncHandle;
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  JS::HandleValue timeoutIdArg = args.get(0);
+  double timeoutID = args.get(0).toNumber();
 
   args.rval().setUndefined();
 
-  // silently does nothing when an invalid timeoutID (should be an int32 value) is passed in
-  if (!timeoutIdArg.isNumber()) {
-    return true;
-  }
-
   // Retrieve the AsyncHandle by `timeoutID`
-  double timeoutID = timeoutIdArg.toNumber();
   AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
   if (!handle) return true; // does nothing on invalid timeoutID
 
