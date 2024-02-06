@@ -1766,4 +1766,16 @@ def test_array_from():
     result = [0]
     pm.eval("(result, arr) => { result[0] = Array.from(arr)}")(result, items)
     assert result[0] == [1,2]
-    assert result[0] is not items                  
+    assert result[0] is not items    
+
+# assign generic dict to non-existent slot
+def test_generic_dict_bad_index():
+    items = [1,2,3]
+    result = []
+    try:
+        pm.eval("(result, arr) => {result[0] = arr[Symbol.iterator]() }")(result, items)   
+        assert (False)
+    except Exception as e:    
+        assert str(type(e)) == "<class 'IndexError'>"
+        assert str(e) == ("list assignment index out of range")   
+                 
