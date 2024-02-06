@@ -1754,6 +1754,12 @@ def test_iterator_last_next():
     assert result[0].value == None
     assert result[0].done == True      
 
+def test_iterator_iterator():
+    items = [1,2,3,4]
+    result = [0]
+    pm.eval("(result, arr) => {let iter = arr[Symbol.iterator](); let head = iter.next().value; result[0] = [...iter] }")(result, items)
+    assert result[0] == [2,3,4]        
+
 #Array.from
 def test_array_from():
     items = [1,2]
