@@ -2143,7 +2143,7 @@ bool PyListProxyHandler::defineProperty(
       return result.failBadIndex();
     }
     PyList_SET_ITEM((PyListObject *)pyObject, index, item);
-    for (int i = oldLen; i < index; i++) {
+    for (Py_ssize_t i = oldLen; i < index; i++) {
       Py_INCREF(Py_None);
       PyList_SET_ITEM((PyListObject *)pyObject, i, Py_None);
     }
