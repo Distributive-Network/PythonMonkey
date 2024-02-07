@@ -4,7 +4,7 @@
  * @brief This file defines the pythonmonkey module, along with its various functions.
  * @date 2022-09-06
  *
- * @copyright Copyright (c) 2022 Distributive Corp.
+ * @copyright Copyright (c) 2022-2024 Distributive Corp.
  *
  */
 #ifndef PythonMonkey_Module_PythonMonkey
