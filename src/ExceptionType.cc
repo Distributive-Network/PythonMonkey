@@ -1,3 +1,13 @@
+/**
+ * @file ExceptionType.cc
+ * @author Tom Tang (xmader@distributive.network)
+ * @brief Struct for representing Python Exception objects from a corresponding JS Error object
+ * @date 2023-04-11
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/setSpiderMonkeyException.hh"
 

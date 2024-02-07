@@ -2,7 +2,6 @@
  * @file JSStringProxy.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief JSStringProxy is a custom C-implemented python type that derives from str. It acts as a proxy for JSStrings from Spidermonkey, and behaves like a str would.
- * @version 0.1
  * @date 2024-01-03
  *
  * Copyright (c) 2024 Distributive Corp.

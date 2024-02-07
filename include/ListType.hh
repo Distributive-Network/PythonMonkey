@@ -2,7 +2,6 @@
  * @file ListType.hh
  * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
  * @brief Struct for representing python lists
- * @version 0.1
  * @date 2022-08-18
  *
  * @copyright Copyright (c) 2022

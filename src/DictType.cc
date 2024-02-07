@@ -1,3 +1,14 @@
+/**
+ * @file DictType.cc
+ * @author Caleb Aikens (caleb@distributive.network), Giovanni Tedesco (giovanni@distributive.network) and Philippe Laporte (philippe@distributive.network)
+ * @brief Struct representing python dictionaries
+ * @date 2022-08-10
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
+
 #include "include/DictType.hh"
 
 #include "include/JSObjectProxy.hh"

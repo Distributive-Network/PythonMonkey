@@ -2,7 +2,6 @@
  * @file jsTypeFactory.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief
- * @version 0.1
  * @date 2023-02-15
  *
  * @copyright Copyright (c) 2023

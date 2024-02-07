@@ -2,7 +2,6 @@
  * @file DictType.hh
  * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
  * @brief Struct representing python dictionaries
- * @version 0.1
  * @date 2022-08-10
  *
  * @copyright Copyright (c) 2022

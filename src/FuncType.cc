@@ -1,3 +1,13 @@
+/**
+ * @file FuncType.cc
+ * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @brief Struct representing python functions
+ * @date 2022-08-08
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #include "include/FuncType.hh"
 #include "include/JSFunctionProxy.hh"
 #include "include/PyType.hh"

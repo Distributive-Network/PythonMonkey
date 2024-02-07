@@ -2,7 +2,6 @@
  * @file StrType.hh
  * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
  * @brief Struct for representing python strings
- * @version 0.1
  * @date 2022-08-08
  *
  * @copyright Copyright (c) 2022

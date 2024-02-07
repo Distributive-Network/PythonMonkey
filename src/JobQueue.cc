@@ -1,3 +1,12 @@
+/**
+ * @file JobQueue.cc
+ * @author Tom Tang (xmader@distributive.network)
+ * @brief Implement the ECMAScript Job Queue
+ * @date 2023-04-03
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 
 #include "include/JobQueue.hh"
 

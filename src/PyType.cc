@@ -1,3 +1,13 @@
+/**
+ * @file PyType.cc
+ * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @brief Struct representing python types
+ * @date 2022-07-27
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #include "include/PyType.hh"
 #include "include/TypeEnum.hh"
 

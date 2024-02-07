@@ -1,3 +1,13 @@
+/**
+ * @file IntType.cc
+ * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network) & Tom Tang (xmader@distributive.network)
+ * @brief Struct for representing python ints
+ * @date 2023-03-16
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/IntType.hh"
 #include "include/PyType.hh"
