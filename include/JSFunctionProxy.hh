@@ -2,10 +2,9 @@
  * @file JSFunctionProxy.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief JSFunctionProxy is a custom C-implemented python type. It acts as a proxy for JSFunctions from Spidermonkey, and behaves like a function would.
- * @version 0.1
  * @date 2023-09-28
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

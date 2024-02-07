@@ -2,10 +2,9 @@
  * @file PromiseType.hh
  * @author Tom Tang (xmader@distributive.network)
  * @brief Struct for representing Promises
- * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

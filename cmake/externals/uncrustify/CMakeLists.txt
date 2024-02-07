@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Distributive Inc. All Rights Reserved.
+# Copyright (c) 2024 Distributive Corp. All Rights Reserved.
 
 set(UNCRUSTIFY_ROOT "${CMAKE_CURRENT_BINARY_DIR}/install" CACHE PATH
   "The Uncrustify root directory."

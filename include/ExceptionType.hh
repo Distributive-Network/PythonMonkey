@@ -2,10 +2,9 @@
  * @file ExceptionType.hh
  * @author Tom Tang (xmader@distributive.network)
  * @brief Struct for representing Python Exception objects from a corresponding JS Error object
- * @version 0.1
  * @date 2023-04-11
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Distributive Inc. All Rights Reserved.
+# Copyright (c) 2024 Distributive Corp. All Rights Reserved.
 
 cmake_minimum_required(VERSION 3.25) # Set minimum cmake version
 

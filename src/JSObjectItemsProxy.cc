@@ -2,10 +2,9 @@
  * @file JSObjectItemsProxy.cc
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectItemsProxy is a custom C-implemented python type that derives from dict keys
- * @version 0.1
  * @date 2024-01-19
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

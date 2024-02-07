@@ -4,7 +4,7 @@
  * @brief JSArrayIterProxy is a custom C-implemented python type that derives from list iterator
  * @date 2024-01-15
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

@@ -2,10 +2,9 @@
  * @file JSArrayProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSArrayProxy is a custom C-implemented python type that derives from list. It acts as a proxy for JSArrays from Spidermonkey, and behaves like a list would.
- * @version 0.1
  * @date 2023-11-22
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

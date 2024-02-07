@@ -2,10 +2,9 @@
  * @file pyTypeFactory.cc
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief Function for wrapping arbitrary PyObjects into the appropriate PyType class, and coercing JS types to python types
- * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

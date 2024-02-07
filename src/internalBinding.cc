@@ -3,7 +3,8 @@
  * @author Tom Tang (xmader@distributive.network)
  * @brief Create internal bindings to get C++-implemented functions in JS, (imported from NodeJS internal design decisions)
  *        See function declarations in python/pythonmonkey/builtin_modules/internal-binding.d.ts
- * @copyright Copyright (c) 2023 Distributive Corp.
+ *
+ * @copyright Copyright (c) 2024 Distributive Corp.
  */
 
 #include "include/internalBinding.hh"

@@ -2,10 +2,9 @@
  * @file JSObjectIterProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectIterProxy is a custom C-implemented python type that derives from PyDictIterKey
- * @version 0.1
  * @date 2024-01-17
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

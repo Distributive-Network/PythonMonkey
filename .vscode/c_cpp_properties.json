@@ -3,7 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/include/**"
+                "${workspaceFolder}/include/**",
+                "/usr/include/python3.11"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
