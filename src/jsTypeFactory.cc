@@ -1,11 +1,10 @@
 /**
  * @file jsTypeFactory.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief
- * @version 0.1
  * @date 2023-02-15
  *
- * @copyright Copyright (c) 2023
+ * @copyright 2023-2024 Distributive Corp.
  *
  */
 
@@ -37,7 +36,7 @@
 #include <js/Array.h>
 
 #include <Python.h>
-#include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
+#include <datetime.h>
 
 #include <unordered_map>
 
@@ -145,7 +144,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
     if (PyFunction_Check(object)) {
-      // https://docs.python.org/3.11/reference/datamodel.html?highlight=co_argcount
       PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(object); // borrowed reference
       nargs = bytecode->co_argcount;
     }
