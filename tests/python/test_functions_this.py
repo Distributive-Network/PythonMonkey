@@ -124,3 +124,50 @@ def test_require_correct_this():
     cipher = CryptoJS.SHA256("Hello, World!").toString()
     assert cipher == "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
     subprocess.check_call('npm uninstall crypto-js', shell=True)
+
+def test_require_correct_this_old_style_class():
+  example = pm.eval("""
+  () => {
+    // old style class
+    function Rectangle(w, h) {
+      this.w = w;
+      this.h = h;
+    }
+
+    Rectangle.prototype = {
+      getThis: function () {
+        return this;
+      },
+      getArea: function () {
+        return this.w * this.h;
+      },
+    };
+
+    // es5 class
+    class Rectangle2 {
+      constructor(w,h) {
+        this.w = w;
+        this.h = h;
+      }
+
+      getThis() {
+        return this;
+      }
+
+      getArea() {
+        return this.w * this.h;
+      }
+    }
+
+    return { Rectangle: Rectangle, Rectangle2: Rectangle2};
+  }
+  """)()
+  r = pm.new(example.Rectangle)(1,2)
+
+  assert r.getArea() == 2
+  assert r.getThis() == r
+
+  r2 = pm.new(example.Rectangle2)(1,2)
+
+  assert r2.getArea() == 2
+  assert r2.getThis() == r2
