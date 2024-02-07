@@ -2136,7 +2136,7 @@ bool PyListProxyHandler::defineProperty(
   JS::RootedValue itemV(cx, desc.value());
   PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
   if (PyList_SetItem(pyObject, index, item) < 0) {
-    // expand
+    // we are out-of-bounds and need to expand
     Py_XINCREF(item);
     Py_ssize_t oldLen = PyList_GET_SIZE(pyObject);
     if (list_resize((PyListObject *)pyObject, index + 1) < 0) {
@@ -2144,6 +2144,7 @@ bool PyListProxyHandler::defineProperty(
       return result.failBadIndex();
     }
     PyList_SET_ITEM((PyListObject *)pyObject, index, item);
+    // fill the space until the inserted index
     for (Py_ssize_t i = oldLen; i < index; i++) {
       Py_INCREF(Py_None);
       PyList_SET_ITEM((PyListObject *)pyObject, i, Py_None);
