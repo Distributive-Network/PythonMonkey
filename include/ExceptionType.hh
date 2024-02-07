@@ -4,7 +4,7 @@
  * @brief Struct for representing Python Exception objects from a corresponding JS Error object
  * @date 2023-04-11
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

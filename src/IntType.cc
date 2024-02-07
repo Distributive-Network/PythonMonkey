@@ -4,7 +4,7 @@
  * @brief Struct for representing python ints
  * @date 2023-03-16
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

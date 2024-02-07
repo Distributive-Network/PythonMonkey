@@ -4,7 +4,7 @@
  * @brief Struct for representing python tuples
  * @date 2022-08-19
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 Distributive Corp.
  *
  */
 

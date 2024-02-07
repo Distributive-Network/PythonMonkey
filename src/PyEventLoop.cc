@@ -4,7 +4,7 @@
  * @brief Send jobs to the Python event-loop
  * @date 2023-04-05
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

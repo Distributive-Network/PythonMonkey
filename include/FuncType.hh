@@ -4,7 +4,7 @@
  * @brief Struct representing python functions
  * @date 2022-08-08
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 Distributive Corp.
  *
  */
 

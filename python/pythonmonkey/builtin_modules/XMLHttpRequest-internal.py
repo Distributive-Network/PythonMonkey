@@ -2,6 +2,7 @@
 # @brief    internal helper functions for XMLHttpRequest
 # @author   Tom Tang <xmader@distributive.network>
 # @date     August 2023
+# @copyright Copyright (c) 2023 Distributive Corp.
 
 import asyncio
 import aiohttp

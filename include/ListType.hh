@@ -4,7 +4,7 @@
  * @brief Struct for representing python lists
  * @date 2022-08-18
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 Distributive Corp.
  *
  */
 

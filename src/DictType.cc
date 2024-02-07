@@ -4,7 +4,7 @@
  * @brief Struct representing python dictionaries
  * @date 2022-08-10
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 Distributive Corp.
  *
  */
 

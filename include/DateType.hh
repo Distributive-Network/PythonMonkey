@@ -4,7 +4,7 @@
  * @brief Struct for representing python dates
  * @date 2022-12-21
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 Distributive Corp.
  *
  */
 

@@ -4,7 +4,7 @@
  * @brief Call this function whenever a JS_* function call fails in order to set an appropriate python exception (remember to also return NULL)
  * @date 2023-02-28
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

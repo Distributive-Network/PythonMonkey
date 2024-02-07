@@ -4,7 +4,7 @@
  * @brief Implement the ECMAScript Job Queue
  * @date 2023-04-03
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

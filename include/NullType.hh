@@ -4,7 +4,7 @@
  * @brief Struct for representing JS null in a python object
  * @date 2023-02-22
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

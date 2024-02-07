@@ -4,7 +4,7 @@
  * @brief
  * @date 2023-02-15
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

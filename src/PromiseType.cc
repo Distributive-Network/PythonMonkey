@@ -4,7 +4,7 @@
  * @brief Struct for representing Promises
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
