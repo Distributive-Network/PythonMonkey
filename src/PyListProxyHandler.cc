@@ -2052,6 +2052,7 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
  * Note that self->ob_item may change, and even if newsize is less
  * than ob_size on entry.
  */
+//private
 static int
 list_resize(PyListObject *self, Py_ssize_t newsize)
 {
