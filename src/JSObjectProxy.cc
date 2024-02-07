@@ -53,19 +53,6 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
-{
-  return PyDict_Type.tp_new(subtype, args, kwds);
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
-{
-  if (PyDict_Type.tp_init((PyObject *)self, args, kwds) < 0) {
-    return -1;
-  }
-  return 0;
-}
-
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
 {
   JS::RootedIdVector props(GLOBAL_CX);
@@ -130,6 +117,18 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
     JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
   }
 
+  return 0;
+}
+
+int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg) {
+  // Nothing to be done
+  return 0;
+}
+
+int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self) {
+  if (!JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(self)) {
+    return -1;
+  }
   return 0;
 }
 

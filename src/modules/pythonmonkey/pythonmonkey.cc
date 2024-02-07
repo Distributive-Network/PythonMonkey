@@ -65,7 +65,7 @@ static PyTypeObject NullType = {
   .tp_name = "pythonmonkey.null",
   .tp_basicsize = sizeof(NullObject),
   .tp_flags = Py_TPFLAGS_DEFAULT,
-  .tp_doc = PyDoc_STR("Javascript null object"),
+  .tp_doc = PyDoc_STR("Javascript null object")
 };
 
 static PyTypeObject BigIntType = {
@@ -74,7 +74,7 @@ static PyTypeObject BigIntType = {
   | Py_TPFLAGS_LONG_SUBCLASS
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
   .tp_doc = PyDoc_STR("Javascript BigInt object"),
-  .tp_base = &PyLong_Type,   // extending the builtin int type
+  .tp_base = &PyLong_Type
 };
 
 PyTypeObject JSObjectProxyType = {
@@ -90,25 +90,24 @@ PyTypeObject JSObjectProxyType = {
   .tp_hash = PyObject_HashNotImplemented,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
-  .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_DICT_SUBCLASS,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_DICT_SUBCLASS | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
+  .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
+  .tp_clear = (inquiry)JSObjectProxyMethodDefinitions::JSObjectProxy_clear,
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
   .tp_methods = JSObjectProxy_methods,
-  .tp_base = &PyDict_Type,
-  .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
-  .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+  .tp_base = &PyDict_Type
 };
 
 PyTypeObject JSStringProxyType = {
   .tp_name = "pythonmonkey.JSStringProxy",
   .tp_basicsize = sizeof(JSStringProxy),
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_UNICODE_SUBCLASS // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_LONG_SUBCLASS
+  | Py_TPFLAGS_UNICODE_SUBCLASS
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
   .tp_doc = PyDoc_STR("Javascript String value"),
-  .tp_base = &PyUnicode_Type,   // extending the builtin int type
+  .tp_base = &PyUnicode_Type
 };
 
 PyTypeObject JSFunctionProxyType = {
@@ -119,7 +118,7 @@ PyTypeObject JSFunctionProxyType = {
   .tp_call = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call,
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_doc = PyDoc_STR("Javascript Function proxy object"),
-  .tp_new = JSFunctionProxyMethodDefinitions::JSFunctionProxy_new,
+  .tp_new = JSFunctionProxyMethodDefinitions::JSFunctionProxy_new
 };
 
 PyTypeObject JSMethodProxyType = {
@@ -130,7 +129,7 @@ PyTypeObject JSMethodProxyType = {
   .tp_call = JSMethodProxyMethodDefinitions::JSMethodProxy_call,
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_doc = PyDoc_STR("Javascript Method proxy object"),
-  .tp_new = JSMethodProxyMethodDefinitions::JSMethodProxy_new,
+  .tp_new = JSMethodProxyMethodDefinitions::JSMethodProxy_new
 };
 
 PyTypeObject JSArrayProxyType = {
@@ -143,15 +142,14 @@ PyTypeObject JSArrayProxyType = {
   .tp_as_sequence = &JSArrayProxy_sequence_methods,
   .tp_as_mapping = &JSArrayProxy_mapping_methods,
   .tp_getattro = (getattrofunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get,
-  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Array proxy list"),
+  .tp_traverse = (traverseproc)JSArrayProxyMethodDefinitions::JSArrayProxy_traverse,
   .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot,
   .tp_richcompare = (richcmpfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare,
   .tp_iter = (getiterfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_iter,
   .tp_methods = JSArrayProxy_methods,
-  .tp_base = &PyList_Type,
-  .tp_init = (initproc)JSArrayProxyMethodDefinitions::JSArrayProxy_init,
-  .tp_new = JSArrayProxyMethodDefinitions::JSArrayProxy_new,
+  .tp_base = &PyList_Type
 };
 
 PyTypeObject JSArrayIterProxyType = {

@@ -29,18 +29,8 @@
 void JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc(JSArrayProxy *self)
 {
   self->jsArray.set(nullptr);
+  PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
-}
-
-PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
-{
-  return PyList_Type.tp_new(subtype, args, kwds);
-}
-
-int JSArrayProxyMethodDefinitions::JSArrayProxy_init(JSArrayProxy *self, PyObject *args, PyObject *kwds)
-{
-  PyList_Type.tp_init((PyObject *)self, args, kwds);
-  return 0;
 }
 
 Py_ssize_t JSArrayProxyMethodDefinitions::JSArrayProxy_length(JSArrayProxy *self)
@@ -747,6 +737,11 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_clear(JSArrayProxy *self) 
 
 int JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot(JSArrayProxy *self) {
   JSArrayProxyMethodDefinitions::JSArrayProxy_clear(self);
+  return 0;
+}
+
+int JSArrayProxyMethodDefinitions::JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg) {
+  // Nothing to be done
   return 0;
 }
 

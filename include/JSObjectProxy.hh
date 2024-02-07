@@ -41,26 +41,6 @@ public:
   static void JSObjectProxy_dealloc(JSObjectProxy *self);
 
   /**
-   * @brief New method (.tp_new), creates a new instance of the JSObjectProxy type, exposed as the __new()__ method in python
-   *
-   * @param type - The type of object to be created, will always be JSObjectProxyType or a derived type
-   * @param args - arguments to the __new()__ method, not used
-   * @param kwds - keyword arguments to the __new()__ method, not used
-   * @return PyObject* - A new instance of JSObjectProxy
-   */
-  static PyObject *JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
-
-  /**
-   * @brief Initialization method (.tp_init), initializes a newly created instance of JSObjectProxy. exposed as the __init()__ method in python
-   *
-   * @param self - The JSObjectProxy to be initialized
-   * @param args - arguments to the __init()__ method, expected to be a dict
-   * @param kwds - keyword arguments to the __init()__ method, not used
-   * @return int - -1 on exception, return any other value otherwise
-   */
-  static int JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds);
-
-  /**
    * @brief Length method (.mp_length), returns the number of key-value pairs in the JSObject, used by the python len() method
    *
    * @param self - The JSObjectProxy
@@ -95,6 +75,24 @@ public:
    * @return int -1 on exception, any other value otherwise
    */
   static int JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value);
+
+  /**
+   * @brief .tp_traverse method
+   *
+   * @param self - The JSObjectProxy
+   * @param visitproc - The function to be applied on each element of the dict
+   * @param arg - The argument to the visit function
+   * @return 0 on success
+   */
+  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief clear method
+   *
+   * @param self - The JSObjectProxy
+   * @return 0 on success
+   */
+  static int JSObjectProxy_clear(JSObjectProxy *self);
 
   /**
    * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyobject
