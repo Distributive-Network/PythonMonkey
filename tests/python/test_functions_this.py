@@ -70,7 +70,7 @@ def test_javascript_functions_this():
   result = pyObj.jsFunc(2)
   assert globalThis == result[0] and 2 == result[1]
   result = jsObj.jsFunc(3)
-  assert globalThis == result[0] and 3 == result[1] # TODO (Caleb Aikens) should `this` be `globalThis` or `jsObj` here?
+  assert jsObj == result[0] and 3 == result[1]
   result = pm.eval("""(jsFunc) => {
     return jsFunc(4);
   }

@@ -93,6 +93,34 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
       JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
+      // if value is a JSFunction, bind `this` to self
+      /* TODO (Caleb Aikens) its potentially problematic to bind it like this since if the function
+       * ever gets assigned to another object like so:
+       *
+       * jsObjA.func = jsObjB.func
+       * jsObjA.func() # `this` will be jsObjB not jsObjA
+       *
+       * it will be bound to the wrong object, however I can't find a better way to do this,
+       * and even pyodide works this way weirdly enough:
+       * https://github.com/pyodide/pyodide/blob/ee863a7f7907dfb6ee4948bde6908453c9d7ac43/src/core/jsproxy.c#L388
+       *
+       * if the user wants to get an unbound JS function to bind later, they will have to get it without accessing it through
+       * a JSObjectProxy (such as via pythonmonkey.eval or as the result of some other function)
+       */
+      if (value->isObject()) {
+        JS::RootedObject valueObject(GLOBAL_CX);
+        JS_ValueToObject(GLOBAL_CX, *value, &valueObject);
+        js::ESClass cls;
+        JS::GetBuiltinClass(GLOBAL_CX, valueObject, &cls);
+        if (cls == js::ESClass::Function) {
+          JS::Rooted<JS::ValueArray<1>> args(GLOBAL_CX);
+          args[0].setObject(*(self->jsObject));
+          JS::Rooted<JS::Value> boundFunction(GLOBAL_CX);
+          JS_CallFunctionName(GLOBAL_CX, valueObject, "bind", args, &boundFunction);
+          value->set(boundFunction);
+        }
+      }
+
       return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
     else {
