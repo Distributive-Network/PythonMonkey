@@ -4,7 +4,7 @@
  * @brief Structs for creating JS proxy objects. Used for default object coercion
  * @date 2024-01-25
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

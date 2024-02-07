@@ -4,7 +4,7 @@
  * @brief JSObjectIterProxy is a custom C-implemented python type that derives from list iterator
  * @date 2024-01-17
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

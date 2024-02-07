@@ -4,7 +4,7 @@
  * @brief JSObjectKeysProxy is a custom C-implemented python type that derives from dict keys
  * @date 2024-01-16
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

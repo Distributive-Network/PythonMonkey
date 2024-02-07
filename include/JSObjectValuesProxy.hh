@@ -4,7 +4,7 @@
  * @brief JSObjectValuesProxy is a custom C-implemented python type that derives from dict values
  * @date 2024-01-17
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

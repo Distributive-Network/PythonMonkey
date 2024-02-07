@@ -2,6 +2,8 @@
  * @file timers.cc
  * @author Tom Tang (xmader@distributive.network)
  * @brief Implement functions in `internalBinding("timers")`
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 #include "include/internalBinding.hh"

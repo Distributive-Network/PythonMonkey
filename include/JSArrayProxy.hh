@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2023-11-22
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
