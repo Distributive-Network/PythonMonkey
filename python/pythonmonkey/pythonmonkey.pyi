@@ -37,13 +37,6 @@ def isCompilableUnit(code: str) -> bool:
     Hint if a string might be compilable Javascript without actual evaluation
     """
 
-def internalBinding(namespace: str) -> JSObjectProxy:
-    """
-    INTERNAL USE ONLY
-
-    See function declarations in ./builtin_modules/internal-binding.d.ts
-    """
-
 def collect() -> None:
     """
     Calls the spidermonkey garbage collector

@@ -5,6 +5,8 @@
  *
  * @author      Wes Garland, wes@distributive.network
  * @date        June 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 'use strict';
 

@@ -2,7 +2,9 @@
 #              Main PythonMonkey build automation script. Run with `poetry build`.
 # @author      Hamada Gasmallah, hamada@distributive.network
 # @date        April 2023
+# @copyright Copyright (c) 2023 Distributive Corp.
 #
+
 import subprocess
 import os, sys
 import platform
