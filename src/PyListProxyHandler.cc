@@ -2039,82 +2039,6 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   }
 }
 
-/* Ensure ob_item has room for at least newsize elements, and set
- * ob_size to newsize.  If newsize > ob_size on entry, the content
- * of the new slots at exit is undefined heap trash; it's the caller's
- * responsibility to overwrite them with sane values.
- * The number of allocated elements may grow, shrink, or stay the same.
- * Failure is impossible if newsize <= self.allocated on entry, although
- * that partly relies on an assumption that the system realloc() never
- * fails when passed a number of bytes <= the number of bytes last
- * allocated (the C standard doesn't guarantee this, but it's hard to
- * imagine a realloc implementation where it wouldn't be true).
- * Note that self->ob_item may change, and even if newsize is less
- * than ob_size on entry.
- */
-// private
-static int
-list_resize(PyListObject *self, Py_ssize_t newsize)
-{
-  PyObject **items;
-  size_t new_allocated, num_allocated_bytes;
-  Py_ssize_t allocated = self->allocated;
-
-  /* Bypass realloc() when a previous overallocation is large enough
-     to accommodate the newsize.  If the newsize falls lower than half
-     the allocated size, then proceed with the realloc() to shrink the list.
-   */
-  if (allocated >= newsize && newsize >= (allocated >> 1)) {
-    assert(self->ob_item != NULL || newsize == 0);
-    #if PY_VERSION_HEX >= 0x03090000 // 3.9
-    Py_SET_SIZE(self, newsize);
-    #else
-    Py_SIZE(self) = newsize;
-    #endif
-    return 0;
-  }
-
-  /* This over-allocates proportional to the list size, making room
-   * for additional growth.  The over-allocation is mild, but is
-   * enough to give linear-time amortized behavior over a long
-   * sequence of appends() in the presence of a poorly-performing
-   * system realloc().
-   * Add padding to make the allocated size multiple of 4.
-   * The growth pattern is:  0, 4, 8, 16, 24, 32, 40, 52, 64, 76, ...
-   * Note: new_allocated won't overflow because the largest possible value
-   *       is PY_SSIZE_T_MAX * (9 / 8) + 6 which always fits in a size_t.
-   */
-  new_allocated = ((size_t)newsize + (newsize >> 3) + 6) & ~(size_t)3;
-  /* Do not overallocate if the new size is closer to overallocated size
-   * than to the old size.
-   */
-  if (newsize - Py_SIZE(self) > (Py_ssize_t)(new_allocated - newsize))
-    new_allocated = ((size_t)newsize + 3) & ~(size_t)3;
-
-  if (newsize == 0)
-    new_allocated = 0;
-  if (new_allocated <= (size_t)PY_SSIZE_T_MAX / sizeof(PyObject *)) {
-    num_allocated_bytes = new_allocated * sizeof(PyObject *);
-    items = (PyObject **)PyMem_Realloc(self->ob_item, num_allocated_bytes);
-  }
-  else {
-    // integer overflow
-    items = NULL;
-  }
-  if (items == NULL) {
-    PyErr_NoMemory();
-    return -1;
-  }
-  self->ob_item = items;
-  #if PY_VERSION_HEX >= 0x03090000 // 3.9
-  Py_SET_SIZE(self, newsize);
-  #else
-  Py_SIZE(self) = newsize;
-  #endif
-  self->allocated = new_allocated;
-  return 0;
-}
-
 bool PyListProxyHandler::defineProperty(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult &result
@@ -2137,18 +2061,13 @@ bool PyListProxyHandler::defineProperty(
   PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
   if (PyList_SetItem(pyObject, index, item) < 0) {
     // we are out-of-bounds and need to expand
-    Py_XINCREF(item);
     Py_ssize_t oldLen = PyList_GET_SIZE(pyObject);
-    if (list_resize((PyListObject *)pyObject, index + 1) < 0) {
-      Py_XDECREF(item);
-      return result.failBadIndex();
-    }
-    PyList_SET_ITEM((PyListObject *)pyObject, index, item);
     // fill the space until the inserted index
     for (Py_ssize_t i = oldLen; i < index; i++) {
-      Py_INCREF(Py_None);
-      PyList_SET_ITEM((PyListObject *)pyObject, i, Py_None);
+      PyList_Append(pyObject, Py_None);
     }
+    // insert the item
+    PyList_Append(pyObject, item);
 
     // clear pending exception
     PyErr_Clear();
