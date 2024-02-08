@@ -2066,7 +2066,7 @@ bool PyListProxyHandler::defineProperty(
     for (Py_ssize_t i = len; i < index; i++) {
       PyList_Append(pyObject, Py_None);
     }
-    // insert the item
+
     PyList_Append(pyObject, item);
 
     // clear pending exception
