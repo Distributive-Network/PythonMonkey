@@ -2061,9 +2061,9 @@ bool PyListProxyHandler::defineProperty(
   PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
   if (PyList_SetItem(pyObject, index, item) < 0) {
     // we are out-of-bounds and need to expand
-    Py_ssize_t oldLen = PyList_GET_SIZE(pyObject);
+    Py_ssize_t len = PyList_GET_SIZE(pyObject);
     // fill the space until the inserted index
-    for (Py_ssize_t i = oldLen; i < index; i++) {
+    for (Py_ssize_t i = len; i < index; i++) {
       PyList_Append(pyObject, Py_None);
     }
     // insert the item
