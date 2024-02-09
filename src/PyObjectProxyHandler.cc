@@ -26,7 +26,8 @@
 const char PyObjectProxyHandler::family = 0;
 
 bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
-  PyObject *keys = PyObject_Dir(pyObject);
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  PyObject *keys = PyObject_Dir(self);
   size_t keysLength = PyList_Size(keys);
 
   PyObject *nonDunderKeys = PyList_New(0);
@@ -58,7 +59,8 @@ bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy
 bool PyObjectProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::ObjectOpResult &result) const {
   PyObject *attrName = idToKey(cx, id);
-  if (PyObject_SetAttr(pyObject, attrName, NULL) < 0) {
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  if (PyObject_SetAttr(self, attrName, NULL) < 0) {
     return result.failCantDelete(); // raises JS exception
   }
   return result.succeed();
@@ -74,7 +76,8 @@ bool PyObjectProxyHandler::getOwnPropertyDescriptor(
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
 ) const {
   PyObject *attrName = idToKey(cx, id);
-  PyObject *item = PyObject_GetAttr(pyObject, attrName);
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  PyObject *item = PyObject_GetAttr(self, attrName);
   if (!item) { // NULL if the key is not present
     desc.set(mozilla::Nothing()); // JS objects return undefined for nonpresent keys
   } else {
@@ -94,7 +97,8 @@ bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::Handle
   JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
   PyObject *attrName = idToKey(cx, id);
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  if (PyObject_SetAttr(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  if (PyObject_SetAttr(self, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();
@@ -108,7 +112,8 @@ bool PyObjectProxyHandler::enumerate(JSContext *cx, JS::HandleObject proxy,
 bool PyObjectProxyHandler::hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   bool *bp) const {
   PyObject *attrName = idToKey(cx, id);
-  *bp = PyObject_HasAttr(pyObject, attrName) == 1;
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  *bp = PyObject_HasAttr(self, attrName) == 1;
   return true;
 }
 
@@ -122,8 +127,9 @@ void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  if (Py_REFCNT(pyObject) > 1) {
-    Py_DECREF(pyObject);
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  if (Py_REFCNT(self) > 1) {
+    Py_DECREF(self);
   }
 }
 
