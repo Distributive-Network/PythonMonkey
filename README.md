@@ -188,6 +188,7 @@ Care should be taken to ensure that only one program module is run per JS contex
 ## Built-In Functions
 
 See definitions in [python/pythonmonkey/global.d.ts](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/global.d.ts).
+Including:
 
 - `console`
 - `atob`
@@ -324,10 +325,10 @@ in Python. Simply decorate a Dict named `exports` inside a file with a `.py` ext
 loaded by `require()` -- in either JavaScript or Python.
 
 ### Program Module
-The program module, or main module, is a special module in CommonJS. In a program module,
+The program module, or main module, is a special module in CommonJS. In a program module:
  - variables defined in the outermost scope are properties of `globalThis`
  - returning from the outermost scope is a syntax error
- - the `arguments` variable in an Array-like object which holds your program's argument vector
+ - the `arguments` variable in an Array which holds your program's argument vector
    (command-line arguments)
 
 ```console
@@ -391,7 +392,7 @@ List of commands:
 ```console
 $ pmjs
 
-Welcome to PythonMonkey v0.2.0.
+Welcome to PythonMonkey v0.3.0.
 Type ".help" for more information.
 > .python import sys
 > .python sys.path
