@@ -230,8 +230,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   else {
     JS::RootedValue v(cx);
-    JSObject *proxy;
-    proxy = js::NewProxyObject(cx, new PyObjectProxyHandler(object), v, NULL);
+    JS::RootedObject objectPrototype(cx);
+    JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
+    JSObject *proxy = js::NewProxyObject(cx, new PyObjectProxyHandler(object), v, objectPrototype.get());
     Py_INCREF(object);
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     returnType.setObject(*proxy);
