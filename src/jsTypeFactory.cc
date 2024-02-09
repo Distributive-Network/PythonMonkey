@@ -36,7 +36,7 @@
 #include <js/Array.h>
 
 #include <Python.h>
-#include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
+#include <datetime.h>
 
 #include <unordered_map>
 
