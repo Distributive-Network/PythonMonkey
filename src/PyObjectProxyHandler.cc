@@ -94,8 +94,8 @@ bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::Handle
   JS::ObjectOpResult &result) const {
   JS::RootedValue rootedV(cx, v);
   PyObject *attrName = idToKey(cx, id);
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  if (PyObject_SetAttr(pyObject, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+  JS::RootedObject thisObj(cx, proxy);
+  if (PyObject_SetAttr(pyObject, attrName, pyTypeFactory(cx, thisObj, rootedV)->getPyObject())) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();

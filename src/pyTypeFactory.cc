@@ -67,7 +67,7 @@ PyType *pyTypeFactory(PyObject *object) {
   return pyType;
 }
 
-PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::HandleValue rval) {
+PyType *pyTypeFactory(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue rval) {
   if (rval.isUndefined()) {
     return new NoneType();
   }
@@ -179,7 +179,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Handle
   return NULL;
 }
 
-PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::HandleValue rval) {
+PyType *pyTypeFactorySafe(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue rval) {
   PyType *v = pyTypeFactory(cx, thisObj, rval);
   if (PyErr_Occurred()) {
     // Clear Python error

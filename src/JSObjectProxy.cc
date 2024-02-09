@@ -77,7 +77,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
     if (methodName == NULL || !PyUnicode_Check(key)) {
       JS::RootedValue value(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, &value);
-      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
+      JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
       return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
     else {
@@ -190,8 +190,8 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
     JS::RootedValue key(GLOBAL_CX);
     key.setString(id.toString());
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, global, key)->getPyObject();
+    JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
+    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, thisObj, key)->getPyObject();
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
     if (!pyVal2) { // if other.key is NULL then not equal
@@ -260,7 +260,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
 
   PyObject *key = NULL, *value = NULL;
 
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+  JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
 
   JS::RootedIdVector props(GLOBAL_CX);
 
@@ -310,7 +310,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     if (&elementVal.toObject() == self->jsObject.get()) {
       value = (PyObject *)self;
     } else {
-      value = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+      value = pyTypeFactory(GLOBAL_CX, thisObj, elementVal)->getPyObject();
     }
     Py_INCREF(value);
 
@@ -438,11 +438,11 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, 
     JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
     args[2].setObject(jValueOther.toObject());
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+    JS::RootedObject global(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
 
     // call Object.assign
     JS::RootedValue Object(GLOBAL_CX);
-    if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
+    if (!JS_GetProperty(GLOBAL_CX, global, "Object", &Object)) {
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
@@ -454,7 +454,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, 
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
-    return pyTypeFactory(GLOBAL_CX, global, ret)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, rootedObject, ret)->getPyObject();
   }
 }
 
@@ -465,11 +465,11 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_ior(JSObjectProxy *self,
     JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
     args[1].setObject(jValueOther.toObject());
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+    JS::RootedObject global(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
 
     // call Object.assign
     JS::RootedValue Object(GLOBAL_CX);
-    if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
+    if (!JS_GetProperty(GLOBAL_CX, global, "Object", &Object)) {
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
@@ -576,8 +576,8 @@ skip_optional:
     JS::ObjectOpResult ignoredResult;
     JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-    return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+    JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
+    return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
   }
 }
 
@@ -603,11 +603,11 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProx
   args[0].setObjectOrNull(JS_NewPlainObject(GLOBAL_CX));
   args[1].setObjectOrNull(self->jsObject);
 
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+  JS::RootedObject global(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
 
   // call Object.assign
   JS::RootedValue Object(GLOBAL_CX);
-  if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
+  if (!JS_GetProperty(GLOBAL_CX, global, "Object", &Object)) {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
@@ -618,7 +618,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProx
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
-  return pyTypeFactory(GLOBAL_CX, global, ret)->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, rootedObject, ret)->getPyObject();
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectProxy *self, PyObject *args, PyObject *kwds) {

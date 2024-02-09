@@ -1,7 +1,7 @@
 /**
  * @file JobQueue.cc
  * @author Tom Tang (xmader@distributive.network)
- * @brief Implement the ECMAScript Job Queue
+ * @brief Implements the ECMAScript Job Queue
  * @date 2023-04-03
  *
  * @copyright Copyright (c) 2023 Distributive Corp.
@@ -29,13 +29,9 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   JS::HandleObject incumbentGlobal) {
 
   // Convert the `job` JS function to a Python function for event-loop callback
-  MOZ_RELEASE_ASSERT(js::IsFunctionObject(job));
-  // FIXME (Tom Tang): memory leak, objects not free-ed
-  // FIXME (Tom Tang): `job` function is going to be GC-ed ???
-  auto global = new JS::RootedObject(cx, incumbentGlobal);
-  // auto jobv = new JS::RootedValue(cx, JS::ObjectValue(*job));
+  JS::RootedObject global(cx, incumbentGlobal);
   JS::RootedValue jobv(cx, JS::ObjectValue(*job));
-  auto callback = pyTypeFactory(cx, global, jobv)->getPyObject();
+  PyObject *callback = pyTypeFactory(cx, global, jobv)->getPyObject();
 
   // Inform the JS runtime that the job queue is no longer empty
   JS::JobQueueMayNotBeEmpty(cx);
@@ -49,10 +45,9 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
 }
 
 void JobQueue::runJobs(JSContext *cx) {
-  return;
+  // Do nothing
 }
 
-// is empty
 bool JobQueue::empty() const {
   // TODO (Tom Tang): implement using `get_running_loop` and getting job count on loop???
   throw std::logic_error("JobQueue::empty is not implemented\n");
@@ -65,7 +60,7 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
-  JS::InitDispatchToEventLoop(cx, /* callback */ dispatchToEventLoop, /* closure */ cx);
+  JS::InitDispatchToEventLoop(cx, dispatchToEventLoop, cx);
   return true;
 }
 
@@ -75,24 +70,9 @@ static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUS
   dispatchable->run(cx, JS::Dispatchable::NotShuttingDown);
   Py_RETURN_NONE;
 }
+
 static PyMethodDef callDispatchFuncDef = {"JsDispatchCallable", callDispatchFunc, METH_NOARGS, NULL};
 
-bool sendJobToMainLoop(PyObject *pyFunc) {
-  PyGILState_STATE gstate = PyGILState_Ensure();
-
-  // Send job to the running Python event-loop on `cx`'s thread (the main thread)
-  PyEventLoop loop = PyEventLoop::getMainLoop();
-  if (!loop.initialized()) {
-    PyGILState_Release(gstate);
-    return false;
-  }
-  loop.enqueue(pyFunc);
-
-  PyGILState_Release(gstate);
-  return true;
-}
-
-/* static */
 bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable) {
   JSContext *cx = (JSContext *)closure; // `closure` is provided in `JS::InitDispatchToEventLoop` call
 
@@ -109,4 +89,19 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
 
   PyGILState_Release(gstate);
   return true; // dispatchable must eventually run
+}
+
+bool sendJobToMainLoop(PyObject *pyFunc) {
+  PyGILState_STATE gstate = PyGILState_Ensure();
+
+  // Send job to the running Python event-loop on cx's thread (the main thread)
+  PyEventLoop loop = PyEventLoop::getMainLoop();
+  if (!loop.initialized()) {
+    PyGILState_Release(gstate);
+    return false;
+  }
+  loop.enqueue(pyFunc);
+
+  PyGILState_Release(gstate);
+  return true;
 }

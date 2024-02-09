@@ -356,7 +356,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // translate to the proper python type
-  PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, *rval);
+  PyType *returnValue = pyTypeFactory(GLOBAL_CX, *global, *rval);
   if (PyErr_Occurred()) {
     return NULL;
   }
@@ -524,8 +524,11 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
-  if (pyModule == NULL)
+  if (pyModule == NULL) {
     return NULL;
+  }
+
+  // Register Types
 
   Py_INCREF(&NullType);
   if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
@@ -616,9 +619,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  // Initialize event-loop shield
-  PyEventLoop::_locker = new PyEventLoop::Lock();
-
   PyObject *internalBindingPy = getInternalBindingPyFn(GLOBAL_CX);
   if (PyModule_AddObject(pyModule, "internalBinding", internalBindingPy) < 0) {
     Py_DECREF(internalBindingPy);
@@ -626,7 +626,12 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  // initialize FinalizationRegistry of JSFunctions to Python Functions
+
+  // Initialize event-loop shield
+  PyEventLoop::_locker = new PyEventLoop::Lock();
+
+
+  // Initialize FinalizationRegistry of JSFunctions to Python Functions
   JS::RootedValue FinalizationRegistry(GLOBAL_CX);
   JS::RootedObject registryObject(GLOBAL_CX);
 
@@ -641,6 +646,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   }
   jsFunctionRegistry = new JS::PersistentRootedObject(GLOBAL_CX);
   jsFunctionRegistry->set(registryObject);
+
 
   return pyModule;
 }

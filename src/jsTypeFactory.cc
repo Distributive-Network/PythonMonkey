@@ -276,8 +276,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
   PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
 
-  JS::RootedObject *thisv = new JS::RootedObject(cx);
-  JS_ValueToObject(cx, callargs.thisv(), thisv);
+  JS::RootedObject thisv(cx);
+  JS_ValueToObject(cx, callargs.thisv(), &thisv);
 
   unsigned int callArgsLength = callargs.length();
 

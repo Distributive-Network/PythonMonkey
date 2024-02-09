@@ -1,7 +1,7 @@
 /**
  * @file JobQueue.hh
  * @author Tom Tang (xmader@distributive.network)
- * @brief Implement the ECMAScript Job Queue
+ * @brief Implements the ECMAScript Job Queue
  * @date 2023-04-03
  *
  * @copyright Copyright (c) 2023 Distributive Corp.
@@ -22,11 +22,16 @@
  * @see https://hg.mozilla.org/releases/mozilla-esr102/file/5741ffa/js/public/Promise.h#l22
  */
 class JobQueue : public JS::JobQueue {
-//
-// JS::JobQueue methods.
-//
+
 public:
 ~JobQueue() = default;
+
+/**
+ * @brief Initialize PythonMonkey's event-loop job queue
+ * @param cx - javascript context pointer
+ * @return success
+ */
+bool init(JSContext *cx);
 
 /**
  * @brief Ask the embedding for the incumbent global.
@@ -72,7 +77,9 @@ void runJobs(JSContext *cx) override;
  */
 bool empty() const override;
 
+
 private:
+
 /**
  * @brief Capture this JobQueue's current job queue as a SavedJobQueue and return it,
  * leaving the JobQueue's job queue empty. Destroying the returned object
@@ -84,18 +91,6 @@ private:
  */
 js::UniquePtr<JS::JobQueue::SavedJobQueue> saveJobQueue(JSContext *) override;
 
-//
-// Custom methods
-//
-public:
-/**
- * @brief Initialize PythonMonkey's event-loop job queue
- * @param cx - javascript context pointer
- * @return success
- */
-bool init(JSContext *cx);
-
-private:
 /**
  * @brief The callback for dispatching an off-thread promise to the event loop
  *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l580
@@ -105,7 +100,8 @@ private:
  * @return not shutting down
  */
 static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
-};
+
+}; // class
 
 /**
  * @brief Send job to the Python event-loop on main thread
