@@ -194,6 +194,8 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     registerArgs[1].setPrivate(object);
     JS::RootedValue ignoredOutVal(GLOBAL_CX);
     JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
+
+    Py_INCREF(object);
   }
   else if (PyObject_TypeCheck(object, &JSFunctionProxyType)) {
     returnType.setObject(**((JSFunctionProxy *)object)->jsFunc);
