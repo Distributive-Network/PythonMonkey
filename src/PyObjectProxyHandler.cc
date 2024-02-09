@@ -32,8 +32,7 @@ bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy
   PyObject *nonDunderKeys = PyList_New(0);
   for (size_t i = 0; i < keysLength; i++) {
     PyObject *key = PyList_GetItem(keys, i);
-    PyObject *isDunder = PyObject_CallMethod(key, "startswith", "(s)", "__");
-    if (Py_IsFalse(isDunder)) { // if key starts with "__", ignore it
+    if (Py_IsFalse(PyObject_CallMethod(key, "startswith", "(s)", "__"))) { // if key starts with "__", ignore it
       PyList_Append(nonDunderKeys, key);
     }
   }
