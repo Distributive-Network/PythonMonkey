@@ -38,7 +38,6 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
   JSObject *jsFuncObj = jsFunc.toObjectOrNull();
   JS::RootedObject thisObj(GLOBAL_CX, JS::GetNonCCWObjectGlobal(jsFuncObj)); // if jsFunc is not bound, assume `this` is `globalThis`
 
-
   JS::RootedVector<JS::Value> jsArgsVector(cx);
   Py_ssize_t nargs = PyTuple_Size(args);
   for (size_t i = 0; i < nargs; i++) {
