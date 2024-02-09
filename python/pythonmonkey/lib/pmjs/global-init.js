@@ -18,22 +18,6 @@ for (let mid in require.cache)
   delete require.cache[mid];
 
 /**
- * Set the global arguments array, which is just the program's argv.  We use an argvBuilder function to
- * get around PythonMonkey's missing list->Array coercion. /wg june 2023 
- */
-exports.makeArgvBuilder = function pmjsRequire$$makeArgvBuilder()
-{
-  const argv = [];
-  globalThis.arguments = argv;
-  return argvBuilder;
-
-  function argvBuilder(arg)
-  {
-    globalThis.arguments.push(arg)
-  }
-}
-
-/**
  * runProgramModule wants to include the require.cache from the pre-program loads (e.g. via -r or -e), but
  * due to current bugs in PythonMonkey, we can't access the cache property of require because it is a JS
  * function wrapped in a Python function wrapper exposed to script as a native function.
