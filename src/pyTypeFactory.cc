@@ -81,8 +81,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     return new FloatType(rval->toNumber());
   }
   else if (rval->isString()) {
-    StrType *s = new StrType(cx, rval->toString());
-    return s;
+    return new StrType(cx, rval->toString());
   }
   else if (rval->isSymbol()) {
     printf("symbol type is not handled by PythonMonkey yet");
@@ -153,8 +152,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     case js::ESClass::String: {
         JS::RootedValue unboxed(cx);
         js::Unbox(cx, obj, &unboxed);
-        StrType *s = new StrType(cx, unboxed.toString());
-        return s;
+        return new StrType(cx, unboxed.toString());
       }
     case js::ESClass::Array: {
         return new ListType(cx, obj);
