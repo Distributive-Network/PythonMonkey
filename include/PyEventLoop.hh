@@ -215,7 +215,7 @@ public:
     }
 
     /**
-     * @brief An `asyncio.Event` instance to notify that there are no queueing asynchronous jobs
+     * @brief An `asyncio.Event` instance to notify that there are no queued asynchronous jobs
      * @see https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event
      */
     PyObject *_queueIsEmpty = nullptr;
