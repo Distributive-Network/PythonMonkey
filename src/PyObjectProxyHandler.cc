@@ -40,20 +40,7 @@ bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy
 
   size_t length = PyList_Size(nonDunderKeys);
 
-  if (!props.reserve(length)) {
-    return false; // out of memory
-  }
-
-  for (size_t i = 0; i < length; i++) {
-    PyObject *key = PyList_GetItem(nonDunderKeys, i);
-    JS::RootedId jsId(cx);
-    if (!keyToId(key, &jsId)) {
-      // TODO (Caleb Aikens): raise exception here
-      return false; // key is not a str or int
-    }
-    props.infallibleAppend(jsId);
-  }
-  return true;
+  return handleOwnPropertyKeys(cx, nonDunderKeys, length, props);
 }
 
 bool PyObjectProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
@@ -78,17 +65,8 @@ bool PyObjectProxyHandler::getOwnPropertyDescriptor(
   PyObject *attrName = idToKey(cx, id);
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   PyObject *item = PyObject_GetAttr(self, attrName);
-  if (!item) { // NULL if the key is not present
-    desc.set(mozilla::Nothing()); // JS objects return undefined for nonpresent keys
-  } else {
-    desc.set(mozilla::Some(
-      JS::PropertyDescriptor::Data(
-        jsTypeFactory(cx, item),
-        {JS::PropertyAttribute::Writable, JS::PropertyAttribute::Enumerable}
-      )
-    ));
-  }
-  return true;
+
+  return handleGetOwnPropertyDescriptor(cx, id, desc, item);
 }
 
 bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
@@ -124,13 +102,7 @@ bool PyObjectProxyHandler::getOwnEnumerablePropertyKeys(
 }
 
 void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  // We cannot call Py_DECREF here when shutting down as the thread state is gone.
-  // Then, when shutting down, there is only on reference left, and we don't need
-  // to free the object since the entire process memory is being released.
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (Py_REFCNT(self) > 1) {
-    Py_DECREF(self);
-  }
+  return handleFinalize(proxy);
 }
 
 bool PyObjectProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
@@ -139,4 +111,10 @@ bool PyObjectProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::ObjectOpResult &result) const {
   // Block direct `Object.defineProperty` since we already have the `set` method
   return result.failInvalidDescriptor();
+}
+
+bool PyObjectProxyHandler::getBuiltinClass(JSContext *cx, JS::HandleObject proxy,
+  js::ESClass *cls) const {
+  *cls = js::ESClass::Object;
+  return true;
 }

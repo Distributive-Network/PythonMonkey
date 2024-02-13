@@ -1960,12 +1960,13 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     }
   }
 
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   // "length" property
   bool isLengthProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "length", &isLengthProperty) && isLengthProperty) {
     desc.set(mozilla::Some(
       JS::PropertyDescriptor::Data(
-        JS::Int32Value(PyList_Size(pyObject))
+        JS::Int32Value(PyList_Size(self))
       )
     ));
     return true;
@@ -2018,7 +2019,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   // item
   Py_ssize_t index;
   PyObject *item;
-  if (idToIndex(cx, id, &index) && (item = PyList_GetItem(pyObject, index))) {
+  if (idToIndex(cx, id, &index) && (item = PyList_GetItem(self, index))) {
     desc.set(mozilla::Some(
       JS::PropertyDescriptor::Data(
         jsTypeFactory(cx, item),
@@ -2061,7 +2062,8 @@ bool PyListProxyHandler::defineProperty(
   JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   JS::RootedValue *itemV = new JS::RootedValue(cx, desc.value());
   PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
-  if (PyList_SetItem(pyObject, index, item) < 0) {
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  if (PyList_SetItem(self, index, item) < 0) {
     return result.failBadIndex();
   }
   return result.succeed();
@@ -2069,7 +2071,8 @@ bool PyListProxyHandler::defineProperty(
 
 bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   // Modified from https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/dom/base/RemoteOuterWindowProxy.cpp#l137
-  int32_t length = PyList_Size(pyObject);
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  int32_t length = PyList_Size(self);
   if (!props.reserve(length + 1)) {
     return false;
   }
@@ -2084,12 +2087,13 @@ bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, 
 
 bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const {
   Py_ssize_t index;
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   if (!idToIndex(cx, id, &index)) {
     return result.failBadIndex(); // report failure
   }
 
   // Set to undefined instead of actually deleting it
-  if (PyList_SetItem(pyObject, index, Py_None) < 0) {
+  if (PyList_SetItem(self, index, Py_None) < 0) {
     return result.failCantDelete(); // report failure
   }
   return result.succeed(); // report success
