@@ -109,23 +109,20 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
       cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
                                    // js::ESClass::Function only assigns to JSFunction objects by JS::GetBuiltinClass.
     }
+    JS::RootedValue unboxed(cx);
     switch (cls) {
-    case js::ESClass::Boolean: {
-        // TODO (Caleb Aikens): refactor out all `js::Unbox` calls
-        // TODO (Caleb Aikens): refactor using recursive call to `pyTypeFactory`
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        return new BoolType(unboxed.toBoolean());
-      }
-    case js::ESClass::Date: {
-        return new DateType(cx, obj);
-      }
-    case js::ESClass::Promise: {
-        return new PromiseType(cx, obj);
-      }
-    case js::ESClass::Error: {
-        return new ExceptionType(cx, obj);
-      }
+    case js::ESClass::Boolean:
+    case js::ESClass::Number:
+    case js::ESClass::BigInt:
+    case js::ESClass::String:
+      js::Unbox(cx, obj, &unboxed);
+      return pyTypeFactory(cx, thisObj, &unboxed);
+    case js::ESClass::Date:
+      return new DateType(cx, obj);
+    case js::ESClass::Promise:
+      return new PromiseType(cx, obj);
+    case js::ESClass::Error:
+      return new ExceptionType(cx, obj);
     case js::ESClass::Function: {
         PyObject *pyFunc;
         FuncType *f;
@@ -139,29 +136,12 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         }
         return f;
       }
-    case js::ESClass::Number: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        return new FloatType(unboxed.toNumber());
-      }
-    case js::ESClass::BigInt: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        return new IntType(cx, unboxed.toBigInt());
-      }
-    case js::ESClass::String: {
-        JS::RootedValue unboxed(cx);
-        js::Unbox(cx, obj, &unboxed);
-        return new StrType(cx, unboxed.toString());
-      }
-    case js::ESClass::Array: {
-        return new ListType(cx, obj);
-      }
-    default: {
-        if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
-          // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
-          return new BufferType(cx, obj);
-        }
+    case js::ESClass::Array:
+      return new ListType(cx, obj);
+    default:
+      if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
+        // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
+        return new BufferType(cx, obj);
       }
     }
     return new DictType(cx, *rval);
