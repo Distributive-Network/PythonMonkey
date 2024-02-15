@@ -198,7 +198,7 @@ def test_promises():
             # FIXME (Tom Tang): We currently handle Promise exceptions by converting the object thrown to a Python Exception object through `pyTypeFactory`
             #               <objects of this type are not handled by PythonMonkey yet>
             # await pm.eval("Promise.resolve().then(()=>{ throw {a:1,toString(){return'anything'}} })")
-        with pytest.raises(pm.SpiderMonkeyError, match="on line 1:\nTypeError: undefined has no properties"): # not going through the conversion
+        with pytest.raises(pm.SpiderMonkeyError, match="on line 1, column 31:\nTypeError: undefined has no properties"): # not going through the conversion
             await pm.eval("Promise.resolve().then(()=>{ (undefined).prop })")
 
         # TODO (Tom Tang): Modify this testcase once we support ES2020-style dynamic import

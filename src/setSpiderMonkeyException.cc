@@ -41,7 +41,7 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
     std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
     std::string linebuf; // the offending JS line of code (can be empty)
 
-    outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ":\n";
+    outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ", column " << errorReport->column << ":\n";
     if (errorReport->linebuf()) {
       std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
       std::u16string u16linebuf(errorReport->linebuf());
