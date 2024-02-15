@@ -66,6 +66,10 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
     return NULL;
   }
 
+  if (PyErr_Occurred()) {
+    return NULL;
+  }
+
   JS::RootedObject globalObj(cx, JS::CurrentGlobalOrNull(cx));
   return pyTypeFactory(cx, &globalObj, jsReturnVal)->getPyObject();
 }
