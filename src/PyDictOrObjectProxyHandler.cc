@@ -57,8 +57,7 @@ bool PyDictOrObjectProxyHandler::handleOwnPropertyKeys(JSContext *cx, PyObject *
     PyObject *key = PyList_GetItem(keys, i);
     JS::RootedId jsId(cx);
     if (!keyToId(key, &jsId)) {
-      // TODO (Caleb Aikens): raise exception here
-      return false; // key is not a str or int
+      continue; // skip over keys that are not str or int
     }
     props.infallibleAppend(jsId);
   }

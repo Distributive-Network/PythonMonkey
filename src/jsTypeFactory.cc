@@ -299,7 +299,6 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
       setPyException(cx);
       return false;
     }
-    // @TODO (Caleb Aikens) need to check for python exceptions here
     callargs.rval().set(jsTypeFactory(cx, pyRval));
     return true;
   }
@@ -320,7 +319,6 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     setPyException(cx);
     return false;
   }
-  // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
     setPyException(cx);

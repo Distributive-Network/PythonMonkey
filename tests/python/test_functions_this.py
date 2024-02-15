@@ -115,7 +115,7 @@ def test_JSMethodProxy_this():
     return jsObj.jsMethod(4);
   }
   """)(jsObj)
-  assert pyObj == result[0] and 4 == result[1]  #TODO (Caleb Aikens) should `this` be `pyObj` or `jsObj` here?
+  assert pyObj == result[0] and 4 == result[1]
 
 #require
 def test_require_correct_this():

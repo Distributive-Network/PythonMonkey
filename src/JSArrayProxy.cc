@@ -53,8 +53,8 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
 {
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here
-    return NULL; // key is not a str or int
+    PyErr_SetString(PyExc_AttributeError, "JSArrayProxy property name must be of type str or int");
+    return NULL;
   }
 
   // look through the methods for dispatch and return key if no method found
