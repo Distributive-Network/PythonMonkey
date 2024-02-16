@@ -17,15 +17,19 @@
  * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
  */
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
-  PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
-  Py_XDECREF(ret); // don't care about its return value
+  PyObject *ret = PyObject_CallObject(jobFn, NULL);
   PyEventLoop::_locker->decCounter();
+  if (!ret) {
+    return NULL;
+  }
+  Py_DECREF(ret);      
   if (PyErr_Occurred()) {
     return NULL;
   } else {
     Py_RETURN_NONE;
   }
 }
+
 static PyMethodDef jobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapper, METH_NOARGS, NULL};
 
 PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
@@ -33,7 +37,7 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", wrapper);
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
@@ -42,7 +46,7 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double d
   PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
   // Schedule job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dO", delaySeconds, wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dO", delaySeconds, wrapper);
   if (asyncHandle == nullptr) {
     PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
   }
@@ -74,6 +78,7 @@ PyEventLoop::Future PyEventLoop::ensureFuture(PyObject *awaitable) {
   Py_DECREF(args);
   Py_DECREF(kwargs);
 
+  // Py_INCREF(futureObj);
   return PyEventLoop::Future(futureObj);
 }
 
@@ -127,7 +132,7 @@ PyThreadState *PyEventLoop::_getMainThread() {
   // The last element in the linked-list of threads associated with the main interpreter should be the main thread
   // (The first element is the current thread, see https://github.com/python/cpython/blob/7cb3a44/Python/pystate.c#L291-L293)
   PyInterpreterState *interp = PyInterpreterState_Main();
-  PyThreadState *tstate = PyInterpreterState_ThreadHead(interp); // https://docs.python.org/3/c-api/init.html#c.PyInterpreterState_ThreadHead
+  PyThreadState *tstate = PyInterpreterState_ThreadHead(interp);
   while (PyThreadState_Next(tstate) != nullptr) {
     tstate = PyThreadState_Next(tstate);
   }
@@ -138,7 +143,7 @@ PyThreadState *PyEventLoop::_getMainThread() {
 PyThreadState *PyEventLoop::_getCurrentThread() {
   // `PyThreadState_Get` is used under the hood of the Python `asyncio.get_running_loop` method,
   // see https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L234
-  return PyThreadState_Get(); // https://docs.python.org/3/c-api/init.html#c.PyThreadState_Get
+  return PyThreadState_Get();
 }
 
 /* static */
