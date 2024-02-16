@@ -1,5 +1,7 @@
 import pythonmonkey as pm
 import subprocess
+import weakref
+import sys
 
 def test_python_functions_self():
   def pyFunc(param):
@@ -171,3 +173,27 @@ def test_require_correct_this_old_style_class():
 
   assert r2.getArea() == 2
   assert r2.getThis() == r2
+
+def test_function_finalization():
+  ref = []
+  starting_ref_count = []
+
+  def outerScope():
+    def pyFunc():
+      return 42
+    
+    ref.append(weakref.ref(pyFunc))
+    starting_ref_count.append(sys.getrefcount(pyFunc))
+    assert 42 == pm.eval("(func) => func()")(pyFunc)
+
+    assert ref[0]() is pyFunc
+    current_ref_count = sys.getrefcount(pyFunc)
+    assert current_ref_count == starting_ref_count[0] + 1
+  
+  outerScope()
+  pm.collect() # this should collect the JS proxy to pyFunc, which should decref pyFunc
+  current_ref_count = sys.getrefcount(ref[0]())
+  #pytest seems to hold an additional reference on inner functions, so we assert here that the refcount
+  #is what it was when pyFunc was defined. In a non-test environment, pyFunc should be collected and ref[0]() should be None
+  #at this point
+  assert current_ref_count == starting_ref_count[0]
