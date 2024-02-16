@@ -25,8 +25,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 20.04 / macOS 13 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-13', 'm2ci' ]
+        # Use Ubuntu 20.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14-arm64' ]
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -88,7 +88,7 @@ jobs:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019', 'm2ci' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019', 'macos-14-arm64' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
@@ -97,9 +97,9 @@ jobs:
             python_version: '3.8'
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
           # see https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-          - os: 'm2ci'
+          - os: 'macos-14-arm64'
             python_version: '3.8'
-          - os: 'm2ci'
+          - os: 'macos-14-arm64'
             python_version: '3.9'
     runs-on: ${{ matrix.os }}
     steps:
