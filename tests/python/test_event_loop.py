@@ -37,8 +37,16 @@ def test_set_clear_timeout():
         # `setTimeout` should allow passing additional arguments to the callback, as spec-ed
         assert 3.0 == await pm.eval("new Promise((resolve) => setTimeout(function(){ resolve(arguments.length) }, 100, 90, 91, 92))")
         assert 92.0 == await pm.eval("new Promise((resolve) => setTimeout((...args) => { resolve(args[2]) }, 100, 90, 91, 92))")
-        # TODO (Tom Tang): test `setTimeout` setting delay to 0 if < 0
-        # TODO (Tom Tang): test `setTimeout` accepting string as the delay, coercing to a number like parseFloat
+        # test `setTimeout` setting delay to 0 if < 0
+        await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, 0))"), timeout=0.02)
+        await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, -10000))"), timeout=0.02) # won't be precisely 0s
+        # test `setTimeout` accepting string as the delay, coercing to a number.
+        # Number('100') -> 100, pass if the actual delay is > 90ms and < 120ms
+        await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, '100'))"), timeout=0.12) # won't be precisely 100ms
+        with pytest.raises(asyncio.exceptions.TimeoutError):
+            await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, '100'))"), timeout=0.09)
+        # Number("1 second") -> NaN -> delay turns to be 0s
+        await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, '1 second'))"), timeout=0.02) # won't be precisely 0s
 
         # passing an invalid ID to `clearTimeout` should silently do nothing; no exception is thrown.
         pm.eval("clearTimeout(NaN)")
