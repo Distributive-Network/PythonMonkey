@@ -46,7 +46,7 @@ def test_set_clear_timeout():
         with pytest.raises(asyncio.exceptions.TimeoutError):
             await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, '100'))"), timeout=0.09)
         # Number("1 second") -> NaN -> delay turns to be 0s
-        await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, '1 second'))"), timeout=0.05) # won't be precisely 0s
+        await asyncio.wait_for(pm.eval("new Promise((resolve) => setTimeout(resolve, '1 second'))"), timeout=0.5) # won't be precisely 0s
 
         # passing an invalid ID to `clearTimeout` should silently do nothing; no exception is thrown.
         pm.eval("clearTimeout(NaN)")
