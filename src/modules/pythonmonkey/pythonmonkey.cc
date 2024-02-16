@@ -373,17 +373,13 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
+  // TODO: Find a way to root strings for the lifetime of a proxying python string
   js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
   if (rval->isObject()) {
     JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
-    if (JS_ObjectIsBoundFunction(&rval->toObject())) {
-      cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
-    }
   }
-  bool rvalIsFunction = cls == js::ESClass::Function;   // function object
-  bool rvalIsString = rval->isString() || cls == js::ESClass::String;   // string primitive or boxed String object
-  if (!(rvalIsFunction || rvalIsString)) {   // rval may be a JS function or string which must be kept alive.
+
+  if (!(rval->isString() || cls == js::ESClass::String)) {   // rval may be a string which must be kept alive.
     delete rval;
   }
 
