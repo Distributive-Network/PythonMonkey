@@ -1592,9 +1592,6 @@ static int invokeCallBack(PyObject *list, int index, JS::HandleValue leftValue, 
 
 // Adapted from Kernigan&Ritchie's C book
 static void quickSort(PyObject *list, int left, int right, JSContext *cx, JS::HandleFunction callBack) {
-  if (PyErr_Occurred()) {
-    return;
-  }
 
   if (left >= right) {
     // base case
