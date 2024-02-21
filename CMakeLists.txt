@@ -2,7 +2,11 @@
 
 cmake_minimum_required(VERSION 3.25) # Set minimum cmake version
 
+set(PYTHONMONKEY_VERSION "0") # to be automatically set by poetry-dynamic-versioning
+string(REGEX MATCH ^[0-9]+\.[0-9]+\.[0-9]+ PYTHONMONKEY_VERSION ${PYTHONMONKEY_VERSION}) # the version number can only contain integers
+
 project("PythonMonkey"
+  VERSION ${PYTHONMONKEY_VERSION}
   DESCRIPTION "A tool for Javascript-Python interoperability."
   LANGUAGES "CXX"
 )

@@ -26,20 +26,5 @@ struct TupleType : public PyType {
 public:
   TupleType(PyObject *obj);
   const TYPE returnType = TYPE::TUPLE;
-
-/**
- * @brief Gets the tuple item at the given index
- *
- * @param index The index of the item in question
- * @return PyType* Returns a pointer to the appropriate PyType object
- */
-  PyType *get(int index) const;
-
-/**
- * @brief
- *
- * @returns int length of the tuple
- */
-  int len() const;
 };
 #endif

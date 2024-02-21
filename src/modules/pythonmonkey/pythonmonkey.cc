@@ -1,11 +1,10 @@
 /**
  * @file pythonmonkey.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief This file defines the pythonmonkey module, along with its various functions.
- * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -17,6 +16,12 @@
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/JSArrayIterProxy.hh"
+#include "include/JSArrayProxy.hh"
+#include "include/JSObjectIterProxy.hh"
+#include "include/JSObjectKeysProxy.hh"
+#include "include/JSObjectValuesProxy.hh"
+#include "include/JSObjectItemsProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
@@ -62,7 +67,7 @@ static PyTypeObject NullType = {
 static PyTypeObject BigIntType = {
   .tp_name = "pythonmonkey.bigint",
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_LONG_SUBCLASS // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_LONG_SUBCLASS
+  | Py_TPFLAGS_LONG_SUBCLASS
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
   .tp_doc = PyDoc_STR("Javascript BigInt object"),
   .tp_base = &PyLong_Type,   // extending the builtin int type
@@ -72,19 +77,136 @@ PyTypeObject JSObjectProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "pythonmonkey.JSObjectProxy",
   .tp_basicsize = sizeof(JSObjectProxy),
+  .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
   .tp_repr = (reprfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_repr,
+  .tp_as_number = &JSObjectProxy_number_methods,
+  .tp_as_sequence = &JSObjectProxy_sequence_methods,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
+  .tp_hash = PyObject_HashNotImplemented,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
+  | Py_TPFLAGS_DICT_SUBCLASS,
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
+  .tp_methods = JSObjectProxy_methods,
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+};
+
+PyTypeObject JSArrayProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSArrayProxy",
+  .tp_basicsize = sizeof(JSArrayProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc,
+  .tp_repr = (reprfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_repr,
+  .tp_as_sequence = &JSArrayProxy_sequence_methods,
+  .tp_as_mapping = &JSArrayProxy_mapping_methods,
+  .tp_getattro = (getattrofunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS,
+  .tp_doc = PyDoc_STR("Javascript Array proxy list"),
+  .tp_traverse = (traverseproc)JSArrayProxyMethodDefinitions::JSArrayProxy_traverse,
+  .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot,
+  .tp_richcompare = (richcmpfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare,
+  .tp_iter = (getiterfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_iter,
+  .tp_methods = JSArrayProxy_methods,
+  .tp_base = &PyList_Type,
+  .tp_init = (initproc)JSArrayProxyMethodDefinitions::JSArrayProxy_init,
+  .tp_new = JSArrayProxyMethodDefinitions::JSArrayProxy_new,
+};
+
+PyTypeObject JSArrayIterProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSArrayIterProxy",
+  .tp_basicsize = sizeof(JSArrayIterProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_dealloc,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Array proxy iterator"),
+  .tp_traverse =  (traverseproc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_traverse,
+  .tp_iter = (getiterfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_iter,
+  .tp_iternext = (iternextfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next,
+  .tp_methods = JSArrayIterProxy_methods,
+  .tp_base = &PyListIter_Type
+};
+
+PyTypeObject JSObjectIterProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectIterProxy",
+  .tp_basicsize = sizeof(JSObjectIterProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_dealloc,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object proxy key iterator"),
+  .tp_traverse =  (traverseproc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_traverse,
+  .tp_iter = (getiterfunc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_iter,
+  .tp_iternext = (iternextfunc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey,
+  .tp_methods = JSObjectIterProxy_methods,
+  .tp_base = &PyDictIterKey_Type
+};
+
+PyTypeObject JSObjectKeysProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectKeysProxy",
+  .tp_basicsize = sizeof(JSObjectKeysProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_repr,
+  .tp_as_number = &JSObjectKeysProxy_number_methods,
+  .tp_as_sequence = &JSObjectKeysProxy_sequence_methods,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object Keys proxy"),
+  .tp_traverse =  (traverseproc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_traverse,
+  .tp_richcompare = (richcmpfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_richcompare,
+  .tp_iter = (getiterfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_iter,
+  .tp_methods = JSObjectKeysProxy_methods,
+  .tp_getset = JSObjectKeysProxy_getset,
+  .tp_base = &PyDictKeys_Type
+};
+
+PyTypeObject JSObjectValuesProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectValuesProxy",
+  .tp_basicsize = sizeof(JSObjectValuesProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_repr,
+  .tp_as_sequence = &JSObjectValuesProxy_sequence_methods,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object Values proxy"),
+  .tp_traverse =  (traverseproc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_traverse,
+  .tp_iter = (getiterfunc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_iter,
+  .tp_methods = JSObjectValuesProxy_methods,
+  .tp_getset = JSObjectValuesProxy_getset,
+  .tp_base = &PyDictValues_Type
+};
+
+PyTypeObject JSObjectItemsProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectItemsProxy",
+  .tp_basicsize = sizeof(JSObjectItemsProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_repr,
+  // .tp_as_number = defaults are fine
+  .tp_as_sequence = &JSObjectItemsProxy_sequence_methods,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object Items proxy"),
+  .tp_traverse =  (traverseproc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_traverse,
+  // .tp_richcompare = TODO tuple support
+  .tp_iter = (getiterfunc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_iter,
+  .tp_methods = JSObjectItemsProxy_methods,
+  .tp_getset = JSObjectItemsProxy_getset,
+  .tp_base = &PyDictKeys_Type
 };
 
 static void cleanup() {
@@ -360,7 +482,10 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  JS::RealmOptions options;
+  JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+  JS::RealmBehaviors behaviours = JS::RealmBehaviors();
+  creationOptions.setIteratorHelpersEnabled(true);
+  JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
   global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   if (!global) {
@@ -395,6 +520,18 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   if (PyType_Ready(&JSObjectProxyType) < 0)
     return NULL;
+  if (PyType_Ready(&JSArrayProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSArrayIterProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectIterProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectKeysProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectValuesProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectItemsProxyType) < 0)
+    return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
@@ -416,6 +553,48 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   Py_INCREF(&JSObjectProxyType);
   if (PyModule_AddObject(pyModule, "JSObjectProxy", (PyObject *)&JSObjectProxyType) < 0) {
     Py_DECREF(&JSObjectProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSArrayProxyType);
+  if (PyModule_AddObject(pyModule, "JSArrayProxy", (PyObject *)&JSArrayProxyType) < 0) {
+    Py_DECREF(&JSArrayProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSArrayIterProxyType);
+  if (PyModule_AddObject(pyModule, "JSArrayIterProxy", (PyObject *)&JSArrayIterProxyType) < 0) {
+    Py_DECREF(&JSArrayIterProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectIterProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectIterProxy", (PyObject *)&JSObjectIterProxyType) < 0) {
+    Py_DECREF(&JSObjectIterProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectKeysProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectKeysProxy", (PyObject *)&JSObjectKeysProxyType) < 0) {
+    Py_DECREF(&JSObjectKeysProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectValuesProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectValuesProxy", (PyObject *)&JSObjectValuesProxyType) < 0) {
+    Py_DECREF(&JSObjectValuesProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectItemsProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectItemsProxy", (PyObject *)&JSObjectItemsProxyType) < 0) {
+    Py_DECREF(&JSObjectItemsProxyType);
     Py_DECREF(pyModule);
     return NULL;
   }
