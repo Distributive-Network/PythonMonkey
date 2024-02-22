@@ -176,7 +176,6 @@ def test_keys_iter():
         result.append(i)
     assert result == ['a', 'b']
 
-# TODO causes crash
 def test_keys_iter_reverse():
     obj = pm.eval("({ a: 123, b: 'test' })")
     result = []
