@@ -33,25 +33,18 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   PyEventLoop::AsyncHandle handle = loop.enqueueWithDelay(job, delaySeconds);
 
   // Return the `timeoutID` to use in `clearTimeout`
-  args.rval().setDouble((double)PyEventLoop::AsyncHandle::getUniqueId(std::move(handle)));
+  args.rval().setNumber(PyEventLoop::AsyncHandle::getUniqueId(std::move(handle)));
   return true;
 }
 
-// TODO (Tom Tang): move argument checks to the JavaScript side
 static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
   using AsyncHandle = PyEventLoop::AsyncHandle;
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  JS::HandleValue timeoutIdArg = args.get(0);
+  double timeoutID = args.get(0).toNumber();
 
   args.rval().setUndefined();
 
-  // silently does nothing when an invalid timeoutID is passed in
-  if (!timeoutIdArg.isInt32()) {
-    return true;
-  }
-
   // Retrieve the AsyncHandle by `timeoutID`
-  int32_t timeoutID = timeoutIdArg.toInt32();
   AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
   if (!handle) return true; // does nothing on invalid timeoutID
 

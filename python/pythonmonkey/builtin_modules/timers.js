@@ -55,6 +55,10 @@ function setTimeout(handler, delayMs = 0, ...args)
  */
 function clearTimeout(timeoutId) 
 {
+  // silently does nothing when an invalid timeoutId (should be an int32 value) is passed in
+  if (!Number.isInteger(timeoutId))
+    return;
+
   return cancelByTimeoutId(timeoutId);
 }
 
