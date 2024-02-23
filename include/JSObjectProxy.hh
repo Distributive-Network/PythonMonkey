@@ -23,7 +23,7 @@
  */
 typedef struct {
   PyDictObject dict;
-  JS::RootedObject jsObject;
+  JS::PersistentRootedObject jsObject;
 } JSObjectProxy;
 
 /**
@@ -315,7 +315,6 @@ static PyMethodDef JSObjectProxy_methods[] = {
   {"get", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get_method, METH_FASTCALL, dict_get__doc__},
   {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
   {"pop", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method, METH_FASTCALL, dict_pop__doc__},
-  // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and quite a bit strange
   {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, clear__doc__},
   {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, copy__doc__},
   {"update", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_update_method, METH_VARARGS | METH_KEYWORDS, update__doc__},
