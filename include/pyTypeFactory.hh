@@ -17,14 +17,6 @@
 
 #include <Python.h>
 
-/** @brief Function that takes an arbitrary PyObject* and returns a corresponding PyType* object
-
-    @author Caleb Aikens
-    @date August 2022
-
-    @param object - Pointer to the PyObject who's type and value we wish to encapsulate
- */
-PyType *pyTypeFactory(PyObject *object);
 
 /**
  * @brief Function that takes a JS::Value and returns a corresponding PyType* object, doing shared memory management when necessary
@@ -35,11 +27,5 @@ PyType *pyTypeFactory(PyObject *object);
  * @return PyType* - Pointer to a PyType object corresponding to the JS::Value
  */
 PyType *pyTypeFactory(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue rval);
-
-/**
- * @brief same to pyTypeFactory, but it's guaranteed that no error would be set on the Python error stack, instead
- * returning `pythonmonkey.null` on error
- */
-PyType *pyTypeFactorySafe(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue rval);
 
 #endif

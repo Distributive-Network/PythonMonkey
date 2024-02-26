@@ -39,33 +39,6 @@
 
 #include <Python.h>
 
-PyType *pyTypeFactory(PyObject *object) {
-  PyType *pyType;
-
-  if (PyLong_Check(object)) {
-    pyType = new IntType(object);
-  }
-  else if (PyUnicode_Check(object)) {
-    pyType = new StrType(object);
-  }
-  else if (PyFunction_Check(object)) {
-    pyType = new FuncType(object);
-  }
-  else if (PyDict_Check(object)) {
-    pyType = new DictType(object);
-  }
-  else if (PyList_Check(object)) {
-    pyType = new ListType(object);
-  }
-  else if (PyTuple_Check(object)) {
-    pyType = new TupleType(object);
-  }
-  else {
-    return nullptr;
-  }
-
-  return pyType;
-}
 
 PyType *pyTypeFactory(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue rval) {
   if (rval.isUndefined()) {
@@ -177,15 +150,4 @@ PyType *pyTypeFactory(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue r
   errorString += JS_EncodeStringToUTF8(cx, str).get();
   PyErr_SetString(PyExc_TypeError, errorString.c_str());
   return NULL;
-}
-
-PyType *pyTypeFactorySafe(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue rval) {
-  PyType *v = pyTypeFactory(cx, thisObj, rval);
-  if (PyErr_Occurred()) {
-    // Clear Python error
-    PyErr_Clear();
-    // Return `pythonmonkey.null` on error
-    return new NullType();
-  }
-  return v;
 }
