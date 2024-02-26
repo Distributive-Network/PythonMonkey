@@ -58,7 +58,6 @@ async def request(
         body = bytes(body, "utf-8")
 
     # set default headers
-    headers=dict(headers)
     headers.setdefault("user-agent", f"Python/{platform.python_version()} PythonMonkey/{pm.__version__}")
 
     if timeoutMs > 0:
