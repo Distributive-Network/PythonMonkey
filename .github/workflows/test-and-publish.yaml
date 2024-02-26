@@ -25,8 +25,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 20.04 / macOS 12 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-12', 'm2ci' ]
+        # Use Ubuntu 20.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14' ] # macOS 14 runner exclusively runs on M1 hardwares
+                                                       # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -40,13 +41,13 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey102.13-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey115.7.0-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
-      - name: Setup Poetry
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.5.1
+      - name: Setup XCode
+        if: ${{ (matrix.os == 'macos-13' || matrix.os == 'macos-14') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        # SpiderMonkey 115 ESR requires XCode SDK version at least 13.3
+        # https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md#installed-sdks
+        run: sudo xcode-select -switch /Applications/Xcode_14.3.app
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
@@ -60,13 +61,8 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey102.13-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey115.7.0-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
-      - name: Setup Poetry
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.5.1
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         shell: powershell
@@ -82,6 +78,10 @@ jobs:
           powershell -command 'Start-Process -Wait -FilePath "./MozillaBuildSetup-Latest.exe" -ArgumentList "/S"'
       - name: Build spidermonkey in MozillaBuild environment
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        env:
+          # Preserve MozillaBuild v4.0.x behaviour
+          # see https://groups.google.com/u/1/a/mozilla.org/g/dev-platform/c/hF51Q3j6ca8
+          USE_MINTTY: 0
         run: /c/mozilla-build/start-shell.bat -use-full-path -here ./setup.sh
   build-and-test:
     needs: [build-spidermonkey-unix, build-spidermonkey-win]
@@ -89,8 +89,8 @@ jobs:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019', 'm2ci' ]
-        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12-dev' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019', 'macos-14' ]
+        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
           # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12
@@ -98,14 +98,15 @@ jobs:
             python_version: '3.8'
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
           # see https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-          - os: 'm2ci'
+          - os: 'macos-14'
             python_version: '3.8'
-          - os: 'm2ci'
+          - os: 'macos-14'
             python_version: '3.9'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
         with:
+          submodules: recursive
           fetch-depth: 0 # fetch all history for all branches and tags
           # poetry-dynamic-versioning needs git tags to produce the correct version number 
       - uses: actions/setup-python@v4
@@ -120,7 +121,13 @@ jobs:
           echo "Installing Dependencies"
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
             sudo apt-get update -y
-            sudo apt-get install -y cmake doxygen graphviz llvm
+            sudo apt-get install -y cmake graphviz llvm
+            # Install Doxygen
+            # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
+            wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
+            tar xf doxygen-1.9.7.linux.bin.tar.gz
+            cd doxygen-1.9.7 && sudo make install && cd -
+            rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
             brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
@@ -135,7 +142,7 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey102.13-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey115.7.0-${{ runner.os }}-${{ runner.arch }}
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build pminit
         run: |
@@ -154,13 +161,17 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
+      - name: Upload Doxygen-generated docs as CI artifacts
+        uses: actions/upload-artifact@v3
+        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }} # making sure we only upload once
+        with:
+          name: docs-${{ github.run_id }}-${{ github.sha }}
+          path: ./build/docs/html/
       - name: Run Python tests (pytest)
         run: |
           poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
-        if: ${{ runner.os != 'Windows' }} # Python on Windows doesn't have the readline library
-        # FIXME: on macOS we must make sure to use the GNU version of wc and realpath
         run: |
           poetry run bash ./peter-jr ./tests/js/
   sdist:
@@ -191,14 +202,11 @@ jobs:
     runs-on: ubuntu-20.04
     if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     steps:
-      - uses: actions/checkout@v3
+      # no need to checkout
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Setup Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.5.1
+      - run: pip install twine
       - name: Download wheels built
         uses: actions/download-artifact@v3
         with:
@@ -207,8 +215,8 @@ jobs:
       - run: ls -lah ./dist/
       - name: Publish package
         run: |
-          poetry publish \
-            --no-interaction --skip-existing \
+          twine upload dist/* \
+            --non-interactive --skip-existing \
             --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
   publish-nightly:
     # Implement a very basic Python package repository (https://peps.python.org/pep-0503/)
@@ -229,6 +237,11 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
+      - name: Download docs html generated by Doxygen
+        uses: actions/download-artifact@v3
+        with:
+          name: docs-${{ github.run_id }}-${{ github.sha }}
+          path: ./docs/
       - name: Move wheels to the correct repository project paths
         run: |
           mkdir -p ./pythonmonkey/ ./pminit/

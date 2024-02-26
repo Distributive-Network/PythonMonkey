@@ -5,7 +5,7 @@
  * @author      Wes Garland, wes@distributive.network
  * @date        June 2023
  */
-"use strict";
+'use strict';
 
 function fun(abc)
 {

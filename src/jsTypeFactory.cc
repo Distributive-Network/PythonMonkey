@@ -15,19 +15,24 @@
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
 #include "include/JSObjectProxy.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/JSArrayProxy.hh"
+#include "include/PyDictProxyHandler.hh"
+#include "include/PyListProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
 #include "include/PromiseType.hh"
+#include "include/DateType.hh"
 #include "include/ExceptionType.hh"
 #include "include/BufferType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
 #include <js/Proxy.h>
+#include <js/Array.h>
 
 #include <Python.h>
+#include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
 
 #define HIGH_SURROGATE_START 0xD800
 #define LOW_SURROGATE_START 0xDC00
@@ -65,6 +70,8 @@ size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
 }
 
 JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
+  if (!PyDateTimeAPI) { PyDateTime_IMPORT; } // for PyDateTime_Check
+
   JS::RootedValue returnType(cx);
 
   if (PyBool_Check(object)) {
@@ -117,6 +124,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
     memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
+  else if (PyCFunction_Check(object) && PyCFunction_GetFunction(object) == callJSFunc) {
+    // If it's a wrapped JS function by us, return the underlying JS function rather than wrapping it again
+    PyObject *jsCxThisFuncTuple = PyCFunction_GetSelf(object);
+    JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
+    returnType.set(*jsFunc);
+  }
   else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
@@ -139,6 +152,10 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     JSObject *error = ExceptionType(object).toJsError(cx);
     returnType.setObject(*error);
   }
+  else if (PyDateTime_Check(object)) {
+    JSObject *dateObj = DateType(object).toJsDate(cx);
+    returnType.setObject(*dateObj);
+  }
   else if (PyObject_CheckBuffer(object)) {
     BufferType *pmBuffer = new BufferType(object);
     JSObject *typedArray = pmBuffer->toJsTypedArray(cx); // may return null
@@ -148,14 +165,23 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
+  else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
+    returnType.setObject(*((JSArrayProxy *)object)->jsArray);
+  }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
     JSObject *proxy;
     if (PyList_Check(object)) {
-      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
+      JS::RootedObject arrayPrototype(cx);
+      JS_GetClassPrototype(cx, JSProto_Array, &arrayPrototype); // so that instanceof will work, not that prototype methods will
+      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, arrayPrototype.get());
     } else {
-      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
+      JS::RootedObject objectPrototype(cx);
+      JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
+      proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, objectPrototype.get());
     }
+    Py_INCREF(object);
+    JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     returnType.setObject(*proxy);
   }
   else if (object == Py_None) {
@@ -177,7 +203,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
-
 }
 
 JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
@@ -196,6 +221,21 @@ JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
   return v;
 }
 
+void setPyException(JSContext *cx) {
+  // Python `exit` and `sys.exit` only raise a SystemExit exception to end the program
+  // We definitely don't want to catch it in JS
+  if (PyErr_ExceptionMatches(PyExc_SystemExit)) {
+    return;
+  }
+
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
+
+  JSObject *jsException = ExceptionType(value).toJsError(cx);
+  JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
+  JS_SetPendingException(cx, jsExceptionValue);
+}
+
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
 
@@ -206,13 +246,16 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::RootedObject *thisv = new JS::RootedObject(cx);
   JS_ValueToObject(cx, callargs.thisv(), thisv);
 
-  if (!callargs.length()) {
+  unsigned int callArgsLength = callargs.length();
+
+  if (!callArgsLength) {
     #if PY_VERSION_HEX >= 0x03090000
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
     #else
     PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
     #endif
     if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
+      setPyException(cx);
       return false;
     }
     // @TODO (Caleb Aikens) need to check for python exceptions here
@@ -221,20 +264,25 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   // populate python args tuple
-  PyObject *pyArgs = PyTuple_New(callargs.length());
-  for (size_t i = 0; i < callargs.length(); i++) {
+  PyObject *pyArgs = PyTuple_New(callArgsLength);
+  for (size_t i = 0; i < callArgsLength; i++) {
     JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
     PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
-    PyTuple_SetItem(pyArgs, i, pyArg->getPyObject());
+    if (!pyArg) return false; // error occurred
+    PyObject *pyArgObj = pyArg->getPyObject();
+    if (!pyArgObj) return false; // error occurred
+    PyTuple_SetItem(pyArgs, i, pyArgObj);
   }
 
   PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
   if (PyErr_Occurred()) {
+    setPyException(cx);
     return false;
   }
   // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
+    setPyException(cx);
     return false;
   }
 

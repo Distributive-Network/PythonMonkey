@@ -17,11 +17,12 @@ panic()
 
 cd `dirname "$0"` || panic "could not change to test directory"
 
-"${PMJS:-../../pmjs}" \
+"${PMJS:-pmjs}" \
 -e 'console.log("stdout")' \
 -e 'console.debug("stdout")' \
 -e 'console.info("stdout")' \
 < /dev/null \
+| tr -d '\r' \
 | grep -c '^stdout$' \
 | while read qty
   do
@@ -30,10 +31,11 @@ cd `dirname "$0"` || panic "could not change to test directory"
     break
   done || exit $?
 
-"${PMJS:-../../pmjs}" \
+"${PMJS:-pmjs}" \
 -e 'console.error("stderr")' \
 -e 'console.warn("stderr")' \
 < /dev/null 2>&1 \
+| tr -d '\r' \
 | grep -c '^stderr$' \
 | while read qty
   do

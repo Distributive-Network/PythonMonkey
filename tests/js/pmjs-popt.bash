@@ -17,7 +17,8 @@ panic()
 
 cd `dirname "$0"` || panic "could not change to test directory"
 
-"${PMJS:-../../pmjs}" -p '"OKAY"' < /dev/null |\
+"${PMJS:-pmjs}" -p '"OKAY"' < /dev/null |\
+tr -d '\r' |\
 while read keyword rest
 do
   case "$keyword" in
@@ -27,7 +28,7 @@ do
       exit 111
       ;;
     *)
-      echo "Ignored: ${keyword} ${rest} (${loaded})"
+      echo "Ignored: ${keyword} ${rest}"
       ;;
   esac
 done

@@ -3,13 +3,17 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os, readline, signal, getopt
+import sys, os, signal, getopt
+import readline
+import asyncio
 import pythonmonkey as pm
+from pythonmonkey.lib import pmdb
+
 globalThis = pm.eval("globalThis")
-evalOptions = { 'strict': False }
+evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
 
 if (os.getenv('PMJS_PATH')):
-    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(':')))
+    requirePath = list(map(os.path.abspath, os.getenv('PMJS_PATH').split(',')))
 else:
     requirePath = False;
 
@@ -41,10 +45,24 @@ cmds.python = function pythonCmd(...args) {
     return;
   }
 
-  if (arguments[0] === 'from' || arguments[0] === 'import')
-    return python.exec(cmd);
+  if (cmd === '')
+  {
+    return;
+  }
+  
+  try {
+    if (arguments[0] === 'from' || arguments[0] === 'import')
+    {
+      return python.exec(cmd);
+    }
 
-  const retval = python.eval(cmd);
+    const retval = python.eval(cmd);
+  }
+  catch(error) {
+    globalThis._error = error;
+    return util.inspect(error);
+  }
+  
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
   globalThis['$' + pythonCmd.serial] = retval;
   python.stdout.write('$' + pythonCmd.serial + ' = ');
@@ -94,7 +112,7 @@ globalThis.replEval = function replEval(statement)
    * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
    * we re-evaluate without the parens.
    */
-  if (/^\\s*\{.*[^;\\s]\\s*$/.test(statement))
+  if (/^\\s*\\{.*[^;\\s]\\s*$/.test(statement))
   {
     const testStatement = `(${statement})`;
     if (globalThis.python.pythonMonkey.isCompilableUnit(testStatement))
@@ -127,7 +145,7 @@ globalThis.replEval = function replEval(statement)
     return util.inspect(error);
   }
 }
-""");
+""", evalOpts);
 
 def repl():
     """
@@ -181,8 +199,7 @@ def repl():
 
         got_sigint = got_sigint + 1
         if (got_sigint > 1):
-            sys.stdout.write("\n")
-            quit()
+            raise EOFError
 
         if (inner_loop != True):
             if (got_sigint == 1 and len(readline.get_line_buffer()) == readline_skip_chars):
@@ -273,6 +290,7 @@ Options:
   -r, --require...     module to preload (option can be repeated)
   -v, --version        print PythonMonkey version
   --use-strict         evaluate -e, -p, and REPL code in strict mode
+  --inspect            enable pmdb, a gdb-like JavaScript debugger interface
   
 Environment variables:
 TZ                            specify the timezone configuration
@@ -290,7 +308,7 @@ def initGlobalThis():
 
     require = pm.createRequire(os.path.abspath(os.getcwd() + '/__pmjs_virtual__'), requirePath)
     globalThis.require = require
-    globalInitModule = require(os.path.dirname(__file__) + "/pmjs-lib/global-init") # module load has side-effects
+    globalInitModule = require(os.path.realpath(os.path.dirname(__file__) + "/../lib/pmjs/global-init")) # module load has side-effects
     argvBuilder = globalInitModule.makeArgvBuilder()
     for arg in sys.argv:
         argvBuilder(arg); # list=>Array not working yet
@@ -306,7 +324,7 @@ def main():
     global requirePath
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "use-strict"])
+        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "interactive", "use-strict", "inspect"])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)  # will print something like "option -a not recognized"
@@ -319,27 +337,31 @@ def main():
             print(pm.__version__)
             sys.exit()
         elif o in ("--use-strict"):
-            evalOptions['strict'] = True
+            evalOpts['strict'] = True
         elif o in ("-h", "--help"):
             usage()
             sys.exit()
         elif o in ("-i", "--interactive"):
             forceRepl = True
         elif o in ("-e", "--eval"):
-            pm.eval(a, evalOptions)
+            pm.eval(a, evalOpts)
             enterRepl = False
         elif o in ("-p", "--print"):
-            print(pm.eval(a, evalOptions))
+            print(pm.eval(a, evalOpts))
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
-            #            pm.eval('require')(a)
+        elif o in ("--inspect"):
+            pmdb.enable()
         else:
             assert False, "unhandled option"
 
     if (len(args) > 0):
-        globalInitModule.patchGlobalRequire()
-        pm.runProgramModule(args[0], args, requirePath)
+        async def runJS():
+            globalInitModule.patchGlobalRequire()
+            pm.runProgramModule(args[0], args, requirePath)
+            await pm.wait() # blocks until all asynchronous calls finish
+        asyncio.run(runJS())
     elif (enterRepl or forceRepl):
         globalInitModule.initReplLibs()
         repl()

@@ -1,11 +1,10 @@
 /**
  * @file pythonmonkey.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief This file defines the pythonmonkey module, along with its various functions.
- * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -17,6 +16,12 @@
 #include "include/DateType.hh"
 #include "include/FloatType.hh"
 #include "include/FuncType.hh"
+#include "include/JSArrayIterProxy.hh"
+#include "include/JSArrayProxy.hh"
+#include "include/JSObjectIterProxy.hh"
+#include "include/JSObjectKeysProxy.hh"
+#include "include/JSObjectValuesProxy.hh"
+#include "include/JSObjectItemsProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
@@ -62,7 +67,7 @@ static PyTypeObject NullType = {
 static PyTypeObject BigIntType = {
   .tp_name = "pythonmonkey.bigint",
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_LONG_SUBCLASS // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_LONG_SUBCLASS
+  | Py_TPFLAGS_LONG_SUBCLASS
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
   .tp_doc = PyDoc_STR("Javascript BigInt object"),
   .tp_base = &PyLong_Type,   // extending the builtin int type
@@ -72,17 +77,136 @@ PyTypeObject JSObjectProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "pythonmonkey.JSObjectProxy",
   .tp_basicsize = sizeof(JSObjectProxy),
+  .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_repr,
+  .tp_as_number = &JSObjectProxy_number_methods,
+  .tp_as_sequence = &JSObjectProxy_sequence_methods,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
+  .tp_hash = PyObject_HashNotImplemented,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
   .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_DICT_SUBCLASS,  // https://docs.python.org/3/c-api/typeobj.html#Py_TPFLAGS_DICT_SUBCLASS
+  | Py_TPFLAGS_DICT_SUBCLASS,
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
+  .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
+  .tp_methods = JSObjectProxy_methods,
   .tp_base = &PyDict_Type,
   .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
   .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+};
+
+PyTypeObject JSArrayProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSArrayProxy",
+  .tp_basicsize = sizeof(JSArrayProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc,
+  .tp_repr = (reprfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_repr,
+  .tp_as_sequence = &JSArrayProxy_sequence_methods,
+  .tp_as_mapping = &JSArrayProxy_mapping_methods,
+  .tp_getattro = (getattrofunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS,
+  .tp_doc = PyDoc_STR("Javascript Array proxy list"),
+  .tp_traverse = (traverseproc)JSArrayProxyMethodDefinitions::JSArrayProxy_traverse,
+  .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot,
+  .tp_richcompare = (richcmpfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare,
+  .tp_iter = (getiterfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_iter,
+  .tp_methods = JSArrayProxy_methods,
+  .tp_base = &PyList_Type,
+  .tp_init = (initproc)JSArrayProxyMethodDefinitions::JSArrayProxy_init,
+  .tp_new = JSArrayProxyMethodDefinitions::JSArrayProxy_new,
+};
+
+PyTypeObject JSArrayIterProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSArrayIterProxy",
+  .tp_basicsize = sizeof(JSArrayIterProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_dealloc,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Array proxy iterator"),
+  .tp_traverse =  (traverseproc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_traverse,
+  .tp_iter = (getiterfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_iter,
+  .tp_iternext = (iternextfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next,
+  .tp_methods = JSArrayIterProxy_methods,
+  .tp_base = &PyListIter_Type
+};
+
+PyTypeObject JSObjectIterProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectIterProxy",
+  .tp_basicsize = sizeof(JSObjectIterProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_dealloc,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object proxy key iterator"),
+  .tp_traverse =  (traverseproc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_traverse,
+  .tp_iter = (getiterfunc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_iter,
+  .tp_iternext = (iternextfunc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey,
+  .tp_methods = JSObjectIterProxy_methods,
+  .tp_base = &PyDictIterKey_Type
+};
+
+PyTypeObject JSObjectKeysProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectKeysProxy",
+  .tp_basicsize = sizeof(JSObjectKeysProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_repr,
+  .tp_as_number = &JSObjectKeysProxy_number_methods,
+  .tp_as_sequence = &JSObjectKeysProxy_sequence_methods,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object Keys proxy"),
+  .tp_traverse =  (traverseproc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_traverse,
+  .tp_richcompare = (richcmpfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_richcompare,
+  .tp_iter = (getiterfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_iter,
+  .tp_methods = JSObjectKeysProxy_methods,
+  .tp_getset = JSObjectKeysProxy_getset,
+  .tp_base = &PyDictKeys_Type
+};
+
+PyTypeObject JSObjectValuesProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectValuesProxy",
+  .tp_basicsize = sizeof(JSObjectValuesProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_repr,
+  .tp_as_sequence = &JSObjectValuesProxy_sequence_methods,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object Values proxy"),
+  .tp_traverse =  (traverseproc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_traverse,
+  .tp_iter = (getiterfunc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_iter,
+  .tp_methods = JSObjectValuesProxy_methods,
+  .tp_getset = JSObjectValuesProxy_getset,
+  .tp_base = &PyDictValues_Type
+};
+
+PyTypeObject JSObjectItemsProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSObjectItemsProxy",
+  .tp_basicsize = sizeof(JSObjectItemsProxy),
+  .tp_itemsize = 0,
+  .tp_dealloc = (destructor)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_dealloc,
+  .tp_repr = (reprfunc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_repr,
+  // .tp_as_number = defaults are fine
+  .tp_as_sequence = &JSObjectItemsProxy_sequence_methods,
+  .tp_getattro = PyObject_GenericGetAttr,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+  .tp_doc = PyDoc_STR("Javascript Object Items proxy"),
+  .tp_traverse =  (traverseproc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_traverse,
+  // .tp_richcompare = TODO tuple support
+  .tp_iter = (getiterfunc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_iter,
+  .tp_methods = JSObjectItemsProxy_methods,
+  .tp_getset = JSObjectItemsProxy_getset,
+  .tp_base = &PyDictKeys_Type
 };
 
 static void cleanup() {
@@ -142,16 +266,6 @@ static PyObject *collect(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyObject *asUCS4(PyObject *self, PyObject *args) {
-  StrType *str = new StrType(PyTuple_GetItem(args, 0));
-  if (!PyUnicode_Check(str->getPyObject())) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.asUCS4 expects a string as its first argument");
-    return NULL;
-  }
-
-  return str->asUCS4();
-}
-
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {
   PyObject *value;
 
@@ -196,7 +310,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
   JSAutoRealm ar(GLOBAL_CX, *global);
   JS::CompileOptions options (GLOBAL_CX);
-  options.setFileAndLine("@evaluate", 1)
+  options.setFileAndLine("evaluate", 1)
   .setIsRunOnce(true)
   .setNoScriptRval(false)
   .setIntroductionType("pythonmonkey eval");
@@ -214,9 +328,29 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     if (getEvalOption(evalOptions, "selfHosting", &b)) options.setSelfHostingMode(b);
     if (getEvalOption(evalOptions, "strict", &b)) if (b) options.setForceStrictMode();
     if (getEvalOption(evalOptions, "module", &b)) if (b) options.setModule();
-  }
 
-  // initialize JS context
+    if (getEvalOption(evalOptions, "fromPythonFrame", &b) && b) {
+#if PY_VERSION_HEX >= 0x03090000
+      PyFrameObject *frame = PyEval_GetFrame();
+      if (frame && !getEvalOption(evalOptions, "lineno", &l)) {
+        options.setLine(PyFrame_GetLineNumber(frame));
+      } /* lineno */
+#endif
+#if 0 && (PY_VERSION_HEX >= 0x030a0000) && (PY_VERSION_HEX < 0x030c0000)
+      PyObject *filename = PyDict_GetItemString(frame->f_builtins, "__file__");
+#elif (PY_VERSION_HEX >= 0x030c0000)
+      PyObject *filename = PyDict_GetItemString(PyFrame_GetGlobals(frame), "__file__");
+#else
+      PyObject *filename = NULL;
+#endif
+      if (!getEvalOption(evalOptions, "filename", &s)) {
+        if (filename && PyUnicode_Check(filename)) {
+          options.setFile(PyUnicode_AsUTF8(filename));
+        }
+      } /* filename */
+    } /* fromPythonFrame */
+  } /* eval options */
+    // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
   if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
     setSpiderMonkeyException(GLOBAL_CX);
@@ -238,13 +372,16 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
-  js::ESClass cls = js::ESClass::Other; // placeholder if `rval` is not a JSObject
+  js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
   if (rval->isObject()) {
     JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
+    if (JS_ObjectIsBoundFunction(&rval->toObject())) {
+      cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
+    }
   }
-  bool rvalIsFunction = cls == js::ESClass::Function; // function object
-  bool rvalIsString = rval->isString() || cls == js::ESClass::String; // string primitive or boxed String object
-  if (!(rvalIsFunction || rvalIsString)) {  // rval may be a JS function or string which must be kept alive.
+  bool rvalIsFunction = cls == js::ESClass::Function;   // function object
+  bool rvalIsString = rval->isString() || cls == js::ESClass::String;   // string primitive or boxed String object
+  if (!(rvalIsFunction || rvalIsString)) {   // rval may be a JS function or string which must be kept alive.
     delete rval;
   }
 
@@ -254,6 +391,17 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   else {
     Py_RETURN_NONE;
   }
+}
+
+static PyObject *waitForEventLoop(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED(_)) {
+  PyObject *waiter = PyEventLoop::_locker->_queueIsEmpty; // instance of asyncio.Event
+
+  // Making sure it's attached to the current event-loop
+  PyEventLoop loop = PyEventLoop::getRunningLoop();
+  if (!loop.initialized()) return NULL;
+  PyObject_SetAttrString(waiter, "_loop", loop._loop);
+
+  return PyObject_CallMethod(waiter, "wait", NULL);
 }
 
 static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
@@ -277,9 +425,9 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
 
 PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
+  {"wait", waitForEventLoop, METH_NOARGS, "The event-loop shield. Blocks until all asynchronous jobs finish."},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
-  {"asUCS4", asUCS4, METH_VARARGS, "Expects a python string in UTF16 encoding, and returns a new equivalent string in UCS4. Undefined behaviour if the string is not in UTF16."},
   {NULL, NULL, 0, NULL}
 };
 
@@ -287,100 +435,16 @@ struct PyModuleDef pythonmonkey =
 {
   PyModuleDef_HEAD_INIT,
   "pythonmonkey",                                   /* name of module */
-  "A module for python to JS interoperability", /* module documentation, may be NULL */
+  "A module for python to JS interoperability",   /* module documentation, may be NULL */
   -1,                                           /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
   PythonMonkeyMethods
 };
 
 PyObject *SpiderMonkeyError = NULL;
 
-// Implement the `setTimeout` global function
-//    https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
-//    https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-settimeout
-static bool setTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  // Ensure the first parameter is a function
-  // We don't support passing a `code` string to `setTimeout` (yet)
-  JS::HandleValue jobArgVal = args.get(0);
-  bool jobArgIsFunction = jobArgVal.isObject() && js::IsFunctionObject(&jobArgVal.toObject());
-  if (!jobArgIsFunction) {
-    JS_ReportErrorNumberASCII(cx, nullptr, nullptr, JSErrNum::JSMSG_NOT_FUNCTION, "The first parameter to setTimeout()");
-    return false;
-  }
-
-  // Get the function to be executed
-  // FIXME (Tom Tang): memory leak, not free-ed
-  JS::RootedObject *thisv = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(&args.callee())); // HTML spec requires `thisArg` to be the global object
-  JS::RootedValue *jobArg = new JS::RootedValue(cx, jobArgVal);
-  // `setTimeout` allows passing additional arguments to the callback, as spec-ed
-  if (args.length() > 2) { // having additional arguments
-    // Wrap the job function into a bound function with the given additional arguments
-    //    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
-    JS::RootedVector<JS::Value> bindArgs(cx);
-    (void)bindArgs.append(JS::ObjectValue(**thisv)); /** @todo XXXwg handle return value */
-    for (size_t j = 2; j < args.length(); j++) {
-      (void)bindArgs.append(args[j]); /** @todo XXXwg handle return value */
-    }
-    JS::RootedObject jobArgObj = JS::RootedObject(cx, &jobArgVal.toObject());
-    JS_CallFunctionName(cx, jobArgObj, "bind", JS::HandleValueArray(bindArgs), jobArg); // jobArg = jobArg.bind(thisv, ...bindArgs)
-  }
-  // Convert to a Python function
-  PyObject *job = pyTypeFactory(cx, thisv, jobArg)->getPyObject();
-
-  // Get the delay time
-  //  JS `setTimeout` takes milliseconds, but Python takes seconds
-  double delayMs = 0; // use value of 0 if the delay parameter is omitted
-  if (args.hasDefined(1)) { JS::ToNumber(cx, args[1], &delayMs); } // implicitly do type coercion to a `number`
-  if (delayMs < 0) { delayMs = 0; } // as spec-ed
-  double delaySeconds = delayMs / 1000; // convert ms to s
-
-  // Schedule job to the running Python event-loop
-  PyEventLoop loop = PyEventLoop::getRunningLoop();
-  if (!loop.initialized()) return false;
-  PyEventLoop::AsyncHandle handle = loop.enqueueWithDelay(job, delaySeconds);
-
-  // Return the `timeoutID` to use in `clearTimeout`
-  args.rval().setDouble((double)PyEventLoop::AsyncHandle::getUniqueId(std::move(handle)));
-
-  return true;
-}
-
-// Implement the `clearTimeout` global function
-//    https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout
-//    https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-cleartimeout
-static bool clearTimeout(JSContext *cx, unsigned argc, JS::Value *vp) {
-  using AsyncHandle = PyEventLoop::AsyncHandle;
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  JS::HandleValue timeoutIdArg = args.get(0);
-
-  args.rval().setUndefined();
-
-  // silently does nothing when an invalid timeoutID is passed in
-  if (!timeoutIdArg.isInt32()) {
-    return true;
-  }
-
-  // Retrieve the AsyncHandle by `timeoutID`
-  int32_t timeoutID = timeoutIdArg.toInt32();
-  AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
-  if (!handle) return true; // does nothing on invalid timeoutID
-
-  // Cancel this job on Python event-loop
-  handle->cancel();
-
-  return true;
-}
-
-static JSFunctionSpec jsGlobalFunctions[] = {
-  JS_FN("setTimeout", setTimeout, /* nargs */ 2, 0),
-  JS_FN("clearTimeout", clearTimeout, 1, 0),
-  JS_FS_END
-};
-
 PyMODINIT_FUNC PyInit_pythonmonkey(void)
 {
-  PyDateTime_IMPORT;
+  if (!PyDateTimeAPI) { PyDateTime_IMPORT; }
 
   SpiderMonkeyError = PyErr_NewException("pythonmonkey.SpiderMonkeyError", NULL, NULL);
   if (!JS_Init()) {
@@ -412,7 +476,10 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  JS::RealmOptions options;
+  JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+  JS::RealmBehaviors behaviours = JS::RealmBehaviors();
+  creationOptions.setIteratorHelpersEnabled(true);
+  JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
   global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   if (!global) {
@@ -420,20 +487,23 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
-
-  if (!JS_DefineFunctions(GLOBAL_CX, *global, jsGlobalFunctions)) {
-    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not define global functions.");
-    return NULL;
+  JS::RootedObject debuggerGlobal(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
+  {
+    JSAutoRealm r(GLOBAL_CX, debuggerGlobal);
+    JS_DefineProperty(GLOBAL_CX, debuggerGlobal, "mainGlobal", *global, JSPROP_READONLY);
+    JS_DefineDebuggerObject(GLOBAL_CX, debuggerGlobal);
   }
 
+  autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
+
   JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
+  JS_DefineProperty(GLOBAL_CX, *global, "debuggerGlobal", debuggerGlobal, JSPROP_READONLY);
 
   // XXX: SpiderMonkey bug???
   // In https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/jit/CacheIR.cpp#l317, trying to use the callback returned by `js::GetDOMProxyShadowsCheck()` even it's unset (nullptr)
   // Temporarily solved by explicitly setting the `domProxyShadowsCheck` callback here
   JS::SetDOMProxyInformation(nullptr,
-    [](JSContext *, JS::HandleObject, JS::HandleId) { // domProxyShadowsCheck
+    [](JSContext *, JS::HandleObject, JS::HandleId) {   // domProxyShadowsCheck
       return JS::DOMProxyShadowsResult::ShadowCheckFailed;
     }, nullptr);
 
@@ -443,6 +513,18 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   if (PyType_Ready(&BigIntType) < 0)
     return NULL;
   if (PyType_Ready(&JSObjectProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSArrayProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSArrayIterProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectIterProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectKeysProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectValuesProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSObjectItemsProxyType) < 0)
     return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
@@ -469,10 +551,55 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  Py_INCREF(&JSArrayProxyType);
+  if (PyModule_AddObject(pyModule, "JSArrayProxy", (PyObject *)&JSArrayProxyType) < 0) {
+    Py_DECREF(&JSArrayProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSArrayIterProxyType);
+  if (PyModule_AddObject(pyModule, "JSArrayIterProxy", (PyObject *)&JSArrayIterProxyType) < 0) {
+    Py_DECREF(&JSArrayIterProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectIterProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectIterProxy", (PyObject *)&JSObjectIterProxyType) < 0) {
+    Py_DECREF(&JSObjectIterProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectKeysProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectKeysProxy", (PyObject *)&JSObjectKeysProxyType) < 0) {
+    Py_DECREF(&JSObjectKeysProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectValuesProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectValuesProxy", (PyObject *)&JSObjectValuesProxyType) < 0) {
+    Py_DECREF(&JSObjectValuesProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSObjectItemsProxyType);
+  if (PyModule_AddObject(pyModule, "JSObjectItemsProxy", (PyObject *)&JSObjectItemsProxyType) < 0) {
+    Py_DECREF(&JSObjectItemsProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
   if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError)) {
     Py_DECREF(pyModule);
     return NULL;
   }
+
+  // Initialize event-loop shield
+  PyEventLoop::_locker = new PyEventLoop::Lock();
 
   PyObject *internalBindingPy = getInternalBindingPyFn(GLOBAL_CX);
   if (PyModule_AddObject(pyModule, "internalBinding", internalBindingPy) < 0) {

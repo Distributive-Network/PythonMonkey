@@ -97,6 +97,8 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
                                                   // see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.add_done_callback
   PyEventLoop::Future future = PyEventLoop::Future(futureObj);
 
+  PyEventLoop::_locker->decCounter();
+
   PyObject *exception = future.getException();
   if (exception == NULL || PyErr_Occurred()) { // awaitable is cancelled, `futureObj.exception()` raises a CancelledError
     // Reject the promise with the CancelledError, or very unlikely, an InvalidStateError exception if the Future isn’t done yet
@@ -130,6 +132,8 @@ JSObject *PromiseType::toJsPromise(JSContext *cx) {
   if (!loop.initialized()) return nullptr;
   PyEventLoop::Future future = loop.ensureFuture(pyObject);
 
+  PyEventLoop::_locker->incCounter();
+
   // Resolve or Reject the JS Promise once the python awaitable is done
   JS::PersistentRooted<JSObject *> *rootedPtr = new JS::PersistentRooted<JSObject *>(cx, promise); // `promise` is required to be rooted from here to the end of onDoneCallback
   PyObject *futureCallbackTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(rootedPtr));
@@ -140,14 +144,8 @@ JSObject *PromiseType::toJsPromise(JSContext *cx) {
 }
 
 bool PythonAwaitable_Check(PyObject *obj) {
-  // result = inspect.isawaitable(obj)
-  //    see https://docs.python.org/3.9/library/inspect.html#inspect.isawaitable
-  //        https://github.com/python/cpython/blob/3.9/Lib/inspect.py#L230-L235
-  PyObject *inspect = PyImport_ImportModule("inspect");
-  PyObject *result = PyObject_CallMethod(inspect, "isawaitable", "O", obj); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
-  bool isAwaitable = result == Py_True;
-  // cleanup
-  Py_DECREF(inspect);
-  Py_DECREF(result);
+  // see https://docs.python.org/3/c-api/typeobj.html#c.PyAsyncMethods
+  PyTypeObject *tp = Py_TYPE(obj);
+  bool isAwaitable = tp->tp_as_async != NULL && tp->tp_as_async->am_await != NULL;
   return isAwaitable;
 }

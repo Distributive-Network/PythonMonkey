@@ -50,7 +50,7 @@ public:
    * @return PyObject* - the UCS4-encoding of the pyObject string
    *
    */
-  PyObject *asUCS4();
+  static PyObject *asUCS4(PyObject *pyObject);
 };
 
 #endif

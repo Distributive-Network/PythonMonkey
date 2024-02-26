@@ -21,6 +21,7 @@ cd "$runDir"
 set -u
 set -o pipefail
 peter_exit_code=2
+defaultTimeout="${defaultTimeout:-15}"
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
 cat <<EOF
@@ -46,7 +47,7 @@ fi
 [ "${1:-}" ] || set "${topDir}/tests/js"
 testLocations=("$@")
 
-export PMJS="${topDir}/pmjs"
+export PMJS="pmjs"
 
 function panic()
 {
@@ -151,8 +152,8 @@ findTests \
 
     if [ "${ext}" = "failing" ]; then
       knownFail="yes"
-      PASS="$(bggreen PASS) (unexpected)"
-      FAIL="$(dred F̶A̶I̶L̶) (expected)"
+      PASS="$(bggreen PASS) $(grey \(unexpected\))"
+      FAIL="$(dred F̶A̶I̶L̶) $(grey \(expected\))"
       [ ! "${VERBOSE}" ] && thisStderr="/dev/null"
     else
       knownFail=""
@@ -160,13 +161,14 @@ findTests \
       FAIL="$(red FAIL)"
     fi
     (
+      timeout=$(egrep '^( *[*#] *timeout: )' "$file" | head -1 | sed -e 's/^\( *[*#] *timeout: \)//')
       case "$testType" in
         "simple")
-          "${PMJS}" "$file"
+          eval timeout -s9 "${timeout:-${defaultTimeout}}" "${PMJS}" \"$file\"
           exitCode="$?"
           ;;
         "bash")
-          bash "$file"
+          eval timeout -s9 "${timeout:-${defaultTimeout}}" bash \"$file\"
           exitCode="$?"
           ;;
         *)
@@ -186,10 +188,9 @@ findTests \
       printf "\e[0m"
     else
       echo "${FAIL}"
-      peter_exit_code=1
 
-      if [ "$knownFail" ]; then
-        peter_exit_code=0
+      if [ ! "$knownFail" ]; then
+        peter_exit_code=1
       fi
 
       if [ ! "$VERBOSE" ] && [ ! "$knownFail" ]; then

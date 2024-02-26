@@ -29,8 +29,7 @@ def test_eval_unpaired_surrogate_string_matches_evaluated_string():
 
 def test_eval_ucs4_string_matches_evaluated_string():
     py_ucs4_string = "🀄🀛🜢"
-    js_utf16_string = pm.eval(repr(py_ucs4_string))
-    js_ucs4_string = pm.asUCS4(js_utf16_string)
+    js_ucs4_string = pm.eval(repr(py_ucs4_string))
     assert py_ucs4_string == js_ucs4_string
 
 def test_eval_latin1_string_fuzztest():
@@ -111,8 +110,7 @@ def test_eval_ucs4_string_fuzztest():
         INITIAL_STRING = string1
         m = 10
         for _ in range(m):
-            utf16_string2 = pm.eval("'" + string1 + "'")
-            string2 = pm.asUCS4(utf16_string2)
+            string2 = pm.eval("'" + string1 + "'")
             assert len(string1) == length
             assert len(string2) == length
             assert len(string1) == len(string2)
@@ -158,8 +156,7 @@ def test_eval_boxed_unpaired_surrogate_string_matches_evaluated_string():
 
 def test_eval_boxed_ucs4_string_matches_evaluated_string():
     py_ucs4_string = "🀄🀛🜢"
-    js_utf16_string = pm.eval(f'new String({repr(py_ucs4_string)})')
-    js_ucs4_string = pm.asUCS4(js_utf16_string)
+    js_ucs4_string = pm.eval(f'new String({repr(py_ucs4_string)})')
     assert py_ucs4_string == js_ucs4_string
 
 def test_eval_boxed_latin1_string_fuzztest():
@@ -240,8 +237,7 @@ def test_eval_boxed_ucs4_string_fuzztest():
         INITIAL_STRING = string1
         m = 10
         for _ in range(m):
-            utf16_string2 = pm.eval(f'new String("{string1}")')
-            string2 = pm.asUCS4(utf16_string2)
+            string2 = pm.eval(f'new String("{string1}")')
             assert len(string1) == length
             assert len(string2) == length
             assert len(string1) == len(string2)

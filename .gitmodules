@@ -1,3 +1,6 @@
 [submodule "tests/commonjs-official"]
   path = tests/commonjs-official
   url = https://github.com/commonjs/commonjs.git
+[submodule "cmake/docs/doxygen-awesome-css"]
+	path = cmake/docs/doxygen-awesome-css
+	url = https://github.com/jothepro/doxygen-awesome-css.git

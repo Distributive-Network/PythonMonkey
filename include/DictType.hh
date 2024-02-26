@@ -38,21 +38,6 @@ public:
   DictType(JSContext *cx, JS::Handle<JS::Value> jsObject);
 
   const TYPE returnType = TYPE::DICT;
-/**
- * @brief The 'set' method for a python dictionary. Sets the approprite 'key' in the dictionary with the appropriate 'value'
- *
- * @param key The key of the dictionary item
- * @param value The value of the dictionary item
- */
-  void set(PyType *key, PyType *value);
-
-/**
- * @brief Gets the dictionary item at the given 'key'
- *
- * @param key The key of the item in question
- * @return PyType* Returns a pointer to the appropriate PyType object
- */
-  PyType *get(PyType *key) const;
 };
 
 #endif

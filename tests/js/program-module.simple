@@ -23,6 +23,7 @@ check('require is the global require',          require === globalThis.require)
 check('exports is the global exports',          exports === globalThis.exports);
 check('module is the global module',            module  === globalThis.module);
 
+// eslint-disable-next-line no-global-assign
 module = {};
 check('free module symbol is global symbol',    module  === globalThis.module);
 check('arguments.length is ' + arguments.length, ...arguments)

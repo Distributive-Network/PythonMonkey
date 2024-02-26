@@ -1,0 +1,47 @@
+OUTPUT_DIRECTORY      = "@CMAKE_BINARY_DIR@/docs/"
+INPUT                 = "@CMAKE_SOURCE_DIR@/README.md" \
+                        "@CMAKE_SOURCE_DIR@/docs/" \
+                        "@CMAKE_SOURCE_DIR@/src/" \
+                        "@CMAKE_SOURCE_DIR@/include/" \
+                        "@CMAKE_SOURCE_DIR@/python/pythonmonkey/"
+RECURSIVE             = YES
+
+PROJECT_NAME          = "PythonMonkey"
+PROJECT_NUMBER        = "  v@CMAKE_PROJECT_VERSION@ (dev)"
+PROJECT_BRIEF         = ""
+PROJECT_LOGO          = "@CMAKE_CURRENT_SOURCE_DIR@/PythonMonkey-icon.png"
+
+MARKDOWN_ID_STYLE = GITHUB
+USE_MDFILE_AS_MAINPAGE = "@CMAKE_SOURCE_DIR@/README.md"
+
+EXTRACT_ALL = YES
+GENERATE_LATEX = NO
+GENERATE_XML = YES
+OPTIMIZE_OUTPUT_JAVA = YES
+STRIP_FROM_PATH = "@CMAKE_SOURCE_DIR@"
+
+FILE_PATTERNS = *.cc *.hh *.py *.pyi *.js *.ts *.md
+EXTENSION_MAPPING = pyi=python js=javascript ts=javascript
+
+# Doxygen Theme
+# https://jothepro.github.io/doxygen-awesome-css/
+GENERATE_TREEVIEW     = YES
+DISABLE_INDEX         = NO
+FULL_SIDEBAR          = NO
+HTML_HEADER           = @CMAKE_CURRENT_SOURCE_DIR@/header.html
+HTML_EXTRA_STYLESHEET = @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome.css \
+                        @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                        @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+HTML_EXTRA_FILES      = @CMAKE_CURRENT_SOURCE_DIR@/favicon.ico \
+                        @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+                        @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
+                        @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-paragraph-link.js \
+                        @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-interactive-toc.js
+HTML_COLORSTYLE       = LIGHT
+HTML_TIMESTAMP        = YES
+
+# Diagrams with Graphviz
+HAVE_DOT = YES
+DOT_IMAGE_FORMAT = svg
+DOT_TRANSPARENT = YES
+INTERACTIVE_SVG = YES

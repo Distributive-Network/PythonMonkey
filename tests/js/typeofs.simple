@@ -1,0 +1,57 @@
+/**
+ * @file        typeofs.simple
+ *
+ *              Simple smoke test which checks typeof values going back and forth across the JS/PY barrier.
+ *
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ */
+'use strict';
+
+const throughJS = x => x;
+const throughBoth = python.eval('(lambda func: lambda x: func(x))')(throughJS);
+
+function check(jsval, expected)
+{
+  var disp;
+  switch (typeof expected)
+  {
+    case 'function':
+      disp = expected.name || '(anonymous function)'
+      break;
+    case 'object':
+      disp = JSON.stringify(expected);
+      break;
+    default:
+      disp = String(expected);
+  }
+
+  console.log(`${jsval}? -`, disp);
+
+  switch (typeof expected)
+  {
+    default:
+      throw new Error(`invalid expectation ${disp} (${typeof expected})`);
+    case 'string':
+      if (typeof jsval !== expected)
+        throw new Error(`expected ${disp} but got ${typeof jsval}`);
+      break;
+    case 'function':
+      if (!(jsval instanceof expected))
+        throw new Error(`expected instance of ${expected.name} but got ${jsval.constructor.name}`);
+  }
+}
+
+check(throughBoth(123) ,         'number')
+check(throughBoth(123n),         'bigint')
+check(throughBoth('sn'),         'string')
+check(throughBoth({}),           'object')
+check(throughBoth(true),         'boolean')
+check(throughBoth(false),        'boolean')
+check(throughBoth(undefined),    'undefined')
+check(throughBoth(null),         'object')
+check(throughBoth([1,1]),        'object')
+check(throughBoth(()=>1),        'function')
+check(throughBoth([2,2]),        Array)
+check(throughBoth(new Array(1)), Array)
+/** see also typeofs-segfaults.simple.failing */

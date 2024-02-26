@@ -8,7 +8,10 @@
  * @author      Wes Garland, wes@distributive.network
  * @date        June 2023
  */
-const console = new (require('console').Console)({stdout: python.stdout, stderr: python.stdout});
+const console = new (require('console').Console)({
+  stdout: python.stdout,
+  stderr: python.stdout
+});
 globalThis.console.log('one');
 globalThis.console.info('two');
 console.debug('three');

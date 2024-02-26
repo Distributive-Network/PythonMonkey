@@ -40,7 +40,7 @@ def run_cmake_build():
     if platform.system() == "Windows":
         execute("cmake .. -T ClangCL", cwd=BUILD_DIR) # use Clang/LLVM toolset for Visual Studio
     else:
-        execute("cmake ..", cwd=BUILD_DIR)
+        execute("cmake .. -DPYTHON_INCLUDE_DIR=$(python -c 'import sysconfig; print(sysconfig.get_path('include'))') -DPYTHON_LIBRARY=$(python -c 'import sysconfig; print(sysconfig.get_config_var('LIBDIR'))')", cwd=BUILD_DIR)
     execute(f"cmake --build . -j{CPUS} --config Release", cwd=BUILD_DIR)
 
 def copy_artifacts():
@@ -52,7 +52,6 @@ def copy_artifacts():
         execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/", cwd=TOP_DIR)
 
 def build():
-    execute("git submodule update --init --recursive", cwd=TOP_DIR)
     ensure_spidermonkey()
     run_cmake_build()
     copy_artifacts()

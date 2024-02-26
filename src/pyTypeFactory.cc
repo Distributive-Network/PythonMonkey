@@ -24,7 +24,8 @@
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
 #include "include/PromiseType.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/PyDictProxyHandler.hh"
+#include "include/PyListProxyHandler.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -32,6 +33,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 #include <js/Object.h>
 #include <js/ValueArray.h>
 
@@ -96,8 +98,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
     if (JS::GetClass(obj)->isProxyObject()) {
-      if (js::GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
-        return new DictType(((PyProxyHandler *)js::GetProxyHandler(obj))->pyObject);
+      if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family) { // this is one of our proxies for python dicts
+        return new DictType(((PyDictProxyHandler *)js::GetProxyHandler(obj))->pyObject);
       }
       if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
         return new ListType(((PyListProxyHandler *)js::GetProxyHandler(obj))->pyObject);
@@ -105,6 +107,10 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
+    if (JS_ObjectIsBoundFunction(obj)) {
+      cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
+                                   // js::ESClass::Function only assigns to JSFunction objects by JS::GetBuiltinClass.
+    }
     switch (cls) {
     case js::ESClass::Boolean: {
         // TODO (Caleb Aikens): refactor out all `js::Unbox` calls
@@ -123,9 +129,16 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         return new ExceptionType(cx, obj);
       }
     case js::ESClass::Function: {
-        // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
-        PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
-        PyObject *pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
+        PyObject *pyFunc;
+        if (JS_IsNativeFunction(obj, callPyFunc)) { // It's a wrapped python function by us
+          // Get the underlying python function from the 0th reserved slot
+          JS::Value pyFuncVal = js::GetFunctionNativeReserved(obj, 0);
+          pyFunc = (PyObject *)(pyFuncVal.toPrivate());
+        } else {
+          // FIXME (Tom Tang): `jsCxThisFuncTuple` and the tuple items are not going to be GCed
+          PyObject *jsCxThisFuncTuple = PyTuple_Pack(3, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(thisObj), PyLong_FromVoidPtr(rval));
+          pyFunc = PyCFunction_New(&callJSFuncDef, jsCxThisFuncTuple);
+        }
         FuncType *f = new FuncType(pyFunc);
         memoizePyTypeAndGCThing(f, *rval); // TODO (Caleb Aikens) consider putting this in the FuncType constructor
         return f;
@@ -147,6 +160,9 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
         return s;
       }
+    case js::ESClass::Array: {
+        return new ListType(cx, obj);
+      }
     default: {
         if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
           // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
@@ -167,14 +183,26 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
   return NULL;
 }
 
-static PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
+PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
+  PyType *v = pyTypeFactory(cx, thisObj, rval);
+  if (PyErr_Occurred()) {
+    // Clear Python error
+    PyErr_Clear();
+    // Return `pythonmonkey.null` on error
+    return new NullType();
+  }
+  return v;
+}
+
+PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   // TODO (Caleb Aikens) convert PyObject *args to JS::Rooted<JS::ValueArray> JSargs
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 0));
   JS::RootedObject *thisObj = (JS::RootedObject *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 1));
   JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
-  for (size_t i = 0; i < PyTuple_Size(args); i++) {
+  Py_ssize_t tupleSize = PyTuple_Size(args);
+  for (size_t i = 0; i < tupleSize; i++) {
     JS::Value jsValue = jsTypeFactory(cx, PyTuple_GetItem(args, i));
     if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
       return NULL; // Fail-fast

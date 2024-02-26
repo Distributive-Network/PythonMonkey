@@ -3,10 +3,12 @@
 ![Testing Suite](https://github.com/Kings-Distributed-Systems/PythonMonkey/actions/workflows/tests.yaml/badge.svg)
 
 ## About
-[PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python VM,
-using the Python engine to provide the JS host environment.
+[PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python Runtime,
+using the Python engine to provide the Javascript host environment. 
 
-This product is in an early stage, approximately 80% to MVP as of July 2023. It is under active development by [Distributive](https://distributive.network/).
+We feature JavaScript Array and Object methods implemented on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API. 
+
+This product is in an intermediate stage, approximately 90% to MVP as of January 2024. It is under active development by [Distributive](https://distributive.network/).
 External contributions and feedback are welcome and encouraged.
 
 ### tl;dr
@@ -24,15 +26,17 @@ js_eval("console.log")('hello, world')
 - Make writing code in either JS or Python a developer preference
 - Use JavaScript libraries from Python
 - Use Python libraries from JavaScript
-- Same process runs both JS and Python VMs - no serialization, pipes, etc
+- The same process runs both JavaScript and Python VirtualMachines - no serialization, pipes, etc
+- Python Lists and Dicts behave as Javacript Arrays and Objects, and vice-versa, fully adapting to the given context.
 
 ### Data Interchange
-- Strings share immutable backing stores whenever possible (when allocating engine choses UCS-2 or Latin-1 internal string representation) to keep memory consumption under control, and to make it possible to move very large strings between JS and Python library code without memory-copy overhead.
-- TypedArrays to share mutable backing stores; if this is not possible we will implement a copy-on-write (CoW) solution.
-- JS objects are represented by Python dicts
+- Strings share immutable backing stores whenever possible (when allocating engine choses UCS-2 or Latin-1 internal string representation) to keep memory consumption under control, and to make it possible to move very large strings between JavaScript and Python library code without memory-copy overhead.
+- TypedArrays share mutable backing stores.
+- JS objects are represented by Python dicts through a Dict subclass for optimal compatibility. Similarly for JS arrays and Python lists.
 - JS Date objects are represented by Python datetime.datetime objects
 - Intrinsics (boolean, number, null, undefined) are passed by value
 - JS Functions are automatically wrapped so that they behave like Python functions, and vice-versa
+- Python Lists are represented by JS true arrays and support all Array methods through a JS API Proxy. Similarly for Python Dicts and JS objects.
 
 ### Roadmap
 - [done] JS instrinsics coerce to Python intrinsics
@@ -48,12 +52,13 @@ js_eval("console.log")('hello, world')
 - [done] Python `require` function, returns a coerced dict of module exports
 - [done] Python functions coerce to JS function wrappers
 - [done] CommonJS module system .py loader, loads Python modules for use by JS
-- JS object->Python dict coercion supports inherited-property lookup (via __getattribute__?)
 - [done] Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
-- Python host environment supplies XMLHttpRequest (other project?)
-- Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client (other project?)
+- [done] Python host environment supplies XMLHttpRequest
+- Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
+- [done] Python lists coerce to JS Arrays
+- [done] JS arrays coerce to Python lists
 
 ## Build Instructions
 
@@ -62,12 +67,12 @@ Read this if you want to build a local version.
 1. You will need the following installed (which can be done automatically by running `./setup.sh`):
     - bash
     - cmake
-    - doxygen 
+    - Doxygen 1.9 series
     - graphviz
     - llvm
     - rust
     - python3.8 or later with header files (python3-dev)
-    - spidermonkey 102.2.0 or later
+    - spidermonkey 115.1.0 or later
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
@@ -79,14 +84,15 @@ If you are using VSCode, you can just press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> +
 1. Compile the project 
 2. Install development dependencies: `poetry install --no-root --only=dev`
 3. From the root directory, run `poetry run pytest ./tests/python`
+4. From the root directory, run `poetry run bash ./peter-jr ./tests/js/`
 
 For VSCode users, similar to the Build Task, we have a Test Task ready to use.
 
 ## Using the library
 
-### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
+> npm (Node.js) is required **during installation only** to populate the JS dependencies.
 
-> PythonMonkey is not release-ready yet. Our first public release is scheduled for mid-June 2023.
+### Install from [PyPI](https://pypi.org/project/pythonmonkey/)
 
 ```bash
 $ pip install pythonmonkey
@@ -114,7 +120,12 @@ Type "help", "copyright", "credits" or "license" for more information.
 'Hello from Spidermonkey!'
 ```
 
-Alternatively, you can build a `wheel` package by running `poetry build --format=wheel`, and install it by `pip install dist/*.whl`.
+Alternatively, you can build installable packages by running
+```bash
+$ cd python/pminit && poetry build --format=sdist && cd - && mv -v python/pminit/dist/* ./dist/
+$ poetry build --format=wheel
+```
+and install them by `pip install ./dist/*`.
 
 ## Debugging Steps
 
@@ -122,16 +133,26 @@ Alternatively, you can build a `wheel` package by running `poetry build --format
 2. To use gdb, run `poetry run gdb python`.  
 See [Python Wiki: DebuggingWithGdb](https://wiki.python.org/moin/DebuggingWithGdb)
 
-If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python to start debugging - We have [the `launch.json` file configured for you](.vscode/launch.json).
+If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python file in the editor to start debugging - We have [the `launch.json` file configured for you](https://github.com/Distributive-Network/PythonMonkey/blob/main/.vscode/launch.json).
 
 ## Examples
 
-* [examples/](examples/)
+* [examples/](https://github.com/Distributive-Network/PythonMonkey/tree/main/examples)
 * https://github.com/Distributive-Network/PythonMonkey-examples
 * https://github.com/Distributive-Network/PythonMonkey-Crypto-JS-Fullstack-Example
 
 ## API
 These methods are exported from the pythonmonkey module.
+
+* eval(code, evalOpts)
+* isCompilableUnit(code)
+* collect()
+* bigint(int)
+* `SpiderMonkeyError`
+* `JSObjectProxy`
+* `null`
+
+See definitions in [python/pythonmonkey/pythonmonkey.pyi](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/pythonmonkey.pyi).
 
 ### require(moduleIdentifier)
 Return the exports of a CommonJS module identified by `moduleIdentifier`, using standard CommonJS
@@ -144,9 +165,9 @@ semantics
  - Modules are evaluated immediately after loading
  - Modules are not loaded until they are required
  - The following extensions are supported:
- ** `.js` - JavaScript module; source code decorates `exports` object
- ** `.py` - Python module; source code decorates `exports` dict
- ** `.json` -- JSON module; exports are the result of parsing the JSON text in the file
+  * `.js` - JavaScript module; source code decorates `exports` object
+  * `.py` - Python module; source code decorates `exports` dict
+  * `.json` - JSON module; exports are the result of parsing the JSON text in the file
 
 ### globalThis
 A Python Dict which is equivalent to the globalThis object in JavaScript.
@@ -167,18 +188,24 @@ necessary unless the main entry point of your program is written in JavaScript.
 Care should be taken to ensure that only one program module is run per JS context.
 
 ## Built-In Functions
+
+See definitions in [python/pythonmonkey/global.d.ts](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/global.d.ts).
+
 - `console`
+- `atob`
+- `btoa`
 - `setTimeout`
-- `setInterval`
 - `clearTimeout`
-- `clearInterval`
 
 ### CommonJS Subsystem Additions
 The CommonJS subsystem is activated by invoking the `require` or `createRequire` exports of the (Python)
 pythonmonkey module.
+
 - `require`
 - `exports`
 - `module`
+- `__filename`
+- `__dirname`
 - `python.print`  - the Python print function
 - `python.getenv` - the Python getenv function
 - `python.stdout` - an object with `read` and `write` methods, which read and write to stdout
@@ -203,6 +230,8 @@ Where shared backing store is not possible, PythonMonkey will automatically emit
 the "real" data structure as its value authority. Only immutable intrinsics are copied. This means
 that if you update an object in JavaScript, the corresponding Dict in Python will be updated, etc.
 
+JavaScript Array and Object methods are implemented on Python List and Dictionaries, and vice-versa. 
+
 | Python Type | JavaScript Type |
 |:------------|:----------------|
 | String      | string
@@ -210,7 +239,7 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 | Bool        | boolean
 | Function    | function
 | Dict        | object
-| List        | Array-like object
+| List        | Array
 | datetime    | Date object
 | awaitable   | Promise
 | Error       | Error object
@@ -220,12 +249,12 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 |:---------------------|:----------------|
 | string               | String
 | number               | Float
-| bigint               | Integer
+| bigint               | pythonmonkey.bigint (Integer)
 | boolean              | Bool
 | function             | Function
-| object - most        | JSObjectProxy which inherits from Dict
+| object - most        | pythonmonkey.JSObjectProxy (Dict)
 | object - Date        | datetime
-| object - Array       | List
+| object - Array       | pythonmonkey.JSArrayProxy (List)
 | object - Promise     | awaitable
 | object - ArrayBuffer | Buffer
 | object - type arrays | Buffer
@@ -233,12 +262,21 @@ that if you update an object in JavaScript, the corresponding Dict in Python wil
 
 ## Tricks
 ### Integer Type Coercion
-You can force a number in JavaScript to be coerced as an integer by casting it to BigInt.
+You can force a number in JavaScript to be coerced as an integer by casting it to BigInt:
 ```javascript
 function myFunction(a, b) {
   const result = calculate(a, b);
   return BigInt(Math.floor(result));
 }
+```
+
+The `pythonmonkey.bigint` object works like an int in Python, but it will be coerced as a BigInt in JavaScript:
+```python
+import pythonmonkey
+
+def fn myFunction()
+  result = 5
+  return pythonmonkey.bigint(result)
 ```
 
 ### Symbol injection via cross-language IIFE
@@ -251,6 +289,26 @@ globalThis.python.exit = pm.eval("""'use strict';
   exit(exitCode);
 }
 """)(sys.exit);
+```
+
+### Run Python event-loop
+
+You need an event-loop running to use `setTimeout` and `Promise`<=>`awaitable` coercion.
+
+```python
+import asyncio
+
+async def async_fn():
+  await pm.eval("""
+    new Promise((resolve) => setTimeout((...args) => { 
+        console.log(args);
+        resolve();
+      }, 1000, 42, "abc")
+    )
+  """)
+  await pm.eval("async (x) => await x")(asyncio.sleep(0.5))
+
+asyncio.run(async_fn())
 ```
 
 # pmjs
@@ -275,15 +333,15 @@ The program module, or main module, is a special module in CommonJS. In a progra
    (command-line arguments)
 
 ```console
-# echo "console.log('hello world')" > my-program.js
-# pmjs my-program.js
+$ echo "console.log('hello world')" > my-program.js
+$ pmjs my-program.js
 hello world
-#
+$
 ```
 
 ### CommonJS Module: JavaScript language
-```python
-# date-lib.js - require("./date-lib")
+```js
+// date-lib.js - require("./date-lib")
 const d = new Date();
 exports.today = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}-${String(d.getDay()).padStart(2,'0')}`
 ```
@@ -298,15 +356,43 @@ exports['today'] = date.today()
 # Troubleshooting Tips
 
 ## CommonJS (require)
-If you are having trouble with the CommonJS require function, set environment variable DEBUG='ctx-module*' and you can see the filenames it tries to laod.
+If you are having trouble with the CommonJS require function, set environment variable `DEBUG='ctx-module*'` and you can see the filenames it tries to laod.
+
+## pmdb
+
+PythonMonkey has a built-in gdb-like JavaScript command-line debugger called **pmdb**, which would be automatically triggered on `debugger;` statements and uncaught exceptions.
+
+To enable **pmdb**, simply call `from pythonmonkey.lib import pmdb; pmdb.enable()` before doing anything on PythonMonkey.
+
+```py
+import pythonmonkey as pm
+from pythonmonkey.lib import pmdb
+
+pmdb.enable()
+
+pm.eval("...")
+```
+
+Run `help` command in **pmdb** to see available commands.
+
+```console
+(pmdb) > help
+List of commands:
+• ...
+• ...
+```
 
 ## pmjs
 - there is a `.help` menu in the REPL
 - there is a `--help` command-line option
+- the `--inspect` option enables **pmdb**, a gdb-like JavaScript command-line debugger
 - the `-r` option can be used to load a module before your program or the REPL runs
 - the `-e` option can be used evaluate code -- e.g. define global variables -- before your program or the REPL runs
-- The REPL can evaluate Python expressions, storing them in variables named `$1`, `$2`, etc. ```
-# ./pmjs
+- The REPL can evaluate Python expressions, storing them in variables named `$1`, `$2`, etc.
+
+```console
+$ pmjs
+
 Welcome to PythonMonkey v0.2.0.
 Type ".help" for more information.
 > .python import sys

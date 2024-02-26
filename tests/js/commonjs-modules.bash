@@ -11,7 +11,11 @@ panic()
   echo "$*" >&2
   exit 2
 }
-cd `dirname "$0"`/../commonjs-official/tests/modules/1.0 || panic "could not change to test directory"
+
+cd `dirname "$0"`
+git submodule update --init --recursive || panic "could not checkout the required git submodule"
+
+cd ../commonjs-official/tests/modules/1.0 || panic "could not change to test directory"
 
 runTest()
 {
@@ -19,7 +23,8 @@ runTest()
   set -o pipefail
   echo -n "${testName}: "
 
-  PMJS_PATH="`pwd`" ../../../../../../pmjs -e 'print=python.print' program.js\
+  PMJS_PATH="`pwd`" pmjs -e 'print=python.print' program.js\
+  | tr -d '\r'\
   | while read word rest
     do
       case "$word" in
