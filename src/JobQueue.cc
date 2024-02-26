@@ -33,12 +33,13 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
   JS::RootedValue jobv(cx, JS::ObjectValue(*job));
   PyObject *callback = pyTypeFactory(cx, global, jobv)->getPyObject();
 
-  // Inform the JS runtime that the job queue is no longer empty
-  JS::JobQueueMayNotBeEmpty(cx);
-
   // Send job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return false;
+
+  // Inform the JS runtime that the job queue is no longer empty
+  JS::JobQueueMayNotBeEmpty(cx);
+
   loop.enqueue(callback);
 
   return true;
@@ -54,8 +55,7 @@ bool JobQueue::empty() const {
 }
 
 js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx) {
-  auto saved = js::MakeUnique<JS::JobQueue::SavedJobQueue>();
-  return saved;
+  return js::MakeUnique<JS::JobQueue::SavedJobQueue>();
 }
 
 bool JobQueue::init(JSContext *cx) {
@@ -74,7 +74,7 @@ static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUS
 static PyMethodDef callDispatchFuncDef = {"JsDispatchCallable", callDispatchFunc, METH_NOARGS, NULL};
 
 bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable) {
-  JSContext *cx = (JSContext *)closure; // `closure` is provided in `JS::InitDispatchToEventLoop` call
+  JSContext *cx = (JSContext *)closure;
 
   // The `dispatchToEventLoop` function is running in a helper thread, so
   // we must acquire the Python GIL (global interpreter lock)
@@ -84,11 +84,11 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
   PyObject *dispatchFuncTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(dispatchable));
   PyObject *pyFunc = PyCFunction_New(&callDispatchFuncDef, dispatchFuncTuple);
 
-  // Avoid using the JS helper thread to send jobs to event-loop as it may cause deadlock
+  // Avoid using the current, JS helper thread to send jobs to event-loop as it may cause deadlock
   PyThread_start_new_thread((void (*)(void *)) &sendJobToMainLoop, pyFunc);
 
   PyGILState_Release(gstate);
-  return true; // dispatchable must eventually run
+  return true;
 }
 
 bool sendJobToMainLoop(PyObject *pyFunc) {

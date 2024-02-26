@@ -31,7 +31,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Get the Promise state
   JS::Value promiseObjVal = js::GetFunctionNativeReserved(&args.callee(), PROMISE_OBJ_SLOT);
-  JS::RootedObject promise = JS::RootedObject(cx, &promiseObjVal.toObject());
+  JS::RootedObject promise(cx, &promiseObjVal.toObject());
   JS::PromiseState state = JS::GetPromiseState(promise);
 
   // Convert the Promise's result (either fulfilled resolution or rejection reason) to a Python object
@@ -77,7 +77,7 @@ PromiseType::PromiseType(JSContext *cx, JS::HandleObject promise) {
 
   // Callbacks to settle the Python asyncio.Future once the JS Promise is resolved
   JS::RootedObject onResolved = JS::RootedObject(cx, (JSObject *)js::NewFunctionWithReserved(cx, onResolvedCb, 1, 0, NULL));
-  js::SetFunctionNativeReserved(onResolved, PY_FUTURE_OBJ_SLOT, JS::PrivateValue(future.getFutureObject())); // put the address of the Python object in private slot so we can access it later
+  js::SetFunctionNativeReserved(onResolved, PY_FUTURE_OBJ_SLOT, JS::PrivateValue(future.getFutureObject()));
   js::SetFunctionNativeReserved(onResolved, PROMISE_OBJ_SLOT, JS::ObjectValue(*promise));
   AddPromiseReactions(cx, promise, onResolved, onResolved);
 
@@ -87,7 +87,7 @@ PromiseType::PromiseType(JSContext *cx, JS::HandleObject promise) {
 // Callback to resolve or reject the JS Promise when the Future is done
 static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *args) {
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(futureCallbackTuple, 0));
-  auto rootedPtr = (JS::PersistentRooted<JSObject *> *)PyLong_AsVoidPtr(PyTuple_GetItem(futureCallbackTuple, 1));
+  JS::PersistentRootedObject *rootedPtr = (JS::PersistentRootedObject *)PyLong_AsVoidPtr(PyTuple_GetItem(futureCallbackTuple, 1));
   JS::HandleObject promise = *rootedPtr;
   PyObject *futureObj = PyTuple_GetItem(args, 0); // the callback is called with the Future object as its only argument
                                                   // see https://docs.python.org/3.9/library/asyncio-future.html#asyncio.Future.add_done_callback
