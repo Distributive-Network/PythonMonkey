@@ -75,6 +75,7 @@ static bool array_pop(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -206,6 +207,7 @@ static bool array_slice(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -263,6 +265,7 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -345,6 +348,7 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, deleted));
+  Py_DECREF(deleted);
   return true;
 }
 
@@ -560,6 +564,7 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -906,35 +911,33 @@ static bool array_reduceRight(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<4>> jArgs(cx);
-  JS::RootedValue *accumulator;
+  JS::RootedValue accumulator(cx);
 
   Py_ssize_t len = PyList_GET_SIZE(self);
 
   if (args.length() > 1) {
-    accumulator = new JS::RootedValue(cx, args[1].get());
+    accumulator.set(args[1].get());
   }
   else {
     if (len == 0) {
       JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_EMPTY_ARRAY_REDUCE);
       return false;
     }
-    accumulator = new JS::RootedValue(cx, jsTypeFactory(cx, PyList_GetItem(self, len - 1)));
+    accumulator.set(jsTypeFactory(cx, PyList_GetItem(self, len - 1)));
   }
 
   for (int64_t index = args.length() > 1 ? len - 1 : len - 2; index >= 0; index--) {
-    jArgs[0].set(*accumulator);
+    jArgs[0].set(accumulator);
     jArgs[1].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[2].setInt32(index);
     jArgs[3].set(selfValue);
 
-    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, accumulator)) {
-      delete accumulator;
+    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &accumulator)) {
       return false;
     }
   }
 
-  args.rval().set(accumulator->get());
-  delete accumulator;
+  args.rval().set(accumulator.get());
   return true;
 }
 
@@ -1436,12 +1439,12 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
     return true;
   }
 
-  JS::RootedString *rootedSeparator;
+  JS::RootedString rootedSeparator(cx);
   if (args.hasDefined(0)) {
-    rootedSeparator = new JS::RootedString(cx, JS::ToString(cx, args[0]));
+    rootedSeparator.set(JS::ToString(cx, args[0]));
   }
   else {
-    rootedSeparator = new JS::RootedString(cx, JS_NewStringCopyZ(cx, ","));
+    rootedSeparator.set(JS_NewStringCopyZ(cx, ","));
   }
 
   JSString *writer = JS_NewStringCopyZ(cx, "");
@@ -1450,7 +1453,7 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
   for (Py_ssize_t index = 0; index < selfLength; index++) {
     rootedWriter.set(writer);
     if (index > 0) {
-      writer = JS_ConcatStrings(cx, rootedWriter, *rootedSeparator);
+      writer = JS_ConcatStrings(cx, rootedWriter, rootedSeparator);
       rootedWriter.set(writer);
     }
 
@@ -1461,12 +1464,10 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
       JS::RootedObject retObject(cx);
 
       if (!JS_ValueToObject(cx, element, &retObject)) {
-        delete rootedSeparator;
         return false;
       }
 
       if (!JS_CallFunctionName(cx, retObject, "toString", JS::HandleValueArray::empty(), &rval)) {
-        delete rootedSeparator;
         return false;
       }
 
@@ -1474,8 +1475,6 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
       writer = JS_ConcatStrings(cx, rootedWriter, retString);
     }
   }
-
-  delete rootedSeparator;
 
   args.rval().setString(writer);
   return true;
