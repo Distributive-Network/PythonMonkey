@@ -71,7 +71,9 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
       JS::RootedValue value(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, &value);
       JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
-      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
+      PyObject *ret = pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
+      Py_INCREF(ret);
+      return ret;
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
@@ -550,7 +552,7 @@ skip_optional:
     return default_value;
   }
 
-  Py_XINCREF(value);
+  // no need to incref since done in getKey
   return value;
 }
 

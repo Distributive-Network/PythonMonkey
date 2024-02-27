@@ -210,7 +210,7 @@ static int list_ass_slice(JSArrayProxy *self, Py_ssize_t ilow, Py_ssize_t ihigh,
 
   if (selfLength + d == 0) {
     Py_XDECREF(v_as_SF);
-    JSArrayProxyMethodDefinitions::JSArrayProxy_clear(self);
+    JSArrayProxyMethodDefinitions::JSArrayProxy_clear_method(self);
     return 0;
   }
 
@@ -709,7 +709,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_repeat(JSArrayProx
   }
 
   if (n < 1) {
-    JSArrayProxy_clear(self);
+    JSArrayProxy_clear_method(self);
     Py_INCREF(self);
     return (PyObject *)self;
   }
