@@ -145,7 +145,7 @@ PyTypeObject JSArrayProxyType = {
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Array proxy list"),
   .tp_traverse = (traverseproc)JSArrayProxyMethodDefinitions::JSArrayProxy_traverse,
-  .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot,
+  .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear,
   .tp_richcompare = (richcmpfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare,
   .tp_iter = (getiterfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_iter,
   .tp_methods = JSArrayProxy_methods,
@@ -257,27 +257,21 @@ static PyObject *collect(PyObject *self, PyObject *args) {
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {
-  PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
+  PyObject *value = PyDict_GetItemString(evalOptions, optionName);
   if (value)
     *s_p = PyUnicode_AsUTF8(value);
   return value != NULL;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigned long *l_p) {
-  PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
+  PyObject *value = PyDict_GetItemString(evalOptions, optionName);
   if (value)
     *l_p = PyLong_AsUnsignedLong(value);
   return value != NULL;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b_p) {
-  PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
+  PyObject *value = PyDict_GetItemString(evalOptions, optionName);
   if (value)
     *b_p = PyObject_IsTrue(value) == 1 ? true : false;
   return value != NULL;
@@ -340,7 +334,8 @@ static PyObject *eval(PyObject *self, PyObject *args) {
       } /* filename */
     } /* fromPythonFrame */
   } /* eval options */
-    // initialize JS context
+
+  // initialize JS context
   JS::SourceText<mozilla::Utf8Unit> source;
   if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
     setSpiderMonkeyException(GLOBAL_CX);

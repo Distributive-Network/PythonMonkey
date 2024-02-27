@@ -734,13 +734,13 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_repeat(JSArrayProx
   return (PyObject *)self;
 }
 
-PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_clear(JSArrayProxy *self) {
+PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_clear_method(JSArrayProxy *self) {
   JS::SetArrayLength(GLOBAL_CX, self->jsArray, 0);
   Py_RETURN_NONE;
 }
 
-int JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot(JSArrayProxy *self) {
-  JSArrayProxyMethodDefinitions::JSArrayProxy_clear(self);
+int JSArrayProxyMethodDefinitions::JSArrayProxy_clear(JSArrayProxy *self) {
+  // Nothing to be done
   return 0;
 }
 

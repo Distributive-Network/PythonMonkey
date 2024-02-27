@@ -133,9 +133,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, 
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self) {
-  if (!JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(self)) {
-    return -1;
-  }
+  // Nothing to be done
   return 0;
 }
 

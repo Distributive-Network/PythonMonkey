@@ -162,7 +162,7 @@ public:
    * @param self - The JSArrayProxy
    * @return None
    */
-  static PyObject *JSArrayProxy_clear(JSArrayProxy *self);
+  static PyObject *JSArrayProxy_clear_method(JSArrayProxy *self);
 
   /**
    * @brief .tp_clear method
@@ -170,7 +170,7 @@ public:
    * @param self - The JSArrayProxy
    * @return 0 on success
    */
-  static int JSArrayProxy_clear_slot(JSArrayProxy *self);
+  static int JSArrayProxy_clear(JSArrayProxy *self);
 
   /**
    * @brief .tp_traverse method
@@ -393,7 +393,7 @@ PyDoc_STRVAR(list___reversed____doc__,
  */
 static PyMethodDef JSArrayProxy_methods[] = {
   {"__reversed__", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_iter_reverse, METH_NOARGS, list___reversed____doc__},
-  {"clear", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_clear, METH_NOARGS, py_list_clear__doc__},
+  {"clear", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_method, METH_NOARGS, py_list_clear__doc__},
   {"copy", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_copy, METH_NOARGS, list_copy__doc__},
   {"append", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_append, METH_O, list_append__doc__},
   {"insert", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_insert, METH_FASTCALL, list_insert__doc__},
