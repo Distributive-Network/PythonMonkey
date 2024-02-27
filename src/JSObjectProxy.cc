@@ -63,14 +63,7 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
   return props.length();
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
-{
-  JS::RootedId id(GLOBAL_CX);
-  if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here
-    return NULL; // key is not a str or int
-  }
-
+static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId id) {
   // look through the methods for dispatch
   for (size_t index = 0;; index++) {
     const char *methodName = JSObjectProxyType.tp_methods[index].ml_name;
@@ -88,6 +81,17 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
   }
 }
 
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
+{
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    // TODO (Caleb Aikens): raise exception here
+    return NULL; // key is not a str or int
+  }
+
+  return getKey(self, key, id);
+}
+
 int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, PyObject *key)
 {
   JS::RootedId id(GLOBAL_CX);
@@ -100,6 +104,16 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, 
   return value->isUndefined() ? 0 : 1;
 }
 
+static inline void assignKeyValue(JSObjectProxy *self, PyObject *key, JS::HandleId id, PyObject *value) {
+  if (value) { // we are setting a value
+    JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
+    JS_SetPropertyById(GLOBAL_CX, self->jsObject, id, jValue);
+  } else { // we are deleting a value
+    JS::ObjectOpResult ignoredResult;
+    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
+  }
+}
+
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
 {
   JS::RootedId id(GLOBAL_CX);
@@ -108,13 +122,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
     return -1;
   }
 
-  if (value) { // we are setting a value
-    JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    JS_SetPropertyById(GLOBAL_CX, self->jsObject, id, jValue);
-  } else { // we are deleting a value
-    JS::ObjectOpResult ignoredResult;
-    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
-  }
+  assignKeyValue(self, key, id, value);
 
   return 0;
 }
@@ -531,9 +539,15 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method(JSObje
 
 skip_optional:
 
-  PyObject* value = JSObjectProxy_get(self, key);
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) { // invalid key
+    // TODO (Caleb Aikens): raise exception here
+    return NULL;
+  }
+
+  PyObject *value = getKey(self, key, id);
   if (value == Py_None) {
-    JSObjectProxy_assign(self, key, default_value);
+    assignKeyValue(self, key, id, default_value);
     Py_XINCREF(default_value);
     return default_value;
   }

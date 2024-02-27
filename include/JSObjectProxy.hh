@@ -311,9 +311,9 @@ static PyNumberMethods JSObjectProxy_number_methods = {
  *
  */
 static PyMethodDef JSObjectProxy_methods[] = {
+  {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
   {"__getitem__", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get, METH_O | METH_COEXIST, getitem__doc__},
   {"get", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get_method, METH_FASTCALL, dict_get__doc__},
-  {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
   {"pop", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method, METH_FASTCALL, dict_pop__doc__},
   {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, clear__doc__},
   {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, copy__doc__},
