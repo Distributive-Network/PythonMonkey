@@ -30,7 +30,28 @@
 
 const char PyListProxyHandler::family = 0;
 
+// private util
+// if function is a proxy for a python method, mutate it into a new python method bound to thisObject
+static bool makeNewPyMethod(JSContext *cx, JS::MutableHandleValue function, JS::HandleObject thisObject) {
+  if (!JS_IsNativeFunction(&(function.toObject()), callPyFunc)) {
+    return true; // we don't need to mutate function if it is not a proxy for a python function
+  }
 
+  PyObject *method = (PyObject *)js::GetFunctionNativeReserved(&(function.toObject()), 0).toPrivate();
+  if (!PyMethod_Check(method)) {
+    PyErr_Format(PyExc_TypeError, "unbound python functions do not have a 'self' to bind");
+    return false;
+  }
+
+  PyObject *func = PyMethod_Function(method);
+  JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::RootedValue thisValue(cx);
+  thisValue.setObject(*thisObject);
+  PyObject *newSelf = pyTypeFactory(cx, &global, &thisValue)->getPyObject();
+  function.set(jsTypeFactory(cx, PyMethod_New(func, newSelf)));
+
+  return true;
+}
 
 static bool array_reverse(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -667,15 +688,19 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
   Py_ssize_t len = PyList_GET_SIZE(self);
 
   JS::RootedObject rootedThisArg(cx);
+
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
       JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
       return false;
     }
-
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -737,6 +762,10 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -796,6 +825,10 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -974,6 +1007,10 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1035,6 +1072,10 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1096,6 +1137,10 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1158,6 +1203,10 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1409,6 +1458,10 @@ static bool array_flatMap(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
