@@ -396,7 +396,7 @@ List of commands:
 ```console
 $ pmjs
 
-Welcome to PythonMonkey v0.3.0.
+Welcome to PythonMonkey v0.3.1.
 Type ".help" for more information.
 > .python import sys
 > .python sys.path
