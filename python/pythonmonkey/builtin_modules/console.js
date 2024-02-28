@@ -76,7 +76,7 @@ class Console
       else // step 4
       {
         const first = data[0]; // step 4.1
-        if (typeof first !== 'string') data.unshift(message); // step 4.2
+        if (typeof first !== 'string') data.unshift(message+':'); // step 4.2
         else data[0] = `${message}: ${first}`; // step 4.3
       }
 
@@ -95,6 +95,11 @@ class Console
         .join('\n');
       this.#writeToStderr(header + stacks);
     };
+
+    // TODO (Tom Tang): implement those properly instead of aliases to console.log
+    this.dir = this.log;
+    this.dirxml = this.log;
+    this.table = this.log;
 
     // Counting
     // @see https://console.spec.whatwg.org/#count
@@ -122,8 +127,6 @@ class Console
   {
     return format(...args) + '\n';
   }
-
-  // TODO (Tom Tang): implement more methods
 
   /**
    * Re-export the `Console` constructor as global `console.Console`, like in Node.js
