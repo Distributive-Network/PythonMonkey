@@ -57,6 +57,19 @@ class Console
     this.info  = (...args) => void this.#writeToStdout(this.#formatToStr(...args));
     this.warn  = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
     this.error = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
+
+    this.trace = (...args) => // implement console.trace using new Error().stack
+    {
+      const header = args.length > 0
+        ? `Trace: ${this.#formatToStr(...args)}` // already has a \n at the end
+        : 'Trace:\n';
+      const stacks = new Error().stack
+        .split('\n')
+        .filter(s => s !== '') // filter out empty lines
+        .map(s => '    '+s)    // add indent
+        .join('\n');
+      this.#writeToStderr(header + stacks);
+    };
   }
 
   /**
