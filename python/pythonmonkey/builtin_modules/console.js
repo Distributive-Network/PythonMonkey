@@ -26,6 +26,12 @@ class Console
   #countMap = {};
 
   /**
+   * @type {{ [label: string]: number; }}
+   * @see https://console.spec.whatwg.org/#timing
+   */
+  #timerTable = {};
+
+  /**
    * Console constructor, form 1
    * @overload
    * @param {IOWriter} stdout - object with write method
@@ -101,7 +107,7 @@ class Console
     this.dirxml = this.log;
     this.table = this.log;
 
-    // Counting
+    // Counting functions
     // @see https://console.spec.whatwg.org/#count
     this.count = (label = 'default') =>
     {
@@ -109,14 +115,48 @@ class Console
         this.#countMap[label] += 1;
       else
         this.#countMap[label] = 1;
-      this.#writeToStdout(`${label}: ${this.#countMap[label]}\n`);
+      this.info(`${label}: ${this.#countMap[label]}`);
     };
+
     this.countReset = (label = 'default') =>
     {
       if (this.#countMap[label])
         this.#countMap[label] = 0;
       else
-        this.#writeToStderr(`Counter for '${label}' does not exist.\n`);
+        this.warn(`Counter for '${label}' does not exist.`);
+    };
+
+    // Timing functions
+    // @see https://console.spec.whatwg.org/#timing
+    this.time = (label = 'default') =>
+    {
+      if (this.#timerTable[label])
+        this.warn(`Label '${label}' already exists for console.time()`);
+      else
+        this.#timerTable[label] = Date.now();
+    };
+
+    this.timeLog = (label = 'default', ...data) =>
+    {
+      if (!this.#timerTable[label])
+        return this.warn(`No such label '${label}' for console.timeLog()`);
+
+      const duration = Date.now() - this.#timerTable[label];
+      data.unshift(`${label}: ${duration}ms`);
+
+      return this.log(...data);
+    };
+
+    this.timeEnd = (label = 'default') =>
+    {
+      if (!this.#timerTable[label])
+        return this.warn(`No such label '${label}' for console.timeEnd()`);
+
+      const startTime = this.#timerTable[label];
+      delete this.#timerTable[label];
+
+      const duration = Date.now() - startTime;
+      return this.info(`${label}: ${duration}ms`);
     };
   }
 
