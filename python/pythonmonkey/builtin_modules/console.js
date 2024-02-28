@@ -10,8 +10,8 @@ const { customInspectSymbol, format } = require('util');
 
 /**
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Console_API
+ * @see https://console.spec.whatwg.org/
  */
-// TODO (Tom Tang): adhere https://console.spec.whatwg.org/
 class Console 
 {
   /** @type {WriteFn} */
@@ -24,6 +24,8 @@ class Console
    * @see https://console.spec.whatwg.org/#counting
    */
   #countMap = {};
+
+  #groupLevel = 0;
 
   /**
    * @type {{ [label: string]: number; }}
@@ -99,7 +101,7 @@ class Console
         .filter(s => s !== '') // filter out empty lines
         .map(s => '    '+s)    // add indent
         .join('\n');
-      this.#writeToStderr(header + stacks);
+      return this.debug(header + stacks);
     };
 
     // TODO (Tom Tang): implement those properly instead of aliases to console.log
@@ -124,6 +126,23 @@ class Console
         this.#countMap[label] = 0;
       else
         this.warn(`Counter for '${label}' does not exist.`);
+    };
+
+    // Grouping functions
+    // @see https://console.spec.whatwg.org/#grouping
+    this.group = (...data) =>
+    {
+      if (data.length > 0)
+        this.log(...data);
+      this.#groupLevel++;
+    };
+    this.groupCollapsed = this.group;
+
+    this.groupEnd = () =>
+    {
+      this.#groupLevel--;
+      if (this.#groupLevel < 0)
+        this.#groupLevel = 0;
     };
 
     // Timing functions
@@ -161,11 +180,13 @@ class Console
   }
 
   /**
+   * Format with appropriate grouping level
    * @return {string}
    */
   #formatToStr(...args) 
   {
-    return format(...args) + '\n';
+    const msg = format(...args) + '\n';
+    return msg.split('\n').map(s => '│   '.repeat(this.#groupLevel) + s).join('\n');
   }
 
   /**
