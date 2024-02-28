@@ -167,7 +167,7 @@ PyObject *JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_iter(JSObjectKey
   iterator->it.kind = KIND_KEYS;
   Py_INCREF(self->dv.dv_dict);
   iterator->it.di_dict = self->dv.dv_dict;
-  iterator->it.props = new JS::RootedIdVector(GLOBAL_CX);
+  iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
   // Get **enumerable** own properties
   if (!js::GetPropertyKeys(GLOBAL_CX, ((JSObjectProxy *)(self->dv.dv_dict))->jsObject, JSITER_OWNONLY, iterator->it.props)) {
     return NULL;
@@ -186,7 +186,7 @@ PyObject *JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_iter_reverse(JSO
   iterator->it.kind = KIND_KEYS;
   Py_INCREF(self->dv.dv_dict);
   iterator->it.di_dict = self->dv.dv_dict;
-  iterator->it.props = new JS::RootedIdVector(GLOBAL_CX);
+  iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
   // Get **enumerable** own properties
   if (!js::GetPropertyKeys(GLOBAL_CX, ((JSObjectProxy *)(self->dv.dv_dict))->jsObject, JSITER_OWNONLY, iterator->it.props)) {
     return NULL;

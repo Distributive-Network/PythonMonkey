@@ -28,7 +28,7 @@
 
 typedef struct {
   PyObject_HEAD
-  JS::RootedIdVector *props; // not conceptually the best use of the Rooted type but it works. There is no easy inter-operation with a JS::Heap type
+  JS::PersistentRootedIdVector *props;
   int it_index;
   bool reversed;
   int kind;

@@ -71,9 +71,7 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
       JS::RootedValue value(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, &value);
       JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
-      PyObject *ret = pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
-      Py_INCREF(ret);
-      return ret;
+      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
@@ -236,7 +234,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
   iterator->it.kind = KIND_KEYS;
   Py_INCREF(self);
   iterator->it.di_dict = (PyDictObject *)self;
-  iterator->it.props = new JS::RootedIdVector(GLOBAL_CX);
+  iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
   // Get **enumerable** own properties
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, iterator->it.props)) {
     return NULL;
@@ -519,7 +517,7 @@ skip_optional:
   if (value == Py_None) {
     value = default_value;
   }
-  Py_XINCREF(value);
+
   return value;
 }
 
@@ -552,7 +550,6 @@ skip_optional:
     return default_value;
   }
 
-  // no need to incref since done in getKey
   return value;
 }
 
