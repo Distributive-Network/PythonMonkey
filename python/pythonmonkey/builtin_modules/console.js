@@ -20,6 +20,12 @@ class Console
   #writeToStderr;
 
   /**
+   * @type {{ [label: string]: number; }}
+   * @see https://console.spec.whatwg.org/#counting
+   */
+  #countMap = {};
+
+  /**
    * Console constructor, form 1
    * @overload
    * @param {IOWriter} stdout - object with write method
@@ -69,6 +75,24 @@ class Console
         .map(s => '    '+s)    // add indent
         .join('\n');
       this.#writeToStderr(header + stacks);
+    };
+
+    // Counting
+    // @see https://console.spec.whatwg.org/#count
+    this.count = (label = 'default') =>
+    {
+      if (this.#countMap[label])
+        this.#countMap[label] += 1;
+      else
+        this.#countMap[label] = 1;
+      this.#writeToStdout(`${label}: ${this.#countMap[label]}\n`);
+    };
+    this.countReset = (label = 'default') =>
+    {
+      if (this.#countMap[label])
+        this.#countMap[label] = 0;
+      else
+        this.#writeToStderr(`Counter for '${label}' does not exist.\n`);
     };
   }
 
