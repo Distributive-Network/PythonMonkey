@@ -61,8 +61,8 @@ class Console
     this.trace = (...args) => // implement console.trace using new Error().stack
     {
       const header = args.length > 0
-        ? `Trace: ${this.#formatToStr(...args)}` // already has a \n at the end
-        : 'Trace:\n';
+        ? `Trace: ${format(...args)}\n`
+        : 'Trace\n';
       const stacks = new Error().stack
         .split('\n')
         .filter(s => s !== '') // filter out empty lines
