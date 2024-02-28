@@ -65,7 +65,24 @@ class Console
     this.error = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
 
     this.clear = () => this.log('\x1bc'); // clear the terminal, see https://stackoverflow.com/questions/47503734
-    
+
+    this.assert = (condition, ...data) => // See https://console.spec.whatwg.org/#assert
+    {
+      if (condition) return; // step 1
+
+      const message = 'Assertion failed'; // step 2
+      if (data.length === 0) // step 3
+        data.push(message);
+      else // step 4
+      {
+        const first = data[0]; // step 4.1
+        if (typeof first !== 'string') data.unshift(message); // step 4.2
+        else data[0] = `${message}: ${first}`; // step 4.3
+      }
+
+      return this.error(...data); // print out
+    };
+
     this.trace = (...args) => // implement console.trace using new Error().stack
     {
       const header = args.length > 0
