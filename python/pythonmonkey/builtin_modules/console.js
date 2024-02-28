@@ -64,6 +64,8 @@ class Console
     this.warn  = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
     this.error = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
 
+    this.clear = () => this.log('\x1bc'); // clear the terminal, see https://stackoverflow.com/questions/47503734
+    
     this.trace = (...args) => // implement console.trace using new Error().stack
     {
       const header = args.length > 0
