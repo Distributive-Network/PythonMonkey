@@ -3,7 +3,7 @@
  * @author   Tom Tang <xmader@distributive.network>
  * @date     June 2023
  */
-const { customInspectSymbol, format } = require("util");
+const { customInspectSymbol, format } = require('util');
 
 /** @typedef {(str: string) => void} WriteFn */
 /** @typedef {{ write: WriteFn }} IOWriter */
@@ -12,7 +12,8 @@ const { customInspectSymbol, format } = require("util");
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Console_API
  */
 // TODO (Tom Tang): adhere https://console.spec.whatwg.org/
-class Console {
+class Console 
+{
   /** @type {WriteFn} */
   #writeToStdout;
   /** @type {WriteFn} */
@@ -51,18 +52,19 @@ class Console {
     this.#writeToStdout = options.stdout.write;
     this.#writeToStderr = options.stderr.write;
 
-    this.log   = (...args) => this.#writeToStdout(this.#formatToStr(...args));
-    this.debug = (...args) => this.#writeToStdout(this.#formatToStr(...args));
-    this.info  = (...args) => this.#writeToStdout(this.#formatToStr(...args));
-    this.warn  = (...args) => this.#writeToStderr(this.#formatToStr(...args));
-    this.error = (...args) => this.#writeToStderr(this.#formatToStr(...args));
+    this.log   = (...args) => void this.#writeToStdout(this.#formatToStr(...args));
+    this.debug = (...args) => void this.#writeToStdout(this.#formatToStr(...args));
+    this.info  = (...args) => void this.#writeToStdout(this.#formatToStr(...args));
+    this.warn  = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
+    this.error = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
   }
 
   /**
    * @return {string}
    */
-  #formatToStr(...args) {
-    return format(...args) + "\n"
+  #formatToStr(...args) 
+  {
+    return format(...args) + '\n';
   }
 
   // TODO (Tom Tang): implement more methods
@@ -70,8 +72,9 @@ class Console {
   /**
    * Re-export the `Console` constructor as global `console.Console`, like in Node.js
    */
-  get Console() {
-    return Console
+  get Console() 
+  {
+    return Console;
   }
 
   /**
@@ -80,7 +83,8 @@ class Console {
   static customInspectSymbol = customInspectSymbol;
 }
 
-if (!globalThis.console) {
+if (!globalThis.console) 
+{
   globalThis.console = new Console(
     python.stdout /* sys.stdout */,
     python.stderr /* sys.stderr */
