@@ -281,9 +281,6 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
   PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
 
-  JS::RootedObject thisv(cx);
-  JS_ValueToObject(cx, callargs.thisv(), &thisv);
-
   unsigned int callArgsLength = callargs.length();
 
   if (!callArgsLength) {
@@ -304,7 +301,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   PyObject *pyArgs = PyTuple_New(callArgsLength);
   for (size_t i = 0; i < callArgsLength; i++) {
     JS::RootedValue jsArg(cx, callargs[i]);
-    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
+    PyType *pyArg = pyTypeFactory(cx, jsArg);
     if (!pyArg) return false; // error occurred
     PyObject *pyArgObj = pyArg->getPyObject();
     if (!pyArgObj) return false; // error occurred

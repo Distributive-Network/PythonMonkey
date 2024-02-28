@@ -68,9 +68,8 @@ bool PyDictProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId
   JS::RootedValue rootedV(cx, v);
   PyObject *attrName = idToKey(cx, id);
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (PyDict_SetItem(self, attrName, pyTypeFactory(cx, *global, rootedV)->getPyObject())) {
+  if (PyDict_SetItem(self, attrName, pyTypeFactory(cx, rootedV)->getPyObject())) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();

@@ -78,9 +78,8 @@ bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::Handle
   JS::RootedValue rootedV(cx, v);
   PyObject *attrName = idToKey(cx, id);
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (PyObject_SetAttr(self, attrName, pyTypeFactory(cx, *global, rootedV)->getPyObject())) {
+  if (PyObject_SetAttr(self, attrName, pyTypeFactory(cx, rootedV)->getPyObject())) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();

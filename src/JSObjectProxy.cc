@@ -70,7 +70,6 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
     if (methodName == NULL || !PyUnicode_Check(key)) {
       JS::RootedValue value(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, &value);
-      JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
       // if value is a JSFunction, bind `this` to self
       /* (Caleb Aikens) its potentially problematic to bind it like this since if the function
        * ever gets assigned to another object like so:
@@ -78,7 +77,7 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
        * jsObjA.func = jsObjB.func
        * jsObjA.func() # `this` will be jsObjB not jsObjA
        *
-       * it will be bound to the wrong object, however I can't find a better way to do this,
+       * It will be bound to the wrong object, however I can't find a better way to do this,
        * and even pyodide works this way weirdly enough:
        * https://github.com/pyodide/pyodide/blob/ee863a7f7907dfb6ee4948bde6908453c9d7ac43/src/core/jsproxy.c#L388
        *
@@ -99,7 +98,7 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
         }
       }
 
-      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
+      return pyTypeFactory(GLOBAL_CX, value)->getPyObject();
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
@@ -224,8 +223,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
     JS::RootedValue key(GLOBAL_CX);
     key.setString(id.toString());
 
-    JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
-    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, thisObj, key)->getPyObject();
+    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, key)->getPyObject();
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
     if (!pyVal2) { // if other.key is NULL then not equal
@@ -294,8 +292,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
 
   PyObject *key = NULL, *value = NULL;
 
-  JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
-
   JS::RootedIdVector props(GLOBAL_CX);
 
   if (_PyUnicodeWriter_WriteChar(&writer, '{') < 0) {
@@ -344,7 +340,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     if (&elementVal.toObject() == self->jsObject.get()) {
       value = (PyObject *)self;
     } else {
-      value = pyTypeFactory(GLOBAL_CX, thisObj, elementVal)->getPyObject();
+      value = pyTypeFactory(GLOBAL_CX, elementVal)->getPyObject();
     }
     Py_INCREF(value);
 
@@ -488,7 +484,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, 
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
-    return pyTypeFactory(GLOBAL_CX, rootedObject, ret)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, ret)->getPyObject();
   }
 }
 
@@ -615,8 +611,7 @@ skip_optional:
     JS::ObjectOpResult ignoredResult;
     JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
 
-    JS::RootedObject thisObj(GLOBAL_CX, self->jsObject);
-    return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, value)->getPyObject();
   }
 }
 
@@ -657,7 +652,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProx
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
-  return pyTypeFactory(GLOBAL_CX, rootedObject, ret)->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, ret)->getPyObject();
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectProxy *self, PyObject *args, PyObject *kwds) {

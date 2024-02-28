@@ -40,7 +40,7 @@
 #include <Python.h>
 
 
-PyType *pyTypeFactory(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue rval) {
+PyType *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
   if (rval.isUndefined()) {
     return new NoneType();
   }
@@ -89,7 +89,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::HandleObject thisObj, JS::HandleValue r
     case js::ESClass::BigInt:
     case js::ESClass::String:
       js::Unbox(cx, obj, &unboxed);
-      return pyTypeFactory(cx, thisObj, unboxed);
+      return pyTypeFactory(cx, unboxed);
     case js::ESClass::Date:
       return new DateType(cx, obj);
     case js::ESClass::Promise:
