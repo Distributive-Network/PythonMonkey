@@ -45,6 +45,10 @@
 #define LOW_SURROGATE_END 0xDFFF
 #define BMP_END 0x10000
 
+static PyDictProxyHandler pyDictProxyHandler;
+static PyObjectProxyHandler pyObjectProxyHandler;
+static PyListProxyHandler pyListProxyHandler;
+
 
 
 std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
@@ -193,6 +197,8 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     registerArgs[1].setPrivate(object);
     JS::RootedValue ignoredOutVal(GLOBAL_CX);
     JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
+
+    Py_INCREF(object);
   }
   else if (PyObject_TypeCheck(object, &JSFunctionProxyType)) {
     returnType.setObject(**((JSFunctionProxy *)object)->jsFunc);
@@ -206,11 +212,11 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     if (PyList_Check(object)) {
       JS::RootedObject arrayPrototype(cx);
       JS_GetClassPrototype(cx, JSProto_Array, &arrayPrototype); // so that instanceof will work, not that prototype methods will
-      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, arrayPrototype.get());
+      proxy = js::NewProxyObject(cx, &pyListProxyHandler, v, arrayPrototype.get());
     } else {
       JS::RootedObject objectPrototype(cx);
       JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
-      proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, objectPrototype.get());
+      proxy = js::NewProxyObject(cx, &pyDictProxyHandler, v, objectPrototype.get());
     }
     Py_INCREF(object);
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
@@ -227,8 +233,9 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   }
   else {
     JS::RootedValue v(cx);
-    JSObject *proxy;
-    proxy = js::NewProxyObject(cx, new PyObjectProxyHandler(object), v, NULL);
+    JS::RootedObject objectPrototype(cx);
+    JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
+    JSObject *proxy = js::NewProxyObject(cx, &pyObjectProxyHandler, v, objectPrototype.get());
     Py_INCREF(object);
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     returnType.setObject(*proxy);
@@ -309,7 +316,6 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     setPyException(cx);
     return false;
   }
-
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
     setPyException(cx);

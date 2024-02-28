@@ -20,7 +20,7 @@
  */
 struct PyListProxyHandler : public PyBaseProxyHandler {
 public:
-  PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
+  PyListProxyHandler() : PyBaseProxyHandler(&family) {};
   static const char family;
 
   /**

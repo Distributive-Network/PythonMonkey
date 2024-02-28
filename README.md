@@ -149,6 +149,10 @@ These methods are exported from the pythonmonkey module.
 * isCompilableUnit(code)
 * collect()
 * bigint(int)
+* `SpiderMonkeyError`
+* `JSObjectProxy`
+* `JSMethodProxy`
+* `null`
 
 See definitions in [python/pythonmonkey/pythonmonkey.pyi](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/pythonmonkey.pyi).
 

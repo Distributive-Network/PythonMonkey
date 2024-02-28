@@ -11,7 +11,7 @@
 #ifndef PythonMonkey_PyObjectProxy_
 #define PythonMonkey_PyObjectProxy_
 
-#include "include/PyBaseProxyHandler.hh"
+#include "include/PyDictOrObjectProxyHandler.hh"
 #include <jsapi.h>
 #include <js/Proxy.h>
 
@@ -21,9 +21,9 @@
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates to handle coercion from python objects to JS Objects
  *
  */
-struct PyObjectProxyHandler : public PyBaseProxyHandler {
+struct PyObjectProxyHandler : public PyDictOrObjectProxyHandler {
 public:
-  PyObjectProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
+  PyObjectProxyHandler() : PyDictOrObjectProxyHandler(&family) {};
   static const char family;
 
   /**
@@ -126,6 +126,8 @@ public:
     JS::HandleId id,
     JS::Handle<JS::PropertyDescriptor> desc,
     JS::ObjectOpResult &result) const override;
+
+  bool getBuiltinClass(JSContext *cx, JS::HandleObject proxy, js::ESClass *cls) const override;
 };
 
 #endif

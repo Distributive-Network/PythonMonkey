@@ -22,7 +22,6 @@
 void JSFunctionProxyMethodDefinitions::JSFunctionProxy_dealloc(JSFunctionProxy *self)
 {
   delete self->jsFunc;
-  return;
 }
 
 PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds) {
@@ -36,12 +35,12 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_new(PyTypeObject *su
 PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self, PyObject *args, PyObject *kwargs) {
   JSContext *cx = GLOBAL_CX;
   JS::RootedValue jsFunc(GLOBAL_CX, JS::ObjectValue(**((JSFunctionProxy *)self)->jsFunc));
-  JSObject *o = jsFunc.toObjectOrNull();
-  JS::RootedObject thisObj(GLOBAL_CX, JS::GetNonCCWObjectGlobal(o));
-
+  JSObject *jsFuncObj = jsFunc.toObjectOrNull();
+  JS::RootedObject thisObj(GLOBAL_CX, JS::GetNonCCWObjectGlobal(jsFuncObj)); // if jsFunc is not bound, assume `this` is `globalThis`
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
-  for (size_t i = 0; i < PyTuple_Size(args); i++) {
+  Py_ssize_t nargs = PyTuple_Size(args);
+  for (size_t i = 0; i < nargs; i++) {
     JS::Value jsValue = jsTypeFactory(cx, PyTuple_GetItem(args, i));
     if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
       return NULL; // Fail-fast

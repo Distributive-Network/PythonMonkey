@@ -30,7 +30,28 @@
 
 const char PyListProxyHandler::family = 0;
 
+// private util
+// if function is a proxy for a python method, mutate it into a new python method bound to thisObject
+static bool makeNewPyMethod(JSContext *cx, JS::MutableHandleValue function, JS::HandleObject thisObject) {
+  if (!JS_IsNativeFunction(&(function.toObject()), callPyFunc)) {
+    return true; // we don't need to mutate function if it is not a proxy for a python function
+  }
 
+  PyObject *method = (PyObject *)js::GetFunctionNativeReserved(&(function.toObject()), 0).toPrivate();
+  if (!PyMethod_Check(method)) {
+    PyErr_Format(PyExc_TypeError, "unbound python functions do not have a 'self' to bind");
+    return false;
+  }
+
+  PyObject *func = PyMethod_Function(method);
+  JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::RootedValue thisValue(cx);
+  thisValue.setObject(*thisObject);
+  PyObject *newSelf = pyTypeFactory(cx, global, thisValue)->getPyObject();
+  function.set(jsTypeFactory(cx, PyMethod_New(func, newSelf)));
+
+  return true;
+}
 
 static bool array_reverse(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -672,15 +693,19 @@ static bool array_forEach(JSContext *cx, unsigned argc, JS::Value *vp) {
   Py_ssize_t len = PyList_GET_SIZE(self);
 
   JS::RootedObject rootedThisArg(cx);
+
   if (args.length() > 1) {
     JS::Value thisArg = args[1].get();
     if (!thisArg.isObjectOrNull()) {
       JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_NOT_OBJORNULL, "'this' argument");
       return false;
     }
-
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -742,6 +767,10 @@ static bool array_map(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -801,6 +830,10 @@ static bool array_filter(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -977,6 +1010,10 @@ static bool array_some(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1038,6 +1075,10 @@ static bool array_every(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1099,6 +1140,10 @@ static bool array_find(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1161,6 +1206,10 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1408,6 +1457,10 @@ static bool array_flatMap(JSContext *cx, unsigned argc, JS::Value *vp) {
 
     // TODO support null, currently gets TypeError
     rootedThisArg.set(thisArg.toObjectOrNull());
+    // check if callback is a PyMethod, need to make a new method bound to thisArg
+    if (!makeNewPyMethod(cx, &callBack, rootedThisArg)) {
+      return false;
+    }
   }
   else {
     rootedThisArg.set(nullptr);
@@ -1587,9 +1640,6 @@ static int invokeCallBack(PyObject *list, int index, JS::HandleValue leftValue, 
 
 // Adapted from Kernigan&Ritchie's C book
 static void quickSort(PyObject *list, int left, int right, JSContext *cx, JS::HandleFunction callBack) {
-  if (PyErr_Occurred()) {
-    return;
-  }
 
   if (left >= right) {
     // base case
@@ -1955,12 +2005,13 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
     }
   }
 
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   // "length" property
   bool isLengthProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "length", &isLengthProperty) && isLengthProperty) {
     desc.set(mozilla::Some(
       JS::PropertyDescriptor::Data(
-        JS::Int32Value(PyList_Size(pyObject))
+        JS::Int32Value(PyList_Size(self))
       )
     ));
     return true;
@@ -2013,7 +2064,7 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   // item
   Py_ssize_t index;
   PyObject *item;
-  if (idToIndex(cx, id, &index) && (item = PyList_GetItem(pyObject, index))) {
+  if (idToIndex(cx, id, &index) && (item = PyList_GetItem(self, index))) {
     desc.set(mozilla::Some(
       JS::PropertyDescriptor::Data(
         jsTypeFactory(cx, item),
@@ -2052,18 +2103,20 @@ bool PyListProxyHandler::defineProperty(
     return result.failInvalidDescriptor();
   }
 
-  JS::RootedObject thisObj(cx, proxy);
+  // FIXME (Tom Tang): memory leak
+  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   JS::RootedValue itemV(cx, desc.value());
-  PyObject *item = pyTypeFactory(cx, thisObj, itemV)->getPyObject();
-  if (PyList_SetItem(pyObject, index, item) < 0) {
+  PyObject *item = pyTypeFactory(cx, *global, itemV)->getPyObject();
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  if (PyList_SetItem(self, index, item) < 0) {
     // we are out-of-bounds and need to expand
-    Py_ssize_t len = PyList_GET_SIZE(pyObject);
+    Py_ssize_t len = PyList_GET_SIZE(self);
     // fill the space until the inserted index
     for (Py_ssize_t i = len; i < index; i++) {
-      PyList_Append(pyObject, Py_None);
+      PyList_Append(self, Py_None);
     }
 
-    PyList_Append(pyObject, item);
+    PyList_Append(self, item);
 
     // clear pending exception
     PyErr_Clear();
@@ -2074,7 +2127,8 @@ bool PyListProxyHandler::defineProperty(
 
 bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   // Modified from https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/dom/base/RemoteOuterWindowProxy.cpp#l137
-  int32_t length = PyList_Size(pyObject);
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+  int32_t length = PyList_Size(self);
   if (!props.reserve(length + 1)) {
     return false;
   }
@@ -2089,12 +2143,13 @@ bool PyListProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, 
 
 bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, JS::ObjectOpResult &result) const {
   Py_ssize_t index;
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   if (!idToIndex(cx, id, &index)) {
     return result.failBadIndex();
   }
 
   // Set to undefined instead of actually deleting it
-  if (PyList_SetItem(pyObject, index, Py_None) < 0) {
+  if (PyList_SetItem(self, index, Py_None) < 0) {
     return result.failCantDelete();
   }
   return result.succeed();

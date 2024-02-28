@@ -1,5 +1,7 @@
 import pythonmonkey as pm
 import subprocess
+import weakref
+import sys
 
 def test_python_functions_self():
   def pyFunc(param):
@@ -70,7 +72,7 @@ def test_javascript_functions_this():
   result = pyObj.jsFunc(2)
   assert globalThis == result[0] and 2 == result[1]
   result = jsObj.jsFunc(3)
-  assert globalThis == result[0] and 3 == result[1] # TODO (Caleb Aikens) should `this` be `globalThis` or `jsObj` here?
+  assert jsObj == result[0] and 3 == result[1]
   result = pm.eval("""(jsFunc) => {
     return jsFunc(4);
   }
@@ -115,7 +117,7 @@ def test_JSMethodProxy_this():
     return jsObj.jsMethod(4);
   }
   """)(jsObj)
-  assert pyObj == result[0] and 4 == result[1]  #TODO (Caleb Aikens) should `this` be `pyObj` or `jsObj` here?
+  assert pyObj == result[0] and 4 == result[1]
 
 #require
 def test_require_correct_this():
@@ -124,3 +126,74 @@ def test_require_correct_this():
     cipher = CryptoJS.SHA256("Hello, World!").toString()
     assert cipher == "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
     subprocess.check_call('npm uninstall crypto-js', shell=True)
+
+def test_require_correct_this_old_style_class():
+  example = pm.eval("""
+  () => {
+    // old style class
+    function Rectangle(w, h) {
+      this.w = w;
+      this.h = h;
+    }
+
+    Rectangle.prototype = {
+      getThis: function () {
+        return this;
+      },
+      getArea: function () {
+        return this.w * this.h;
+      },
+    };
+
+    // es5 class
+    class Rectangle2 {
+      constructor(w,h) {
+        this.w = w;
+        this.h = h;
+      }
+
+      getThis() {
+        return this;
+      }
+
+      getArea() {
+        return this.w * this.h;
+      }
+    }
+
+    return { Rectangle: Rectangle, Rectangle2: Rectangle2};
+  }
+  """)()
+  r = pm.new(example.Rectangle)(1,2)
+
+  assert r.getArea() == 2
+  assert r.getThis() == r
+
+  r2 = pm.new(example.Rectangle2)(1,2)
+
+  assert r2.getArea() == 2
+  assert r2.getThis() == r2
+
+def test_function_finalization():
+  ref = []
+  starting_ref_count = []
+
+  def outerScope():
+    def pyFunc():
+      return 42
+    
+    ref.append(weakref.ref(pyFunc))
+    starting_ref_count.append(sys.getrefcount(pyFunc))
+    assert 42 == pm.eval("(func) => func()")(pyFunc)
+
+    assert ref[0]() is pyFunc
+    current_ref_count = sys.getrefcount(pyFunc)
+    assert current_ref_count == starting_ref_count[0] + 1
+  
+  outerScope()
+  pm.collect() # this should collect the JS proxy to pyFunc, which should decref pyFunc
+  current_ref_count = sys.getrefcount(ref[0]())
+  #pytest seems to hold an additional reference on inner functions, so we assert here that the refcount
+  #is what it was when pyFunc was defined. In a non-test environment, pyFunc should be collected and ref[0]() should be None
+  #at this point
+  assert current_ref_count == starting_ref_count[0]
