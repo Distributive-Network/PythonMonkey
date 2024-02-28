@@ -2,9 +2,10 @@
  * @file PyObjectProxyHandler.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief Structs for creating JS proxy objects. Used for default object coercion
+ * @version 0.1
  * @date 2024-01-25
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2023 Distributive Corp.
  *
  */
 

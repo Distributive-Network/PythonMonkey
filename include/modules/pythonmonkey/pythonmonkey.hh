@@ -2,9 +2,10 @@
  * @file pythonmonkey.hh
  * @author Caleb Aikens (caleb@kingsds.network)
  * @brief This file defines the pythonmonkey module, along with its various functions.
+ * @version 0.1
  * @date 2022-09-06
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2022
  *
  */
 #ifndef PythonMonkey_Module_PythonMonkey

@@ -4,7 +4,7 @@
  * @brief Struct for creating JS proxy objects. Used by ListType for List coercion
  * @date 2023-12-01
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 

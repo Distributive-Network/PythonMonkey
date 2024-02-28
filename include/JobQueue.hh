@@ -2,9 +2,10 @@
  * @file JobQueue.hh
  * @author Tom Tang (xmader@distributive.network)
  * @brief Implement the ECMAScript Job Queue
+ * @version 0.1
  * @date 2023-04-03
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2023
  *
  */
 

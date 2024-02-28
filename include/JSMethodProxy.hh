@@ -2,9 +2,10 @@
  * @file JSMethodProxy.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief JSMethodProxy is a custom C-implemented python type. It acts as a proxy for JSFunctions from Spidermonkey, and behaves like a method would, treating `self` as `this`.
+ * @version 0.1
  * @date 2023-11-14
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2023 Distributive Corp.
  *
  */
 

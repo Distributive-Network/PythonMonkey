@@ -27,7 +27,7 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
 cat <<EOF
 Peter-jr - A simple test framework in the spirit of Peter for testing basic
            PythonMonkey functionality. (Peter: npmjs.com/packages/peter)
-Copyright (c) 2023 Distributive Corp. Released under the terms of the MIT License.
+Copyright (c) 2023 Distributive. Released under the terms of the MIT License.
 
 Usage: $0 [-h] [-v] [test [test...]]
 Where: -h or --help shows this help

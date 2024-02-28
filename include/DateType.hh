@@ -2,9 +2,10 @@
  * @file DateType.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief Struct for representing python dates
+ * @version 0.1
  * @date 2022-12-21
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2022
  *
  */
 

@@ -2,9 +2,10 @@
  * @file internalBinding.hh
  * @author Tom Tang (xmader@distributive.network)
  * @brief
+ * @version 0.1
  * @date 2023-05-16
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

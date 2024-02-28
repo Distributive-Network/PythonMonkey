@@ -2,9 +2,10 @@
  * @file JSObjectKeysProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectKeysProxy is a custom C-implemented python type that derives from dict keys
+ * @version 0.1
  * @date 2024-01-16
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2024 Distributive Corp.
  *
  */
 

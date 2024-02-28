@@ -2,9 +2,10 @@
  * @file PyBaseProxyHandler.hh
  * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Structs for creating JS proxy objects.
+ * @version 0.1
  * @date 2023-04-20
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 

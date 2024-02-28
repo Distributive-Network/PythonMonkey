@@ -2,9 +2,10 @@
  * @file PyListProxyHandler.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief Structs for creating JS proxy objects. Used by ListType for List coercion
+ * @version 0.1
  * @date 2023-12-01
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 

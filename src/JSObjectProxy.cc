@@ -2,9 +2,10 @@
  * @file JSObjectProxy.cc
  * @author Caleb Aikens (caleb@distributive.network), Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectProxy is a custom C-implemented python type that derives from dict. It acts as a proxy for JSObjects from Spidermonkey, and behaves like a dict would.
+ * @version 0.1
  * @date 2023-06-26
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 

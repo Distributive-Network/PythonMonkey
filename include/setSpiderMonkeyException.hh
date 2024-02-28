@@ -2,9 +2,10 @@
  * @file setSpiderMonkeyException.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief Call this function whenever a JS_* function call fails in order to set an appropriate python exception (remember to also return NULL)
+ * @version 0.1
  * @date 2023-02-28
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2023
  *
  */
 

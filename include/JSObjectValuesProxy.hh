@@ -2,9 +2,10 @@
  * @file JSObjectValuesProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectValuesProxy is a custom C-implemented python type that derives from dict values
+ * @version 0.1
  * @date 2023-06-26
  *
- * @copyright Copyright (c) 2024 Distributive Corp.
+ * Copyright (c) 2023 Distributive Corp.
  *
  */
 
