@@ -94,10 +94,6 @@ bool PyDictProxyHandler::getOwnEnumerablePropertyKeys(
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
-void PyDictProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  return handleFinalize(proxy);
-}
-
 bool PyDictProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc,

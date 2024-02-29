@@ -45,7 +45,13 @@ struct PyDictOrObjectProxyHandler : public PyBaseProxyHandler {
   static bool handleGetOwnPropertyDescriptor(JSContext *cx, JS::HandleId id,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc, PyObject *item);
 
-  static void handleFinalize(JSObject *proxy);
+  /**
+   * @brief Handles python object reference count when JS Proxy object is finalized
+   *
+   * @param gcx pointer to JS::GCContext
+   * @param proxy the proxy object being finalized
+   */
+  void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
 
   /**
    * @brief Helper function used by dicts and objects to convert dict/object to String

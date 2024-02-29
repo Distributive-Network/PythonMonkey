@@ -115,13 +115,6 @@ public:
   bool getOwnEnumerablePropertyKeys(
     JSContext *cx, JS::HandleObject proxy,
     JS::MutableHandleIdVector props) const override;
-  /**
-   * @brief Handles python object reference count when JS Proxy object is finalized
-   *
-   * @param gcx pointer to JS::GCContext
-   * @param proxy the proxy object being finalized
-   */
-  void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
