@@ -50,8 +50,6 @@ static PyDictProxyHandler pyDictProxyHandler;
 static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
 
-
-
 std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
 
 struct PythonExternalString : public JSExternalStringCallbacks {
