@@ -176,13 +176,27 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   timeout = 0;
 
+  /**
+   * A boolean value that indicates whether or not cross-site `Access-Control` requests should be made using credentials such as cookies, authorization headers or TLS client certificates.  
+   * Setting withCredentials has no effect on same-origin requests.
+   * @see https://xhr.spec.whatwg.org/#the-withcredentials-attribute
+   */
   get withCredentials()
   {
-    return false;
+    return this.#crossOriginCredentials;
   }
   set withCredentials(flag)
   {
-    throw new DOMException('xhr.withCredentials is not supported in PythonMonkey.', 'InvalidAccessError');
+    // step 1
+    if (this.#state !== XMLHttpRequest.UNSENT && this.#state !== XMLHttpRequest.OPENED)
+      // The XHR internal state should be UNSENT or OPENED.
+      throw new DOMException('XMLHttpRequest must not be sending.', 'InvalidStateError');
+    // step 2
+    if (this.#sendFlag)
+      throw new DOMException('send() has already been called', 'InvalidStateError');
+    // step 3
+    this.#crossOriginCredentials = flag;
+    // TODO: figure out what cross-origin means in PythonMonkey. Is it always same-origin request? What to send?
   }
 
   /**
@@ -501,8 +515,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   {
     if (this.#state === XMLHttpRequest.LOADING || this.#state === XMLHttpRequest.DONE)
       throw new DOMException('responseType can only be set before send()', 'InvalidStateError');
-    if (!['', 'text', 'arraybuffer'].includes(t))
-      throw new DOMException('only responseType "text" or "arraybuffer" is supported', 'NotSupportedError');
+    if (!['', 'text', 'arraybuffer', 'json'].includes(t))
+      throw new DOMException('only responseType "text" or "arraybuffer" or "json" is supported', 'NotSupportedError');
     this.#responseType = t;
   }
 
@@ -536,7 +550,29 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#responseObject = this.#mergeReceivedBytes().buffer;
       return this.#responseObject;
     }
+    
+    if (this.#responseType === 'json') // step 8
+    {
+      // step 8.2
+      if (this.#receivedLength === 0) // response’s body is null
+        return null;
+      // step 8.3
+      let jsonObject = null;
+      try
+      {
+        // TODO: use proper TextDecoder API
+        const str = decodeStr(this.#mergeReceivedBytes(), 'utf-8'); // only supports utf-8, see https://infra.spec.whatwg.org/#parse-json-bytes-to-a-javascript-value
+        jsonObject = JSON.parse(str);
+      }
+      catch (exception)
+      {
+        return null;
+      }
+      // step 8.4
+      this.#responseObject = jsonObject;
+    }
 
+    // step 6 and step 7 ("blob" or "document") are not supported
     throw new DOMException(`unsupported responseType "${this.#responseType}"`, 'InvalidStateError');
   }
 
@@ -565,6 +601,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #uploadObject = new XMLHttpRequestUpload();
   #state = XMLHttpRequest.UNSENT; // One of unsent, opened, headers received, loading, and done; initially unsent.
   #sendFlag = false; // A flag, initially unset.
+  #crossOriginCredentials = false; // A boolean, initially false.
   /** @type {Method} */
   #requestMethod = null;
   /** @type {URL} */
@@ -585,7 +622,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #responseType = '';
   /** 
    * cache for converting receivedBytes to the desired response type
-   * @type {ArrayBuffer | string}
+   * @type {ArrayBuffer | string | Record<any, any>}
    */
   #responseObject = null;
 

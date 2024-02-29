@@ -15,7 +15,9 @@
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
 #include "include/JSObjectProxy.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/JSArrayProxy.hh"
+#include "include/PyDictProxyHandler.hh"
+#include "include/PyListProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
@@ -27,6 +29,7 @@
 #include <jsapi.h>
 #include <jsfriendapi.h>
 #include <js/Proxy.h>
+#include <js/Array.h>
 
 #include <Python.h>
 #include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
@@ -162,14 +165,23 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
     returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
+  else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
+    returnType.setObject(*((JSArrayProxy *)object)->jsArray);
+  }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
     JSObject *proxy;
     if (PyList_Check(object)) {
-      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, NULL);
+      JS::RootedObject arrayPrototype(cx);
+      JS_GetClassPrototype(cx, JSProto_Array, &arrayPrototype); // so that instanceof will work, not that prototype methods will
+      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, arrayPrototype.get());
     } else {
-      proxy = js::NewProxyObject(cx, new PyProxyHandler(object), v, NULL);
+      JS::RootedObject objectPrototype(cx);
+      JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
+      proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, objectPrototype.get());
     }
+    Py_INCREF(object);
+    JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
     returnType.setObject(*proxy);
   }
   else if (object == Py_None) {
@@ -191,7 +203,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
-
 }
 
 JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
@@ -235,7 +246,9 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::RootedObject *thisv = new JS::RootedObject(cx);
   JS_ValueToObject(cx, callargs.thisv(), thisv);
 
-  if (!callargs.length()) {
+  unsigned int callArgsLength = callargs.length();
+
+  if (!callArgsLength) {
     #if PY_VERSION_HEX >= 0x03090000
     PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
     #else
@@ -251,8 +264,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   // populate python args tuple
-  PyObject *pyArgs = PyTuple_New(callargs.length());
-  for (size_t i = 0; i < callargs.length(); i++) {
+  PyObject *pyArgs = PyTuple_New(callArgsLength);
+  for (size_t i = 0; i < callArgsLength; i++) {
     JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
     PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
     if (!pyArg) return false; // error occurred

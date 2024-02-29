@@ -51,7 +51,7 @@ Object.getOwnPropertyNames(globalThis)
 .filter(prop => Object.keys(globalThis).indexOf(prop) === -1);
 """, evalOpts)
 
-for index in range(0, int(exports.length)):
+for index in range(0, len(exports)):
     name = exports[index]
     if (pmGlobals.get(name) == None):
         globals().update({name: globalThis[name]})

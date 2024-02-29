@@ -24,7 +24,8 @@
 #include "include/NoneType.hh"
 #include "include/NullType.hh"
 #include "include/PromiseType.hh"
-#include "include/PyProxyHandler.hh"
+#include "include/PyDictProxyHandler.hh"
+#include "include/PyListProxyHandler.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -97,8 +98,8 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, *rval, &obj);
     if (JS::GetClass(obj)->isProxyObject()) {
-      if (js::GetProxyHandler(obj)->family() == &PyProxyHandler::family) { // this is one of our proxies for python dicts
-        return new DictType(((PyProxyHandler *)js::GetProxyHandler(obj))->pyObject);
+      if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family) { // this is one of our proxies for python dicts
+        return new DictType(((PyDictProxyHandler *)js::GetProxyHandler(obj))->pyObject);
       }
       if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
         return new ListType(((PyListProxyHandler *)js::GetProxyHandler(obj))->pyObject);
@@ -159,6 +160,9 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         memoizePyTypeAndGCThing(s, *rval);   // TODO (Caleb Aikens) consider putting this in the StrType constructor
         return s;
       }
+    case js::ESClass::Array: {
+        return new ListType(cx, obj);
+      }
     default: {
         if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
           // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
@@ -197,7 +201,8 @@ PyObject *callJSFunc(PyObject *jsCxThisFuncTuple, PyObject *args) {
   JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
-  for (size_t i = 0; i < PyTuple_Size(args); i++) {
+  Py_ssize_t tupleSize = PyTuple_Size(args);
+  for (size_t i = 0; i < tupleSize; i++) {
     JS::Value jsValue = jsTypeFactory(cx, PyTuple_GetItem(args, i));
     if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
       return NULL; // Fail-fast

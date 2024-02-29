@@ -29,7 +29,7 @@ fi
 # Install rust compiler
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.69 # force to use Rust 1.69 because 1.70 has linking issues on Windows
 # Setup Poetry
-curl -sSL https://install.python-poetry.org | python3 - --version "1.5.1"
+curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
   POETRY_BIN="$APPDATA/Python/Scripts/poetry"
 else
@@ -39,9 +39,9 @@ $POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
-wget -c -q https://ftp.mozilla.org/pub/firefox/releases/115.1.0esr/source/firefox-115.1.0esr.source.tar.xz
+wget -c -q https://ftp.mozilla.org/pub/firefox/releases/115.7.0esr/source/firefox-115.7.0esr.source.tar.xz
 mkdir -p firefox-source
-tar xf firefox-115.1.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
+tar xf firefox-115.7.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
@@ -71,8 +71,8 @@ echo "Done building spidermonkey"
 echo "Installing spidermonkey"
 # install to ../../../../_spidermonkey_install/
 make install 
-cd ../../../../_spidermonkey_install/lib/
 if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+  cd ../../../../_spidermonkey_install/lib/
   # Set the `install_name` field to use RPATH instead of an absolute path
   # overrides https://hg.mozilla.org/releases/mozilla-esr102/file/89d799cb/js/src/build/Makefile.in#l83
   install_name_tool -id @rpath/$(basename ./libmozjs*) ./libmozjs* # making it work for whatever name the libmozjs dylib is called
