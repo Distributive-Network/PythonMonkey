@@ -100,6 +100,10 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
           }
           value.set(boundFunction);
         }
+      } else if (value.isUndefined()) {
+        if (strcmp("__class__", PyUnicode_AsUTF8(key)) == 0) {
+          return PyObject_GenericGetAttr((PyObject *)self, key);
+        }
       }
 
       return pyTypeFactory(GLOBAL_CX, value)->getPyObject();

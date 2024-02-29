@@ -88,7 +88,7 @@ static PyTypeObject BigIntType = {
 
 PyTypeObject JSObjectProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectProxy",
+  .tp_name = PyDict_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
@@ -143,7 +143,7 @@ PyTypeObject JSMethodProxyType = {
 
 PyTypeObject JSArrayProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSArrayProxy",
+  .tp_name = PyList_Type.tp_name,
   .tp_basicsize = sizeof(JSArrayProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc,

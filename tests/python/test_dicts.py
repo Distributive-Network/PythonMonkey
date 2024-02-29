@@ -326,3 +326,8 @@ def test_repr_max_recursion_depth():
         assert str(type(e)) == "<class 'RecursionError'>"
         assert str(e) == "maximum recursion depth exceeded while getting the repr of an object"
     subprocess.check_call('npm uninstall crypto-js', shell=True)       
+
+#__class__
+def test___class__attribute():  
+    items = pm.eval("({'a': 10})")
+    assert repr(items.__class__) == "<class 'dict'>"
