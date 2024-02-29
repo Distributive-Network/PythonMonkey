@@ -79,7 +79,7 @@ public:
    * @param proxy - The proxy object who's keys we output
    * @param props - out-parameter of object IDsoverride;
 
- /**
+     /**
    * @return true - call succeeded
    * @return false - call failed and an exception has been raised
    */
@@ -101,7 +101,7 @@ public:
 
   /**
    * @brief Returns vector of proxy's own keys
-   * 
+   *
    * @param cx - Pointer to the JSContext
    * @param proxy - the proxy object
    * @param props - out parameter, the vector of proxy's own keys

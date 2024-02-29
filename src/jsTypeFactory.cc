@@ -164,7 +164,8 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     registerArgs[0].setObject(*jsFuncObject);
     registerArgs[1].setPrivate(object);
     JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
+    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
+    JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal);
   }
   else if (PyExceptionInstance_Check(object)) {
     JSObject *error = ExceptionType(object).toJsError(cx);
@@ -196,7 +197,8 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     registerArgs[0].set(boundFunction);
     registerArgs[1].setPrivate(object);
     JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
+    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
+    JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal);
 
     Py_INCREF(object);
   }

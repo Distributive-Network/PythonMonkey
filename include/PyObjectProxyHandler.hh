@@ -101,10 +101,10 @@ public:
    */
   bool hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     bool *bp) const override;
-    
-   /**
+
+  /**
    * @brief Returns vector of proxy's own keys
-   * 
+   *
    * @param cx - Pointer to the JSContext
    * @param proxy - the proxy object
    * @param props - out parameter, the vector of proxy's own keys

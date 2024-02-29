@@ -24,7 +24,7 @@
 #define PythonMonkey_BigInt PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint") /**< macro for pythonmonkey.bigint class object */
 
 extern JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
-extern JS::PersistentRootedObject *jsFunctionRegistry; /**<// this is a FinalizationRegistry for JSFunctions that depend on Python functions. It is used to handle reference counts when the JSFunction is finalized */
+extern JS::PersistentRootedObject jsFunctionRegistry; /**<// this is a FinalizationRegistry for JSFunctions that depend on Python functions. It is used to handle reference counts when the JSFunction is finalized */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 static JSAutoRealm *autoRealm; /**< pointer to PythonMonkey's AutoRealm */
 static JobQueue *JOB_QUEUE; /**< pointer to PythonMonkey's event-loop job queue */
