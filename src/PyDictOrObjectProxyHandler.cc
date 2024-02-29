@@ -107,7 +107,6 @@ void PyDictOrObjectProxyHandler::handleFinalize(JSObject *proxy) {
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
   if (Py_REFCNT(self) > 1) {
     Py_DECREF(self);
   }
