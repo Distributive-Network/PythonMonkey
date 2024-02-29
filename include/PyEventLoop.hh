@@ -66,6 +66,12 @@ public:
     }
 
     /**
+     * @brief Cancel all pending event-loop jobs.
+     * @return success
+     */
+    static bool cancelAll();
+
+    /**
      * @brief Get the underlying `asyncio.Handle` Python object
      */
     inline PyObject *getHandleObject() const {

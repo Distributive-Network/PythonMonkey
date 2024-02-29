@@ -15,11 +15,25 @@
 for (let mid in require.cache)
   delete require.cache[mid];
 
+/* Recreate the python object as an EventEmitter */
+const { EventEmitter } = require('events');
+const originalPython = globalThis.python;
+const python = globalThis.python = new EventEmitter('python');
+Object.assign(python, originalPython);
+
+/* Emulate node's process.on('error') behaviour with python.on('error'). */
+python.on('error', function unhandledError(error) {
+  if (python.listenerCount('error') > 1)
+    return;
+  if (python.listenerCount('error') === 0 || python.listeners('error')[0] === unhandledError)
+    python.emit('unhandledException', error);
+});
+
 /**
  * Set the global arguments array, which is just the program's argv.  We use an argvBuilder function to
  * get around PythonMonkey's missing list->Array coercion. /wg june 2023 
  */
-exports.makeArgvBuilder = function pmjsRequire$$makeArgvBuilder()
+exports.makeArgvBuilder = function globalInit$$makeArgvBuilder()
 {
   const argv = [];
   globalThis.arguments = argv;
@@ -48,4 +62,34 @@ exports.patchGlobalRequire = function pmjs$$patchGlobalRequire()
 exports.initReplLibs = function pmjs$$initReplLibs()
 {
   globalThis.util = require('util');
+  globalThis.events = require('events');
+}
+
+/**
+ * Temporary API until we get EventEmitters working. Replace this export for a custom handler.
+ */
+exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler(error)
+{
+  error.name = 'Uncaught ' + error.name;
+  if (python._events && python._events['uncaughtException'])
+    python.emit('uncaughtException', error);
+  else
+  {
+    console.error(error);
+    python.exit(1);
+  }
+}
+
+/**
+ * Temporary API until we get EventEmitters working. Replace this export for a custom handler.
+ */
+exports.unhandledRejectionHandler = function globalInit$$unhandledRejectionHandler(error)
+{
+  if (python._events && python._events['uncaughtRejection'])
+    python.emit('unhandledRejection', error);
+  else
+  {
+    console.error(error);
+    python.exit(1);
+  }
 }

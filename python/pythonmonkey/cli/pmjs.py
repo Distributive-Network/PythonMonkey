@@ -240,7 +240,7 @@ def repl():
             if (statement == ""):
                 statement = input('> ')[readline_skip_chars:]
             readline_skip_chars = 0
-            
+
             if (len(statement) == 0):
                 continue
             if (statement[0] == '.'):
@@ -358,9 +358,36 @@ def main():
 
     if (len(args) > 0):
         async def runJS():
-            globalInitModule.patchGlobalRequire()
-            pm.runProgramModule(args[0], args, requirePath)
-            await pm.wait() # blocks until all asynchronous calls finish
+            hasUncaughtException = False
+            loop = asyncio.get_running_loop()
+            # See https://docs.python.org/3.11/library/asyncio-eventloop.html#error-handling-api
+            def exceptionHandler(loop, context):
+                error = context["exception"]
+                try:
+                    globalInitModule.uncaughtExceptionHandler(error)
+                except SystemExit: # the "exception" raised by `sys.exit()` call
+                    pass
+                finally:
+                    pm.stop() # unblock `await pm.wait()` to gracefully exit the program
+                    nonlocal hasUncaughtException
+                    hasUncaughtException = True
+            loop.set_exception_handler(exceptionHandler)
+
+            def cleanupExit(code):
+                pm.stop()
+                realExit(code)
+            realExit = globalThis.python.exit
+            globalThis.python.exit = cleanupExit
+
+            try:
+                globalInitModule.patchGlobalRequire()
+                pm.runProgramModule(args[0], args, requirePath)
+                await pm.wait() # blocks until all asynchronous calls finish
+                if hasUncaughtException:
+                    sys.exit(1)
+            except Exception as error:
+                print(error, file=sys.stderr)
+                sys.exit(1)
         asyncio.run(runJS())
     elif (enterRepl or forceRepl):
         globalInitModule.initReplLibs()
