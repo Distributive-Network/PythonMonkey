@@ -31,7 +31,8 @@ DictType::DictType(JSContext *cx, JS::Handle<JS::Value> jsObject) {
   if (proxy != NULL) {
     JS::RootedObject obj(cx);
     JS_ValueToObject(cx, jsObject, &obj);
-    proxy->jsObject.set(obj);
+    proxy->jsObject = new JS::PersistentRootedObject(cx);
+    proxy->jsObject->set(obj);
     this->pyObject = (PyObject *)proxy;
   }
 }

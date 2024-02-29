@@ -23,7 +23,7 @@
  */
 typedef struct {
   PyDictObject dict;
-  JS::PersistentRootedObject jsObject;
+  JS::PersistentRootedObject *jsObject;
 } JSObjectProxy;
 
 /**

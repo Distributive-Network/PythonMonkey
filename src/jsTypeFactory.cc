@@ -55,7 +55,13 @@ std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16
 
 struct PythonExternalString : public JSExternalStringCallbacks {
   void finalize(char16_t *chars) const override {
-    Py_DECREF(charToPyObjectMap[chars]);
+    // We cannot call Py_DECREF here when shutting down as the thread state is gone.
+    // Then, when shutting down, there is only on reference left, and we don't need
+    // to free the object since the entire process memory is being released.
+    PyObject *object = charToPyObjectMap[chars];
+    if (Py_REFCNT(object) > 1) {
+      Py_DECREF(object);
+    }
   }
   size_t sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const override {
     return 0;
@@ -180,7 +186,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObjectOrNull(typedArray);
   }
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
-    returnType.setObject(*((JSObjectProxy *)object)->jsObject);
+    returnType.setObject(**((JSObjectProxy *)object)->jsObject);
   }
   else if (PyObject_TypeCheck(object, &JSMethodProxyType)) {
     JS::RootedObject func(cx, *((JSMethodProxy *)object)->jsFunc);
@@ -204,7 +210,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(**((JSFunctionProxy *)object)->jsFunc);
   }
   else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
-    returnType.setObject(*((JSArrayProxy *)object)->jsArray);
+    returnType.setObject(**((JSArrayProxy *)object)->jsArray);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);

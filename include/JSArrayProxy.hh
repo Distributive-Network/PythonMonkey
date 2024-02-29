@@ -24,7 +24,7 @@
  */
 typedef struct {
   PyListObject list;
-  JS::PersistentRootedObject jsArray;
+  JS::PersistentRootedObject *jsArray;
 } JSArrayProxy;
 
 /**

@@ -48,14 +48,14 @@ PyObject *JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next(JSArrayIterPr
   if (self->it.reversed) {
     if (self->it.it_index >= 0) {
       JS::RootedValue elementVal(GLOBAL_CX);
-      JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)seq)->jsArray, self->it.it_index--, &elementVal);
+      JS_GetElement(GLOBAL_CX, *(((JSArrayProxy *)seq)->jsArray), self->it.it_index--, &elementVal);
       return pyTypeFactory(GLOBAL_CX, elementVal)->getPyObject();
     }
   }
   else {
     if (self->it.it_index < JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)seq)) {
       JS::RootedValue elementVal(GLOBAL_CX);
-      JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)seq)->jsArray, self->it.it_index++, &elementVal);
+      JS_GetElement(GLOBAL_CX, *(((JSArrayProxy *)seq)->jsArray), self->it.it_index++, &elementVal);
       return pyTypeFactory(GLOBAL_CX, elementVal)->getPyObject();
     }
   }

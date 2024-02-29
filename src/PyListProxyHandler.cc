@@ -552,7 +552,7 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
       // flatten the array only a depth 1
       Py_ssize_t itemLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)item);
       for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
-        if (!JS_GetElement(cx, ((JSArrayProxy *)item)->jsArray, flatIndex, &elementVal)) {
+        if (!JS_GetElement(cx, *(((JSArrayProxy *)item)->jsArray), flatIndex, &elementVal)) {
           return false;
         }
         if (PyList_Append(result, pyTypeFactory(cx, elementVal)->getPyObject()) < 0) {
@@ -1238,7 +1238,7 @@ static uint32_t FlattenIntoArray(JSContext *cx,
   for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
 
     if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
-      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, &elementVal);
+      JS_GetElement(cx, *(((JSArrayProxy *)source)->jsArray), sourceIndex, &elementVal);
     }
     else if (PyObject_TypeCheck(source, &PyList_Type)) {
       elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
@@ -1303,7 +1303,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx,
 
   for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
     if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
-      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, &elementVal);
+      JS_GetElement(cx, *(((JSArrayProxy *)source)->jsArray), sourceIndex, &elementVal);
     }
     else if (PyObject_TypeCheck(source, &PyList_Type)) {
       elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
@@ -1355,7 +1355,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx,
         JS::RootedValue elementIndexVal(cx);
         for (uint32_t elementIndex = 0; elementIndex < elementLen; elementIndex++, targetIndex++) {
           if (PyObject_TypeCheck(element, &JSArrayProxyType)) {
-            JS_GetElement(cx, ((JSArrayProxy *)element)->jsArray, elementIndex, &elementIndexVal);
+            JS_GetElement(cx, *(((JSArrayProxy *)element)->jsArray), elementIndex, &elementIndexVal);
           }
           else {
             elementIndexVal.set(jsTypeFactory(cx, PyList_GetItem(element, elementIndex)));
