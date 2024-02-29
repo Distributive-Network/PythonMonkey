@@ -319,13 +319,8 @@ def test_toLocaleString():
 def test_repr_max_recursion_depth():
     subprocess.check_call('npm install crypto-js', shell=True)
     CryptoJS = pm.require('crypto-js')
-    try:
-        repr(CryptoJS)          
-        assert (False)
-    except Exception as e:    
-        assert str(type(e)) == "<class 'RecursionError'>"
-        assert str(e) == "maximum recursion depth exceeded while getting the repr of an object"
-    subprocess.check_call('npm uninstall crypto-js', shell=True)       
+    assert str(CryptoJS).__contains__("{'lib': {'Base': {'extend':")  
+     
 
 #__class__
 def test___class__attribute():  

@@ -324,6 +324,11 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     JS::HandleId id = props[index];
     key = idToKey(GLOBAL_CX, id);
 
+    // escape infinite recur on superclass reference
+    if (strcmp(PyUnicode_AsUTF8(key), "$super") == 0) {
+      continue;
+    }
+
     // Prevent repr from deleting key or value during key format.
     Py_INCREF(key);
 
