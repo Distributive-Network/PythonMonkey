@@ -16,11 +16,12 @@ let _temp = [];
  * @param {'stdout' | 'stderr'} type 
  * @param {string | RegExp} expected 
  * @param {(console: Console) => void} callback 
+ * @param {boolean} expectMatch
  * @param {Console} _console reuse previous console object
  */
 function expectOutput (type, expected, callback, expectMatch = true, _console = undefined)
 {
-  _temp = [type, expected]; // update the match string even if a previous console object is reused 
+  _temp = [type, expected, expectMatch]; // update the match string even if a previous console object is reused 
   if (!_console)
   {
     const opts = {};
@@ -28,7 +29,7 @@ function expectOutput (type, expected, callback, expectMatch = true, _console = 
       opts[selfType] = {
         write(str) 
         {
-          [type, expected] = _temp;
+          [type, expected, expectMatch] = _temp;
           if (type !== selfType)
             throw new Error(`should not print to ${selfType}`);
   
@@ -78,9 +79,13 @@ let keptConsole;
 expectOutput('stdout', '', (console) => (keptConsole = console));
 expectOutput('stderr', 'Counter for \'default\' does not exist.', (console) => console.countReset(), true, keptConsole);
 expectOutput('stderr', 'Counter for \'abc\' does not exist.', (console) => console.countReset('abc'), true, keptConsole);
+
 expectOutput('stdout', 'default: 1', (console) => console.count(), true, keptConsole);
 expectOutput('stdout', 'default: 2', (console) => console.count(), true, keptConsole);
 expectOutput('stdout', 'default: 3', (console) => console.count(), true, keptConsole);
+expectOutput('stderr', '', (console) => console.countReset(), false, keptConsole); // counter resets to 1
+expectOutput('stdout', 'default: 1', (console) => console.count(), true, keptConsole);
+
 expectOutput('stdout', 'abc: 1', (console) => console.count('abc'), true, keptConsole);
 expectOutput('stdout', 'NaN: 1', (console) => console.count(NaN), true, keptConsole);
 
