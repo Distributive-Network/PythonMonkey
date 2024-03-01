@@ -89,3 +89,11 @@ expectOutput('stdout', 'default: 1', (console) => console.count(), true, keptCon
 expectOutput('stdout', 'abc: 1', (console) => console.count('abc'), true, keptConsole);
 expectOutput('stdout', 'NaN: 1', (console) => console.count(NaN), true, keptConsole);
 
+// console.group()
+expectOutput('stdout', '', (console) => (keptConsole = console));
+expectOutput('stdout', /^abc$/m, (console) => console.group('abc'), true, keptConsole);
+expectOutput('stdout', /^│ {3}d$/m, (console) => console.log('d'), true, keptConsole); // grouping level 1
+expectOutput('stdout', /^│ {3}e$/m, (console) => console.group('e'), true, keptConsole);
+expectOutput('stdout', /^│ {3}│ {3}f$/m, (console) => console.log('f'), true, keptConsole); // level 2
+expectOutput('stdout', /^$/, (console) => console.groupEnd(), true, keptConsole);
+expectOutput('stdout', /^│ {3}g$/m, (console) => console.log('g'), true, keptConsole); // back to level 1
