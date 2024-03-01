@@ -1,0 +1,57 @@
+/**
+ * @file        console-methods.simple
+ *
+ *              Test methods in the console API other than simple logging functions.
+ *
+ * @author      Tom Tang (xmader@distributive.network)
+ * @date        February 2024
+ */
+/* eslint-disable no-control-regex */
+
+const { Console } = require('console');
+
+/**
+ * @param {'stdout' | 'stderr'} type 
+ * @param {string | RegExp} expected 
+ * @param {(console: Console) => void} callback 
+ * @param {boolean} expectMatch
+ */
+function expectOutput (type, expected, callback, expectMatch = true)
+{
+  const _console = new Console({
+    stdout: { write: () => undefined }, // noop
+    stderr: { write: () => undefined }, // noop
+    [type]: { // overrides one of the above
+      write(str) 
+      {
+        const match = str.match(expected);
+        if (expectMatch)
+        {
+          if (!match)
+          {
+            console.log([str]);
+            throw new Error(`Expected "${expected}" but got "${str}"`);
+          }
+        }
+        else
+        {
+          if (match)
+          {
+            console.log([str]);
+            throw new Error(`The output should not be "${str}"`);
+          }
+        }
+      }
+    },
+  });
+  callback(_console);
+}
+
+expectOutput('stdout', '123\n', (console) => console.log('123'));
+expectOutput('stdout', '1234\n', (console) => console.log('123'), false);
+
+expectOutput('stdout', /^\033c$/, (console) => console.clear());
+
+expectOutput('stdout', /^Trace\n/, (console) => console.trace());
+expectOutput('stdout', /^Trace: \x1b\[90mundefined\x1b\[39m\n/, (console) => console.trace(undefined));
+expectOutput('stdout', /^Trace: \x1b\[33m123\x1b\[39m\n/, (console) => console.trace(123));
