@@ -102,12 +102,11 @@ bool PyDictOrObjectProxyHandler::handleGetOwnPropertyDescriptor(JSContext *cx, J
   return true;
 }
 
-void PyDictOrObjectProxyHandler::handleFinalize(JSObject *proxy) {
+void PyDictOrObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
   if (Py_REFCNT(self) > 1) {
     Py_DECREF(self);
   }

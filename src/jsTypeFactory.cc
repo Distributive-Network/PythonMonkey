@@ -28,6 +28,7 @@
 #include "include/DateType.hh"
 #include "include/ExceptionType.hh"
 #include "include/BufferType.hh"
+#include "include/setSpiderMonkeyException.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -48,8 +49,6 @@
 static PyDictProxyHandler pyDictProxyHandler;
 static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
-
-
 
 std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
 
@@ -170,7 +169,11 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     registerArgs[0].setObject(*jsFuncObject);
     registerArgs[1].setPrivate(object);
     JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
+    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
+    if (!JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal)) {
+      setSpiderMonkeyException(GLOBAL_CX);
+      return returnType;
+    }
   }
   else if (PyExceptionInstance_Check(object)) {
     JSObject *error = ExceptionType(object).toJsError(cx);
@@ -195,14 +198,21 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     JS::Rooted<JS::ValueArray<1>> args(cx);
     args[0].set(jsTypeFactory(cx, self));
     JS::Rooted<JS::Value> boundFunction(cx);
-    JS_CallFunctionName(cx, func, "bind", args, &boundFunction);
+    if (!JS_CallFunctionName(cx, func, "bind", args, &boundFunction)) {
+      setSpiderMonkeyException(GLOBAL_CX);
+      return returnType;
+    }
     returnType.set(boundFunction);
     // add function to jsFunctionRegistry, to DECREF the PyObject when the JSFunction is finalized
     JS::RootedValueArray<2> registerArgs(GLOBAL_CX);
     registerArgs[0].set(boundFunction);
     registerArgs[1].setPrivate(object);
     JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS_CallFunctionName(GLOBAL_CX, *jsFunctionRegistry, "register", registerArgs, &ignoredOutVal);
+    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
+    if (!JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal)) {
+      setSpiderMonkeyException(GLOBAL_CX);
+      return returnType;
+    }
 
     Py_INCREF(object);
   }

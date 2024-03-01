@@ -104,10 +104,6 @@ bool PyObjectProxyHandler::getOwnEnumerablePropertyKeys(
   return this->ownPropertyKeys(cx, proxy, props);
 }
 
-void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
-  return handleFinalize(proxy);
-}
-
 bool PyObjectProxyHandler::defineProperty(JSContext *cx, JS::HandleObject proxy,
   JS::HandleId id,
   JS::Handle<JS::PropertyDescriptor> desc,

@@ -134,5 +134,3 @@ def test_pyobjects_toLocaleString():
   
   o = MyClass()
   assert '[object Object]' == pm.eval("(obj) => { return obj.toLocaleString(); }")(o)
-
-  

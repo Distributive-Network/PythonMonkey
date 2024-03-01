@@ -48,7 +48,7 @@
 #include <Python.h>
 #include <datetime.h>
 
-JS::PersistentRootedObject *jsFunctionRegistry;
+JS::PersistentRootedObject jsFunctionRegistry;
 
 bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
@@ -252,7 +252,6 @@ PyTypeObject JSObjectItemsProxyType = {
 };
 
 static void cleanup() {
-  delete jsFunctionRegistry;
   delete autoRealm;
   delete global;
   delete JOB_QUEUE;
@@ -644,8 +643,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
-  jsFunctionRegistry = new JS::PersistentRootedObject(GLOBAL_CX);
-  jsFunctionRegistry->set(registryObject);
+  jsFunctionRegistry.init(GLOBAL_CX);
+  jsFunctionRegistry.set(registryObject);
 
   JS::SetHostCleanupFinalizationRegistryCallback(GLOBAL_CX, cleanupFinalizationRegistry, NULL);
 
