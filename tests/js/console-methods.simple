@@ -10,34 +10,45 @@
 
 const { Console } = require('console');
 
+let _temp = [];
+
 /**
  * @param {'stdout' | 'stderr'} type 
  * @param {string | RegExp} expected 
  * @param {(console: Console) => void} callback 
- * @param {boolean} expectMatch
+ * @param {Console} _console reuse previous console object
  */
-function expectOutput (type, expected, callback, expectMatch = true)
+function expectOutput (type, expected, callback, expectMatch = true, _console = undefined)
 {
-  const _console = new Console({
-    stdout: { write() { throw new Error('should not print to stdout'); } },
-    stderr: { write() { throw new Error('should not print to stderr'); } },
-    [type]: { // overrides one of the above
-      write(str) 
-      {
-        const match = str.match(expected);
-        if (expectMatch && !match)
+  _temp = [type, expected]; // update the match string even if a previous console object is reused 
+  if (!_console)
+  {
+    const opts = {};
+    ['stdout', 'stderr'].forEach(selfType => (
+      opts[selfType] = {
+        write(str) 
         {
-          console.log([str]);
-          throw new Error(`Expected "${expected}" but got "${str}"`);
-        }
-        else if (!expectMatch && match)
-        {
-          console.log([str]);
-          throw new Error(`The output should not be "${str}"`);
+          [type, expected] = _temp;
+          if (type !== selfType)
+            throw new Error(`should not print to ${selfType}`);
+  
+          const match = str.match(expected);
+          if (expectMatch && !match)
+          {
+            console.log([str]);
+            throw new Error(`Expected "${expected}" but got "${str}"`);
+          }
+          else if (!expectMatch && match)
+          {
+            console.log([str]);
+            throw new Error(`The output should not be "${str}"`);
+          }
         }
       }
-    },
-  });
+    ));
+    _console = new Console(opts);
+  }
+  
   callback(_console);
 }
 
@@ -61,3 +72,15 @@ expectOutput('stderr', /^Assertion failed: abc undefined$/m, (console) => consol
 expectOutput('stdout', /^Trace\n/, (console) => console.trace());
 expectOutput('stdout', /^Trace: \x1b\[90mundefined\x1b\[39m\n/, (console) => console.trace(undefined));
 expectOutput('stdout', /^Trace: \x1b\[33m123\x1b\[39m\n/, (console) => console.trace(123));
+
+// console.count()
+let keptConsole;
+expectOutput('stdout', '', (console) => (keptConsole = console));
+expectOutput('stderr', 'Counter for \'default\' does not exist.', (console) => console.countReset(), true, keptConsole);
+expectOutput('stderr', 'Counter for \'abc\' does not exist.', (console) => console.countReset('abc'), true, keptConsole);
+expectOutput('stdout', 'default: 1', (console) => console.count(), true, keptConsole);
+expectOutput('stdout', 'default: 2', (console) => console.count(), true, keptConsole);
+expectOutput('stdout', 'default: 3', (console) => console.count(), true, keptConsole);
+expectOutput('stdout', 'abc: 1', (console) => console.count('abc'), true, keptConsole);
+expectOutput('stdout', 'NaN: 1', (console) => console.count(NaN), true, keptConsole);
+
