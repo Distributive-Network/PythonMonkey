@@ -97,3 +97,19 @@ expectOutput('stdout', /^│ {3}e$/m, (console) => console.group('e'), true, kep
 expectOutput('stdout', /^│ {3}│ {3}f$/m, (console) => console.log('f'), true, keptConsole); // level 2
 expectOutput('stdout', /^$/, (console) => console.groupEnd(), true, keptConsole);
 expectOutput('stdout', /^│ {3}g$/m, (console) => console.log('g'), true, keptConsole); // back to level 1
+
+// console.time()
+expectOutput('stdout', '', (console) => (keptConsole = console));
+expectOutput('stderr', /^No such label 'default' for console\.timeLog/m, (console) => console.timeLog(), true, keptConsole);
+expectOutput('stderr', /^No such label 'default' for console\.timeEnd/m, (console) => console.timeEnd(), true, keptConsole);
+expectOutput('stdout', '', (console) => console.time(), true, keptConsole);
+expectOutput('stderr', /^Label 'default' already exists for console\.time/m, (console) => console.time(), true, keptConsole);
+expectOutput('stdout', /^default: \d+ms$/m, (console) => console.timeLog(), true, keptConsole);
+expectOutput('stdout', /^default: \d+ms$/m, (console) => console.timeEnd(), true, keptConsole);
+expectOutput('stderr', /^No such label 'default' for console\.timeLog/m, (console) => console.timeLog(), true, keptConsole); // timer cleared
+expectOutput('stderr', /^No such label 'default' for console\.timeEnd/m, (console) => console.timeEnd(), true, keptConsole);
+
+expectOutput('stderr', /^No such label 'abc' for console\.timeLog/m, (console) => console.timeLog('abc'), true, keptConsole);
+expectOutput('stdout', '', (console) => console.time('abc'), true, keptConsole);
+expectOutput('stdout', /^abc: \d+ms$/m, (console) => console.timeLog('abc'), true, keptConsole);
+expectOutput('stdout', /^abc: \d+ms$/m, (console) => console.timeEnd('abc'), true, keptConsole);
