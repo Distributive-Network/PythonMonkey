@@ -96,7 +96,6 @@ PyTypeObject JSObjectProxyType = {
   .tp_as_number = &JSObjectProxy_number_methods,
   .tp_as_sequence = &JSObjectProxy_sequence_methods,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
-  .tp_hash = PyObject_HashNotImplemented,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_DICT_SUBCLASS | Py_TPFLAGS_HAVE_GC,
