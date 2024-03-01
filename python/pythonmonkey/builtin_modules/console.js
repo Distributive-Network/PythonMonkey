@@ -72,7 +72,7 @@ class Console
     this.warn  = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
     this.error = (...args) => void this.#writeToStderr(this.#formatToStr(...args));
 
-    this.clear = () => this.log('\x1bc'); // clear the terminal, see https://stackoverflow.com/questions/47503734
+    this.clear = () => void this.#writeToStdout('\x1bc'); // clear the terminal, see https://stackoverflow.com/questions/47503734
 
     this.assert = (condition, ...data) => // See https://console.spec.whatwg.org/#assert
     {
