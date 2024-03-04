@@ -284,7 +284,7 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigne
   if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
     value = PyMapping_GetItemString(evalOptions, optionName);
     if (value && value != Py_None) {
-      *l_p = (long)PyFloat_AsDouble(value);
+      *l_p = (unsigned long)PyFloat_AsDouble(value);
     }
   } else {
     value = PyDict_GetItemString(evalOptions, optionName);
