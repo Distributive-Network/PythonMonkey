@@ -292,42 +292,42 @@ def test_globalThis():
     assert str(obj).__contains__("{'python': {'pythonMonkey':")
 
 def test_py_evaloptions_string_type():
-    evalOpts = { 'filename': 'GoodFile'}     
+    evalOpts = {'filename': 'GoodFile'}     
     try:
         pm.eval("{throw new Error()}", evalOpts) 
     except Exception as e:    
         assert str(e).__contains__("Error in file GoodFile")           
 
 def test_js_evaloptions_string_type():
-    evalOpts = pm.eval("({ 'filename': 'GoodFile'})")  
+    evalOpts = pm.eval("({'filename': 'GoodFile'})")  
     try:
         pm.eval("{throw new Error()}", evalOpts) 
     except Exception as e:    
         assert str(e).__contains__("Error in file GoodFile")        
 
 def test_py_evaloptions_long_type():
-    evalOpts = { 'lineno': 10}     
+    evalOpts = {'lineno': 10}     
     try:
         pm.eval("{throw new Error()}", evalOpts) 
     except Exception as e:    
         assert str(e).__contains__("on line 10")           
 
 def test_js_evaloptions_long_type():
-    evalOpts = pm.eval("({ 'lineno': 10})")  
+    evalOpts = pm.eval("({'lineno': 10})")  
     try:
         pm.eval("{throw new Error()}", evalOpts) 
     except Exception as e:    
         assert str(e).__contains__("on line 10")     
 
 def test_py_evaloptions_boolean_type():
-    evalOpts = { 'strict': True}     
+    evalOpts = {'strict': True}     
     try:
         pm.eval("{a = 9}", evalOpts) 
     except Exception as e:    
         assert str(e).__contains__("ReferenceError: assignment to undeclared variable a")           
 
 def test_js_evaloptions_boolean_type():
-    evalOpts = pm.eval("({ 'strict': true})")  
+    evalOpts = pm.eval("({'strict': true})")  
     try:
         pm.eval("{a = 9}", evalOpts) 
     except Exception as e:    
