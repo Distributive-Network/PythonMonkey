@@ -1,0 +1,115 @@
+/**
+ * @file        console-methods.simple
+ *
+ *              Test methods in the console API other than simple logging functions.
+ *
+ * @author      Tom Tang (xmader@distributive.network)
+ * @date        February 2024
+ */
+/* eslint-disable no-control-regex */
+
+const { Console } = require('console');
+
+let _temp = [];
+
+/**
+ * @param {'stdout' | 'stderr'} type 
+ * @param {string | RegExp} expected 
+ * @param {(console: Console) => void} callback 
+ * @param {boolean} expectMatch
+ * @param {Console} _console reuse previous console object
+ */
+function expectOutput (type, expected, callback, expectMatch = true, _console = undefined)
+{
+  _temp = [type, expected, expectMatch]; // update the match string even if a previous console object is reused 
+  if (!_console)
+  {
+    const opts = {};
+    ['stdout', 'stderr'].forEach(selfType => (
+      opts[selfType] = {
+        write(str) 
+        {
+          [type, expected, expectMatch] = _temp;
+          if (type !== selfType)
+            throw new Error(`should not print to ${selfType}`);
+  
+          const match = str.match(expected);
+          if (expectMatch && !match)
+          {
+            console.log([str]);
+            throw new Error(`Expected "${expected}" but got "${str}"`);
+          }
+          else if (!expectMatch && match)
+          {
+            console.log([str]);
+            throw new Error(`The output should not be "${str}"`);
+          }
+        }
+      }
+    ));
+    _console = new Console(opts);
+  }
+  
+  callback(_console);
+}
+
+expectOutput('stdout', '123\n', (console) => console.log('123'));
+expectOutput('stdout', '1234\n', (console) => console.log('123'), false);
+
+expectOutput('stdout', /^\033c$/, (console) => console.clear());
+
+// console.assert()
+// 
+// Nothing should be printed if the condition evals to true
+expectOutput('stdout', '', (console) => console.assert(true, 'abc'));
+expectOutput('stderr', '', (console) => console.assert(1 > 0, 'abc'));
+// Print 'Assertion failed' if false
+expectOutput('stderr', /^Assertion failed$/m, (console) => console.assert(false));
+expectOutput('stderr', /^Assertion failed: abc$/m, (console) => console.assert(false, 'abc'));
+expectOutput('stderr', /^Assertion failed: \[ \x1b\[33m1\x1b\[39m, \x1b\[33m2\x1b\[39m \]$/m, (console) => console.assert(false, [1, 2]));
+expectOutput('stderr', /^Assertion failed: abc undefined$/m, (console) => console.assert(false, 'abc', undefined));
+
+// console.trace()
+expectOutput('stdout', /^Trace\n/, (console) => console.trace());
+expectOutput('stdout', /^Trace: \x1b\[90mundefined\x1b\[39m\n/, (console) => console.trace(undefined));
+expectOutput('stdout', /^Trace: \x1b\[33m123\x1b\[39m\n/, (console) => console.trace(123));
+
+// console.count()
+let keptConsole;
+expectOutput('stdout', '', (console) => (keptConsole = console));
+expectOutput('stderr', 'Counter for \'default\' does not exist.', (console) => console.countReset(), true, keptConsole);
+expectOutput('stderr', 'Counter for \'abc\' does not exist.', (console) => console.countReset('abc'), true, keptConsole);
+
+expectOutput('stdout', 'default: 1', (console) => console.count(), true, keptConsole);
+expectOutput('stdout', 'default: 2', (console) => console.count(), true, keptConsole);
+expectOutput('stdout', 'default: 3', (console) => console.count(), true, keptConsole);
+expectOutput('stderr', '', (console) => console.countReset(), false, keptConsole); // counter resets to 1
+expectOutput('stdout', 'default: 1', (console) => console.count(), true, keptConsole);
+
+expectOutput('stdout', 'abc: 1', (console) => console.count('abc'), true, keptConsole);
+expectOutput('stdout', 'NaN: 1', (console) => console.count(NaN), true, keptConsole);
+
+// console.group()
+expectOutput('stdout', '', (console) => (keptConsole = console));
+expectOutput('stdout', /^abc$/m, (console) => console.group('abc'), true, keptConsole);
+expectOutput('stdout', /^│ {3}d$/m, (console) => console.log('d'), true, keptConsole); // grouping level 1
+expectOutput('stdout', /^│ {3}e$/m, (console) => console.group('e'), true, keptConsole);
+expectOutput('stdout', /^│ {3}│ {3}f$/m, (console) => console.log('f'), true, keptConsole); // level 2
+expectOutput('stdout', /^$/, (console) => console.groupEnd(), true, keptConsole);
+expectOutput('stdout', /^│ {3}g$/m, (console) => console.log('g'), true, keptConsole); // back to level 1
+
+// console.time()
+expectOutput('stdout', '', (console) => (keptConsole = console));
+expectOutput('stderr', /^No such label 'default' for console\.timeLog/m, (console) => console.timeLog(), true, keptConsole);
+expectOutput('stderr', /^No such label 'default' for console\.timeEnd/m, (console) => console.timeEnd(), true, keptConsole);
+expectOutput('stdout', '', (console) => console.time(), true, keptConsole);
+expectOutput('stderr', /^Label 'default' already exists for console\.time/m, (console) => console.time(), true, keptConsole);
+expectOutput('stdout', /^default: \d+ms$/m, (console) => console.timeLog(), true, keptConsole);
+expectOutput('stdout', /^default: \d+ms$/m, (console) => console.timeEnd(), true, keptConsole);
+expectOutput('stderr', /^No such label 'default' for console\.timeLog/m, (console) => console.timeLog(), true, keptConsole); // timer cleared
+expectOutput('stderr', /^No such label 'default' for console\.timeEnd/m, (console) => console.timeEnd(), true, keptConsole);
+
+expectOutput('stderr', /^No such label 'abc' for console\.timeLog/m, (console) => console.timeLog('abc'), true, keptConsole);
+expectOutput('stdout', '', (console) => console.time('abc'), true, keptConsole);
+expectOutput('stdout', /^abc: \d+ms$/m, (console) => console.timeLog('abc'), true, keptConsole);
+expectOutput('stdout', /^abc: \d+ms$/m, (console) => console.timeEnd('abc'), true, keptConsole);
