@@ -110,9 +110,12 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   open(method, url, async = true, username = null, password = null)
   {
+    console.log('OPEN START');
     // Normalize the method.
     // @ts-expect-error
     method = method.toString().toUpperCase();
+
+    console.log('OPEN METHOD is ' + method);
 
     // Check for valid request method
     if (!method || FORBIDDEN_REQUEST_METHODS.includes(method))
@@ -123,6 +126,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       parsedURL.username = username;
     if (password)
       parsedURL.password = password;
+
+    console.log('OPEN URL is ' + parsedURL);
     
     // step 11
     this.#sendFlag = false;
@@ -142,6 +147,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#state = XMLHttpRequest.OPENED;
       this.dispatchEvent(new Event('readystatechange'));
     }
+    console.log('OPEN END');
   }
 
   /**
@@ -151,6 +157,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   setRequestHeader(name, value)
   {
+    console.log('setRequestHeader, name ' + name + ' value ' + value);
+    console.log(new Error().stack);
     if (this.#state !== XMLHttpRequest.OPENED)
       throw new DOMException('setRequestHeader can only be called when state is OPEN', 'InvalidStateError');
     if (this.#sendFlag)
@@ -216,6 +224,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   send(body = null)
   {
+    console.log('SEND');
     if (this.#state !== XMLHttpRequest.OPENED) // step 1
       throw new DOMException('connection must be opened before send() is called', 'InvalidStateError');
     if (this.#sendFlag) // step 2
@@ -247,6 +256,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       const originalAuthorContentType = this.#requestHeaders['content-type'];
       if (!originalAuthorContentType && extractedContentType)
       {
+        console.log('CONTENT_TYPE');
         this.#requestHeaders['content-type'] = extractedContentType;
       }
     }
@@ -274,6 +284,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   #sendAsync()
   {
+    console.log('SEND ASYNC');
     this.dispatchEvent(new ProgressEvent('loadstart', { loaded:0, total:0 })); // step 11.1
     
     let requestBodyTransmitted = 0; // step 11.2
@@ -306,21 +317,29 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     let responseLength = 0;
     const processResponse = (response) =>
     {
+      console.log('processResponse 1, response is ' + response.toString());
+      console.log('processResponse 1, response header is ' + response.getAllResponseHeaders());
+      for (var key in response){
+        console.log( key + ": " + response[key]);
+      }  
       this.#response = response; // step 11.9.1
       this.#state = XMLHttpRequest.HEADERS_RECEIVED; // step 11.9.4
       this.dispatchEvent(new Event('readystatechange')); // step 11.9.5
       if (this.#state !== XMLHttpRequest.HEADERS_RECEIVED) // step 11.9.6
         return;
       responseLength = this.#response.contentLength; // step 11.9.8
+      console.log('processResponse 2, responseLength is ' + responseLength);
     };
 
     const processBodyChunk = (/** @type {Uint8Array} */ bytes) =>
     {
+      console.log('processBodyChunk 1, bytes are ' + bytes);
       this.#receivedBytes.push(bytes);
       if (this.#state === XMLHttpRequest.HEADERS_RECEIVED)
         this.#state = XMLHttpRequest.LOADING;
       this.dispatchEvent(new Event('readystatechange'));
       this.dispatchEvent(new ProgressEvent('progress', { loaded:this.#receivedLength, total:responseLength }));
+      console.log('processBodyChunk 2');
     };
 
     /**
@@ -328,16 +347,29 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
      */
     const processEndOfBody = () =>
     {
+      console.log('processEndOfBody receivedLength is ' + this.#receivedLength);
       const transmitted = this.#receivedLength; // step 3
       const length = responseLength || 0; // step 4
+      console.log('processEndOfBody responseLength is ' + responseLength);
       this.dispatchEvent(new ProgressEvent('progress', { loaded:transmitted, total:length })); // step 6
+      console.log('processEndOfBody AGAIN 1 responseLength is ' + responseLength);
       this.#state = XMLHttpRequest.DONE; // step 7
+      console.log('processEndOfBody AGAIN 2 responseLength is ' + responseLength);
       this.#sendFlag = false; // step 8
+      console.log('processEndOfBody AGAIN 3 responseLength is ' + responseLength);
       this.dispatchEvent(new Event('readystatechange')); // step 9
+      console.log('processEndOfBody AGAIN 4 responseLength is ' + responseLength);
+      console.log('processEndOfBody before loop');
       for (const eventType of ['load', 'loadend']) // step 10, step 11
         this.dispatchEvent(new ProgressEvent(eventType, { loaded:transmitted, total:length }));
+      console.log('processEndOfBody after loop');  
     };
 
+    console.log('CALLING REQUEST'); 
+    console.log('CALLING REQUEST, METHOD is ' + this.#requestMethod); 
+    console.log('CALLING REQUEST, URL is ' + this.#requestURL.toString()); 
+    console.log('CALLING REQUEST, HEADERS are ' + this.#requestHeaders);
+    console.log('CALLING REQUEST, TIMEOUT is ' + this.timeout);  
     // send() step 6
     request(
       this.#requestMethod,
