@@ -20,6 +20,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
+  brew reinstall icu4c # https://gist.github.com/berkedel/d1fc6d13651c16002f64653096d1fded
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
