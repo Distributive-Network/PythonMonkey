@@ -331,7 +331,4 @@ def test_js_evaloptions_boolean_type():
     try:
         pm.eval("{a = 9}", evalOpts) 
     except Exception as e:    
-        assert str(e).__contains__("ReferenceError: assignment to undeclared variable a")  
-
-
-
+        assert str(e).__contains__("ReferenceError: assignment to undeclared variable a")
