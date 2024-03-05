@@ -302,10 +302,10 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b
   } else {
     value = PyDict_GetItemString(evalOptions, optionName);
   }
-  if (value && value != Py_None) {
+  if (value) {
     *b_p = PyObject_IsTrue(value) == 1 ? true : false;
   }
-  return value != NULL && value != Py_None;
+  return value != NULL;
 }
 
 static PyObject *eval(PyObject *self, PyObject *args) {
