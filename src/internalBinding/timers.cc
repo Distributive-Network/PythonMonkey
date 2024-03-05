@@ -21,13 +21,10 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JS::HandleValue jobArgVal = args.get(0);
   double delaySeconds = args.get(1).toNumber();
-  printf("enqueueWithDelay 1, delay is %d seconds\n", (int)delaySeconds);
 
   // Convert to a Python function
   JS::RootedValue jobArg(cx, jobArgVal);
   PyObject *job = pyTypeFactory(cx, jobArg)->getPyObject();
-  printf("enqueueWithDelay 2, job is %p\n", job);
-
   // Schedule job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return false;
@@ -35,7 +32,7 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Return the `timeoutID` to use in `clearTimeout`
   args.rval().setNumber(PyEventLoop::AsyncHandle::getUniqueId(std::move(handle)));
-  printf("enqueueWithDelay 3, handle is %d\n", args.rval().toInt32());
+  printf("enqueueWithDelay delay is %d seconds, job is %p, handle is %d\n", (int)delaySeconds, job, args.rval().toInt32());
   return true;
 }
 
