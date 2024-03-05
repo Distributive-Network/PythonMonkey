@@ -287,7 +287,49 @@ def test_eval_functions_pyfunctions_strs():
         for j in range(length2):
             codepoint = random.randint(0x0000, 0xFFFF)
             string2 += chr(codepoint)
-        assert caller(concatenate, string1, string2) == string1 + string2
+        assert caller(concatenate, string1, string2) == string1 + string2  
+
+def test_py_evaloptions_string_type():
+    evalOpts = {'filename': 'GoodFile'}     
+    try:
+        pm.eval("{throw new Error()}", evalOpts) 
+    except Exception as e:    
+        assert str(e).__contains__("Error in file GoodFile")           
+
+def test_js_evaloptions_string_type():
+    evalOpts = pm.eval("({'filename': 'GoodFile'})")  
+    try:
+        pm.eval("{throw new Error()}", evalOpts) 
+    except Exception as e:    
+        assert str(e).__contains__("Error in file GoodFile")        
+
+def test_py_evaloptions_long_type():
+    evalOpts = {'lineno': 10}     
+    try:
+        pm.eval("{throw new Error()}", evalOpts) 
+    except Exception as e:    
+        assert str(e).__contains__("on line 10")           
+
+def test_js_evaloptions_long_type():
+    evalOpts = pm.eval("({'lineno': 10})")  
+    try:
+        pm.eval("{throw new Error()}", evalOpts) 
+    except Exception as e:    
+        assert str(e).__contains__("on line 10")     
+
+def test_py_evaloptions_boolean_type():
+    evalOpts = {'strict': True}     
+    try:
+        pm.eval("{a = 9}", evalOpts) 
+    except Exception as e:    
+        assert str(e).__contains__("ReferenceError: assignment to undeclared variable a")           
+
+def test_js_evaloptions_boolean_type():
+    evalOpts = pm.eval("({'strict': true})")  
+    try:
+        pm.eval("{a = 9}", evalOpts) 
+    except Exception as e:    
+        assert str(e).__contains__("ReferenceError: assignment to undeclared variable a")
 
 def test_globalThis():
     obj = pm.eval('globalThis')
@@ -304,4 +346,4 @@ def test_console_array():
     sys.stdout = temp_out
     items = [1, 2, 3]
     pm.eval('console.log')(items)
-    assert temp_out.getvalue() == "[ \x1b[33m1\x1b[39m, \x1b[33m2\x1b[39m, \x1b[33m3\x1b[39m ]\n"      
+    assert temp_out.getvalue() == "[ \x1b[33m1\x1b[39m, \x1b[33m2\x1b[39m, \x1b[33m3\x1b[39m ]\n"    
