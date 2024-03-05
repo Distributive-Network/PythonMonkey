@@ -115,6 +115,7 @@ async def request(
                 res.close()
 
             # readyState HEADERS_RECEIVED
+            print(res.headers)
             responseData: XHRResponse = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
                 'url': str(res.real_url),
                 'status': res.status,
