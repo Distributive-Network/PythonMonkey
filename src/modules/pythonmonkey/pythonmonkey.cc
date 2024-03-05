@@ -274,9 +274,14 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, const c
     value = PyDict_GetItemString(evalOptions, optionName);
   }
   if (value && value != Py_None) {
-    *s_p = PyUnicode_AsUTF8(value);
+    PyObject *strObj = PyObject_Str(value); // strObj = str(value)
+    if (strObj) { // success
+      *s_p = PyUnicode_AsUTF8(strObj);
+      Py_DECREF(strObj); // PyObject_Str returns new reference
+      return true;
+    }
   }
-  return value != NULL && value != Py_None;
+  return false;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigned long *l_p) {
@@ -287,7 +292,7 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigne
     value = PyDict_GetItemString(evalOptions, optionName);
   }
   if (value && value != Py_None) {
-    PyObject *longObj = PyNumber_Long(value);
+    PyObject *longObj = PyNumber_Long(value); // longObj = int(value)
     if (longObj) { // success
       *l_p = PyLong_AsUnsignedLong(longObj);
       Py_DECREF(longObj); // PyNumber_Long returns new reference
