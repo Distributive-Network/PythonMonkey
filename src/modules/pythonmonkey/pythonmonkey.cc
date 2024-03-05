@@ -287,9 +287,14 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigne
     value = PyDict_GetItemString(evalOptions, optionName);
   }
   if (value && value != Py_None) {
-    *l_p = PyLong_AsUnsignedLong(PyNumber_Long(value));
+    PyObject *longObj = PyNumber_Long(value);
+    if (longObj) { // success
+      *l_p = PyLong_AsUnsignedLong(longObj);
+      Py_DECREF(longObj); // PyNumber_Long returns new reference
+      return true;
+    }
   }
-  return value != NULL && value != Py_None;
+  return false;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b_p) {
