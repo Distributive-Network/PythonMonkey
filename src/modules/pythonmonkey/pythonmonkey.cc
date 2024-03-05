@@ -325,7 +325,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  if (evalOptions && !(PyDict_Check(evalOptions) || PyObject_TypeCheck(evalOptions, &JSObjectProxyType))) {
+  if (evalOptions && !PyDict_Check(evalOptions)) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its second argument");
     return NULL;
   }
