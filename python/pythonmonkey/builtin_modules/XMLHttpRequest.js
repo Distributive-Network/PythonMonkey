@@ -124,6 +124,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       throw new DOMException('Request method not allowed', 'SecurityError');
 
     const parsedURL = new URL(url);
+   // parsedURL.protocol = 'http:';
     if (username)
       parsedURL.username = username;
     if (password)
