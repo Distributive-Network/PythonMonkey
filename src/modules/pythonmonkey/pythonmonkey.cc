@@ -283,14 +283,11 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigne
   PyObject *value;
   if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
     value = PyMapping_GetItemString(evalOptions, optionName);
-    if (value && value != Py_None) {
-      *l_p = (unsigned long)PyFloat_AsDouble(value);
-    }
   } else {
     value = PyDict_GetItemString(evalOptions, optionName);
-    if (value && value != Py_None) {
-      *l_p = PyLong_AsUnsignedLong(value);
-    }
+  }
+  if (value && value != Py_None) {
+    *l_p = PyLong_AsUnsignedLong(PyNumber_Long(value));
   }
   return value != NULL && value != Py_None;
 }
