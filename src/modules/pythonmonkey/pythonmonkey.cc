@@ -269,29 +269,44 @@ static PyObject *collect(PyObject *self, PyObject *args) {
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {
   PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
-  if (value)
+  if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
+    value = PyMapping_GetItemString(evalOptions, optionName);
+  } else {
+    value = PyDict_GetItemString(evalOptions, optionName);
+  }
+  if (value && value != Py_None) {
     *s_p = PyUnicode_AsUTF8(value);
-  return value != NULL;
+  }
+  return value != NULL && value != Py_None;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigned long *l_p) {
   PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
-  if (value)
-    *l_p = PyLong_AsUnsignedLong(value);
-  return value != NULL;
+  if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
+    value = PyMapping_GetItemString(evalOptions, optionName);
+    if (value && value != Py_None) {
+      *l_p = (unsigned long)PyFloat_AsDouble(value);
+    }
+  } else {
+    value = PyDict_GetItemString(evalOptions, optionName);
+    if (value && value != Py_None) {
+      *l_p = PyLong_AsUnsignedLong(value);
+    }
+  }
+  return value != NULL && value != Py_None;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b_p) {
   PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
-  if (value)
+  if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
+    value = PyMapping_GetItemString(evalOptions, optionName);
+  } else {
+    value = PyDict_GetItemString(evalOptions, optionName);
+  }
+  if (value && value != Py_None) {
     *b_p = PyObject_IsTrue(value) == 1 ? true : false;
-  return value != NULL;
+  }
+  return value != NULL && value != Py_None;
 }
 
 static PyObject *eval(PyObject *self, PyObject *args) {
@@ -305,7 +320,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   if (evalOptions && !PyDict_Check(evalOptions)) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its (optional) second argument");
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its second argument");
     return NULL;
   }
 
