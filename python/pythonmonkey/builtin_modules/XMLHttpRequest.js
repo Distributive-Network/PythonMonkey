@@ -162,7 +162,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   setRequestHeader(name, value)
   {
     console.log('setRequestHeader, name ' + name + ' value ' + value);
-    console.log(new Error().stack);
+    //console.log(new Error().stack);
     if (this.#state !== XMLHttpRequest.OPENED)
       throw new DOMException('setRequestHeader can only be called when state is OPEN', 'InvalidStateError');
     if (this.#sendFlag)
