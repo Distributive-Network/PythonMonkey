@@ -286,6 +286,9 @@ void setPyException(JSContext *cx) {
   PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
 
   JSObject *jsException = ExceptionType(value).toJsError(cx);
+  Py_DECREF(type);
+  Py_DECREF(value);
+  Py_DECREF(traceback);
   JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
   JS_SetPendingException(cx, jsExceptionValue);
 }
@@ -331,9 +334,11 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
+    Py_DECREF(pyRval);
     setPyException(cx);
     return false;
   }
 
+  Py_DECREF(pyRval);
   return true;
 }
