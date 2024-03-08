@@ -80,7 +80,7 @@ globalThis.python.exit = pm.eval("""'use strict';
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
 # The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
 # innermost code in ctx-module, without forcing ourselves to expose this minimalist code to
-# userland-require.
+# userland-require
 bootstrap = pm.eval("""
 'use strict'; (function IIFE(python) {
 
@@ -173,9 +173,6 @@ bootstrap.modules.fs = {
 /* Modules which will be available to all requires */
 bootstrap.builtinModules = { debug: bootstrap.modules.debug };
 
-/* temp workaround for PythonMonkey bug */
-globalThis.bootstrap = bootstrap;
-
 return bootstrap;
 })(globalThis.python)""", evalOpts)
 
@@ -221,15 +218,12 @@ bootstrap.modules.fs.existsSync     = existsSync
 # wrapper prologue to make stack traces line up.
 with open(node_modules + "/ctx-module/ctx-module.js", "r") as ctxModuleSource:
     initCtxModule = pm.eval("""'use strict';
-(function moduleWrapper_forCtxModule(broken_require, broken_exports)
+(function moduleWrapper_forCtxModule(require, exports)
 {
-  const require = bootstrap.require;
-  const exports = bootstrap.modules['ctx-module'];
-""".replace("\n", " ") + "\n" + ctxModuleSource.read() + """
+""" + ctxModuleSource.read() + """
 })
 """, { 'filename': node_modules + "/ctx-module/ctx-module.js", 'lineno': 0 });
-#broken initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'].exports)
-initCtxModule();
+initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'])
 
 def load(filename: str) -> Dict:  
     """
@@ -257,26 +251,22 @@ def load(filename: str) -> Dict:
     return module.exports
 globalThis.python.load = load
 
-# API: pm.createRequire
-# We cache the return value of createRequire to always use the same require for the same filename
-@functools.lru_cache(maxsize=None) # unbounded function cache that won't remove any old values
-def _createRequireInner(*args):
-    return pm.eval("""'use strict';(
+createRequireInner = pm.eval("""'use strict';(
 /**
  * Factory function which returns a fresh 'require' function. The module cache will inherit from
- * globalTHis.require, assuming it has been defined.
+ * globalThis.require, assuming it has been defined.
  *
  * @param {string} filename      the filename of the module that would get this require
- * @param {object} bootstrap     the bootstrap context; python imports that are invisible to normal JS
+ * @param {object} bootstrap     the bootstrap context; python imports, modules, etc, that are invisible
+ *                               to normal JS
  * @param {string} extraPaths    colon-delimited list of paths to add to require.path
  * @param {boolean} isMain       true if the module is to be used as a program module
  *
  * @returns {function} require
  */
-function createRequire(filename, bootstrap_broken, extraPaths, isMain)
+function createRequireInner(filename, bootstrap, extraPaths, isMain)
 {
   filename = filename.split('\\\\').join('/');
-  const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
   const moduleCache = globalThis.require?.cache || {};
 
@@ -310,8 +300,10 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(',')));
 
   return module.require;
-})""", evalOpts)(*args)
+})""", evalOpts)
 
+# API: pm.createRequire
+# We cache the return value of createRequire to always use the same require for the same filename
 def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False, isMain = False):
     """
     returns a require function that resolves modules relative to the filename argument. 
@@ -327,7 +319,7 @@ def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False
         extraPathsStr = ':'.join(extraPaths)
     else:
         extraPathsStr = ''
-    return _createRequireInner(fullFilename, 'broken', extraPathsStr, isMain)
+    return createRequireInner(fullFilename, bootstrap, extraPathsStr, isMain)
 
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
