@@ -50,6 +50,7 @@ async def load_dcp_client():
         pm.eval('globalThis')['dcp'] = dcp_client_modules;
         pm.eval('Object.assign')(pm.globalThis.dcp['fs-basic'], fs_basic);
         dcp_client_modules['utils']['expandPath'] = os.path.expanduser;
+        pm.eval('globalThis.localStorage = { getItem(key) { if (key == "debug") return "*" } }')
     
 
         pm.eval(''''use strict';
