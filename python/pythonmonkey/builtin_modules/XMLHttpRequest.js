@@ -140,7 +140,6 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     if (async === false)
       this.#synchronousFlag = true;
     this.#requestHeaders = {}; // clear
-    this.setRequestHeader('Accept-Encoding', 'identity');
     this.#response = null;
     this.#receivedBytes = [];
     this.#responseObject = null;
