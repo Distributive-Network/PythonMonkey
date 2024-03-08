@@ -19,10 +19,25 @@
 #               implementation in Python that doesn't leak global symbols should be possible once
 #               some PythonMonkey bugs are fixed.
 #
+#               Module Context Summary
+#               - what CommonJS modules you can access depends on what require symbol you have
+#               - pm means the pythonmonkey Python module exports
+#               - pm.bootstrap.require is a special require that knows about modules which are not stored
+#                 on disk. This is important, because ctx-module needs some modules, and this is how we
+#                 solve the chicken<>egg problem.
+#               - There is a node_modules folder inside the pminit module that comes with pythonmonkey.
+#                 This folder is managed by npm by invoking `pminit npm`. These modules are intended as
+#                 global modules, analagous to require('process') in nodejs.
+#               - pm.require is a require that works as expected from python source code; i.e. relative
+#                 modules are resolved relative to the python source code.
+#               - pm.require has access to the pminit node_modules modules but not the bootstrap modules.
+#               - The builtin_modules directory is available anywhere the pminit node_modules directory
+#                 is, and has a higher precedence.
+#
 # @author       Wes Garland, wes@distributive.network
 # @date         May 2023
 #
-# @copyright Copyright (c) 2023 Distributive Corp.
+# @copyright Copyright (c) 2023-2024 Distributive Corp.
 
 import sys, os, io
 from typing import Union, Dict, Literal, List
@@ -55,8 +70,6 @@ globalThis = pm.eval("globalThis;", evalOpts)
 pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }", evalOpts);
 globalThis.pmEval = pm.eval
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
-#globalThis.python.pythonMonkey.version = pm.__version__
-#globalThis.python.pythonMonkey.module = pm
 globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit
 globalThis.python.pythonMonkey.nodeModules = node_modules
 globalThis.python.print  = print
@@ -97,7 +110,12 @@ bootstrap.require = function bootstrapRequire(mid)
   if (bootstrap.modules.hasOwnProperty(mid))
     return bootstrap.modules[mid];
 
-  throw new Error('module not found: ' + mid);
+  if (bootstrap.modules['ctx-module'].CtxModule)
+    return bootstrap.requireFromDisk(mid);
+
+  const error = new Error('module not found: ' + mid);
+  error = 'MODULE_NOT_FOUND';
+  throw error;
 }
 
 bootstrap.modules.vm.runInContext = function runInContext(code, _unused_contextifiedObject, options)
@@ -266,7 +284,6 @@ createRequireInner = pm.eval("""'use strict';(
  */
 function createRequireInner(filename, bootstrap, extraPaths, isMain)
 {
-  filename = filename.split('\\\\').join('/');
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
   const moduleCache = globalThis.require?.cache || {};
 
@@ -275,13 +292,20 @@ function createRequireInner(filename, bootstrap, extraPaths, isMain)
     module.exports = python.load(filename);
   }
 
+  // TODO - find a better way to deal with Windows paths
+  if (filename)
+    filename = filename.split('\\\\').join('/');
   if (moduleCache[filename])
     return moduleCache[filename].require;
 
   const module = new CtxModule(globalThis, filename, moduleCache);
-  moduleCache[filename] = module;
-  for (let path of Array.from(python.paths))
-    module.paths.push(path + '/node_modules');
+  if (filename)
+  {
+    moduleCache[filename] = module;
+    /* fully virtual modules don't get module.path or module.paths */
+    for (let path of Array.from(python.paths))
+      module.paths.push(path + '/node_modules');
+  }
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.path.push(python.pythonMonkey.nodeModules);
   module.require.extensions['.py'] = loadPythonModule;
@@ -321,6 +345,8 @@ def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False
         extraPathsStr = ''
     return createRequireInner(fullFilename, bootstrap, extraPathsStr, isMain)
 
+bootstrap.requireFromDisk = createRequireInner(None, bootstrap, '', False)
+
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
     """
@@ -337,13 +363,19 @@ def runProgramModule(filename, argv, extraPaths=[]):
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
         pm.eval(mainModuleSource.read(), {'filename': fullFilename})
 
+# The pythonmonkey require export. Every time it is used, the stack is inspected so that the filename
+# passed to createRequire is correct. This is necessary so that relative requires work. If the filename
+# found on the stack doesn't exist, we assume we're in the REPL or something and simply use the current
+# directory as the location of a virtual module for relative require purposes.
+#
+# todo: instead of cwd+__main_virtual__, use a full pathname which includes the directory that the
+#       running python program is in.
+#
 def require(moduleIdentifier: str):
-    # Retrieve the caller’s filename from the call stack
     filename = inspect.stack()[1].filename
-    # From the REPL, the filename is "<stdin>", which is not a valid path
     if not os.path.exists(filename):
-      filename = os.path.join(os.getcwd(), "__main__") # use the CWD instead
+      filename = os.path.join(os.getcwd(), "__main_virtual__")
     return createRequire(filename)(moduleIdentifier)
 
 # Restrict what symbols are exposed to the pythonmonkey module.
-__all__ = ["globalThis", "require", "createRequire", "runProgramModule"]
+__all__ = ["globalThis", "require", "createRequire", "runProgramModule", "bootstrap"]
