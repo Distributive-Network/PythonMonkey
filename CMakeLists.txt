@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
 # Add an external; appends to `PYTHONMONKEY_EXTERNAL_FILES` in the parent scope.
 function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
   add_subdirectory("cmake/externals/${PYTHONMONKEY_EXTERNAL}")
@@ -44,7 +45,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(FetchContent)
 
   SET(COMPILE_FLAGS "-ggdb -Ofast -fno-rtti") # optimize but also emit debug symbols
-  SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}" )
+  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS} $ENV{EXTRA_CMAKE_CXX_FLAGS}")
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
   if(APPLE)
