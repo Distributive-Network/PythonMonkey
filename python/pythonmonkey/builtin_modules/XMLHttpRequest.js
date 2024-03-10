@@ -7,11 +7,41 @@
  * 
  * @copyright Copyright (c) 2023 Distributive Corp.
  */
+'use strict';
 
 const { EventTarget, Event } = require('event-target');
 const { DOMException } = require('dom-exception');
 const { URL, URLSearchParams } = require('url');
 const { request, decodeStr } = require('XMLHttpRequest-internal');
+const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.require')('debug');
+
+debug('xhr:module')('loaded XMLHttpRequest.js module');
+
+/**
+ * Truncate a string-like thing for display purposes, returning a string.
+ * @param {any}     what     The thing to truncate; must have a slice method and index property.
+ *                           Works with string, array, typedarray, etc.
+ * @param {number}  maxlen   The maximum length for truncation
+ * @param {boolean} coerce   Not false = coerce to printable character codes  
+ * @returns {string}
+ */
+function trunc(what, maxlen, coerce)
+{
+  if (coerce !== false && typeof what !== 'string')
+  {
+    what = Array.from(what).map(x => {
+      if (x > 31 && x < 127)
+        return String.fromCharCode(x);
+      else if (x < 32)
+        return eval('"\\u24' + ((x).toString(16)).padStart(2,0) + '"')
+      else if (x === 127)
+        return '\u2421';
+      else
+        return '\u2423';
+    }).join('');
+  }
+  return `${what.slice(0, maxlen)}${what.length > maxlen ? '\u2026' : ''}`;
+}
 
 // exposed
 /**
@@ -29,6 +59,7 @@ class ProgressEvent extends Event
     this.lengthComputable = eventInitDict.lengthComputable ?? false;
     this.loaded = eventInitDict.loaded ?? 0;
     this.total = eventInitDict.total ?? 0;
+    this.debugTag = 'xhr:';
   }
 }
 
@@ -112,26 +143,22 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   open(method, url, async = true, username = null, password = null)
   {
-    console.log('OPEN START');
+    debug('xhr:open')('open start, method=' + method);
     // Normalize the method.
     // @ts-expect-error
     method = method.toString().toUpperCase();
-
-    console.log('OPEN METHOD is ' + method);
 
     // Check for valid request method
     if (!method || FORBIDDEN_REQUEST_METHODS.includes(method))
       throw new DOMException('Request method not allowed', 'SecurityError');
 
     const parsedURL = new URL(url);
-   // parsedURL.protocol = 'http:';
     if (username)
       parsedURL.username = username;
     if (password)
       parsedURL.password = password;
+    debug('xhr:open')('url is ' + parsedURL.href);
 
-    console.log('OPEN URL is ' + parsedURL);
-    
     // step 11
     this.#sendFlag = false;
     this.#uploadListenerFlag = false;
@@ -140,7 +167,6 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     if (async === false)
       this.#synchronousFlag = true;
     this.#requestHeaders = {}; // clear
-    this.setRequestHeader('Accept-Encoding', 'identity');
     this.#response = null;
     this.#receivedBytes = [];
     this.#responseObject = null;
@@ -151,7 +177,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#state = XMLHttpRequest.OPENED;
       this.dispatchEvent(new Event('readystatechange'));
     }
-    console.log('OPEN END');
+    debug('xhr:open')('finished open, state is ' + this.#state);
   }
 
   /**
@@ -161,8 +187,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   setRequestHeader(name, value)
   {
-    console.log('setRequestHeader, name ' + name + ' value ' + value);
-    //console.log(new Error().stack);
+    debug('xhr:headers')(`set header ${name}=${value}`);
     if (this.#state !== XMLHttpRequest.OPENED)
       throw new DOMException('setRequestHeader can only be called when state is OPEN', 'InvalidStateError');
     if (this.#sendFlag)
@@ -228,7 +253,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   send(body = null)
   {
-    console.log('SEND');
+    debug('xhr:send')(`sending; body length=${body?.length}`);
     if (this.#state !== XMLHttpRequest.OPENED) // step 1
       throw new DOMException('connection must be opened before send() is called', 'InvalidStateError');
     if (this.#sendFlag) // step 2
@@ -259,11 +284,9 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
 
       const originalAuthorContentType = this.#requestHeaders['content-type'];
       if (!originalAuthorContentType && extractedContentType)
-      {
-        console.log('CONTENT_TYPE');
         this.#requestHeaders['content-type'] = extractedContentType;
-      }
     }
+    debug('xhr:send')(`content-type=${this.#requestHeaders['content-type']}`);
 
     // step 5
     if (this.#uploadObject._hasAnyListeners())
@@ -288,7 +311,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   #sendAsync()
   {
-    console.log('SEND ASYNC');
+    debug('xhr:send')('sending in async mode');
     this.dispatchEvent(new ProgressEvent('loadstart', { loaded:0, total:0 })); // step 11.1
     
     let requestBodyTransmitted = 0; // step 11.2
@@ -321,29 +344,23 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     let responseLength = 0;
     const processResponse = (response) =>
     {
-      console.log('processResponse 1, response is ' + response.toString());
-      console.log('processResponse 1, response header is ' + response.getAllResponseHeaders());
-      for (var key in response){
-        console.log( key + ": " + response[key]);
-      }  
+      debug('xhr:response')(`response headers ----\n${response.getAllResponseHeaders()}`);
       this.#response = response; // step 11.9.1
       this.#state = XMLHttpRequest.HEADERS_RECEIVED; // step 11.9.4
       this.dispatchEvent(new Event('readystatechange')); // step 11.9.5
       if (this.#state !== XMLHttpRequest.HEADERS_RECEIVED) // step 11.9.6
         return;
       responseLength = this.#response.contentLength; // step 11.9.8
-      console.log('processResponse 2, responseLength is ' + responseLength);
     };
 
     const processBodyChunk = (/** @type {Uint8Array} */ bytes) =>
     {
-      console.log('processBodyChunk 1, bytes are ' + bytes);
+      debug('xhr:response')(`recv chunk, ${bytes.length} bytes (${trunc(bytes, 100)})`);
       this.#receivedBytes.push(bytes);
       if (this.#state === XMLHttpRequest.HEADERS_RECEIVED)
         this.#state = XMLHttpRequest.LOADING;
       this.dispatchEvent(new Event('readystatechange'));
       this.dispatchEvent(new ProgressEvent('progress', { loaded:this.#receivedLength, total:responseLength }));
-      console.log('processBodyChunk 2');
     };
 
     /**
@@ -351,29 +368,22 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
      */
     const processEndOfBody = () =>
     {
-      console.log('processEndOfBody receivedLength is ' + this.#receivedLength);
+      debug('xhr:response')(`end of body, received ${this.#receivedLength} bytes`);
       const transmitted = this.#receivedLength; // step 3
       const length = responseLength || 0; // step 4
-      console.log('processEndOfBody responseLength is ' + responseLength);
+
       this.dispatchEvent(new ProgressEvent('progress', { loaded:transmitted, total:length })); // step 6
-      console.log('processEndOfBody AGAIN 1 responseLength is ' + responseLength);
       this.#state = XMLHttpRequest.DONE; // step 7
-      console.log('processEndOfBody AGAIN 2 responseLength is ' + responseLength);
       this.#sendFlag = false; // step 8
-      console.log('processEndOfBody AGAIN 3 responseLength is ' + responseLength);
+
       this.dispatchEvent(new Event('readystatechange')); // step 9
-      console.log('processEndOfBody AGAIN 4 responseLength is ' + responseLength);
-      console.log('processEndOfBody before loop');
       for (const eventType of ['load', 'loadend']) // step 10, step 11
         this.dispatchEvent(new ProgressEvent(eventType, { loaded:transmitted, total:length }));
-      console.log('processEndOfBody after loop');  
     };
 
-    console.log('CALLING REQUEST'); 
-    console.log('CALLING REQUEST, METHOD is ' + this.#requestMethod); 
-    console.log('CALLING REQUEST, URL is ' + this.#requestURL.toString()); 
-    console.log('CALLING REQUEST, HEADERS are ' + this.#requestHeaders);
-    console.log('CALLING REQUEST, TIMEOUT is ' + this.timeout);  
+    debug('xhr:send')(`${this.#requestMethod} ${this.#requestURL.href}`);
+    debug('xhr:headers')('headers=' + Object.entries(this.#requestHeaders));
+
     // send() step 6
     request(
       this.#requestMethod,
@@ -396,8 +406,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   #sendSync()
   {
+    /* Synchronous XHR deprecated. /wg march 2024 */
     throw new DOMException('synchronous XHR is not supported', 'NotSupportedError');
-    // TODO: handle synchronous request
   }
 
   /**
@@ -410,7 +420,6 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       return;
     if (this.#timedOutFlag) // step 2
       return this.#reportRequestError('timeout', new DOMException(e.toString(), 'TimeoutError'));
-    console.error(e); // similar to browsers, print out network errors even then the error will be handled by `xhr.onerror`
     if (this.#response === null /* network error */) // step 4
       return this.#reportRequestError('error', new DOMException(e.toString(), 'NetworkError'));
     else // unknown errors
@@ -686,6 +695,10 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   }
 }
 
+/* A side-effect of loading this module is to add the XMLHttpRequest and related symbols to the global
+ * object. This makes them accessible in the "normal" way (like in a browser) even in PythonMonkey JS
+ * host environments which don't include a require() symbol.
+ */
 if (!globalThis.XMLHttpRequestEventTarget)
   globalThis.XMLHttpRequestEventTarget = XMLHttpRequestEventTarget;
 if (!globalThis.XMLHttpRequestUpload)

@@ -161,7 +161,21 @@ bootstrap.modules.debug = function debug(selector)
       if (re.test(selector))
       {
         return (function debugInner() {
-          python.print(`${colour}${selector}${noColour} ` + Array.from(arguments).join(' '))
+          var output;
+          if (!bootstrap.inspect)
+            output = Array.from(arguments).join(' ');
+          else
+            output = Array.from(arguments).map(x => {
+              if (typeof x === 'string' || x instanceof String)
+                return x;
+              return bootstrap.inspect(x);
+            }).join(' ');
+
+          output = output.split('\\n');
+          python.print(`${colour}${selector}${noColour} ` + output[0]);
+          const spaces = ''.padEnd(selector.length + 1, ' ');
+          for (let i=1; i < output.length; i++)
+            python.print(spaces + output[i]);
         });
       }
     }
@@ -299,13 +313,15 @@ function createRequireInner(filename, bootstrap, extraPaths, isMain)
     return moduleCache[filename].require;
 
   const module = new CtxModule(globalThis, filename, moduleCache);
-  if (filename)
+  if (!filename)
+    module.paths = [];   /* fully virtual module - no module.path or module.paths */
+  else
   {
     moduleCache[filename] = module;
-    /* fully virtual modules don't get module.path or module.paths */
     for (let path of Array.from(python.paths))
       module.paths.push(path + '/node_modules');
   }
+
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.path.push(python.pythonMonkey.nodeModules);
   module.require.extensions['.py'] = loadPythonModule;
@@ -346,6 +362,7 @@ def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False
     return createRequireInner(fullFilename, bootstrap, extraPathsStr, isMain)
 
 bootstrap.requireFromDisk = createRequireInner(None, bootstrap, '', False)
+bootstrap.inspect = bootstrap.requireFromDisk('util').inspect
 
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):

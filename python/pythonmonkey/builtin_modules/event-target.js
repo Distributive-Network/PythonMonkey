@@ -7,6 +7,8 @@
  * 
  * @copyright Copyright (c) 2023 Distributive Corp.
  */
+'use strict';
+const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.require')('debug');
 
 /**
  * The Event interface represents an event which takes place in the DOM.
@@ -85,8 +87,6 @@ class Event
   {
     this.type = type;
   }
-
-  // TODO: to be implemented
 }
 
 /**
@@ -136,6 +136,7 @@ class EventTarget
    */
   dispatchEvent(event)
   {
+    debug((event.debugTag || '') + 'events:dispatch')(event.constructor.name, event.type);
     // Set the Event.target property to the current EventTarget
     event.target = this;
 
