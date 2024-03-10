@@ -17,7 +17,6 @@
  * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
  */
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
-  printf("eventLoopJobWrapper jobFn=%p\n", jobFn);
   PyObject *ret = PyObject_CallObject(jobFn, NULL);
   PyEventLoop::_locker->decCounter();
   if (!ret) {

@@ -32,7 +32,6 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Return the `timeoutID` to use in `clearTimeout`
   args.rval().setNumber(PyEventLoop::AsyncHandle::getUniqueId(std::move(handle)));
-  printf("enqueueWithDelay delay is %d seconds, job is %p, handle is %d\n", (int)delaySeconds, job, args.rval().toInt32());
   return true;
 }
 
@@ -40,7 +39,6 @@ static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
   using AsyncHandle = PyEventLoop::AsyncHandle;
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   double timeoutID = args.get(0).toNumber();
-  printf("cancelByTimeoutId, handle is %d\n", (int)timeoutID);
 
   args.rval().setUndefined();
 
