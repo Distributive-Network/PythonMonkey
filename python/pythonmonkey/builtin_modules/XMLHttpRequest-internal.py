@@ -107,7 +107,6 @@ async def request(
 
             async for data in res.content.iter_any():
                 processBodyChunk(bytearray(data)) # PythonMonkey only accepts the mutable bytearray type
-
             # readyState DONE
             processEndOfBody()
     except asyncio.TimeoutError as e:
