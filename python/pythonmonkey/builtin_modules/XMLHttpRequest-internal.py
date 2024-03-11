@@ -101,7 +101,6 @@ async def request(
                 'getResponseHeader': getResponseHeader,
                 'getAllResponseHeaders': getAllResponseHeaders,
                 'abort': abort,
-
                 'contentLength': res.content_length or 0,
             }
             processResponse(responseData)
