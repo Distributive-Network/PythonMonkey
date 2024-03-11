@@ -189,11 +189,8 @@ def test_function_finalization():
     assert ref[0]() is pyFunc
     current_ref_count = sys.getrefcount(pyFunc)
     assert current_ref_count == starting_ref_count[0] + 1
-  
+
   outerScope()
   pm.collect() # this should collect the JS proxy to pyFunc, which should decref pyFunc
-  current_ref_count = sys.getrefcount(ref[0]())
-  #pytest seems to hold an additional reference on inner functions, so we assert here that the refcount
-  #is what it was when pyFunc was defined. In a non-test environment, pyFunc should be collected and ref[0]() should be None
-  #at this point
-  assert current_ref_count == starting_ref_count[0]
+  #pyFunc should be collected by now
+  assert ref[0]() is None

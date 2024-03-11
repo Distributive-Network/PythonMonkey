@@ -5,7 +5,9 @@
 #include "include/pyTypeFactory.hh"
 
 #include <Python.h>
+
 #include <jsfriendapi.h>
+#include <mozilla/Unused.h>
 
 #include <stdexcept>
 
@@ -50,6 +52,10 @@ bool JobQueue::empty() const {
 
 js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx) {
   auto saved = js::MakeUnique<JS::JobQueue::SavedJobQueue>();
+  if (!saved) {
+    JS_ReportOutOfMemory(cx);
+    return NULL;
+  }
   return saved;
 }
 
@@ -99,4 +105,26 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
 
   PyGILState_Release(gstate);
   return true; // dispatchable must eventually run
+}
+
+void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
+  mozilla::Unused << finalizationRegistryCallbacks.append(callback);
+}
+
+bool JobQueue::runFinalizationRegistryCallbacks(JSContext *cx) {
+  bool ranCallbacks = false;
+  JS::Rooted<FunctionVector> callbacks(cx);
+  std::swap(callbacks.get(), finalizationRegistryCallbacks.get());
+  for (JSFunction *f: callbacks) {
+    JS::ExposeObjectToActiveJS(JS_GetFunctionObject(f));
+
+    JSAutoRealm ar(cx, JS_GetFunctionObject(f));
+    JS::RootedFunction func(cx, f);
+    JS::RootedValue unused_rval(cx);
+    // we don't raise an exception here because there is nowhere to catch it
+    mozilla::Unused << JS_CallFunction(cx, NULL, func, JS::HandleValueArray::empty(), &unused_rval);
+    ranCallbacks = true;
+  }
+
+  return ranCallbacks;
 }
