@@ -80,7 +80,7 @@ static PyTypeObject NullType = {
 };
 
 static PyTypeObject BigIntType = {
-  .tp_name = "pythonmonkey.bigint",
+  .tp_name = PyLong_Type.tp_name,
   .tp_flags = Py_TPFLAGS_DEFAULT
   | Py_TPFLAGS_LONG_SUBCLASS
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
@@ -111,7 +111,7 @@ PyTypeObject JSObjectProxyType = {
 };
 
 PyTypeObject JSStringProxyType = {
-  .tp_name = "pythonmonkey.JSStringProxy",
+  .tp_name = PyUnicode_Type.tp_name,
   .tp_basicsize = sizeof(JSStringProxy),
   .tp_flags = Py_TPFLAGS_DEFAULT
   | Py_TPFLAGS_UNICODE_SUBCLASS
@@ -164,7 +164,7 @@ PyTypeObject JSArrayProxyType = {
 
 PyTypeObject JSArrayIterProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSArrayIterProxy",
+  .tp_name = PyListIter_Type.tp_name,
   .tp_basicsize = sizeof(JSArrayIterProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_dealloc,
@@ -180,7 +180,7 @@ PyTypeObject JSArrayIterProxyType = {
 
 PyTypeObject JSObjectIterProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectIterProxy",
+  .tp_name = PyDictIterKey_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectIterProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_dealloc,
@@ -196,7 +196,7 @@ PyTypeObject JSObjectIterProxyType = {
 
 PyTypeObject JSObjectKeysProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectKeysProxy",
+  .tp_name = PyDictKeys_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectKeysProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_dealloc,
@@ -216,7 +216,7 @@ PyTypeObject JSObjectKeysProxyType = {
 
 PyTypeObject JSObjectValuesProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectValuesProxy",
+  .tp_name = PyDictValues_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectValuesProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_dealloc,
@@ -234,7 +234,7 @@ PyTypeObject JSObjectValuesProxyType = {
 
 PyTypeObject JSObjectItemsProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectItemsProxy",
+  .tp_name = PyDictKeys_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectItemsProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_dealloc,
