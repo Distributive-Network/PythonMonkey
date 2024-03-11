@@ -13,14 +13,10 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PyType.hh"
 #include "include/FuncType.hh"
-#include "include/JSFunctionProxy.hh"
-#include "include/JSMethodProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/JSArrayProxy.hh"
 #include "include/PyDictProxyHandler.hh"
-#include "include/JSStringProxy.hh"
 #include "include/PyListProxyHandler.hh"
-#include "include/PyObjectProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
@@ -28,40 +24,22 @@
 #include "include/DateType.hh"
 #include "include/ExceptionType.hh"
 #include "include/BufferType.hh"
-#include "include/setSpiderMonkeyException.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
-#include <js/Equality.h>
 #include <js/Proxy.h>
 #include <js/Array.h>
 
 #include <Python.h>
-#include <datetime.h>
-
-#include <unordered_map>
+#include <datetime.h> // https://docs.python.org/3/c-api/datetime.html
 
 #define HIGH_SURROGATE_START 0xD800
 #define LOW_SURROGATE_START 0xDC00
 #define LOW_SURROGATE_END 0xDFFF
 #define BMP_END 0x10000
 
-static PyDictProxyHandler pyDictProxyHandler;
-static PyObjectProxyHandler pyObjectProxyHandler;
-static PyListProxyHandler pyListProxyHandler;
-
-std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
-
 struct PythonExternalString : public JSExternalStringCallbacks {
-  void finalize(char16_t *chars) const override {
-    // We cannot call Py_DECREF here when shutting down as the thread state is gone.
-    // Then, when shutting down, there is only on reference left, and we don't need
-    // to free the object since the entire process memory is being released.
-    PyObject *object = charToPyObjectMap[chars];
-    if (Py_REFCNT(object) > 1) {
-      Py_DECREF(object);
-    }
-  }
+  void finalize(char16_t *chars) const override {}
   size_t sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const override {
     return 0;
   }
@@ -112,9 +90,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (PyFloat_Check(object)) {
     returnType.setNumber(PyFloat_AsDouble(object));
   }
-  else if (PyObject_TypeCheck(object, &JSStringProxyType)) {
-    returnType.setString(((JSStringProxy *)object)->jsString.toString());
-  }
   else if (PyUnicode_Check(object)) {
     switch (PyUnicode_KIND(object)) {
     case (PyUnicode_4BYTE_KIND): {
@@ -127,13 +102,12 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     case (PyUnicode_2BYTE_KIND): {
-        charToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
         JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_2BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         returnType.setString(str);
         break;
       }
     case (PyUnicode_1BYTE_KIND): {
-        charToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
+
         JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         /* TODO (Caleb Aikens): this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
          * Ideally we submit a patch to Spidermonkey to make this part of their API with the following signature:
@@ -147,33 +121,31 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     }
-    Py_INCREF(object);
+    memoizePyTypeAndGCThing(new StrType(object), returnType);
   }
-  else if (PyMethod_Check(object) || PyFunction_Check(object) || PyCFunction_Check(object)) {
+  else if (PyCFunction_Check(object) && PyCFunction_GetFunction(object) == callJSFunc) {
+    // If it's a wrapped JS function by us, return the underlying JS function rather than wrapping it again
+    PyObject *jsCxThisFuncTuple = PyCFunction_GetSelf(object);
+    JS::RootedValue *jsFunc = (JS::RootedValue *)PyLong_AsVoidPtr(PyTuple_GetItem(jsCxThisFuncTuple, 2));
+    returnType.set(*jsFunc);
+  }
+  else if (PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
     if (PyFunction_Check(object)) {
+      // https://docs.python.org/3.11/reference/datamodel.html?highlight=co_argcount
       PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(object); // borrowed reference
       nargs = bytecode->co_argcount;
     }
 
     JSFunction *jsFunc = js::NewFunctionWithReserved(cx, callPyFunc, nargs, 0, NULL);
-    JS::RootedObject jsFuncObject(cx, JS_GetFunctionObject(jsFunc));
+    JSObject *jsFuncObject = JS_GetFunctionObject(jsFunc);
+
     // We put the address of the PyObject in the JSFunction's 0th private slot so we can access it later
     js::SetFunctionNativeReserved(jsFuncObject, 0, JS::PrivateValue((void *)object));
     returnType.setObject(*jsFuncObject);
+    memoizePyTypeAndGCThing(new FuncType(object), returnType);
     Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
-
-    // add function to jsFunctionRegistry, to DECREF the PyObject when the JSFunction is finalized
-    JS::RootedValueArray<2> registerArgs(GLOBAL_CX);
-    registerArgs[0].setObject(*jsFuncObject);
-    registerArgs[1].setPrivate(object);
-    JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
-    if (!JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal)) {
-      setSpiderMonkeyException(GLOBAL_CX);
-      return returnType;
-    }
   }
   else if (PyExceptionInstance_Check(object)) {
     JSObject *error = ExceptionType::toJsError(cx, object, nullptr);
@@ -192,40 +164,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     BufferType *pmBuffer = new BufferType(object);
     JSObject *typedArray = pmBuffer->toJsTypedArray(cx); // may return null
     returnType.setObjectOrNull(typedArray);
+    memoizePyTypeAndGCThing(pmBuffer, returnType);
   }
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
-    returnType.setObject(**((JSObjectProxy *)object)->jsObject);
-  }
-  else if (PyObject_TypeCheck(object, &JSMethodProxyType)) {
-    JS::RootedObject func(cx, *((JSMethodProxy *)object)->jsFunc);
-    PyObject *self = ((JSMethodProxy *)object)->self;
-
-    JS::Rooted<JS::ValueArray<1>> args(cx);
-    args[0].set(jsTypeFactory(cx, self));
-    JS::Rooted<JS::Value> boundFunction(cx);
-    if (!JS_CallFunctionName(cx, func, "bind", args, &boundFunction)) {
-      setSpiderMonkeyException(GLOBAL_CX);
-      return returnType;
-    }
-    returnType.set(boundFunction);
-    // add function to jsFunctionRegistry, to DECREF the PyObject when the JSFunction is finalized
-    JS::RootedValueArray<2> registerArgs(GLOBAL_CX);
-    registerArgs[0].set(boundFunction);
-    registerArgs[1].setPrivate(object);
-    JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
-    if (!JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal)) {
-      setSpiderMonkeyException(GLOBAL_CX);
-      return returnType;
-    }
-
-    Py_INCREF(object);
-  }
-  else if (PyObject_TypeCheck(object, &JSFunctionProxyType)) {
-    returnType.setObject(**((JSFunctionProxy *)object)->jsFunc);
+    returnType.setObject(*((JSObjectProxy *)object)->jsObject);
   }
   else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
-    returnType.setObject(**((JSArrayProxy *)object)->jsArray);
+    returnType.setObject(*((JSArrayProxy *)object)->jsArray);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
@@ -233,11 +178,11 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     if (PyList_Check(object)) {
       JS::RootedObject arrayPrototype(cx);
       JS_GetClassPrototype(cx, JSProto_Array, &arrayPrototype); // so that instanceof will work, not that prototype methods will
-      proxy = js::NewProxyObject(cx, &pyListProxyHandler, v, arrayPrototype.get());
+      proxy = js::NewProxyObject(cx, new PyListProxyHandler(object), v, arrayPrototype.get());
     } else {
       JS::RootedObject objectPrototype(cx);
       JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
-      proxy = js::NewProxyObject(cx, &pyDictProxyHandler, v, objectPrototype.get());
+      proxy = js::NewProxyObject(cx, new PyDictProxyHandler(object), v, objectPrototype.get());
     }
     Py_INCREF(object);
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
@@ -250,16 +195,16 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else if (PythonAwaitable_Check(object)) {
-    returnType.setObjectOrNull((new PromiseType(object))->toJsPromise(cx));
+    PromiseType *p = new PromiseType(object);
+    JSObject *promise = p->toJsPromise(cx); // may return null
+    returnType.setObjectOrNull(promise);
+    // nested awaitables would have already been GCed if finished
+    // memoizePyTypeAndGCThing(p, returnType);
   }
   else {
-    JS::RootedValue v(cx);
-    JS::RootedObject objectPrototype(cx);
-    JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
-    JSObject *proxy = js::NewProxyObject(cx, &pyObjectProxyHandler, v, objectPrototype.get());
-    Py_INCREF(object);
-    JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(object));
-    returnType.setObject(*proxy);
+    std::string errorString("pythonmonkey cannot yet convert python objects of type: ");
+    errorString += Py_TYPE(object)->tp_name;
+    PyErr_SetString(PyExc_TypeError, errorString.c_str());
   }
   return returnType;
 }
@@ -288,9 +233,7 @@ void setPyException(JSContext *cx) {
   }
 
   PyObject *type, *value, *traceback;
-  PyErr_Fetch(&type, &value, &traceback); // clears the error indicator
-
-  // PyTraceBack_Print(traceback, PySys_GetObject("stdout"));
+  PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
 
   JSObject *jsException = ExceptionType::toJsError(cx, value, traceback);
 
@@ -311,6 +254,9 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
   PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
 
+  JS::RootedObject *thisv = new JS::RootedObject(cx);
+  JS_ValueToObject(cx, callargs.thisv(), thisv);
+
   unsigned int callArgsLength = callargs.length();
 
   if (!callArgsLength) {
@@ -323,6 +269,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
       setPyException(cx);
       return false;
     }
+    // @TODO (Caleb Aikens) need to check for python exceptions here
     callargs.rval().set(jsTypeFactory(cx, pyRval));
     return true;
   }
@@ -330,8 +277,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   // populate python args tuple
   PyObject *pyArgs = PyTuple_New(callArgsLength);
   for (size_t i = 0; i < callArgsLength; i++) {
-    JS::RootedValue jsArg(cx, callargs[i]);
-    PyType *pyArg = pyTypeFactory(cx, jsArg);
+    JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
+    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
     if (!pyArg) return false; // error occurred
     PyObject *pyArgObj = pyArg->getPyObject();
     if (!pyArgObj) return false; // error occurred
@@ -343,6 +290,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     setPyException(cx);
     return false;
   }
+  // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
     Py_DECREF(pyRval);
