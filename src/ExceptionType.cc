@@ -1,3 +1,13 @@
+/**
+ * @file ExceptionType.cc
+ * @author Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
+ * @brief Struct for representing Python Exception objects from a corresponding JS Error object
+ * @date 2023-04-11
+ *
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
+ *
+ */
+
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/setSpiderMonkeyException.hh"
 
@@ -8,7 +18,7 @@
 
 #include <Python.h>
 
-ExceptionType::ExceptionType(PyObject *object) : PyType(object) {}
+// TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
 
 ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
   // Convert the JS Error object to a Python string
@@ -26,13 +36,175 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
   Py_XDECREF(errStr);
 }
 
-// TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
-JSObject *ExceptionType::toJsError(JSContext *cx) {
-  PyObject *pyErrType = PyObject_Type(pyObject);
+
+// Generating trace information
+
+#define PyTraceBack_LIMIT 1000
+
+static const int TB_RECURSIVE_CUTOFF = 3;
+
+static inline int
+tb_get_lineno(PyTracebackObject *tb) {
+  PyFrameObject *frame = tb->tb_frame;
+  PyCodeObject *code = PyFrame_GetCode(frame);
+  int lineno = PyCode_Addr2Line(code, tb->tb_lasti);
+  Py_DECREF(code);
+  return lineno;
+}
+
+static int
+tb_print_line_repeated(_PyUnicodeWriter *writer, long cnt)
+{
+  cnt -= TB_RECURSIVE_CUTOFF;
+  PyObject *line = PyUnicode_FromFormat(
+    (cnt > 1)
+          ? "[Previous line repeated %ld more times]\n"
+          : "[Previous line repeated %ld more time]\n",
+    cnt);
+  if (line == NULL) {
+    return -1;
+  }
+  int err = _PyUnicodeWriter_WriteStr(writer, line);
+  Py_DECREF(line);
+  return err;
+}
+
+JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyObject *traceBack) {
+  assert(exceptionValue != NULL);
+
+  PyObject *pyErrType = PyObject_Type(exceptionValue);
   const char *pyErrTypeName = _PyType_Name((PyTypeObject *)pyErrType);
-  PyObject *pyErrMsg = PyObject_Str(pyObject);
-  // TODO (Tom Tang): Convert Python traceback and set it as the `stack` property on JS Error object
-  // PyObject *traceback = PyException_GetTraceback(pyObject);
+
+  PyObject *pyErrMsg = PyObject_Str(exceptionValue);
+
+  if (traceBack) {
+    _PyUnicodeWriter writer;
+    _PyUnicodeWriter_Init(&writer);
+
+    PyObject *fileName = NULL;
+    int lineno = -1;
+
+    PyTracebackObject *tb = (PyTracebackObject *)traceBack;
+
+    long limit = PyTraceBack_LIMIT;
+
+    PyObject *limitv = PySys_GetObject("tracebacklimit");
+    if (limitv && PyLong_Check(limitv)) {
+      int overflow;
+      limit = PyLong_AsLongAndOverflow(limitv, &overflow);
+      if (overflow > 0) {
+        limit = LONG_MAX;
+      }
+      else if (limit <= 0) {
+        return NULL;
+      }
+    }
+
+    PyCodeObject *code = NULL;
+    Py_ssize_t depth = 0;
+    PyObject *last_file = NULL;
+    int last_line = -1;
+    PyObject *last_name = NULL;
+    long cnt = 0;
+    PyTracebackObject *tb1 = tb;
+
+    int res;
+    PyObject *line = PyUnicode_FromString("Traceback (most recent call last):\n");
+    if (line == NULL) {
+      goto error;
+    }
+    res = _PyUnicodeWriter_WriteStr(&writer, line);
+    Py_DECREF(line);
+    if (res < 0) {
+      goto error;
+    }
+
+    // TODO should we reverse the stack and put it in the more common, non-python, top-most to bottom-most order? Wait for user feedback on experience
+    while (tb1 != NULL) {
+      depth++;
+      tb1 = tb1->tb_next;
+    }
+    while (tb != NULL && depth > limit) {
+      depth--;
+      tb = tb->tb_next;
+    }
+    while (tb != NULL) {
+      code = PyFrame_GetCode(tb->tb_frame);
+
+      int tb_lineno = tb->tb_lineno;
+      if (tb_lineno == -1) {
+        tb_lineno = tb_get_lineno(tb);
+      }
+
+      if (last_file == NULL ||
+          code->co_filename != last_file ||
+          last_line == -1 || tb_lineno != last_line ||
+          last_name == NULL || code->co_name != last_name) {
+
+        if (cnt > TB_RECURSIVE_CUTOFF) {
+          if (tb_print_line_repeated(&writer, cnt) < 0) {
+            goto error;
+          }
+        }
+        last_file = code->co_filename;
+        last_line = tb_lineno;
+        last_name = code->co_name;
+        cnt = 0;
+      }
+
+      cnt++;
+
+      if (cnt <= TB_RECURSIVE_CUTOFF) {
+        fileName = code->co_filename;
+        lineno = tb_lineno;
+
+        line = PyUnicode_FromFormat("File \"%U\", line %d, in %U\n", code->co_filename, tb_lineno, code->co_name);
+        if (line == NULL) {
+          goto error;
+        }
+
+        int res = _PyUnicodeWriter_WriteStr(&writer, line);
+        Py_DECREF(line);
+        if (res < 0) {
+          goto error;
+        }
+      }
+
+      Py_CLEAR(code);
+      tb = tb->tb_next;
+    }
+    if (cnt > TB_RECURSIVE_CUTOFF) {
+      if (tb_print_line_repeated(&writer, cnt) < 0) {
+        goto error;
+      }
+    }
+
+    {
+      PyObject *stackObject = _PyUnicodeWriter_Finish(&writer);
+      const char *stackString = PyUnicode_AsUTF8(stackObject);
+
+      std::stringstream msgStream;
+      msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg) << "\n" << stackString;
+      std::string msg = msgStream.str();
+
+      JS::RootedValue rval(cx);
+      JS::RootedString filename(cx, JS_NewStringCopyZ(cx, PyUnicode_AsUTF8(fileName)));
+      JS::RootedString message(cx, JS_NewStringCopyZ(cx, msg.c_str()));
+      // TODO stack argument cannot be passed in as a string anymore (deprecated), and could not find a proper example using the new argument type
+      if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, lineno, 0, nullptr, message, JS::NothingHandleValue, &rval)) {
+        return NULL;
+      }
+
+      Py_DECREF(pyErrType);
+      Py_DECREF(pyErrMsg);
+
+      return rval.toObjectOrNull();
+    }
+
+  error:
+    _PyUnicodeWriter_Dealloc(&writer);
+    Py_XDECREF(code);
+  }
 
   std::stringstream msgStream;
   msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg);
@@ -42,7 +214,9 @@ JSObject *ExceptionType::toJsError(JSContext *cx) {
   JS::RootedObject stack(cx);
   JS::RootedString filename(cx, JS_NewStringCopyZ(cx, "[python code]"));
   JS::RootedString message(cx, JS_NewStringCopyZ(cx, msg.c_str()));
-  JS::CreateError(cx, JSExnType::JSEXN_ERR, stack, filename, 0, 0, nullptr, message, JS::NothingHandleValue, &rval);
+  if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, 0, nullptr, message, JS::NothingHandleValue, &rval)) {
+    return NULL;
+  }
 
   Py_DECREF(pyErrType);
   Py_DECREF(pyErrMsg);
