@@ -1,10 +1,10 @@
 /**
  * @file ExceptionType.hh
- * @author Tom Tang (xmader@distributive.network)
+ * @author Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing Python Exception objects from a corresponding JS Error object
  * @date 2023-04-11
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -23,8 +23,6 @@
  */
 struct ExceptionType : public PyType {
 public:
-  ExceptionType(PyObject *object);
-
   /**
    * @brief Construct a new SpiderMonkeyError from the JS Error object.
    *
@@ -36,11 +34,13 @@ public:
   const TYPE returnType = TYPE::EXCEPTION;
 
   /**
-   * @brief Convert a python [*Exception object](https://docs.python.org/3/c-api/exceptions.html#standard-exceptions) to JS Error object
+   * @brief Convert a python Exception object to a JS Error object
    *
    * @param cx - javascript context pointer
+   * @param exceptionValue - Exception object pointer, cannot be NULL
+   * @param traceBack - Exception traceback pointer, can be NULL
    */
-  JSObject *toJsError(JSContext *cx);
+  static JSObject *toJsError(JSContext *cx, PyObject *exceptionValue, PyObject *traceBack);
 };
 
 #endif
