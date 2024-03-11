@@ -130,7 +130,7 @@ jobs:
             rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
-            brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
+            brew install cmake doxygen pkg-config wget coreutils # `coreutils` installs the `realpath` command
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
