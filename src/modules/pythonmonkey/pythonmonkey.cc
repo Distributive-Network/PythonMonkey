@@ -50,6 +50,13 @@
 
 JS::PersistentRootedObject jsFunctionRegistry;
 
+void finalizationRegistryGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
+  if (status == JSGCStatus::JSGC_END) {
+    JS::ClearKeptObjects(GLOBAL_CX);
+    while (JOB_QUEUE->runFinalizationRegistryCallbacks(GLOBAL_CX));
+  }
+}
+
 bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
   Py_DECREF((PyObject *)callargs[0].toPrivate());
@@ -57,12 +64,7 @@ bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
 }
 
 static void cleanupFinalizationRegistry(JSFunction *callback, JSObject *global [[maybe_unused]], void *user_data [[maybe_unused]]) {
-  JS::ExposeObjectToActiveJS(JS_GetFunctionObject(callback));
-  JS::RootedFunction rootedCallback(GLOBAL_CX, callback);
-  JS::RootedValue unused(GLOBAL_CX);
-  if (!JS_CallFunction(GLOBAL_CX, NULL, rootedCallback, JS::HandleValueArray::empty(), &unused)) {
-    setSpiderMonkeyException(GLOBAL_CX);
-  }
+  JOB_QUEUE->queueFinalizationRegistryCallback(callback);
 }
 
 typedef struct {
@@ -252,9 +254,9 @@ PyTypeObject JSObjectItemsProxyType = {
 
 static void cleanup() {
   delete autoRealm;
+  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   delete global;
   delete JOB_QUEUE;
-  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
 }
 
@@ -474,7 +476,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   .setAsyncStack(true)
   .setSourcePragmas(true);
 
-  JOB_QUEUE = new JobQueue();
+  JOB_QUEUE = new JobQueue(GLOBAL_CX);
   if (!JOB_QUEUE->init(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
@@ -484,6 +486,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not initialize self-hosted code.");
     return NULL;
   }
+
+  JS_SetGCCallback(GLOBAL_CX, finalizationRegistryGCCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
