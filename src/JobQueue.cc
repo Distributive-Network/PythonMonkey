@@ -97,7 +97,6 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
   return true;
 }
 
-<<<<<<< HEAD
 bool sendJobToMainLoop(PyObject *pyFunc) {
   PyGILState_STATE gstate = PyGILState_Ensure();
 
@@ -111,7 +110,8 @@ bool sendJobToMainLoop(PyObject *pyFunc) {
 
   PyGILState_Release(gstate);
   return true;
-=======
+}  
+
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
   mozilla::Unused << finalizationRegistryCallbacks.append(callback);
 }
@@ -132,5 +132,4 @@ bool JobQueue::runFinalizationRegistryCallbacks(JSContext *cx) {
   }
 
   return ranCallbacks;
->>>>>>> caleb/fix/this
 }
