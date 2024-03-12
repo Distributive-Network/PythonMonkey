@@ -48,6 +48,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 
 typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
 typedef struct {
@@ -324,7 +325,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   StrType *code = NULL;
-  FILE *file;
+  FILE *file = NULL;
   PyObject *arg0 = PyTuple_GetItem(args, 0);
   PyObject *arg1 = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
 
@@ -336,7 +337,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     }
   } else if (1 /*PyFile_Check(arg0)*/) {
     /* First argument is an open file. Open a stream with a dup of the underlying fd (so we can fclose
-     * the stream later).
+     * the stream later). Future: seek to current Python file position IFF the fd is for a real file.
      */
     int fd = PyObject_AsFileDescriptor(arg0);
     int fd2 = fd == -1 ? -1 : dup(fd);
@@ -353,6 +354,8 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   PyObject *evalOptions = argc == 2 ? arg1 : NULL;
   if (evalOptions && !PyDict_Check(evalOptions)) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its second argument");
+    if (file)
+      fclose(file);
     return NULL;
   }
 
@@ -407,14 +410,18 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     JS::SourceText<mozilla::Utf8Unit> source;
     if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
       setSpiderMonkeyException(GLOBAL_CX);
+      delete code;
       return NULL;
     }
     delete code;
     script = JS::Compile(GLOBAL_CX, options, source);
   } else {
+    assert(file);
     script = JS::CompileUtf8File(GLOBAL_CX, options, file);
     fclose(file);
   }
+  file = NULL;
+  code = NULL;
 
   if (!script) {
     setSpiderMonkeyException(GLOBAL_CX);
