@@ -319,7 +319,7 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b
 static PyObject *eval(PyObject *self, PyObject *args) {
   size_t argc = PyTuple_GET_SIZE(args);
   if (argc > 2 || argc == 0) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval one or two arguments");
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval accepts one or two arguments");
     return NULL;
   }
 
