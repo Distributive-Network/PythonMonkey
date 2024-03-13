@@ -3,7 +3,7 @@
  *              Simple test which ensures that setTimeout() fires, and that it fires at about the right
  *              time.
  * @author      Wes Garland, wes@distributive.network
- * @date        June 2023
+ * @date        March 2024
  */
 
 const time = python.eval('__import__("time").time');
@@ -12,7 +12,7 @@ const start = time();
 /**
  * - must fire later than 100ms
  * - must fire before 10s
- * - 10s is will before 100s but very CI-load-tolerant; the idea is not to check for accurancy, but
+ * - 10s is well before 100s but very CI-load-tolerant; the idea is not to check for accurancy, but
  *  rather ensure we haven't mixed up seconds and milliseconds somewhere.
  */
 function check100ms()
