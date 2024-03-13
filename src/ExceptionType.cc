@@ -17,7 +17,6 @@
 #include <js/Exception.h>
 
 #include <Python.h>
-#include <frameobject.h>
 
 
 // TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
@@ -113,6 +112,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
     PyObject *last_name = NULL;
     long cnt = 0;
     PyTracebackObject *tb1 = tb;
+    int err = 0;
 
     int res;
     PyObject *line = PyUnicode_FromString("Traceback (most recent call last):\n");
@@ -189,8 +189,6 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
     }
 
 #else
-
-    int err = 0;
 
     while (tb != NULL && err == 0) {
       if (last_file == NULL ||
