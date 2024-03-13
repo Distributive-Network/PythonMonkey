@@ -180,11 +180,8 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
     }
 
     {
-      PyObject *stackObject = _PyUnicodeWriter_Finish(&writer);
-      const char *stackString = PyUnicode_AsUTF8(stackObject);
-
       std::stringstream msgStream;
-      msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg) << "\n" << stackString;
+      msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg) << "\n" << PyUnicode_AsUTF8(_PyUnicodeWriter_Finish(&writer));
       std::string msg = msgStream.str();
 
       JS::RootedValue rval(cx);
