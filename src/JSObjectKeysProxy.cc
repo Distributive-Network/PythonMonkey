@@ -23,7 +23,6 @@
 
 #include <Python.h>
 
-#include <object.h>
 
 
 void JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_dealloc(JSObjectKeysProxy *self)
