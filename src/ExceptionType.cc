@@ -17,6 +17,7 @@
 #include <js/Exception.h>
 
 #include <Python.h>
+#include <frameobject.h>
 
 
 // TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
