@@ -45,6 +45,20 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
 
 static const int TB_RECURSIVE_CUTOFF = 3;
 
+
+#if PY_VERSION_HEX < 0x03090000
+static PyCodeObject *
+PyFrame_GetCode(PyFrameObject *frame)
+{
+  assert(frame != NULL);
+  assert(!_PyFrame_IsIncomplete(frame->f_frame));
+  PyCodeObject *code = frame->f_frame->f_code;
+  assert(code != NULL);
+  Py_INCREF(code);
+  return code;
+}
+#endif
+
 static inline int
 tb_get_lineno(PyTracebackObject *tb) {
   PyFrameObject *frame = tb->tb_frame;
