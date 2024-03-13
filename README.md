@@ -4,11 +4,12 @@
 
 ## About
 [PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python Runtime,
-using the Python engine to provide the Javascript host environment. 
+using the Python engine to provide the Javascript host environment.
 
-We feature JavaScript Array and Object methods implemented on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API. 
+We feature JavaScript Array and Object methods implemented on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API.
 
-This product is in an advanced stage, approximately 90% to MVP as of January 2024. It is under active development by [Distributive](https://distributive.network/).
+This product is in an advanced stage, approximately 95% to MVP as of March 2024. It is under active development by [Distributive](https://distributive.network/).
+
 External contributions and feedback are welcome and encouraged.
 
 ### tl;dr
@@ -54,11 +55,11 @@ js_eval("console.log")('hello, world')
 - [done] CommonJS module system .py loader, loads Python modules for use by JS
 - [done] Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
 - [done] Python host environment supplies XMLHttpRequest
-- Python host environment supplies basic subsets of NodeJS's fs, path, process, etc, modules; as-needed by dcp-client
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
 - [done] Python lists coerce to JS Arrays
 - [done] JS arrays coerce to Python lists
+- [90%] PythonMonkey can run the dcp-client npm package from Distributive.
 
 ## Build Instructions
 
@@ -82,7 +83,7 @@ Read this if you want to build a local version.
 If you are using VSCode, you can just press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> to [run build task](https://code.visualstudio.com/docs/editor/tasks#_custom-tasks) - We have [the `tasks.json` file configured for you](.vscode/tasks.json).
 
 ## Running tests
-1. Compile the project 
+1. Compile the project
 2. Install development dependencies: `poetry install --no-root --only=dev`
 3. From the root directory, run `poetry run pytest ./tests/python`
 4. From the root directory, run `poetry run bash ./peter-jr ./tests/js/`
@@ -131,7 +132,7 @@ and install them by `pip install ./dist/*`.
 ## Debugging Steps
 
 1. [build the project locally](#build-instructions)
-2. To use gdb, run `poetry run gdb python`.  
+2. To use gdb, run `poetry run gdb python`.
 See [Python Wiki: DebuggingWithGdb](https://wiki.python.org/moin/DebuggingWithGdb)
 
 If you are using VSCode, it's more convenient to debug in [VSCode's built-in debugger](https://code.visualstudio.com/docs/editor/debugging). Simply press <kbd>F5</kbd> on an open Python file in the editor to start debugging - We have [the `launch.json` file configured for you](https://github.com/Distributive-Network/PythonMonkey/blob/main/.vscode/launch.json).
@@ -142,19 +143,43 @@ If you are using VSCode, it's more convenient to debug in [VSCode's built-in deb
 * https://github.com/Distributive-Network/PythonMonkey-examples
 * https://github.com/Distributive-Network/PythonMonkey-Crypto-JS-Fullstack-Example
 
-## API
-These methods are exported from the pythonmonkey module.
+## Official API
+These methods are exported from the pythonmonkey module. See definitions in [python/pythonmonkey/pythonmonkey.pyi](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/pythonmonkey.pyi).
 
-* eval(code, evalOpts)
-* isCompilableUnit(code)
-* collect()
-* bigint(int)
-* `SpiderMonkeyError`
-* `JSObjectProxy`
-* `JSMethodProxy`
-* `null`
+### eval(code, options)
+Evaluate JavaScript code. The semantics of this eval are very similar to the eval used in JavaScript;
+the last expression evaluated in the `code` string is used as the return value of this function. To
+evaluate `code` in strict mode, the first expression should be the string `"use strict"`.
 
-See definitions in [python/pythonmonkey/pythonmonkey.pyi](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/pythonmonkey.pyi).
+#### options
+The eval function supports an options object that can affect how JS code is evaluated in powerful ways.
+They are largely based on SpiderMonkey's `CompileOptions`. The supported option keys are:
+- `filename`: set the filename of this code for the purposes of generating stack traces etc.
+- `lineno`: set the line number offset of this code for the purposes of generating stack traces etc.
+- `column`: set the column number offset of this code for the purposes of generating stack traces etc.
+- `mutedErrors`: experimental
+- `noScriptRval`: experimental
+- `selfHosting`: experimental
+- `strict`: experimental
+- `module`: experimental
+- `fromPythonFrame`: generate the equivalent of filename, lineno, and column based on the location of
+  the Python call to eval. This makes it possible to evaluate Python multiline string literals and
+  generate stack traces in JS pointing to the error in the Python source file.
+
+#### tricks
+- function literals evaluate as `undefined` in JavaScript; if you want to return a function, you must
+  evaluate an expression:
+  ```python
+  pythonmonkey.eval("myFunction() { return 123 }; myFunction")
+  ```
+  or
+  ```python
+  pythonmonkey.eval("(myFunction() { return 123 })")
+  ```
+- function expressions are a great way to build JS IIFEs that accept Python arguments
+  ```python
+  pythonmonkey.eval("(thing) => console.log('you said', thing)")("this string came from Python")
+  ```
 
 ### require(moduleIdentifier)
 Return the exports of a CommonJS module identified by `moduleIdentifier`, using standard CommonJS
@@ -189,6 +214,40 @@ necessary unless the main entry point of your program is written in JavaScript.
 
 Care should be taken to ensure that only one program module is run per JS context.
 
+### isCompilableUnit(code)
+Examines the string `code` and returns False if the string might become a valid JS statement with
+the addition of more lines. This is used internally by pmjs and can be very helpful for building
+JavaScript REPLs; the idea is to accumulate lines in a buffer until isCompilableUnit is true, then
+evaluate the entire buffer.
+
+### new(function)
+Returns a Python function which invokes `function` with the JS new operator.
+```python
+import pythonmonkey as pm
+
+>>> pm.eval("class MyClass { constructor() { console.log('ran ctor') }}")
+>>> MyClass = pm.eval("MyClass")
+>>> MyClass()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+pythonmonkey.SpiderMonkeyError: TypeError: class constructors must be invoked with 'new'
+
+>>> MyClassCtor = pm.new(MyClass)
+>>> MyClassCtor()
+ran ctor
+{}
+>>>
+```
+
+### typeof(value)
+This is the JS `typeof` operator, wrapped in a function so that it can be used easily from Python.
+
+### Standard Classes and Globals
+All of the JS Standard Classes (Array, Function, Object, Date...) and objects (globalThis,
+FinalizationRegistry...) are available as exports of the pythonmonkey module. These exports are
+generated by enumerating the global variable in the current SpiderMonkey context. The current list is:
+<blockquote>undefined, Boolean, JSON, Date, Math, Number, String, RegExp, Error, InternalError, AggregateError, EvalError, RangeError, ReferenceError, SyntaxError, TypeError, URIError, ArrayBuffer, Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array, Uint8ClampedArray, BigInt64Array, BigUint64Array, BigInt, Proxy, WeakMap, Map, Set, DataView, Symbol, Intl, Reflect, WeakSet, Promise, WebAssembly, WeakRef, Iterator, AsyncIterator, NaN, Infinity, isNaN, isFinite, parseFloat, parseInt, escape, unescape, decodeURI, encodeURI, decodeURIComponent, encodeURIComponent, Function, Object, debuggerGlobal, FinalizationRegistry, Array, globalThis</blockquote>
+
 ## Built-In Functions
 
 See definitions in [python/pythonmonkey/global.d.ts](https://github.com/Distributive-Network/PythonMonkey/blob/main/python/pythonmonkey/global.d.ts).
@@ -215,8 +274,8 @@ pythonmonkey module.
 - `python.stderr` - an object with `read` and `write` methods, which read and write to stderr
 - `python.exec`   - the Python exec function
 - `python.eval`   - the Python eval function
-- `python.exit`   - the Python exit function (wrapped to return BigInt in place of number)
-- `python.paths`  - the Python sys.paths list (currently a copy; will become an Array-like reflection)
+- `python.exit`   - exit via sys.exit(); the exit code is the function argument or `python.exit.code`.
+- `python.paths`  - the Python sys.paths list, visible in JS as an Array
 
 ## Type Transfer (Coercion / Wrapping)
 When sending variables from Python into JavaScript, PythonMonkey will intelligently coerce or wrap your
@@ -233,7 +292,7 @@ Where shared backing store is not possible, PythonMonkey will automatically emit
 the "real" data structure as its value authority. Only immutable intrinsics are copied. This means
 that if you update an object in JavaScript, the corresponding Dict in Python will be updated, etc.
 
-JavaScript Array and Object methods are implemented on Python List and Dictionaries, and vice-versa. 
+JavaScript Array and Object methods are implemented on Python List and Dictionaries, and vice-versa.
 
 | Python Type | JavaScript Type |
 |:------------|:----------------|
@@ -303,7 +362,7 @@ import asyncio
 
 async def async_fn():
   await pm.eval("""
-    new Promise((resolve) => setTimeout((...args) => { 
+    new Promise((resolve) => setTimeout((...args) => {
         console.log(args);
         resolve();
       }, 1000, 42, "abc")
@@ -408,5 +467,5 @@ $1 = { '0': '/home/wes/git/pythonmonkey2',
   '5': '/home/wes/git/pythonmonkey2/python' }
 > $1[3]
 '/usr/lib/python3.10/lib-dynload'
-> 
+>
 ```
