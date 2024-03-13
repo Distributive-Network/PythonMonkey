@@ -52,6 +52,8 @@
 #include <vector>
 #include <cassert>
 
+JS::PersistentRootedObject jsFunctionRegistry;
+
 void finalizationRegistryGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_END) {
     JS::ClearKeptObjects(GLOBAL_CX);
