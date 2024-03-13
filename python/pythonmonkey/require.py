@@ -27,7 +27,7 @@
 #                 solve the chicken<>egg problem.
 #               - There is a node_modules folder inside the pminit module that comes with pythonmonkey.
 #                 This folder is managed by npm by invoking `pminit npm`. These modules are intended as
-#                 global modules, analagous to require('process') in nodejs.
+#                 global modules, analogous to require('process') in nodejs.
 #               - pm.require is a require that works as expected from python source code; i.e. relative
 #                 modules are resolved relative to the python source code.
 #               - pm.require has access to the pminit node_modules modules but not the bootstrap modules.
