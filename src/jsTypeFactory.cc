@@ -1,11 +1,10 @@
 /**
  * @file jsTypeFactory.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief
- * @version 0.1
  * @date 2023-02-15
  *
- * @copyright Copyright (c) 2023
+ * @copyright 2023-2024 Distributive Corp.
  *
  */
 
@@ -149,8 +148,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
   }
   else if (PyExceptionInstance_Check(object)) {
-    JSObject *error = ExceptionType(object).toJsError(cx);
-    returnType.setObject(*error);
+    JSObject *error = ExceptionType::toJsError(cx, object, nullptr);
+    if (error) {
+      returnType.setObject(*error);
+    }
+    else {
+      returnType.setUndefined();
+    }
   }
   else if (PyDateTime_Check(object)) {
     JSObject *dateObj = DateType(object).toJsDate(cx);
@@ -231,9 +235,16 @@ void setPyException(JSContext *cx) {
   PyObject *type, *value, *traceback;
   PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
 
-  JSObject *jsException = ExceptionType(value).toJsError(cx);
-  JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
-  JS_SetPendingException(cx, jsExceptionValue);
+  JSObject *jsException = ExceptionType::toJsError(cx, value, traceback);
+
+  Py_XDECREF(type);
+  Py_XDECREF(value);
+  Py_XDECREF(traceback);
+
+  if (jsException) {
+    JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
+    JS_SetPendingException(cx, jsExceptionValue);
+  }
 }
 
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
@@ -282,9 +293,11 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   // @TODO (Caleb Aikens) need to check for python exceptions here
   callargs.rval().set(jsTypeFactory(cx, pyRval));
   if (PyErr_Occurred()) {
+    Py_DECREF(pyRval);
     setPyException(cx);
     return false;
   }
 
+  Py_DECREF(pyRval);
   return true;
 }
