@@ -16,7 +16,10 @@ const {
  */
 class Timeout
 {
+  /** @type {number} an integer */
   #numeralId;
+  /** @type {boolean} */
+  #refed;
 
   /**
    * @param {number} numeralId 
@@ -24,6 +27,36 @@ class Timeout
   constructor(numeralId)
   {
     this.#numeralId = numeralId;
+  }
+
+  /**
+   * If `true`, the `Timeout` object will keep the event-loop active.
+   * @returns {boolean}
+   */
+  hasRef()
+  {
+    return this.#refed;
+  }
+
+  /**
+   * When called, requests that the event-loop **not exit** so long as the `Timeout` is active.
+   *   
+   * By default, all `Timeout` objects are "ref'ed", making it normally unnecessary to call `timeout.ref()` unless `timeout.unref()` had been called previously.
+   */
+  ref()
+  {
+    this.#refed = true;
+    return this; // allow chaining
+  }
+
+  /**
+   * When called, the active `Timeout` object will not require the event-loop to remain active.  
+   * If there is no other activity keeping the event-loop running, the process may exit before the `Timeout` object's callback is invoked.
+   */
+  unref()
+  {
+    this.#refed = false;
+    return this; // allow chaining
   }
 
   /**
