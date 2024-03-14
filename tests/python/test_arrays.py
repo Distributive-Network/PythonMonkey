@@ -754,7 +754,12 @@ def test_sort_with_two_args_keyfunc_wrong_data_type():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert "object of type 'float' has no len()" in str(e)   
+        assert "object of type 'float' has no len()" in str(e)  
+        assert "test_arrays.py" in str(e)   
+        assert "line 751" in str(e)  
+        assert "in myFunc" in str(e) 
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e) 
 
 def test_sort_with_one_arg_keyfunc():
     items = ['Four', 'Three', 'One']   
@@ -766,6 +771,8 @@ def test_sort_with_one_arg_keyfunc():
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert "takes 1 positional argument but 2 were given" in str(e)
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e)  
 
 def test_sort_with_builtin_keyfunc():
     items = ['Four', 'Three', 'One']   
@@ -774,7 +781,9 @@ def test_sort_with_builtin_keyfunc():
         assert (False)
     except Exception as e:  
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert "len() takes exactly one argument (2 given)" in str(e)    
+        assert "len() takes exactly one argument (2 given)" in str(e)
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e)      
 
 def test_sort_with_js_func():
     items = ['Four', 'Three', 'One']  
