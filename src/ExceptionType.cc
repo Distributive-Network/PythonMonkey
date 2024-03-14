@@ -276,7 +276,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
     Py_XDECREF(code);
   }
 
-  // gather additional JS context
+  // gather additional JS context details
   JS::ErrorReportBuilder reportBuilder(cx);
   if (!reportBuilder.init(cx, exceptionStack, JS::ErrorReportBuilder::WithSideEffects)) {
     return NULL;
