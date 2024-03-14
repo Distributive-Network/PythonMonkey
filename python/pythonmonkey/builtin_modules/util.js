@@ -533,8 +533,9 @@ function formatValue(ctx, value, recurseTimes, ln) {
       base = ` ${dateToISOString.call(value)}`;
     } else if (isError(value)) {
       // Make error with message first say the error
-      if (keyLength === 0)
+      if (keyLength === 0 || keys.every(k => k === 'stack')) // There's only a 'stack' property
         return formatError(ctx, value);
+      keys = keys.filter(k => k !== 'stack'); // When changing the 'stack' property in SpiderMonkey, it becomes enumerable.
       base = ` ${formatError(ctx, value)}\n`;
       braces.length=0;
     } else if (isAnyArrayBuffer(value)) {
