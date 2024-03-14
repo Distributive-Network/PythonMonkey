@@ -2149,3 +2149,25 @@ def test_assign_bad_index_with_gap():
     result = []
     pm.eval("(result, arr) => {result[0] = 4; result[5] = 6}")(result, items) 
     assert result == [4, None, None, None, None, 6]
+
+def test_array_subclass_behaves_as_array():
+     my_JS_function = pm.eval("""
+                      () => {
+                        class MyClass extends Array {
+                          constructor(...args)
+                          {
+                            super(...args);
+                            return this;
+                          }
+                        }
+                        return new MyClass(1,2);
+                      }
+                      """)
+     
+     a = my_JS_function()
+     assert a == [1,2]
+     result = []
+     for i in a:
+        result.append(i)
+     assert result == [1,2]
+     assert a is not result
