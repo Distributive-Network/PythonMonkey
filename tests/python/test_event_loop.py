@@ -21,9 +21,10 @@ def test_set_clear_timeout():
         def to_raise(msg):
             f1.set_exception(TypeError(msg))
         timeout_id0 = pm.eval("setTimeout")(to_raise, 100, "going to be there")
-        assert type(timeout_id0) == float
-        assert timeout_id0 > 0                  # `setTimeout` should return a positive integer value
-        assert int(timeout_id0) == timeout_id0
+        # `setTimeout` should return a `Timeout` instance wrapping a positive integer value
+        assert pm.eval("(t) => t instanceof setTimeout.Timeout")(timeout_id0)
+        assert pm.eval("(t) => Number(t) > 0")(timeout_id0)
+        assert pm.eval("(t) => Number.isInteger(Number(t))")(timeout_id0)
         with pytest.raises(TypeError, match="going to be there"):
             await f1                                # `clearTimeout` not called
         f1 = loop.create_future()

@@ -11,13 +11,38 @@ const {
 } = internalBinding('timers');
 
 /**
+ * Implement Node.js-style `timeoutId` class returned from setTimeout() and setInterval()
+ * @see https://nodejs.org/api/timers.html#class-timeout
+ */
+class Timeout
+{
+  #numeralId;
+
+  /**
+   * @param {number} numeralId 
+   */
+  constructor(numeralId)
+  {
+    this.#numeralId = numeralId;
+  }
+
+  /**
+   * @returns a number that can be used to reference this timeout
+   */
+  [Symbol.toPrimitive]()
+  {
+    return this.#numeralId;
+  }
+}
+
+/**
  * Implement the `setTimeout` global function
  * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout and
  * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-settimeout
  * @param {Function | string} handler
  * @param {number} delayMs timeout milliseconds, use value of 0 if this is omitted
  * @param {any[]} args additional arguments to be passed to the `handler`
- * @return {number} timeoutId
+ * @return {Timeout} timeoutId
  */
 function setTimeout(handler, delayMs = 0, ...args) 
 {
@@ -41,23 +66,26 @@ function setTimeout(handler, delayMs = 0, ...args)
     delayMs = 0; // as spec-ed
   const delaySeconds = delayMs / 1000; // convert ms to s
 
-  return enqueueWithDelay(boundHandler, delaySeconds);
+  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds));
 }
+
+// expose the `Timeout` class
+setTimeout.Timeout = Timeout;
 
 /**
  * Implement the `clearTimeout` global function
  * @see https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout and
  * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-cleartimeout
- * @param {number} timeoutId
+ * @param {Timeout | number} timeoutId
  * @return {void}
  */
 function clearTimeout(timeoutId) 
 {
-  // silently does nothing when an invalid timeoutId (should be an int32 value) is passed in
-  if (!Number.isInteger(timeoutId))
+  // silently does nothing when an invalid timeoutId (should be a Timeout instance or an int32 value) is passed in
+  if (!(timeoutId instanceof Timeout) && !Number.isInteger(timeoutId))
     return;
 
-  return cancelByTimeoutId(timeoutId);
+  return cancelByTimeoutId(Number(timeoutId));
 }
 
 if (!globalThis.setTimeout)
