@@ -290,6 +290,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   JS::RootedValue rval(cx);
   JS::RootedString filename(cx, JS_NewStringCopyZ(cx, "")); // cannot be null or omitted, but is overriden by the errorReport
   JS::RootedString message(cx, JS_NewStringCopyZ(cx, msgStream.str().c_str()));
+  // filename cannot be null
   if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, 0, errorReport, message, JS::NothingHandleValue, &rval)) {
     return NULL;
   }
