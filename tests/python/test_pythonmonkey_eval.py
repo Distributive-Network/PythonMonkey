@@ -129,7 +129,10 @@ def test_eval_exceptions_nested_py_js_py():
             return "Caught in JS " + e;
         }
     }''')
-    assert b(c) == "Caught in JS Error: Python Exception: this is an exception"
+    assert str(b(c)).__contains__("Caught in JS Error: Python Exception: this is an exception")
+    assert str(b(c)).__contains__("test_pythonmonkey_eval.py")
+    assert str(b(c)).__contains__("line 124")
+    assert str(b(c)).__contains__("in c")
 
 def test_eval_exceptions_nested_js_py_js():
     c = pm.eval("() => { throw TypeError('this is an exception'); }")
