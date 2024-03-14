@@ -19,9 +19,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
-  brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
-  brew uninstall --ignore-dependencies --force icu4c # https://gist.github.com/berkedel/d1fc6d13651c16002f64653096d1fded
-  wget -c -q https://raw.githubusercontent.com/Homebrew/homebrew-core/7426122/Formula/i/icu4c.rb && brew install --formula icu4c.rb && rm icu4c.rb # pin icu4c version to 73.2
+  brew install cmake doxygen pkg-config wget coreutils # `coreutils` installs the `realpath` command
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else

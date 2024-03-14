@@ -17,6 +17,8 @@
 #include <js/Exception.h>
 
 #include <Python.h>
+#include <frameobject.h>
+
 
 // TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
 
@@ -43,6 +45,8 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
 
 static const int TB_RECURSIVE_CUTOFF = 3;
 
+#if PY_VERSION_HEX >= 0x03090000
+
 static inline int
 tb_get_lineno(PyTracebackObject *tb) {
   PyFrameObject *frame = tb->tb_frame;
@@ -51,6 +55,8 @@ tb_get_lineno(PyTracebackObject *tb) {
   Py_DECREF(code);
   return lineno;
 }
+
+#endif
 
 static int
 tb_print_line_repeated(_PyUnicodeWriter *writer, long cnt)
@@ -107,6 +113,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
     PyObject *last_name = NULL;
     long cnt = 0;
     PyTracebackObject *tb1 = tb;
+    int err = 0;
 
     int res;
     PyObject *line = PyUnicode_FromString("Traceback (most recent call last):\n");
@@ -128,6 +135,9 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
       depth--;
       tb = tb->tb_next;
     }
+
+#if PY_VERSION_HEX >= 0x03090000
+
     while (tb != NULL) {
       code = PyFrame_GetCode(tb->tb_frame);
 
@@ -158,7 +168,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
         fileName = code->co_filename;
         lineno = tb_lineno;
 
-        line = PyUnicode_FromFormat("File \"%U\", line %d, in %U\n", code->co_filename, tb_lineno, code->co_name);
+        line = PyUnicode_FromFormat("File \"%U\", line %d, in %U\n", fileName, lineno, code->co_name);
         if (line == NULL) {
           goto error;
         }
@@ -179,12 +189,52 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
       }
     }
 
-    {
-      PyObject *stackObject = _PyUnicodeWriter_Finish(&writer);
-      const char *stackString = PyUnicode_AsUTF8(stackObject);
+#else
 
+    while (tb != NULL && err == 0) {
+      if (last_file == NULL ||
+          tb->tb_frame->f_code->co_filename != last_file ||
+          last_line == -1 || tb->tb_lineno != last_line ||
+          last_name == NULL || tb->tb_frame->f_code->co_name != last_name) {
+        if (cnt > TB_RECURSIVE_CUTOFF) {
+          err = tb_print_line_repeated(&writer, cnt);
+        }
+        last_file = tb->tb_frame->f_code->co_filename;
+        last_line = tb->tb_lineno;
+        last_name = tb->tb_frame->f_code->co_name;
+        cnt = 0;
+      }
+      cnt++;
+      if (err == 0 && cnt <= TB_RECURSIVE_CUTOFF) {
+        fileName = tb->tb_frame->f_code->co_filename;
+        lineno = tb->tb_lineno;
+
+        line = PyUnicode_FromFormat("File \"%U\", line %d, in %U\n", fileName, lineno, tb->tb_frame->f_code->co_name);
+        if (line == NULL) {
+          goto error;
+        }
+
+        int res = _PyUnicodeWriter_WriteStr(&writer, line);
+        Py_DECREF(line);
+        if (res < 0) {
+          goto error;
+        }
+      }
+      tb = tb->tb_next;
+    }
+    if (err == 0 && cnt > TB_RECURSIVE_CUTOFF) {
+      err = tb_print_line_repeated(&writer, cnt);
+    }
+
+    if (err) {
+      goto error;
+    }
+
+#endif
+
+    {
       std::stringstream msgStream;
-      msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg) << "\n" << stackString;
+      msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg) << "\n" << PyUnicode_AsUTF8(_PyUnicodeWriter_Finish(&writer));
       std::string msg = msgStream.str();
 
       JS::RootedValue rval(cx);

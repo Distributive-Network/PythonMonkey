@@ -288,9 +288,7 @@ void setPyException(JSContext *cx) {
   }
 
   PyObject *type, *value, *traceback;
-  PyErr_Fetch(&type, &value, &traceback); // clears the error indicator
-
-  // PyTraceBack_Print(traceback, PySys_GetObject("stdout"));
+  PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
 
   JSObject *jsException = ExceptionType::toJsError(cx, value, traceback);
 
