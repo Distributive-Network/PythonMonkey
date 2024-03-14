@@ -175,7 +175,7 @@ def test_promises():
         assert "nested" == await pm.eval("(promise) => promise")(c())
         assert "nested" == await pm.eval("(promise) => promise")(await c())
         assert "nested" == await pm.eval("(promise) => promise")(await (await c()))
-        with pytest.raises(TypeError, match="object pythonmonkey.JSStringProxy can't be used in 'await' expression"):
+        with pytest.raises(TypeError, match="object str can't be used in 'await' expression"):
             await pm.eval("(promise) => promise")(await (await (await c())))
 
         # Python awaitable throwing exceptions

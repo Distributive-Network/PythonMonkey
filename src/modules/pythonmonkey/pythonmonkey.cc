@@ -48,7 +48,18 @@
 #include <Python.h>
 #include <datetime.h>
 
+#include <unordered_map>
+#include <vector>
+#include <cassert>
+
 JS::PersistentRootedObject jsFunctionRegistry;
+
+void finalizationRegistryGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
+  if (status == JSGCStatus::JSGC_END) {
+    JS::ClearKeptObjects(GLOBAL_CX);
+    while (JOB_QUEUE->runFinalizationRegistryCallbacks(GLOBAL_CX));
+  }
+}
 
 bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
@@ -57,12 +68,7 @@ bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
 }
 
 static void cleanupFinalizationRegistry(JSFunction *callback, JSObject *global [[maybe_unused]], void *user_data [[maybe_unused]]) {
-  JS::ExposeObjectToActiveJS(JS_GetFunctionObject(callback));
-  JS::RootedFunction rootedCallback(GLOBAL_CX, callback);
-  JS::RootedValue unused(GLOBAL_CX);
-  if (!JS_CallFunction(GLOBAL_CX, NULL, rootedCallback, JS::HandleValueArray::empty(), &unused)) {
-    setSpiderMonkeyException(GLOBAL_CX);
-  }
+  JOB_QUEUE->queueFinalizationRegistryCallback(callback);
 }
 
 typedef struct {
@@ -78,7 +84,7 @@ static PyTypeObject NullType = {
 };
 
 static PyTypeObject BigIntType = {
-  .tp_name = "pythonmonkey.bigint",
+  .tp_name = PyLong_Type.tp_name,
   .tp_flags = Py_TPFLAGS_DEFAULT
   | Py_TPFLAGS_LONG_SUBCLASS
   | Py_TPFLAGS_BASETYPE,     // can be subclassed
@@ -109,7 +115,7 @@ PyTypeObject JSObjectProxyType = {
 };
 
 PyTypeObject JSStringProxyType = {
-  .tp_name = "pythonmonkey.JSStringProxy",
+  .tp_name = PyUnicode_Type.tp_name,
   .tp_basicsize = sizeof(JSStringProxy),
   .tp_flags = Py_TPFLAGS_DEFAULT
   | Py_TPFLAGS_UNICODE_SUBCLASS
@@ -162,7 +168,7 @@ PyTypeObject JSArrayProxyType = {
 
 PyTypeObject JSArrayIterProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSArrayIterProxy",
+  .tp_name = PyListIter_Type.tp_name,
   .tp_basicsize = sizeof(JSArrayIterProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_dealloc,
@@ -178,7 +184,7 @@ PyTypeObject JSArrayIterProxyType = {
 
 PyTypeObject JSObjectIterProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectIterProxy",
+  .tp_name = PyDictIterKey_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectIterProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_dealloc,
@@ -194,7 +200,7 @@ PyTypeObject JSObjectIterProxyType = {
 
 PyTypeObject JSObjectKeysProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectKeysProxy",
+  .tp_name = PyDictKeys_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectKeysProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_dealloc,
@@ -214,7 +220,7 @@ PyTypeObject JSObjectKeysProxyType = {
 
 PyTypeObject JSObjectValuesProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectValuesProxy",
+  .tp_name = PyDictValues_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectValuesProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_dealloc,
@@ -232,7 +238,7 @@ PyTypeObject JSObjectValuesProxyType = {
 
 PyTypeObject JSObjectItemsProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectItemsProxy",
+  .tp_name = PyDictKeys_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectItemsProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_dealloc,
@@ -252,9 +258,9 @@ PyTypeObject JSObjectItemsProxyType = {
 
 static void cleanup() {
   delete autoRealm;
+  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   delete global;
   delete JOB_QUEUE;
-  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   JS_ShutDown();
 }
 
@@ -305,21 +311,57 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b
   return value != NULL && value != Py_None;
 }
 
+/**
+ * Implement the pythonmonkey.eval function. From Python-land, that function has the following API:
+ * argument 0 - unicode string of JS code or open file containing JS code in UTF-8
+ * argument 1 - a Dict of options which roughly correspond to the jsapi CompileOptions. A novel option,
+ *              fromPythonFrame, sets the filename and line offset according to the pm.eval call in the
+ *              Python source code. This allows us to embed non-trivial JS inside Python source files
+ *              and still get stack dumps which point to the source code.
+ */
 static PyObject *eval(PyObject *self, PyObject *args) {
   size_t argc = PyTuple_GET_SIZE(args);
-  StrType *code = new StrType(PyTuple_GetItem(args, 0));
-  PyObject *evalOptions = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
-
-  if (argc == 0 || !PyUnicode_Check(code->getPyObject())) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
+  if (argc > 2 || argc == 0) {
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval accepts one or two arguments");
     return NULL;
   }
 
+  StrType *code = NULL;
+  FILE *file = NULL;
+  PyObject *arg0 = PyTuple_GetItem(args, 0);
+  PyObject *arg1 = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
+
+  if (PyUnicode_Check(arg0)) {
+    code = new StrType(arg0);
+    if (!code || !PyUnicode_Check(code->getPyObject())) {
+      PyErr_SetString(PyExc_TypeError, "JS code must originate from a Unicode string");
+      return NULL;
+    }
+  } else if (1 /*PyFile_Check(arg0)*/) {
+    /* First argument is an open file. Open a stream with a dup of the underlying fd (so we can fclose
+     * the stream later). Future: seek to current Python file position IFF the fd is for a real file.
+     */
+    int fd = PyObject_AsFileDescriptor(arg0);
+    int fd2 = fd == -1 ? -1 : dup(fd);
+    file = fd2 == -1 ? NULL : fdopen(fd, "rb");
+    if (!file) {
+      PyErr_SetString(PyExc_TypeError, "error opening file stream");
+      return NULL;
+    }
+  } else {
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects either a string or an open file as its first argument");
+    return NULL;
+  }
+
+  PyObject *evalOptions = argc == 2 ? arg1 : NULL;
   if (evalOptions && !PyDict_Check(evalOptions)) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its second argument");
+    if (file)
+      fclose(file);
     return NULL;
   }
 
+  // initialize JS context
   JSAutoRealm ar(GLOBAL_CX, *global);
   JS::CompileOptions options (GLOBAL_CX);
   options.setFileAndLine("evaluate", 1)
@@ -363,17 +405,31 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     } /* fromPythonFrame */
   } /* eval options */
 
-  // initialize JS context
-  JS::SourceText<mozilla::Utf8Unit> source;
-  if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
+  // compile the code to execute
+  JS::RootedScript script(GLOBAL_CX);
+  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  if (code) {
+    JS::SourceText<mozilla::Utf8Unit> source;
+    if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
+      setSpiderMonkeyException(GLOBAL_CX);
+      delete code;
+      return NULL;
+    }
+    delete code;
+    script = JS::Compile(GLOBAL_CX, options, source);
+  } else {
+    assert(file);
+    script = JS::CompileUtf8File(GLOBAL_CX, options, file);
+    fclose(file);
+  }
+
+  if (!script) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
-  delete code;
 
-  // evaluate source code
-  JS::RootedValue *rval = new JS::RootedValue(GLOBAL_CX);
-  if (!JS::Evaluate(GLOBAL_CX, options, source, rval)) {
+  // execute the compiled code; last expr goes to rval
+  if (!JS_ExecuteScript(GLOBAL_CX, script, rval)) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
@@ -474,7 +530,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   .setAsyncStack(true)
   .setSourcePragmas(true);
 
-  JOB_QUEUE = new JobQueue();
+  JOB_QUEUE = new JobQueue(GLOBAL_CX);
   if (!JOB_QUEUE->init(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
@@ -484,6 +540,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not initialize self-hosted code.");
     return NULL;
   }
+
+  JS_SetGCCallback(GLOBAL_CX, finalizationRegistryGCCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
@@ -543,11 +601,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
 
   pyModule = PyModule_Create(&pythonmonkey);
-  if (pyModule == NULL) {
+  if (pyModule == NULL)
     return NULL;
-  }
-
-  // Register Types
 
   Py_INCREF(&NullType);
   if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
@@ -638,6 +693,9 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  // Initialize event-loop shield
+  PyEventLoop::_locker = new PyEventLoop::Lock();
+
   PyObject *internalBindingPy = getInternalBindingPyFn(GLOBAL_CX);
   if (PyModule_AddObject(pyModule, "internalBinding", internalBindingPy) < 0) {
     Py_DECREF(internalBindingPy);
@@ -645,12 +703,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-
-  // Initialize event-loop shield
-  PyEventLoop::_locker = new PyEventLoop::Lock();
-
-
-  // Initialize FinalizationRegistry of JSFunctions to Python Functions
+  // initialize FinalizationRegistry of JSFunctions to Python Functions
   JS::RootedValue FinalizationRegistry(GLOBAL_CX);
   JS::RootedObject registryObject(GLOBAL_CX);
 
