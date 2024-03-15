@@ -11,7 +11,7 @@ python.exec(`
 import os
 
 globalThis = pm.eval('globalThis')
-globalThis.result = pm.eval(open(os.path.join("${__dirname}", "resources", "eval-test.js"), "rb"))
+globalThis.result = pm.eval(open(os.path.join(os.getcwd(), "tests", "js", "resources", "eval-test.js"), "rb"))
 `)
 
 if (result !== 18436572)
