@@ -145,7 +145,7 @@ globalThis.replEval = function replEval(statement)
 }
 """, evalOpts);
 
-def repl():
+async def repl():
     """
     Start a REPL to evaluate JavaScript code in the extra-module environment. Multi-line statements and
     readline history are supported. ^C support is sketchy. Exit the REPL with ^D or ".quit".
@@ -177,7 +177,7 @@ def repl():
         """
         Quit the REPL. Repl saved by atexit handler.
         """
-        sys.exit(0)
+        globalThis.python.exit(); # need for python.exit.code in require.py
 
     def sigint_handler(signum, frame):
         """
@@ -234,6 +234,7 @@ def repl():
     #
     while got_sigint < 2:
         try:
+            await asyncio.sleep(0)
             inner_loop = False
             if (statement == ""):
                 statement = input('> ')[readline_skip_chars:]
@@ -258,6 +259,7 @@ def repl():
                 # SIGINT is received, so we have to patch things up so that the next-entered line is
                 # treated as the input at the top of the loop.
                 while (got_sigint == 0):
+                    await asyncio.sleep(0)
                     inner_loop = True
                     lineBuffer = input('... ')
                     more = lineBuffer[readline_skip_chars:]
@@ -361,8 +363,13 @@ def main():
             await pm.wait() # blocks until all asynchronous calls finish
         asyncio.run(runJS())
     elif (enterRepl or forceRepl):
-        globalInitModule.initReplLibs()
-        repl()
+        async def runREPL():
+            globalInitModule.initReplLibs()
+            await repl()
+            await pm.wait()
+        asyncio.run(runREPL())
+
+    globalThis.python.exit(); # need for python.exit.code in require.py
 
 if __name__ == "__main__":
     main()
