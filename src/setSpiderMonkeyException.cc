@@ -56,8 +56,9 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
   // print out the SpiderMonkey error message
   outStrStream << reportBuilder.toStringResult().c_str() << "\n";
 
-  JS::HandleObject stackObj = exceptionStack.stack();
-  if (stackObj) { // stack can be null
+
+  JS::RootedObject stackObj(cx, exceptionStack.stack());
+  if (stackObj.get()) {
     JS::RootedString stackStr(cx);
     BuildStackString(cx, nullptr, stackObj, &stackStr, /* indent */ 2, js::StackFormat::SpiderMonkey);
     outStrStream << "Stack Trace: \n" << StrType(cx, stackStr).getValue();

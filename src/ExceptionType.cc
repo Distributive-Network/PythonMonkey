@@ -89,8 +89,8 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   JS_ClearPendingException(cx);
 
   std::stringstream stackStream;
-  JS::RootedObject stackObj(cx, exceptionStack.stack();
-  if (stackObj) {
+  JS::RootedObject stackObj(cx, exceptionStack.stack());
+  if (stackObj.get()) {
     JS::RootedString stackStr(cx);
     JS::BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
     stackStream << "\nJS Stack Trace:\n" << StrType(cx, stackStr).getValue();
