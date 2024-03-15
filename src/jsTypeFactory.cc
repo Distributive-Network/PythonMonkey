@@ -250,7 +250,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else if (PythonAwaitable_Check(object)) {
-    returnType.setObjectOrNull((PromiseType(object)).toJsPromise(cx));
+    returnType.setObjectOrNull((new PromiseType(object))->toJsPromise(cx));
   }
   else {
     JS::RootedValue v(cx);
