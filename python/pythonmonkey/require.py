@@ -330,7 +330,13 @@ function createRequireInner(filename, bootstrap, extraPaths, isMain)
 
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.path.push(python.pythonMonkey.nodeModules);
+
+  /* Add a .py loader, making it the first extension to be enumerated so py modules take precedence */
+  const extCopy = Object.assign({}, module.require.extensions);
+  for (let ext in module.require.extensions)
+    delete module.require.extensions[ext];
   module.require.extensions['.py'] = loadPythonModule;
+  Object.assign(module.require.extensions, extCopy);
 
   if (isMain)
   {
