@@ -7,6 +7,12 @@
  */ 
 'use strict';
 
-const result = python.eval(`pm.eval(open("${__dirname}/resources/eval-test.js", "rb"))`);
+python.exec(`
+import os
+
+globalThis = pm.eval('globalThis')
+globalThis.result = pm.eval(open(os.path.join("${__dirname}", "resources", "eval-test.js"), "rb"))
+`)
+
 if (result !== 18436572)
   throw new Error('incorrect result from eval-test.js');
