@@ -70,8 +70,14 @@ globalThis.python.paths  = sys.path
 
 globalThis.python.exit = pm.eval("""'use strict';
 (exit) => function pythonExitWrapper(exitCode) {
+  if (typeof exitCode === 'undefined')
+    exitCode = pythonExitWrapper.code;
+  if (typeof exitCode == 'undefined')
+    exitCode = 0n;
   if (typeof exitCode === 'number')
     exitCode = BigInt(Math.floor(exitCode));
+  if (typeof exitCode !== 'bigint')
+    exitCode = 1n;
   exit(exitCode);
 }
 """, evalOpts)(sys.exit);
