@@ -102,9 +102,6 @@ function setTimeout(handler, delayMs = 0, ...args)
   return new Timeout(enqueueWithDelay(boundHandler, delaySeconds));
 }
 
-// expose the `Timeout` class
-setTimeout.Timeout = Timeout;
-
 /**
  * Implement the `clearTimeout` global function
  * @see https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout and
@@ -120,6 +117,9 @@ function clearTimeout(timeoutId)
 
   return cancelByTimeoutId(Number(timeoutId));
 }
+
+// expose the `Timeout` class
+setTimeout.Timeout = Timeout;
 
 if (!globalThis.setTimeout)
   globalThis.setTimeout = setTimeout;
