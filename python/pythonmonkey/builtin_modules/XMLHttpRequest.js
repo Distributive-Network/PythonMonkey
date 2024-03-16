@@ -15,8 +15,6 @@ const { URL, URLSearchParams } = require('url');
 const { request, decodeStr } = require('XMLHttpRequest-internal');
 const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.require')('debug');
 
-debug('xhr:module')('loaded XMLHttpRequest.js module');
-
 /**
  * Truncate a string-like thing for display purposes, returning a string.
  * @param {any}     what     The thing to truncate; must have a slice method and index property.
