@@ -31,7 +31,7 @@ function trunc(what, maxlen, coerce)
       if (x > 31 && x < 127)
         return String.fromCharCode(x);
       else if (x < 32)
-        return eval('"\\u24' + ((x).toString(16)).padStart(2,0) + '"')
+        return String.fromCharCode(0x2400 + Number(x));
       else if (x === 127)
         return '\u2421';
       else

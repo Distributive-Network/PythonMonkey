@@ -142,6 +142,7 @@ findTests \
 | (shuf 2>/dev/null || cat) \
 | while read file
   do
+    trap 'echo -e "\nAborted." >&2; exit 130' 2
     printf "Testing %-${longestFilenameLen}s ... " "${file}"
     ext="${file##*.}"
     testName="${file%.failing}"
@@ -168,7 +169,7 @@ findTests \
           exitCode="$?"
           ;;
         "bash")
-          eval timeout -s9 "${timeout:-${defaultTimeout}}" bash \"$file\"
+          eval timeout -s9 --foreground "${timeout:-${defaultTimeout}}" bash \"$file\"
           exitCode="$?"
           ;;
         *)
