@@ -15,8 +15,6 @@ const { URL, URLSearchParams } = require('url');
 const { request, decodeStr } = require('XMLHttpRequest-internal');
 const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.require')('debug');
 
-debug('xhr:module')('loaded XMLHttpRequest.js module');
-
 /**
  * Truncate a string-like thing for display purposes, returning a string.
  * @param {any}     what     The thing to truncate; must have a slice method and index property.
@@ -33,7 +31,7 @@ function trunc(what, maxlen, coerce)
       if (x > 31 && x < 127)
         return String.fromCharCode(x);
       else if (x < 32)
-        return eval('"\\u24' + ((x).toString(16)).padStart(2,0) + '"')
+        return String.fromCharCode(0x2400 + Number(x));
       else if (x === 127)
         return '\u2421';
       else

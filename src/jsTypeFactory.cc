@@ -176,8 +176,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
   }
   else if (PyExceptionInstance_Check(object)) {
-    JSObject *error = ExceptionType(object).toJsError(cx);
-    returnType.setObject(*error);
+    JSObject *error = ExceptionType::toJsError(cx, object, nullptr);
+    if (error) {
+      returnType.setObject(*error);
+    }
+    else {
+      returnType.setUndefined();
+    }
   }
   else if (PyDateTime_Check(object)) {
     JSObject *dateObj = DateType(object).toJsDate(cx);
@@ -285,14 +290,16 @@ void setPyException(JSContext *cx) {
   PyObject *type, *value, *traceback;
   PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
 
-  PyTraceBack_Print(traceback, PySys_GetObject("stdout"));
+  JSObject *jsException = ExceptionType::toJsError(cx, value, traceback);
 
-  JSObject *jsException = ExceptionType(value).toJsError(cx);
   Py_XDECREF(type);
   Py_XDECREF(value);
   Py_XDECREF(traceback);
-  JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
-  JS_SetPendingException(cx, jsExceptionValue);
+
+  if (jsException) {
+    JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
+    JS_SetPendingException(cx, jsExceptionValue);
+  }
 }
 
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {

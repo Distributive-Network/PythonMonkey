@@ -11,16 +11,16 @@
 #ifndef PythonMonkey_PyDictProxy_
 #define PythonMonkey_PyDictProxy_
 
-#include "include/PyDictOrObjectProxyHandler.hh"
+#include "include/PyObjectProxyHandler.hh"
 
 
 /**
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates to handle coercion from python dicts to JS Objects
  *
  */
-struct PyDictProxyHandler : public PyDictOrObjectProxyHandler {
+struct PyDictProxyHandler : public PyObjectProxyHandler {
 public:
-  PyDictProxyHandler() : PyDictOrObjectProxyHandler(&family) {};
+  PyDictProxyHandler() : PyObjectProxyHandler(&family) {};
   static const char family;
 
   /**
