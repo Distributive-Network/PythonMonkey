@@ -7,7 +7,10 @@ const internalBinding = require('internal-binding');
 
 const { 
   enqueueWithDelay,
-  cancelByTimeoutId
+  cancelByTimeoutId,
+  timerHasRef,
+  timerAddRef,
+  timerRemoveRef,
 } = internalBinding('timers');
 
 /**
@@ -17,16 +20,14 @@ const {
 class Timeout
 {
   /** @type {number} an integer */
-  #numeralId;
-  /** @type {boolean} */
-  #refed;
+  #numericId;
 
   /**
-   * @param {number} numeralId 
+   * @param {number} numericId 
    */
-  constructor(numeralId)
+  constructor(numericId)
   {
-    this.#numeralId = numeralId;
+    this.#numericId = numericId;
   }
 
   /**
@@ -35,7 +36,7 @@ class Timeout
    */
   hasRef()
   {
-    return this.#refed;
+    return timerHasRef(this.#numericId);
   }
 
   /**
@@ -45,7 +46,7 @@ class Timeout
    */
   ref()
   {
-    this.#refed = true;
+    timerAddRef(this.#numericId);
     return this; // allow chaining
   }
 
@@ -55,7 +56,7 @@ class Timeout
    */
   unref()
   {
-    this.#refed = false;
+    timerRemoveRef(this.#numericId);
     return this; // allow chaining
   }
 
@@ -64,7 +65,7 @@ class Timeout
    */
   [Symbol.toPrimitive]()
   {
-    return this.#numeralId;
+    return this.#numericId;
   }
 }
 

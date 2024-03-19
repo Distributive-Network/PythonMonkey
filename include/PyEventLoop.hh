@@ -72,8 +72,30 @@ public:
       Py_INCREF(_handle); // otherwise the object would be GC-ed as the AsyncHandle destructor decreases the reference count
       return _handle;
     }
+
+    /**
+     * @brief Getter for if the timer has been ref'ed
+     */
+    inline bool hasRef() {
+      return _refed;
+    }
+
+    /**
+     * @brief Ref the timer so that the event-loop won't exit as long as the timer is active
+     */
+    inline void addRef() {
+      _refed = true;
+    }
+
+    /**
+     * @brief Unref the timer so that the event-loop can exit
+     */
+    inline void removeRef() {
+      _refed = false;
+    }
   protected:
     PyObject *_handle;
+    bool _refed;
   };
 
   /**

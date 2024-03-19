@@ -10,6 +10,8 @@
 
 #include <jsapi.h>
 
+using AsyncHandle = PyEventLoop::AsyncHandle;
+
 /**
  * See function declarations in python/pythonmonkey/builtin_modules/internal-binding.d.ts :
  *    `declare function internalBinding(namespace: "timers")`
@@ -37,7 +39,6 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
 }
 
 static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
-  using AsyncHandle = PyEventLoop::AsyncHandle;
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   double timeoutID = args.get(0).toNumber();
 
@@ -53,8 +54,51 @@ static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
+static bool timerHasRef(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  double timeoutID = args.get(0).toNumber();
+
+  // Retrieve the AsyncHandle by `timeoutID`
+  AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
+  if (!handle) return false; // error no such timeoutID
+
+  args.rval().setBoolean(handle->hasRef());
+  return true;
+}
+
+static bool timerAddRef(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  double timeoutID = args.get(0).toNumber();
+
+  // Retrieve the AsyncHandle by `timeoutID`
+  AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
+  if (!handle) return false; // error no such timeoutID
+
+  handle->addRef();
+
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool timerRemoveRef(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  double timeoutID = args.get(0).toNumber();
+
+  // Retrieve the AsyncHandle by `timeoutID`
+  AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
+  if (!handle) return false; // error no such timeoutID
+
+  handle->removeRef();
+
+  args.rval().setUndefined();
+  return true;
+}
+
 JSFunctionSpec InternalBinding::timers[] = {
   JS_FN("enqueueWithDelay", enqueueWithDelay, /* nargs */ 2, 0),
   JS_FN("cancelByTimeoutId", cancelByTimeoutId, 1, 0),
+  JS_FN("timerHasRef", timerHasRef, 1, 0),
+  JS_FN("timerAddRef", timerAddRef, 1, 0),
+  JS_FN("timerRemoveRef", timerRemoveRef, 1, 0),
   JS_FS_END
 };
