@@ -18,7 +18,7 @@
 #include <codecvt>
 #include <locale>
 
-PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionStack) {
+PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionStack, bool printStack) {
   JS::ErrorReportBuilder reportBuilder(cx);
   if (!reportBuilder.init(cx, exceptionStack, JS::ErrorReportBuilder::WithSideEffects /* may call the `toString` method if an object is thrown */)) {
     return PyUnicode_FromString("Spidermonkey set an exception, but could not initialize the error report.");
@@ -56,12 +56,13 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
   // print out the SpiderMonkey error message
   outStrStream << reportBuilder.toStringResult().c_str() << "\n";
 
-
-  JS::RootedObject stackObj(cx, exceptionStack.stack());
-  if (stackObj.get()) {
-    JS::RootedString stackStr(cx);
-    BuildStackString(cx, nullptr, stackObj, &stackStr, /* indent */ 2, js::StackFormat::SpiderMonkey);
-    outStrStream << "Stack Trace: \n" << StrType(cx, stackStr).getValue();
+  if (printStack) {
+    JS::RootedObject stackObj(cx, exceptionStack.stack());
+    if (stackObj.get()) {
+      JS::RootedString stackStr(cx);
+      BuildStackString(cx, nullptr, stackObj, &stackStr, /* indent */ 2, js::StackFormat::SpiderMonkey);
+      outStrStream << "Stack Trace: \n" << StrType(cx, stackStr).getValue();
+    }
   }
 
   return PyUnicode_FromString(outStrStream.str().c_str());
@@ -80,11 +81,35 @@ void setSpiderMonkeyException(JSContext *cx) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
     return;
   }
+
+  // check if it is a Python Exception and already has a stack trace
+  bool printStack;
+
+  JS::Rooted<JS::Value> exn(cx);
+  JS_GetPendingException(cx, &exn);
+  if (exn.isObject()) {
+    JS::RootedObject exnObj(cx, &exn.toObject());
+    JS::RootedValue tmp(cx);
+    if (!JS_GetProperty(cx, exnObj, "message", &tmp)) {
+      printStack = true;
+    }
+    else if (tmp.isString()) {
+      JS::RootedString rootedStr(cx, tmp.toString());
+      printStack = strstr(JS_EncodeStringToUTF8(cx, rootedStr).get(), "JS Stack Trace") == NULL;
+    }
+    else {
+      printStack = true;
+    }
+  }
+  else {
+    printStack = true;
+  }
+
   JS_ClearPendingException(cx);
 
   // `PyErr_SetString` uses `PyErr_SetObject` with `PyUnicode_FromString` under the hood
   //    see https://github.com/python/cpython/blob/3.9/Python/errors.c#L234-L236
-  PyObject *errStr = getExceptionString(cx, exceptionStack);
+  PyObject *errStr = getExceptionString(cx, exceptionStack, printStack);
   PyErr_SetObject(SpiderMonkeyError, errStr);
   Py_XDECREF(errStr);
 }

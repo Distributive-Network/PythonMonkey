@@ -27,7 +27,7 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
   // Convert the JS Error object to a Python string
   JS::RootedValue errValue(cx, JS::ObjectValue(*error)); // err
   JS::RootedObject errStack(cx, JS::ExceptionStackOrNull(error)); // err.stack
-  PyObject *errStr = getExceptionString(cx, JS::ExceptionStack(cx, errValue, errStack));
+  PyObject *errStr = getExceptionString(cx, JS::ExceptionStack(cx, errValue, errStack), true);
 
   // Construct a new SpiderMonkeyError python object
   //    pyObject = SpiderMonkeyError(errStr)
