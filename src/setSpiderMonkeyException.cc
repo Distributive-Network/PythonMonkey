@@ -83,27 +83,19 @@ void setSpiderMonkeyException(JSContext *cx) {
   }
 
   // check if it is a Python Exception and already has a stack trace
-  bool printStack;
+  bool printStack = true;
 
-  JS::Rooted<JS::Value> exn(cx);
+  JS::RootedValue exn(cx);
   JS_GetPendingException(cx, &exn);
   if (exn.isObject()) {
     JS::RootedObject exnObj(cx, &exn.toObject());
     JS::RootedValue tmp(cx);
-    if (!JS_GetProperty(cx, exnObj, "message", &tmp)) {
-      printStack = true;
-    }
-    else if (tmp.isString()) {
+    if (JS_GetProperty(cx, exnObj, "message", &tmp) && tmp.isString()) {
       JS::RootedString rootedStr(cx, tmp.toString());
       printStack = strstr(JS_EncodeStringToUTF8(cx, rootedStr).get(), "JS Stack Trace") == NULL;
     }
-    else {
-      printStack = true;
-    }
   }
-  else {
-    printStack = true;
-  }
+
 
   JS_ClearPendingException(cx);
 
