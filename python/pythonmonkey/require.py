@@ -70,8 +70,14 @@ globalThis.python.paths  = sys.path
 
 globalThis.python.exit = pm.eval("""'use strict';
 (exit) => function pythonExitWrapper(exitCode) {
+  if (typeof exitCode === 'undefined')
+    exitCode = pythonExitWrapper.code;
+  if (typeof exitCode == 'undefined')
+    exitCode = 0n;
   if (typeof exitCode === 'number')
     exitCode = BigInt(Math.floor(exitCode));
+  if (typeof exitCode !== 'bigint')
+    exitCode = 1n;
   exit(exitCode);
 }
 """, evalOpts)(sys.exit);
@@ -293,7 +299,13 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.paths.push(path + '/node_modules');
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.path.push(python.pythonMonkey.nodeModules);
+
+  /* Add a .py loader, making it the first extension to be enumerated so py modules take precedence */
+  const extCopy = Object.assign({}, module.require.extensions);
+  for (let ext in module.require.extensions)
+    delete module.require.extensions[ext];
   module.require.extensions['.py'] = loadPythonModule;
+  Object.assign(module.require.extensions, extCopy);
 
   if (isMain)
   {

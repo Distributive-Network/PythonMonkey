@@ -35,6 +35,7 @@ Press Ctrl+C to abort current expression, Ctrl+D to exit the REPL`
 
 cmds.exit = python.exit;
 cmds.python = function pythonCmd(...args) {
+  var retval;
   const cmd = args.join(' ').trim();
 
   if (cmd === 'reset')
@@ -46,23 +47,20 @@ cmds.python = function pythonCmd(...args) {
   }
 
   if (cmd === '')
-  {
     return;
-  }
-  
-  try {
-    if (arguments[0] === 'from' || arguments[0] === 'import')
-    {
-      return python.exec(cmd);
-    }
 
-    const retval = python.eval(cmd);
+  try
+  {
+    if (arguments[0] === 'from' || arguments[0] === 'import')
+      return python.exec(cmd);
+    retval = python.eval(cmd);
   }
-  catch(error) {
+  catch(error)
+  {
     globalThis._error = error;
     return util.inspect(error);
   }
-  
+
   pythonCmd.serial = (pythonCmd.serial || 0) + 1;
   globalThis['$' + pythonCmd.serial] = retval;
   python.stdout.write('$' + pythonCmd.serial + ' = ');
@@ -72,7 +70,7 @@ cmds.python = function pythonCmd(...args) {
 /**
  * Handle a .xyz repl command. Invokes function cmds[XXX], passing arguments that the user typed as the
  * function arguments. The function arguments are space-delimited arguments; arguments surrounded by
- * quotes can include spaces, similar to how bash parses arguments. Argument parsing cribbed from 
+ * quotes can include spaces, similar to how bash parses arguments. Argument parsing cribbed from
  * stackoverflow user Tsuneo Yoshioka, question 4031900.
  *
  * @param {string} cmdLine     the command the user typed, without the leading .
@@ -107,9 +105,9 @@ globalThis.replEval = function replEval(statement)
   var result;
   var mightBeObjectLiteral = false;
 
-  /* A statement which starts with a { and does not end with a ; is treated as an object literal, 
+  /* A statement which starts with a { and does not end with a ; is treated as an object literal,
    * and to get the parser in to Expression mode instead of Statement mode, we surround any expression
-   * like that which is also a valid compilation unit with parens, then if that is a syntax error, 
+   * like that which is also a valid compilation unit with parens, then if that is a syntax error,
    * we re-evaluate without the parens.
    */
   if (/^\\s*\\{.*[^;\\s]\\s*$/.test(statement))
@@ -147,12 +145,12 @@ globalThis.replEval = function replEval(statement)
 }
 """, evalOpts);
 
-def repl():
+async def repl():
     """
     Start a REPL to evaluate JavaScript code in the extra-module environment. Multi-line statements and
     readline history are supported. ^C support is sketchy. Exit the REPL with ^D or ".quit".
     """
-    
+
     print('Welcome to PythonMonkey v' + pm.__version__ +'.')
     print('Type ".help" for more information.')
     readline.parse_and_bind('set editing-mode emacs')
@@ -167,7 +165,7 @@ def repl():
     statement = ''
     readline_skip_chars = 0
     inner_loop = False
-    
+
     def save_history():
         nonlocal histfile
         readline.write_history_file(histfile)
@@ -179,7 +177,7 @@ def repl():
         """
         Quit the REPL. Repl saved by atexit handler.
         """
-        sys.exit(0)
+        globalThis.python.exit(); # need for python.exit.code in require.py
 
     def sigint_handler(signum, frame):
         """
@@ -236,11 +234,12 @@ def repl():
     #
     while got_sigint < 2:
         try:
+            await asyncio.sleep(0)
             inner_loop = False
             if (statement == ""):
                 statement = input('> ')[readline_skip_chars:]
             readline_skip_chars = 0
-            
+
             if (len(statement) == 0):
                 continue
             if (statement[0] == '.'):
@@ -260,6 +259,7 @@ def repl():
                 # SIGINT is received, so we have to patch things up so that the next-entered line is
                 # treated as the input at the top of the loop.
                 while (got_sigint == 0):
+                    await asyncio.sleep(0)
                     inner_loop = True
                     lineBuffer = input('... ')
                     more = lineBuffer[readline_skip_chars:]
@@ -291,7 +291,7 @@ Options:
   -v, --version        print PythonMonkey version
   --use-strict         evaluate -e, -p, and REPL code in strict mode
   --inspect            enable pmdb, a gdb-like JavaScript debugger interface
-  
+
 Environment variables:
 TZ                            specify the timezone configuration
 PMJS_PATH                     ':'-separated list of directories prefixed to the module search path
@@ -322,7 +322,7 @@ def main():
     forceRepl = False
     globalInitModule = initGlobalThis()
     global requirePath
-    
+
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "interactive", "use-strict", "inspect"])
     except getopt.GetoptError as err:
@@ -363,8 +363,13 @@ def main():
             await pm.wait() # blocks until all asynchronous calls finish
         asyncio.run(runJS())
     elif (enterRepl or forceRepl):
-        globalInitModule.initReplLibs()
-        repl()
+        async def runREPL():
+            globalInitModule.initReplLibs()
+            await repl()
+            await pm.wait()
+        asyncio.run(runREPL())
+
+    globalThis.python.exit(); # need for python.exit.code in require.py
 
 if __name__ == "__main__":
     main()
