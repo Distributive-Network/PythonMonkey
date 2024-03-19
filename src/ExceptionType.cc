@@ -93,7 +93,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   if (stackObj.get()) {
     JS::RootedString stackStr(cx);
     JS::BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
-    stackStream << "\nJS Stack Trace:\n" << StrType(cx, stackStr).getValue();
+    stackStream << "JS Stack Trace:\n" << StrType(cx, stackStr).getValue();
   }
 
 
