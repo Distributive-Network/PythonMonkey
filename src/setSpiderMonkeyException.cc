@@ -60,8 +60,8 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
     JS::RootedObject stackObj(cx, exceptionStack.stack());
     if (stackObj.get()) {
       JS::RootedString stackStr(cx);
-      BuildStackString(cx, nullptr, stackObj, &stackStr, /* indent */ 2, js::StackFormat::SpiderMonkey);
-      outStrStream << "Stack Trace: \n" << StrType(cx, stackStr).getValue();
+      BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
+      outStrStream << "Stack Trace:\n" << StrType(cx, stackStr).getValue();
     }
   }
 
@@ -95,7 +95,6 @@ void setSpiderMonkeyException(JSContext *cx) {
       printStack = strstr(JS_EncodeStringToUTF8(cx, rootedStr).get(), "JS Stack Trace") == NULL;
     }
   }
-
 
   JS_ClearPendingException(cx);
 
