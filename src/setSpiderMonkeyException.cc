@@ -86,13 +86,14 @@ void setSpiderMonkeyException(JSContext *cx) {
   bool printStack = true;
 
   JS::RootedValue exn(cx);
-  JS_GetPendingException(cx, &exn);
-  if (exn.isObject()) {
-    JS::RootedObject exnObj(cx, &exn.toObject());
-    JS::RootedValue tmp(cx);
-    if (JS_GetProperty(cx, exnObj, "message", &tmp) && tmp.isString()) {
-      JS::RootedString rootedStr(cx, tmp.toString());
-      printStack = strstr(JS_EncodeStringToUTF8(cx, rootedStr).get(), "JS Stack Trace") == NULL;
+  if (JS_GetPendingException(cx, &exn)) {
+    if (exn.isObject()) {
+      JS::RootedObject exnObj(cx, &exn.toObject());
+      JS::RootedValue tmp(cx);
+      if (JS_GetProperty(cx, exnObj, "message", &tmp) && tmp.isString()) {
+        JS::RootedString rootedStr(cx, tmp.toString());
+        printStack = strstr(JS_EncodeStringToUTF8(cx, rootedStr).get(), "JS Stack Trace") == NULL;
+      }
     }
   }
 
