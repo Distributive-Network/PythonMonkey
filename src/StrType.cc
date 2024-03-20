@@ -136,7 +136,7 @@ PyObject *StrType::asUCS4(PyObject *pyObject) {
   uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
   size_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
 
-  uint32_t ucs4String[length];
+  uint32_t *ucs4String = new uint32_t[length];
   size_t ucs4Length = 0;
 
   for (size_t i = 0; i < length; i++, ucs4Length++) {
@@ -155,5 +155,7 @@ PyObject *StrType::asUCS4(PyObject *pyObject) {
     }
   }
 
-  return PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, ucs4String, ucs4Length);
+  PyObject *ret = PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, ucs4String, ucs4Length);
+  delete[] ucs4String;
+  return ret;
 }
