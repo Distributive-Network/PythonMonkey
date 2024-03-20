@@ -48,13 +48,22 @@ public:
   static Py_ssize_t JSObjectProxy_length(JSObjectProxy *self);
 
   /**
-   * @brief Getter method (.mp_subscript), returns a value from the JSObjectProxy given a key, used by several built-in python methods as well as the [] operator
+   * @brief Getter method, returns a value from the JSObjectProxy given a key, used by several built-in python methods as well as the . operator
    *
    * @param self - The JSObjectProxy
    * @param key - The key for the value in the JSObjectProxy
    * @return PyObject* NULL on exception, the corresponding value otherwise
    */
   static PyObject *JSObjectProxy_get(JSObjectProxy *self, PyObject *key);
+
+  /**
+   * @brief Getter method (.mp_subscript), returns a value from the JSObjectProxy given a key, used by the [] operator
+   *
+   * @param self - The JSObjectProxy
+   * @param key - The key for the value in the JSObjectProxy
+   * @return PyObject* NULL on exception, the corresponding value otherwise
+   */
+  static PyObject *JSObjectProxy_get_subscript(JSObjectProxy *self, PyObject *key);
 
   /**
    * @brief Test method (.sq_contains), returns whether a key exists, used by the in operator
@@ -289,7 +298,7 @@ PyDoc_STRVAR(dict_values__doc__,
  */
 static PyMappingMethods JSObjectProxy_mapping_methods = {
   .mp_length = (lenfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_length,
-  .mp_subscript = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
+  .mp_subscript = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get_subscript,
   .mp_ass_subscript = (objobjargproc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign
 };
 
