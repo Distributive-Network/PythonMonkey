@@ -55,7 +55,12 @@ def test_setdefault_no_params():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "setdefault expected at least 1 argument, got 0"      
+        assert str(e) == "setdefault expected at least 1 argument, got 0"    
+
+def test_setdefault_with_shadowing():
+    jsObj = pm.eval("({get: 'value'})")
+    a = jsObj.setdefault("get", "val")
+    assert a == 'value'
 
 #pop
 def test_pop_found():
@@ -453,5 +458,5 @@ def test_get_method():
 #get method shadowing
 def test_method_shadowing():
     jsObj = pm.eval("({get: 'value'})")
-    assert jsObj.get == 'value'
+    assert repr(jsObj.get).__contains__("<built-in method get of dict object at")
     assert jsObj['get'] == 'value'
