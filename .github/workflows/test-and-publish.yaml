@@ -169,7 +169,7 @@ jobs:
           path: ./build/docs/html/
       - name: Set cores to get stored in /cores
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]];
+          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
             # TODO (Caleb Aikens) figure out how to get Windows core dumps
             sudo mkdir /cores
             sudo chmod 777 /cores
@@ -178,7 +178,7 @@ jobs:
           fi
       - name: Run Python tests (pytest)
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]];
+          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
           # TODO (Caleb Aikens) figure out how to get Windows core dumps
             ulimit -c unlimited
           fi
@@ -186,7 +186,7 @@ jobs:
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]];
+          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
           # TODO (Caleb Aikens) figure out how to get Windows core dumps
             ulimit -c unlimited
           fi
