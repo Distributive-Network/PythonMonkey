@@ -444,3 +444,14 @@ def test_items_mapping():
     items = dishes.items()
     assert str(items.mapping) == "{'eggs': 2.0, 'sausage': 1.0, 'bacon': 1.0, 'spam': 500.0}"
     assert items.mapping['spam'] == 500
+
+#get method
+def test_get_method():     
+    dishes = pm.eval("({'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500})")
+    assert dishes.get('eggs') == 2
+
+#get method shadowing
+def test_method_shadowing():
+    jsObj = pm.eval("({get: 'value'})")
+    assert jsObj.get == 'value'
+    assert jsObj['get'] == 'value'

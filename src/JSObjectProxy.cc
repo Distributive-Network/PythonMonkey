@@ -111,7 +111,14 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
-        return PyObject_GenericGetAttr((PyObject *)self, key);
+        // just make sure no property is shadowing a method by name
+        JS::RootedValue value(GLOBAL_CX);
+        JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+        if (!value.isUndefined()) {
+          return pyTypeFactory(GLOBAL_CX, value)->getPyObject();
+        } else {
+          return PyObject_GenericGetAttr((PyObject *)self, key);
+        }
       }
     }
   }
