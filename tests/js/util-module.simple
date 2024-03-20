@@ -1,0 +1,20 @@
+/**
+ * @file        util-module.simple
+ *              Simple test for the builtin util module
+ * @author      Tom Tang <xmader@distributive.network>
+ * @date        March 2024
+ */
+
+const util = require('util');
+
+// https://github.com/Distributive-Network/PythonMonkey/pull/300
+const err = new TypeError();
+if (err.propertyIsEnumerable('stack'))
+  throw new Error('The stack property should not be enumerable.');
+err.anything = 123;
+err.stack = 'abc';
+if (!err.propertyIsEnumerable('stack'))
+  throw new Error('In SpiderMonkey, the stack property should be enumerable after changing it.');
+const output = util.format(err);
+if (output.match(/abc/g).length !== 1) // should only be printed once
+  throw new Error('The stack property should not be printed along with other enumerable properties');

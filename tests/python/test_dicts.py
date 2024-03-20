@@ -326,3 +326,8 @@ def test_repr_max_recursion_depth():
 def test___class__attribute():  
     items = pm.eval("({'a': 10})")
     assert repr(items.__class__) == "<class 'dict'>"
+
+#none value attribute
+def test___none__attribute():  
+    a = pm.eval("({'0': 1, '1': 2})")
+    assert a[2] is None    

@@ -54,7 +54,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
     if (methodName == NULL || !PyUnicode_Check(key)) {   // reached end of list
       JS::RootedValue value(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, *(self->jsArray), id, &value);
-      if (value.isUndefined()) {
+      if (value.isUndefined() && PyUnicode_Check(key)) {
         if (strcmp("__class__", PyUnicode_AsUTF8(key)) == 0) {
           return PyObject_GenericGetAttr((PyObject *)self, key);
         }

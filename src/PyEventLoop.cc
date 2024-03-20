@@ -23,7 +23,7 @@ static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
   if (!ret) {
     return NULL;
   }
-  Py_DECREF(ret);      
+  Py_DECREF(ret);
   if (PyErr_Occurred()) {
     return NULL;
   } else {
@@ -79,7 +79,6 @@ PyEventLoop::Future PyEventLoop::ensureFuture(PyObject *awaitable) {
   Py_DECREF(args);
   Py_DECREF(kwargs);
 
-  // Py_INCREF(futureObj);
   return PyEventLoop::Future(futureObj);
 }
 
