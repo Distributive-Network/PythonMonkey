@@ -168,14 +168,14 @@ jobs:
           name: docs-${{ github.run_id }}-${{ github.sha }}
           path: ./build/docs/html/
       - name: Set cores to get stored in /cores
-      run: |
-        if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]];
-          # TODO (Caleb Aikens) figure out how to get Windows core dumps
-          sudo mkdir /cores
-          sudo chmod 777 /cores
-          # Core filenames will be of the form executable.pid.timestamp:
-          sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
-        fi
+        run: |
+          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]];
+            # TODO (Caleb Aikens) figure out how to get Windows core dumps
+            sudo mkdir /cores
+            sudo chmod 777 /cores
+            # Core filenames will be of the form executable.pid.timestamp:
+            sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+          fi
       - name: Run Python tests (pytest)
         run: |
           if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]];
@@ -192,11 +192,11 @@ jobs:
           fi
           poetry run bash ./peter-jr ./tests/js/
       - uses: actions/upload-artifact@v3
-      if: ${{ failure() && matrix.os != 'windows-2019' }} # Run only if something went wrong
-      # TODO (Caleb Aikens) figure out how to get Windows core dumps
-      with:
-        name: cores
-        path: /cores
+        if: ${{ failure() && matrix.os != 'windows-2019' }} # Run only if something went wrong
+        # TODO (Caleb Aikens) figure out how to get Windows core dumps
+        with:
+          name: cores
+          path: /cores
   sdist:
     runs-on: ubuntu-20.04
     steps:
