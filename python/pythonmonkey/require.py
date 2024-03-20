@@ -312,9 +312,11 @@ function createRequireInner(filename, bootstrap, extraPaths, isMain)
     module.exports = python.load(filename);
   }
 
+/*
   // TODO - find a better way to deal with Windows paths
   if (filename)
     filename = filename.split('\\\\').join('/');
+*/
   if (moduleCache[filename])
     return moduleCache[filename].require;
 
