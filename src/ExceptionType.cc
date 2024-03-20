@@ -12,6 +12,7 @@
 #include "include/setSpiderMonkeyException.hh"
 
 #include "include/ExceptionType.hh"
+#include "include/StrType.hh"
 
 #include <jsapi.h>
 #include <js/Exception.h>
@@ -26,7 +27,7 @@ ExceptionType::ExceptionType(JSContext *cx, JS::HandleObject error) {
   // Convert the JS Error object to a Python string
   JS::RootedValue errValue(cx, JS::ObjectValue(*error)); // err
   JS::RootedObject errStack(cx, JS::ExceptionStackOrNull(error)); // err.stack
-  PyObject *errStr = getExceptionString(cx, JS::ExceptionStack(cx, errValue, errStack));
+  PyObject *errStr = getExceptionString(cx, JS::ExceptionStack(cx, errValue, errStack), true);
 
   // Construct a new SpiderMonkeyError python object
   //    pyObject = SpiderMonkeyError(errStr)
@@ -78,6 +79,25 @@ tb_print_line_repeated(_PyUnicodeWriter *writer, long cnt)
 JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyObject *traceBack) {
   assert(exceptionValue != NULL);
 
+  // Gather JS context
+  JS_ReportErrorASCII(cx, ""); // throw JS error and gather all details
+
+  JS::ExceptionStack exceptionStack(cx);
+  if (!JS::GetPendingExceptionStack(cx, &exceptionStack)) {
+    return NULL;
+  }
+  JS_ClearPendingException(cx);
+
+  std::stringstream stackStream;
+  JS::RootedObject stackObj(cx, exceptionStack.stack());
+  if (stackObj.get()) {
+    JS::RootedString stackStr(cx);
+    JS::BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
+    stackStream << "JS Stack Trace:\n" << StrType(cx, stackStr).getValue();
+  }
+
+
+  // Gather Python context
   PyObject *pyErrType = PyObject_Type(exceptionValue);
   const char *pyErrTypeName = _PyType_Name((PyTypeObject *)pyErrType);
 
@@ -235,12 +255,12 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
     {
       std::stringstream msgStream;
       msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg) << "\n" << PyUnicode_AsUTF8(_PyUnicodeWriter_Finish(&writer));
-      std::string msg = msgStream.str();
+      msgStream << stackStream.str();
 
       JS::RootedValue rval(cx);
       JS::RootedString filename(cx, JS_NewStringCopyZ(cx, PyUnicode_AsUTF8(fileName)));
-      JS::RootedString message(cx, JS_NewStringCopyZ(cx, msg.c_str()));
-      // TODO stack argument cannot be passed in as a string anymore (deprecated), and could not find a proper example using the new argument type
+      JS::RootedString message(cx, JS_NewStringCopyZ(cx, msgStream.str().c_str()));
+      // stack argument cannot be passed in as a string anymore (deprecated), and could not find a proper example using the new argument type
       if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, lineno, 0, nullptr, message, JS::NothingHandleValue, &rval)) {
         return NULL;
       }
@@ -256,15 +276,22 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
     Py_XDECREF(code);
   }
 
+  // gather additional JS context details
+  JS::ErrorReportBuilder reportBuilder(cx);
+  if (!reportBuilder.init(cx, exceptionStack, JS::ErrorReportBuilder::WithSideEffects)) {
+    return NULL;
+  }
+  JSErrorReport *errorReport = reportBuilder.report();
+
   std::stringstream msgStream;
   msgStream << "Python " << pyErrTypeName << ": " << PyUnicode_AsUTF8(pyErrMsg);
-  std::string msg = msgStream.str();
+  msgStream << stackStream.str();
 
   JS::RootedValue rval(cx);
-  JS::RootedObject stack(cx);
-  JS::RootedString filename(cx, JS_NewStringCopyZ(cx, "[python code]"));
-  JS::RootedString message(cx, JS_NewStringCopyZ(cx, msg.c_str()));
-  if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, 0, nullptr, message, JS::NothingHandleValue, &rval)) {
+  JS::RootedString filename(cx, JS_NewStringCopyZ(cx, "")); // cannot be null or omitted, but is overriden by the errorReport
+  JS::RootedString message(cx, JS_NewStringCopyZ(cx, msgStream.str().c_str()));
+  // filename cannot be null
+  if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, 0, errorReport, message, JS::NothingHandleValue, &rval)) {
     return NULL;
   }
 
