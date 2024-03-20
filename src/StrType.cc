@@ -133,8 +133,6 @@ PyObject *StrType::asUCS4(PyObject *pyObject) {
   uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
   size_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
 
-  // uint32_t ucs4String[length];
-  printf("HERR\n");
   uint32_t *ucs4String = new uint32_t[length];
   size_t ucs4Length = 0;
 
