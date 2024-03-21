@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2024-01-15
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 

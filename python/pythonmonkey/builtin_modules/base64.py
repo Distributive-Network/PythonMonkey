@@ -1,6 +1,7 @@
 # @file     base64.py
 # @author   Tom Tang <xmader@distributive.network>, Hamada Gasmallah <hamada@distributive.network>
 # @date     July 2023
+# @copyright Copyright (c) 2023 Distributive Corp.
 
 import base64
 

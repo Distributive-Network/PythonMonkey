@@ -4,7 +4,7 @@
  * @brief Struct for creating JS proxy objects. Used by DictType for object coercion TODO
  * @date 2023-04-20
  *
- * Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -65,11 +65,11 @@ bool PyDictProxyHandler::getOwnPropertyDescriptor(
 bool PyDictProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
-  JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
+  JS::RootedValue rootedV(cx, v);
   PyObject *attrName = idToKey(cx, id);
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (PyDict_SetItem(self, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+  if (PyDict_SetItem(self, attrName, pyTypeFactory(cx, rootedV)->getPyObject())) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();

@@ -2,6 +2,8 @@
  * @file     console.js
  * @author   Tom Tang <xmader@distributive.network>
  * @date     June 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 const { customInspectSymbol, format } = require('util');
 

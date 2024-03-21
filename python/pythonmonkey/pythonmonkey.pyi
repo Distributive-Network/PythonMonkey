@@ -1,5 +1,4 @@
 """
-stub file for type hints & documentations for the native module
 @see https://typing.readthedocs.io/en/latest/source/stubs.html
 """
 
@@ -38,34 +37,10 @@ def isCompilableUnit(code: str) -> bool:
     Hint if a string might be compilable Javascript without actual evaluation
     """
 
-def internalBinding(namespace: str) -> JSObjectProxy:
-    """
-    INTERNAL USE ONLY
-
-    See function declarations in ./builtin_modules/internal-binding.d.ts
-    """
-
 def collect() -> None:
     """
     Calls the spidermonkey garbage collector
     """
-
-class bigint(int):
-    """
-    Representing JavaScript BigInt in Python
-    """
-
-class SpiderMonkeyError(Exception):
-    """
-    Representing a corresponding JS Error in Python
-    """
-
-class JSObjectProxy(dict):
-    """
-    JavaScript Object proxy dict
-    """
-    def __init__(self) -> None: ...
-
 class JSFunctionProxy():
   """
   JavaScript Function proxy

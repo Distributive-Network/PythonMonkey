@@ -2,6 +2,8 @@
  * @file timers.cc
  * @author Tom Tang (xmader@distributive.network)
  * @brief Implement functions in `internalBinding("timers")`
+ *
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 #include "include/internalBinding.hh"
@@ -21,10 +23,8 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   double delaySeconds = args.get(1).toNumber();
 
   // Convert to a Python function
-  // FIXME (Tom Tang): memory leak, not free-ed
-  JS::RootedObject *thisv = new JS::RootedObject(cx, nullptr);
-  JS::RootedValue *jobArg = new JS::RootedValue(cx, jobArgVal);
-  PyObject *job = pyTypeFactory(cx, thisv, jobArg)->getPyObject();
+  JS::RootedValue jobArg(cx, jobArgVal);
+  PyObject *job = pyTypeFactory(cx, jobArg)->getPyObject();
 
   // Schedule job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
@@ -47,7 +47,7 @@ static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
   AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
   if (!handle) return true; // does nothing on invalid timeoutID
 
-  // Cancel this job on Python event-loop
+  // Cancel this job on the Python event-loop
   handle->cancel();
 
   return true;

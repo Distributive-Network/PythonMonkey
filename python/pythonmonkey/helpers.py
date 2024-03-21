@@ -5,6 +5,7 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         July 2023
 #
+# @copyright Copyright (c) 2023 Distributive Corp.
 
 from . import pythonmonkey as pm 
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True }

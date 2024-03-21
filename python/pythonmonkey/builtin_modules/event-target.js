@@ -4,6 +4,8 @@
  * @see      https://dom.spec.whatwg.org/#eventtarget
  * @author   Tom Tang <xmader@distributive.network>
  * @date     August 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 /**

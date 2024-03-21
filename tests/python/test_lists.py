@@ -1050,4 +1050,9 @@ def test_slice_assign_pm_array_step_2():
     a = pm.eval("([1,2,3,4,5,6])")
     b = pm.eval("([1,2,3])")
     a[0:10:2] = b
-    assert a == [1, 2, 2, 4, 3, 6]      
+    assert a == [1, 2, 2, 4, 3, 6]
+
+#__class__
+def test___class__attribute():  
+    items = pm.eval("([1,2,3,4,5,6])")
+    assert repr(items.__class__) == "<class 'list'>"          

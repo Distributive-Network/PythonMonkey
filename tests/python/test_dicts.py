@@ -1,5 +1,6 @@
 import pythonmonkey as pm
 import sys
+import subprocess
 
 def test_eval_dicts():
     d = {"a":1}
@@ -312,4 +313,21 @@ def test_toLocaleString():
     items = {'a': 10}
     result = [0]
     pm.eval("(result, obj) => {result[0] = obj.toLocaleString()}")(result, items)
-    assert result[0] == '[object Object]'      
+    assert result[0] == '[object Object]'
+    
+#repr
+def test_repr_max_recursion_depth():
+    subprocess.check_call('npm install crypto-js', shell=True)
+    CryptoJS = pm.require('crypto-js')
+    assert str(CryptoJS).__contains__("{'lib': {'Base': {'extend':")  
+     
+
+#__class__
+def test___class__attribute():  
+    items = pm.eval("({'a': 10})")
+    assert repr(items.__class__) == "<class 'dict'>"
+
+#none value attribute
+def test___none__attribute():  
+    a = pm.eval("({'0': 1, '1': 2})")
+    assert a[2] is None    

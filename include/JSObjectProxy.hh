@@ -1,11 +1,10 @@
 /**
  * @file JSObjectProxy.hh
- * @author Caleb Aikens (caleb@distributive.network) & Tom Tang (xmader@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network), Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectProxy is a custom C-implemented python type that derives from dict. It acts as a proxy for JSObjects from Spidermonkey, and behaves like a dict would.
- * @version 0.1
  * @date 2023-06-26
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -24,7 +23,7 @@
  */
 typedef struct {
   PyDictObject dict;
-  JS::RootedObject jsObject;
+  JS::PersistentRootedObject *jsObject;
 } JSObjectProxy;
 
 /**
@@ -39,26 +38,6 @@ public:
    * @param self - The JSObjectProxy to be free'd
    */
   static void JSObjectProxy_dealloc(JSObjectProxy *self);
-
-  /**
-   * @brief New method (.tp_new), creates a new instance of the JSObjectProxy type, exposed as the __new()__ method in python
-   *
-   * @param type - The type of object to be created, will always be JSObjectProxyType or a derived type
-   * @param args - arguments to the __new()__ method, not used
-   * @param kwds - keyword arguments to the __new()__ method, not used
-   * @return PyObject* - A new instance of JSObjectProxy
-   */
-  static PyObject *JSObjectProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
-
-  /**
-   * @brief Initialization method (.tp_init), initializes a newly created instance of JSObjectProxy. exposed as the __init()__ method in python
-   *
-   * @param self - The JSObjectProxy to be initialized
-   * @param args - arguments to the __init()__ method, expected to be a dict
-   * @param kwds - keyword arguments to the __init()__ method, not used
-   * @return int - -1 on exception, return any other value otherwise
-   */
-  static int JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds);
 
   /**
    * @brief Length method (.mp_length), returns the number of key-value pairs in the JSObject, used by the python len() method
@@ -95,6 +74,24 @@ public:
    * @return int -1 on exception, any other value otherwise
    */
   static int JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value);
+
+  /**
+   * @brief .tp_traverse method
+   *
+   * @param self - The JSObjectProxy
+   * @param visitproc - The function to be applied on each element of the dict
+   * @param arg - The argument to the visit function
+   * @return 0 on success
+   */
+  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief clear method
+   *
+   * @param self - The JSObjectProxy
+   * @return 0 on success
+   */
+  static int JSObjectProxy_clear(JSObjectProxy *self);
 
   /**
    * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyobject
@@ -314,11 +311,10 @@ static PyNumberMethods JSObjectProxy_number_methods = {
  *
  */
 static PyMethodDef JSObjectProxy_methods[] = {
+  {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
   {"__getitem__", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get, METH_O | METH_COEXIST, getitem__doc__},
   {"get", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_get_method, METH_FASTCALL, dict_get__doc__},
-  {"setdefault", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method, METH_FASTCALL, dict_setdefault__doc__},
   {"pop", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method, METH_FASTCALL, dict_pop__doc__},
-  // {"popitem", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_popitem_method, METH_NOARGS, ""}, TODO not popular and quite a bit strange
   {"clear", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method, METH_NOARGS, clear__doc__},
   {"copy", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method, METH_NOARGS, copy__doc__},
   {"update", (PyCFunction)JSObjectProxyMethodDefinitions::JSObjectProxy_update_method, METH_VARARGS | METH_KEYWORDS, update__doc__},

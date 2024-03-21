@@ -52,7 +52,7 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.7.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Setup XCode
         if: ${{ (matrix.os == 'macos-13' || matrix.os == 'macos-14') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -72,7 +72,7 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.7.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -153,7 +153,7 @@ jobs:
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.7.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build pminit
         run: |

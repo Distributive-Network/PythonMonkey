@@ -754,7 +754,12 @@ def test_sort_with_two_args_keyfunc_wrong_data_type():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert "object of type 'float' has no len()" in str(e)   
+        assert "object of type 'float' has no len()" in str(e)  
+        assert "test_arrays.py" in str(e)   
+        assert "line 751" in str(e)  
+        assert "in myFunc" in str(e) 
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e) 
 
 def test_sort_with_one_arg_keyfunc():
     items = ['Four', 'Three', 'One']   
@@ -766,6 +771,8 @@ def test_sort_with_one_arg_keyfunc():
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert "takes 1 positional argument but 2 were given" in str(e)
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e)  
 
 def test_sort_with_builtin_keyfunc():
     items = ['Four', 'Three', 'One']   
@@ -774,7 +781,9 @@ def test_sort_with_builtin_keyfunc():
         assert (False)
     except Exception as e:  
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert "len() takes exactly one argument (2 given)" in str(e)    
+        assert "len() takes exactly one argument (2 given)" in str(e)
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e)      
 
 def test_sort_with_js_func():
     items = ['Four', 'Three', 'One']  
@@ -2106,4 +2115,59 @@ def test_iterator_last_next():
     result = [0]
     pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); iterator.next(); result[0] = iterator.next()}")(result, items)
     assert result[0].value == None
-    assert result[0].done == True                    
+    assert result[0].done == True      
+
+def test_iterator_iterator():
+    items = [1,2,3,4]
+    result = [0]
+    pm.eval("(result, arr) => {let iter = arr[Symbol.iterator](); let head = iter.next().value; result[0] = [...iter] }")(result, items)
+    assert result[0] == [2,3,4]        
+
+#Array.from
+def test_array_from():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { result[0] = Array.from(arr)}")(result, items)
+    assert result[0] == [1,2]
+    assert result[0] is not items    
+
+# bad index size expansion
+def test_assign_bad_index():
+    items = [1,2,3]
+    result = []
+    pm.eval("(result, arr) => {result[0] = 4}")(result, items) 
+    assert result[0] == 4
+
+def test_assign_bad_index_with_existing_next():
+    items = [1,2,3]
+    result = [8]
+    pm.eval("(result, arr) => {result[1] = 4}")(result, items) 
+    assert result == [8,4]    
+
+def test_assign_bad_index_with_gap():
+    items = [1,2,3]
+    result = []
+    pm.eval("(result, arr) => {result[0] = 4; result[5] = 6}")(result, items) 
+    assert result == [4, None, None, None, None, 6]
+
+def test_array_subclass_behaves_as_array():
+     my_JS_function = pm.eval("""
+                      () => {
+                        class MyClass extends Array {
+                          constructor(...args)
+                          {
+                            super(...args);
+                            return this;
+                          }
+                        }
+                        return new MyClass(1,2);
+                      }
+                      """)
+     
+     a = my_JS_function()
+     assert a == [1,2]
+     result = []
+     for i in a:
+        result.append(i)
+     assert result == [1,2]
+     assert a is not result

@@ -59,10 +59,6 @@ PyObject *getInternalBindingPyFn(JSContext *cx) {
   JSObject *jsFn = (JSObject *)createInternalBinding(cx);
 
   // Convert to a Python function
-  // FIXME (Tom Tang): memory leak, not free-ed
-  JS::RootedObject *thisObj = new JS::RootedObject(cx, nullptr);
-  JS::RootedValue *jsFnVal = new JS::RootedValue(cx, JS::ObjectValue(*jsFn));
-  PyObject *pyFn = pyTypeFactory(cx, thisObj, jsFnVal)->getPyObject();
-
-  return pyFn;
+  JS::RootedValue jsFnVal(cx, JS::ObjectValue(*jsFn));
+  return pyTypeFactory(cx, jsFnVal)->getPyObject();
 }

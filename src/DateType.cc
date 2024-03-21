@@ -1,3 +1,13 @@
+/**
+ * @file DateType.cc
+ * @author Caleb Aikens (caleb@distributive.network)
+ * @brief Struct for representing python dates
+ * @date 2022-12-21
+ *
+ * @copyright Copyright (c) 2022 Distributive Corp.
+ *
+ */
+
 #include "include/DateType.hh"
 
 #include "include/PyType.hh"
