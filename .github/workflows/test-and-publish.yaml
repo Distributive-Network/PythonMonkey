@@ -179,8 +179,12 @@ jobs:
             # TODO (Caleb Aikens) figure out how to get Windows core dumps
             sudo mkdir -p /cores
             sudo chmod 777 /cores
-            # Core filenames will be of the form executable.pid.timestamp:
-            sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
+            # Core filenames will be of the form osname.pythonversion.executable.pid.timestamp:
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+              sudo bash -c 'echo "/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%t" > /proc/sys/kernel/core_pattern'
+            else
+              sudo sysctl kernel.core_pattern="/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%y"
+            fi
           fi
       - name: Run Python tests (pytest)
         run: |
