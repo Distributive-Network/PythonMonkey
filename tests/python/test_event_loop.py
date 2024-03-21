@@ -2,6 +2,21 @@ import pytest
 import pythonmonkey as pm
 import asyncio
 
+def test_timers_unref():
+    async def async_fn():
+        obj = {'val': 0}
+        pm.eval("""(obj) => {
+            setTimeout(()=>{ obj.val = 2 }, 1000).ref().ref().unref().ref().unref().unref(); 
+                // chaining, no use on the first two ref calls since it's already refed initially
+            setTimeout(()=>{ obj.val = 1 }, 100);
+        }""")(obj)
+        await pm.wait() # we shouldn't wait until the first timer is fired since it's currently unrefed
+        assert obj['val'] == 1
+
+        # making sure the async_fn is run
+        return True
+    assert asyncio.run(async_fn())
+
 def test_set_clear_timeout():
     # throw RuntimeError outside a coroutine
     with pytest.raises(RuntimeError, match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
