@@ -163,12 +163,12 @@ jobs:
           poetry build --format=wheel
           ls -lah ./dist/
       - name: Upload wheel as CI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
       - name: Upload Doxygen-generated docs as CI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }} # making sure we only upload once
         with:
           name: docs-${{ github.run_id }}-${{ github.sha }}
@@ -201,7 +201,7 @@ jobs:
             ulimit -c unlimited
           fi
           poetry run bash ./peter-jr ./tests/js/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         if: ${{ matrix.os != 'windows-2019' }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
@@ -233,7 +233,7 @@ jobs:
           poetry build --format=sdist
           ls -lah ./dist/
       - name: Upload sdist as CI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
