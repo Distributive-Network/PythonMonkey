@@ -14,6 +14,11 @@ on:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
+      dump_cores:
+        type: boolean
+        description: 'Include core dumps in CI artifacts'
+        required: false
+        default: false
   pull_request:
 
 env:
@@ -204,7 +209,7 @@ jobs:
           poetry run bash ./peter-jr ./tests/js/
       - name: Upload core dumps as CI artifacts
         uses: actions/upload-artifact@v3
-        if: ${{ matrix.os != 'windows-2019' && failure() }}
+        if: ${{ matrix.os != 'windows-2019' && github.event_name == 'workflow_dispatch' && inputs.dump_cores }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
