@@ -85,24 +85,6 @@ public:
   static int JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value);
 
   /**
-   * @brief .tp_traverse method
-   *
-   * @param self - The JSObjectProxy
-   * @param visitproc - The function to be applied on each element of the dict
-   * @param arg - The argument to the visit function
-   * @return 0 on success
-   */
-  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
-
-  /**
-   * @brief clear method
-   *
-   * @param self - The JSObjectProxy
-   * @return 0 on success
-   */
-  static int JSObjectProxy_clear(JSObjectProxy *self);
-
-  /**
    * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyobject
    *
    * @param self - The JSObjectProxy
