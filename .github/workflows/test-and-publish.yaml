@@ -177,7 +177,7 @@ jobs:
         run: |
           if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
             # TODO (Caleb Aikens) figure out how to get Windows core dumps
-            sudo mkdir /cores
+            sudo mkdir -p /cores
             sudo chmod 777 /cores
             # Core filenames will be of the form executable.pid.timestamp:
             sudo bash -c 'echo "/cores/%e.%p.%t" > /proc/sys/kernel/core_pattern'
