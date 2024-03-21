@@ -205,7 +205,7 @@ jobs:
         if: ${{ matrix.os != 'windows-2019' }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
-          name: cores
+          name: cores-${{ matrix.os }}-${ matrix.python_version }
           path: /cores
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
       - name: SSH debug session
