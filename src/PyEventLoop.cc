@@ -17,16 +17,19 @@ static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
 }
 static PyMethodDef jobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapper, METH_NOARGS, NULL};
 
-PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
+PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueue(PyObject *jobFn) {
+  auto handler = PyEventLoop::AsyncHandle::newEmpty();
   PyEventLoop::_locker->incCounter();
   PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
   PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
-  return PyEventLoop::AsyncHandle(asyncHandle);
+  handler.second->swap(asyncHandle);
+  return handler;
 }
 
-PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
+PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
+  auto handler = PyEventLoop::AsyncHandle::newEmpty();
   PyEventLoop::_locker->incCounter();
   PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
   // Schedule job to the Python event-loop
@@ -35,7 +38,8 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueueWithDelay(PyObject *jobFn, double d
   if (asyncHandle == nullptr) {
     PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
   }
-  return PyEventLoop::AsyncHandle(asyncHandle);
+  handler.second->swap(asyncHandle);
+  return handler;
 }
 
 PyEventLoop::Future PyEventLoop::createFuture() {

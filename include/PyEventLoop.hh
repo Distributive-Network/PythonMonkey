@@ -32,14 +32,20 @@ public:
    * @see https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle
    */
   struct AsyncHandle {
+    using id_t = uint32_t;
+    using id_ptr_pair = std::pair<id_t, AsyncHandle *>;
   public:
     explicit AsyncHandle(PyObject *handle) : _handle(handle) {};
     AsyncHandle(const AsyncHandle &old) = delete; // forbid copy-initialization
-    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)) {}; // clear the moved-from object
+    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)), _refed(old._refed) {}; // clear the moved-from object
     ~AsyncHandle() {
       if (Py_IsInitialized()) { // the Python runtime has already been finalized when `_timeoutIdMap` is cleared at exit
         Py_XDECREF(_handle);
       }
+    }
+    static inline id_ptr_pair newEmpty() {
+      auto handle = AsyncHandle(Py_None);
+      return AsyncHandle::getUniqueIdAndPtr(std::move(handle));
     }
 
     /**
@@ -52,17 +58,22 @@ public:
      * @brief Get the unique `timeoutID` for JS `setTimeout`/`clearTimeout` methods
      * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#return_value
      */
-    static inline uint32_t getUniqueId(AsyncHandle &&handle) {
+    static inline id_t getUniqueId(AsyncHandle &&handle) {
       // TODO (Tom Tang): mutex lock
       _timeoutIdMap.push_back(std::move(handle));
       return _timeoutIdMap.size() - 1; // the index in `_timeoutIdMap`
     }
-    static inline AsyncHandle *fromId(uint32_t timeoutID) {
+    static inline AsyncHandle *fromId(id_t timeoutID) {
       try {
         return &_timeoutIdMap.at(timeoutID);
       } catch (...) { // std::out_of_range&
         return nullptr; // invalid timeoutID
       }
+    }
+    static inline id_ptr_pair getUniqueIdAndPtr(AsyncHandle &&handle) {
+      auto timeoutID = getUniqueId(std::move(handle));
+      auto ptr = fromId(timeoutID);
+      return std::make_pair(timeoutID, ptr);
     }
 
     /**
@@ -71,6 +82,14 @@ public:
     inline PyObject *getHandleObject() const {
       Py_INCREF(_handle); // otherwise the object would be GC-ed as the AsyncHandle destructor decreases the reference count
       return _handle;
+    }
+
+    /**
+     * @brief Replace the underlying `asyncio.Handle` Python object with the provided value
+     * @return the old `asyncio.Handle` object
+     */
+    inline PyObject *swap(PyObject *newHandleObject) {
+      return std::exchange(_handle, newHandleObject);
     }
 
     /**
@@ -95,7 +114,7 @@ public:
     }
   protected:
     PyObject *_handle;
-    bool _refed;
+    bool _refed = false;
   };
 
   /**
@@ -103,14 +122,14 @@ public:
    * @param jobFn - The JS event-loop job converted to a Python function
    * @return a AsyncHandle, the value can be safely ignored
    */
-  AsyncHandle enqueue(PyObject *jobFn);
+  AsyncHandle::id_ptr_pair enqueue(PyObject *jobFn);
   /**
    * @brief Schedule a job to the Python event-loop, with the given delay
    * @param jobFn - The JS event-loop job converted to a Python function
    * @param delaySeconds - The job function will be called after the given number of seconds
    * @return a AsyncHandle, the value can be safely ignored
    */
-  AsyncHandle enqueueWithDelay(PyObject *jobFn, double delaySeconds);
+  AsyncHandle::id_ptr_pair enqueueWithDelay(PyObject *jobFn, double delaySeconds);
 
   /**
    * @brief C++ wrapper for Python `asyncio.Future` class
