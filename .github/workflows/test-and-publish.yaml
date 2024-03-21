@@ -8,6 +8,12 @@ on:
       - '*'
   workflow_call:
   workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
   pull_request:
 
 env:
@@ -192,11 +198,18 @@ jobs:
           fi
           poetry run bash ./peter-jr ./tests/js/
       - uses: actions/upload-artifact@v3
-        if: ${{ failure() && matrix.os != 'windows-2019' }} # Run only if something went wrong
+        if: ${{ matrix.os != 'windows-2019' }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
           name: cores
           path: /cores
+      # Enable tmate debugging of manually-triggered workflows if the input option was provided
+      - name: SSH debug session
+        if: ${{ (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
+          limit-access-to-actor: true
   sdist:
     runs-on: ubuntu-20.04
     steps:
