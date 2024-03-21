@@ -183,7 +183,7 @@ jobs:
             if [[ "$OSTYPE" == "linux-gnu"* ]]; then
               sudo bash -c 'echo "/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%t" > /proc/sys/kernel/core_pattern'
             else
-              sudo sysctl kernel.core_pattern="/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%y"
+              sudo sysctl kern.corefile="/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%y"
             fi
           fi
       - name: Run Python tests (pytest)
