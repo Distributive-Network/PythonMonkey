@@ -195,6 +195,7 @@ jobs:
           poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
+        if: ${{ (success() || failure())
         run: |
           if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
           # TODO (Caleb Aikens) figure out how to get Windows core dumps
