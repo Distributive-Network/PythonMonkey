@@ -179,17 +179,16 @@ jobs:
           name: docs-${{ github.run_id }}-${{ github.sha }}
           path: ./build/docs/html/
       - name: Set cores to get stored in /cores
+        if: ${{ matrix.os != 'windows-2019' && github.event_name == 'workflow_dispatch' && inputs.dump_cores }}
+        # TODO (Caleb Aikens) figure out how to get Windows core dumps
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
-            # TODO (Caleb Aikens) figure out how to get Windows core dumps
-            sudo mkdir -p /cores
-            sudo chmod 777 /cores
-            # Core filenames will be of the form osname.pythonversion.executable.pid.timestamp:
-            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-              sudo bash -c 'echo "/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%t" > /proc/sys/kernel/core_pattern'
-            else
-              sudo sysctl kern.corefile="/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%y"
-            fi
+          sudo mkdir -p /cores
+          sudo chmod 777 /cores
+          # Core filenames will be of the form osname.pythonversion.executable.pid.timestamp:
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            sudo bash -c 'echo "/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%t" > /proc/sys/kernel/core_pattern'
+          else
+            sudo sysctl kern.corefile="/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%y"
           fi
       - name: Run Python tests (pytest)
         run: |
