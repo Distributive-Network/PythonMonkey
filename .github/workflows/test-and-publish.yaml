@@ -201,11 +201,12 @@ jobs:
             ulimit -c unlimited
           fi
           poetry run bash ./peter-jr ./tests/js/
-      - uses: actions/upload-artifact@v3
-        if: ${{ matrix.os != 'windows-2019' }}
+      - name: Upload core dumps as CI artifacts
+        uses: actions/upload-artifact@v3
+        if: ${{ matrix.os != 'windows-2019' && failure() }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
-          name: cores-${{ matrix.os }}-${ matrix.python_version }
+          name: cores-${{ matrix.os }}-${{ matrix.python_version }}
           path: /cores
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
       - name: SSH debug session
