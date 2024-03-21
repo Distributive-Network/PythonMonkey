@@ -6,9 +6,9 @@
  * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
  */
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
+  auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
-  auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
   handle->removeRef();
   if (PyErr_Occurred()) {
     return NULL;
