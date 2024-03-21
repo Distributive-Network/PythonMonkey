@@ -37,7 +37,7 @@ public:
   public:
     explicit AsyncHandle(PyObject *handle) : _handle(handle) {};
     AsyncHandle(const AsyncHandle &old) = delete; // forbid copy-initialization
-    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)), _refed(old._refed) {}; // clear the moved-from object
+    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)), _refed(old._refed.exchange(false)) {}; // clear the moved-from object
     ~AsyncHandle() {
       if (Py_IsInitialized()) { // the Python runtime has already been finalized when `_timeoutIdMap` is cleared at exit
         Py_XDECREF(_handle);
@@ -103,18 +103,24 @@ public:
      * @brief Ref the timer so that the event-loop won't exit as long as the timer is active
      */
     inline void addRef() {
-      _refed = true;
+      if (!_refed) {
+        _refed = true;
+        PyEventLoop::_locker->incCounter();
+      }
     }
 
     /**
      * @brief Unref the timer so that the event-loop can exit
      */
     inline void removeRef() {
-      _refed = false;
+      if (_refed) {
+        _refed = false;
+        PyEventLoop::_locker->decCounter();
+      }
     }
   protected:
     PyObject *_handle;
-    bool _refed = false;
+    std::atomic_bool _refed = false;
   };
 
   /**
