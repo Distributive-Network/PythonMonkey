@@ -37,13 +37,13 @@ jobs:
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
       - name: Cache spidermonkey build
         id: cache-spidermonkey
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
@@ -60,10 +60,10 @@ jobs:
   build-spidermonkey-win:
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Cache spidermonkey build
         id: cache-spidermonkey
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
@@ -110,12 +110,12 @@ jobs:
             python_version: '3.9'
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0 # fetch all history for all branches and tags
           # poetry-dynamic-versioning needs git tags to produce the correct version number 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
@@ -144,7 +144,7 @@ jobs:
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
       - name: Use cached spidermonkey build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
@@ -213,10 +213,10 @@ jobs:
   sdist:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Setup Poetry
@@ -239,7 +239,7 @@ jobs:
     if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     steps:
       # no need to checkout
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - run: pip install twine
