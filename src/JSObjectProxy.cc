@@ -49,7 +49,6 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   self->jsObject->set(nullptr);
   delete self->jsObject;
-  PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -180,17 +179,6 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
 
   assignKeyValue(self, key, id, value);
 
-  return 0;
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg) {
-  // Nothing to be done
-  // TODO do we need to iterate through the dict and call traverse on proxied PyObjects?
-  return 0;
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self) {
-  JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(self);
   return 0;
 }
 
