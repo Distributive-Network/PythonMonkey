@@ -3,13 +3,13 @@
 #include <Python.h>
 
 /**
- * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
+ * @brief Wrapper to remove the reference of the queueing event-loop job after the job finishes
  */
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
   auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
+  handle->removeRef();
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
-  handle->removeRef();
   if (PyErr_Occurred()) {
     return NULL;
   } else {
