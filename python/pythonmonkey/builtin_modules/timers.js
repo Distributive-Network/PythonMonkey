@@ -67,6 +67,15 @@ class Timeout
   {
     return this.#numericId;
   }
+
+  /**
+   * Cancels the timeout.
+   * @deprecated legacy Node.js API. Use `clearTimeout()` instead
+   */
+  close()
+  {
+    return clearTimeout(this);
+  }
 }
 
 /**
