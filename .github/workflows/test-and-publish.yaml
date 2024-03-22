@@ -11,7 +11,7 @@ on:
     inputs:
       debug_enabled:
         type: boolean
-        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        description: 'Run the build with SSH debugging enabled (https://github.com/fawazahmed0/action-debug)'
         required: false
         default: false
       dump_cores:
@@ -216,10 +216,9 @@ jobs:
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
       - name: SSH debug session
         if: ${{ (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        uses: mxschmitt/action-tmate@v3
+        uses: fawazahmed0/action-debug@main
         with:
-          detached: true
-          limit-access-to-actor: true
+          credentials: "admin:admin"
   sdist:
     runs-on: ubuntu-20.04
     steps:
