@@ -128,14 +128,14 @@ public:
    * @param jobFn - The JS event-loop job converted to a Python function
    * @return a AsyncHandle, the value can be safely ignored
    */
-  AsyncHandle::id_ptr_pair enqueue(PyObject *jobFn);
+  AsyncHandle enqueue(PyObject *jobFn);
   /**
    * @brief Schedule a job to the Python event-loop, with the given delay
    * @param jobFn - The JS event-loop job converted to a Python function
    * @param delaySeconds - The job function will be called after the given number of seconds
-   * @return a AsyncHandle, the value can be safely ignored
+   * @return the timeoutId and a pointer to the AsyncHandle
    */
-  AsyncHandle::id_ptr_pair enqueueWithDelay(PyObject *jobFn, double delaySeconds);
+  [[nodiscard]] AsyncHandle::id_ptr_pair enqueueWithDelay(PyObject *jobFn, double delaySeconds);
 
   /**
    * @brief C++ wrapper for Python `asyncio.Future` class

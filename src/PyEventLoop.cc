@@ -3,36 +3,48 @@
 #include <Python.h>
 
 /**
- * @brief Wrapper to remove the reference of the queueing event-loop job after the job finishes
+ * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
  */
-static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
-  auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
-  handle->removeRef();
+static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
+  PyEventLoop::_locker->decCounter();
   if (PyErr_Occurred()) {
     return NULL;
   } else {
     Py_RETURN_NONE;
   }
 }
-static PyMethodDef jobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapper, METH_O, NULL};
+static PyMethodDef loopJobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapper, METH_NOARGS, NULL};
 
-PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueue(PyObject *jobFn) {
-  auto handler = PyEventLoop::AsyncHandle::newEmpty();
-  PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
-  PyObject *handlerPtr = PyLong_FromVoidPtr(handler.second);
+/**
+ * @brief Wrapper to remove the reference of the timer after the job finishes
+ */
+static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
+  auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
+  PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
+  Py_XDECREF(ret); // don't care about its return value
+  handle->removeRef();
+  if (PyErr_Occurred()) {
+    return NULL;
+  } else {
+    Py_RETURN_NONE;
+  }
+}
+static PyMethodDef timerJobWrapperDef = {"timerJobWrapper", timerJobWrapper, METH_O, NULL};
+
+PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
+  PyEventLoop::_locker->incCounter();
+  PyObject *wrapper = PyCFunction_New(&loopJobWrapperDef, jobFn);
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "OO", wrapper, handlerPtr); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
-  handler.second->swap(asyncHandle);
-  handler.second->addRef();
-  return handler;
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
 PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
   auto handler = PyEventLoop::AsyncHandle::newEmpty();
-  PyObject *wrapper = PyCFunction_New(&jobWrapperDef, jobFn);
+  PyObject *wrapper = PyCFunction_New(&timerJobWrapperDef, jobFn);
   PyObject *handlerPtr = PyLong_FromVoidPtr(handler.second);
   // Schedule job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
