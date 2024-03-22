@@ -23,7 +23,6 @@ static PyMethodDef loopJobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapp
  */
 static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
   auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
-  Py_XDECREF(handlerPtr);
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
   Py_XDECREF(jobFn);
