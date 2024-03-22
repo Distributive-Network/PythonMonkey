@@ -8,6 +8,7 @@
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
+  Py_XDECREF(jobFn);
   PyEventLoop::_locker->decCounter();
   if (PyErr_Occurred()) {
     return NULL;
@@ -22,8 +23,10 @@ static PyMethodDef loopJobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapp
  */
 static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
   auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
+  Py_XDECREF(handlerPtr);
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
+  Py_XDECREF(jobFn);
   handle->removeRef();
   if (PyErr_Occurred()) {
     return NULL;
@@ -38,7 +41,7 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   PyObject *wrapper = PyCFunction_New(&loopJobWrapperDef, jobFn);
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "N", wrapper); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
@@ -48,7 +51,7 @@ PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueueWithDelay(PyObject *jo
   PyObject *handlerPtr = PyLong_FromVoidPtr(handler.second);
   // Schedule job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dOO", delaySeconds, wrapper, handlerPtr); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dNN", delaySeconds, wrapper, handlerPtr); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
   if (asyncHandle == nullptr) {
     PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
     return handler;
