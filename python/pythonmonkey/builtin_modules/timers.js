@@ -7,8 +7,76 @@ const internalBinding = require('internal-binding');
 
 const { 
   enqueueWithDelay,
-  cancelByTimeoutId
+  cancelByTimeoutId,
+  timerHasRef,
+  timerAddRef,
+  timerRemoveRef,
 } = internalBinding('timers');
+
+/**
+ * Implement Node.js-style `timeoutId` class returned from setTimeout() and setInterval()
+ * @see https://nodejs.org/api/timers.html#class-timeout
+ */
+class Timeout
+{
+  /** @type {number} an integer */
+  #numericId;
+
+  /**
+   * @param {number} numericId 
+   */
+  constructor(numericId)
+  {
+    this.#numericId = numericId;
+  }
+
+  /**
+   * If `true`, the `Timeout` object will keep the event-loop active.
+   * @returns {boolean}
+   */
+  hasRef()
+  {
+    return timerHasRef(this.#numericId);
+  }
+
+  /**
+   * When called, requests that the event-loop **not exit** so long as the `Timeout` is active.
+   *   
+   * By default, all `Timeout` objects are "ref'ed", making it normally unnecessary to call `timeout.ref()` unless `timeout.unref()` had been called previously.
+   */
+  ref()
+  {
+    timerAddRef(this.#numericId);
+    return this; // allow chaining
+  }
+
+  /**
+   * When called, the active `Timeout` object will not require the event-loop to remain active.  
+   * If there is no other activity keeping the event-loop running, the process may exit before the `Timeout` object's callback is invoked.
+   */
+  unref()
+  {
+    timerRemoveRef(this.#numericId);
+    return this; // allow chaining
+  }
+
+  /**
+   * @returns a number that can be used to reference this timeout
+   */
+  [Symbol.toPrimitive]()
+  {
+    return this.#numericId;
+  }
+
+  /**
+   * Cancels the timeout.
+   * @deprecated legacy Node.js API. Use `clearTimeout()` instead
+   */
+  close()
+  {
+    return clearTimeout(this);
+  }
+}
 
 /**
  * Implement the `setTimeout` global function
@@ -17,7 +85,7 @@ const {
  * @param {Function | string} handler
  * @param {number} delayMs timeout milliseconds, use value of 0 if this is omitted
  * @param {any[]} args additional arguments to be passed to the `handler`
- * @return {number} timeoutId
+ * @return {Timeout} timeoutId
  */
 function setTimeout(handler, delayMs = 0, ...args) 
 {
@@ -41,24 +109,27 @@ function setTimeout(handler, delayMs = 0, ...args)
     delayMs = 0; // as spec-ed
   const delaySeconds = delayMs / 1000; // convert ms to s
 
-  return enqueueWithDelay(boundHandler, delaySeconds);
+  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds));
 }
 
 /**
  * Implement the `clearTimeout` global function
  * @see https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout and
  * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-cleartimeout
- * @param {number} timeoutId
+ * @param {Timeout | number} timeoutId
  * @return {void}
  */
 function clearTimeout(timeoutId) 
 {
-  // silently does nothing when an invalid timeoutId (should be an int32 value) is passed in
-  if (!Number.isInteger(timeoutId))
+  // silently does nothing when an invalid timeoutId (should be a Timeout instance or an int32 value) is passed in
+  if (!(timeoutId instanceof Timeout) && !Number.isInteger(timeoutId))
     return;
 
-  return cancelByTimeoutId(timeoutId);
+  return cancelByTimeoutId(Number(timeoutId));
 }
+
+// expose the `Timeout` class
+setTimeout.Timeout = Timeout;
 
 if (!globalThis.setTimeout)
   globalThis.setTimeout = setTimeout;
