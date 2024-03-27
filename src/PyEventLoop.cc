@@ -17,21 +17,32 @@ static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
 }
 static PyMethodDef loopJobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapper, METH_NOARGS, NULL};
 
+static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle *handle, PyObject *jobFn, double delaySeconds, bool repeat);
+
 /**
  * @brief Wrapper to remove the reference of the timer after the job finishes
  */
-static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
+static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
+  PyObject *_loop = PyTuple_GetItem(args, 0);
+  PyObject *handlerPtr = PyTuple_GetItem(args, 1);
+  double delaySeconds = PyFloat_AsDouble(PyTuple_GetItem(args, 2));
+  bool repeat = (bool)PyLong_AsLong(PyTuple_GetItem(args, 3));
   auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
+
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
-  handle->removeRef();
+  if (!repeat) handle->removeRef();
   if (PyErr_Occurred()) {
     return NULL;
-  } else {
-    Py_RETURN_NONE;
   }
+
+  if (repeat) {
+    _enqueueWithDelay(_loop, handle, jobFn, delaySeconds, repeat);
+  }
+
+  Py_RETURN_NONE;
 }
-static PyMethodDef timerJobWrapperDef = {"timerJobWrapper", timerJobWrapper, METH_O, NULL};
+static PyMethodDef timerJobWrapperDef = {"timerJobWrapper", timerJobWrapper, METH_VARARGS, NULL};
 
 PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   PyEventLoop::_locker->incCounter();
@@ -42,19 +53,27 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
-PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
-  auto handler = PyEventLoop::AsyncHandle::newEmpty();
+static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle *handle, PyObject *jobFn, double delaySeconds, bool repeat) {
   PyObject *wrapper = PyCFunction_New(&timerJobWrapperDef, jobFn);
-  PyObject *handlerPtr = PyLong_FromVoidPtr(handler.second);
+  PyObject *handlePtr = PyLong_FromVoidPtr(handle);
   // Schedule job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dOO", delaySeconds, wrapper, handlerPtr); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
-  if (asyncHandle == nullptr) {
-    PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
-    return handler;
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dOOOdb", delaySeconds, wrapper, _loop, handlePtr, delaySeconds, repeat); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  if (!asyncHandle) {
+    return nullptr; // RuntimeError
   }
-  handler.second->swap(asyncHandle);
-  handler.second->addRef();
+
+  Py_XDECREF(handle->swap(asyncHandle));
+  handle->addRef();
+
+  return asyncHandle;
+}
+
+PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds, bool repeat) {
+  auto handler = PyEventLoop::AsyncHandle::newEmpty();
+  if (!_enqueueWithDelay(_loop, handler.second, jobFn, delaySeconds, repeat)) {
+    PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
+  }
   return handler;
 }
 

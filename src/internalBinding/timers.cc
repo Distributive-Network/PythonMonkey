@@ -21,6 +21,7 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JS::HandleValue jobArgVal = args.get(0);
   double delaySeconds = args.get(1).toNumber();
+  bool repeat = args.get(2).toBoolean();
 
   // Convert to a Python function
   // FIXME (Tom Tang): memory leak, not free-ed
@@ -31,7 +32,7 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Schedule job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return false;
-  PyEventLoop::AsyncHandle::id_ptr_pair handler = loop.enqueueWithDelay(job, delaySeconds);
+  PyEventLoop::AsyncHandle::id_ptr_pair handler = loop.enqueueWithDelay(job, delaySeconds, repeat);
 
   // Return the `timeoutID` to use in `clearTimeout`
   args.rval().setNumber(handler.first);

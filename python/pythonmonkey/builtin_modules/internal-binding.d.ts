@@ -32,12 +32,14 @@ declare function internalBinding(namespace: "utils"): {
 
 declare function internalBinding(namespace: "timers"): {
   /**
-   * internal binding helper for the `setTimeout` global function
+   * internal binding helper for the `setTimeout`/`setInterval` global function
    * 
    * **UNSAFE**, does not perform argument type checks
+   * 
+   * @param repeat The call is to `setInterval` if true
    * @return timeoutId
    */
-  enqueueWithDelay(handler: Function, delaySeconds: number): number;
+  enqueueWithDelay(handler: Function, delaySeconds: number, repeat: boolean): number;
 
   /**
    * internal binding helper for the `clearTimeout` global function

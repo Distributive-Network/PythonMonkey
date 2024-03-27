@@ -133,9 +133,10 @@ public:
    * @brief Schedule a job to the Python event-loop, with the given delay
    * @param jobFn - The JS event-loop job converted to a Python function
    * @param delaySeconds - The job function will be called after the given number of seconds
+   * @param repeat - If true, the job will be executed repeatedly on a fixed interval
    * @return the timeoutId and a pointer to the AsyncHandle
    */
-  [[nodiscard]] AsyncHandle::id_ptr_pair enqueueWithDelay(PyObject *jobFn, double delaySeconds);
+  [[nodiscard]] AsyncHandle::id_ptr_pair enqueueWithDelay(PyObject *jobFn, double delaySeconds, bool repeat);
 
   /**
    * @brief C++ wrapper for Python `asyncio.Future` class
