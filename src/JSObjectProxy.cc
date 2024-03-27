@@ -72,7 +72,7 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
+    PyErr_Format(SpiderMonkeyError, "Failed to retrieve properties when calculating length of: %S", self);
     return -1;
   }
   return props.length();
@@ -82,8 +82,8 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
 {
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here
-    return NULL; // key is not a str or int
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
+    return NULL;
   }
 
   // look through the methods for dispatch
@@ -93,6 +93,34 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
       JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
       JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
       JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
+      // if value is a JSFunction, bind `this` to self
+      /* (Caleb Aikens) its potentially problematic to bind it like this since if the function
+       * ever gets assigned to another object like so:
+       *
+       * jsObjA.func = jsObjB.func
+       * jsObjA.func() # `this` will be jsObjB not jsObjA
+       *
+       * it will be bound to the wrong object, however I can't find a better way to do this,
+       * and even pyodide works this way weirdly enough:
+       * https://github.com/pyodide/pyodide/blob/ee863a7f7907dfb6ee4948bde6908453c9d7ac43/src/core/jsproxy.c#L388
+       *
+       * if the user wants to get an unbound JS function to bind later, they will have to get it without accessing it through
+       * a JSObjectProxy (such as via pythonmonkey.eval or as the result of some other function)
+       */
+      if (value->isObject()) {
+        JS::RootedObject valueObject(GLOBAL_CX);
+        JS_ValueToObject(GLOBAL_CX, *value, &valueObject);
+        js::ESClass cls;
+        JS::GetBuiltinClass(GLOBAL_CX, valueObject, &cls);
+        if (cls == js::ESClass::Function) {
+          JS::Rooted<JS::ValueArray<1>> args(GLOBAL_CX);
+          args[0].setObject(*(self->jsObject));
+          JS::Rooted<JS::Value> boundFunction(GLOBAL_CX);
+          JS_CallFunctionName(GLOBAL_CX, valueObject, "bind", args, &boundFunction);
+          value->set(boundFunction);
+        }
+      }
+
       return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
     }
     else {
@@ -107,8 +135,8 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, 
 {
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here
-    return -1; // key is not a str or int
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
+    return -1;
   }
   JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
   JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
@@ -119,7 +147,7 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
 {
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) { // invalid key
-    // TODO (Caleb Aikens): raise exception here
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
     return -1;
   }
 
@@ -181,7 +209,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
+    PyErr_Format(SpiderMonkeyError, "During rich comparison, failed to retrieve property keys of: %S", self);
     return NULL;
   }
 
@@ -564,7 +592,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method(JSObjectProxy
 skip_optional:
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here  PyObject *seq = PyTuple_New(length);
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
     return NULL;
   }
 
@@ -591,7 +619,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(JSObjectPro
   JS::RootedIdVector props(GLOBAL_CX);
   if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
+    PyErr_Format(SpiderMonkeyError, "During clear(), failed to retrieve property keys of: %S", self);
     return NULL;
   }
 

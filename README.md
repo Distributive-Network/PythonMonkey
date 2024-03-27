@@ -307,11 +307,11 @@ JavaScript Array and Object methods are implemented on Python List and Dictionar
 
 | JavaScript Type      | Python Type     |
 |:---------------------|:----------------|
-| string               | String
+| string               | pythonmonkey.JSStringProxy (String)
 | number               | Float
 | bigint               | pythonmonkey.bigint (Integer)
 | boolean              | Bool
-| function             | Function
+| function             | pythonmonkey.JSFunctionProxy || pythonmonkey.JSMethodProxy (Function || Method)
 | object - most        | pythonmonkey.JSObjectProxy (Dict)
 | object - Date        | datetime
 | object - Array       | pythonmonkey.JSArrayProxy (List)

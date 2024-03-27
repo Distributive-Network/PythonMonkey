@@ -18,6 +18,7 @@
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/PyBaseProxyHandler.hh"
+#include "include/JSFunctionProxy.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -53,8 +54,8 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_get(JSArrayProxy *self, Py
 {
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here
-    return NULL; // key is not a str or int
+    PyErr_SetString(PyExc_AttributeError, "JSArrayProxy property name must be of type str or int");
+    return NULL;
   }
 
   // look through the methods for dispatch and return key if no method found
@@ -1285,48 +1286,41 @@ skip_optional_kwonly:
           }
         }
       }
-      else if (PyCFunction_Check(keyfunc)) {
-        // check if builtin 1-arg python or js 2-arg compare
-        int flags = PyCFunction_GetFlags((PyObject *)keyfunc);
-
-        if (flags & METH_VARARGS && !(flags & METH_KEYWORDS)) {
-          // we got a JS compare function, use it as-is
-          JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
-          jArgs[0].set(jsTypeFactory(GLOBAL_CX, keyfunc));
-          if (!JS_CallFunctionName(GLOBAL_CX, self->jsArray, "sort", jArgs, &jReturnedArray)) {
-            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
-            return NULL;
-          }
-
-          if (reverse) {
-            JSArrayProxy_reverse(self);
-          }
+      else if (PyObject_TypeCheck(keyfunc, &JSFunctionProxyType)) {
+        JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
+        jArgs[0].setObject(**((JSFunctionProxy *)keyfunc)->jsFunc);
+        if (!JS_CallFunctionName(GLOBAL_CX, self->jsArray, "sort", jArgs, &jReturnedArray)) {
+          PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+          return NULL;
         }
-        else {
-          // we got a built-in python function
-          JS::RootedObject funObj(GLOBAL_CX, JS_GetFunctionObject(JS_NewFunction(GLOBAL_CX, sort_compare_key_func, 2, 0, NULL)));
 
-          JS::RootedValue privateValue(GLOBAL_CX, JS::PrivateValue(keyfunc));
-          if (!JS_SetProperty(GLOBAL_CX, funObj, "_key_func_param", privateValue)) {  // JS::SetReservedSlot(functionObj, KeyFuncSlot, JS::PrivateValue(keyfunc)); does not work
+        if (reverse) {
+          JSArrayProxy_reverse(self);
+        }
+      }
+      else if (PyCFunction_Check(keyfunc)) {
+        JS::RootedObject funObj(GLOBAL_CX, JS_GetFunctionObject(JS_NewFunction(GLOBAL_CX, sort_compare_key_func, 2, 0, NULL)));
+
+        JS::RootedValue privateValue(GLOBAL_CX, JS::PrivateValue(keyfunc));
+        if (!JS_SetProperty(GLOBAL_CX, funObj, "_key_func_param", privateValue)) {  // JS::SetReservedSlot(functionObj, KeyFuncSlot, JS::PrivateValue(keyfunc)); does not work
+          PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+          return NULL;
+        }
+
+        JS::RootedValue reverseValue(GLOBAL_CX);
+        reverseValue.setBoolean(reverse);
+        if (!JS_SetProperty(GLOBAL_CX, funObj, "_reverse_param", reverseValue)) {
+          PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
+          return NULL;
+        }
+
+        JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
+        jArgs[0].setObject(*funObj);
+        if (!JS_CallFunctionName(GLOBAL_CX, self->jsArray, "sort", jArgs, &jReturnedArray)) {
+          if (!PyErr_Occurred()) {
             PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
-            return NULL;
           }
-
-          JS::RootedValue reverseValue(GLOBAL_CX);
-          reverseValue.setBoolean(reverse);
-          if (!JS_SetProperty(GLOBAL_CX, funObj, "_reverse_param", reverseValue)) {
-            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
-            return NULL;
-          }
-
-          JS::Rooted<JS::ValueArray<1>> jArgs(GLOBAL_CX);
-          jArgs[0].setObject(*funObj);
-          if (!JS_CallFunctionName(GLOBAL_CX, self->jsArray, "sort", jArgs, &jReturnedArray)) {
-            if (!PyErr_Occurred()) {
-              PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSArrayProxyType.tp_name);
-            }
-            return NULL;
-          }
+          return NULL;
         }
       }
       else {

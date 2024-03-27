@@ -61,6 +61,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
     set(PYTHON_LIBRARIES ${Python_LIBRARIES})
     set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
+    message("Linux - Using Python:${Python_VERSION_MAJOR}.${Python_VERSION_MINOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
     find_package(SpiderMonkey REQUIRED)
   elseif(WIN32)
     find_package(PythonInterp 3.8 REQUIRED)

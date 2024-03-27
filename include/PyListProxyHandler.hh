@@ -12,7 +12,7 @@
 #ifndef PythonMonkey_PyListProxy_
 #define PythonMonkey_PyListProxy_
 
-#include "PyBaseProxyHandler.hh"
+#include "include/PyBaseProxyHandler.hh"
 
 
 /**
@@ -21,7 +21,7 @@
  */
 struct PyListProxyHandler : public PyBaseProxyHandler {
 public:
-  PyListProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
+  PyListProxyHandler() : PyBaseProxyHandler(&family) {};
   static const char family;
 
   /**
