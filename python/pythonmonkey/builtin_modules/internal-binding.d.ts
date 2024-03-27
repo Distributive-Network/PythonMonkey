@@ -45,6 +45,21 @@ declare function internalBinding(namespace: "timers"): {
    * internal binding helper for the `clearTimeout` global function
    */
   cancelByTimeoutId(timeoutId: number): void;
+
+  /**
+   * internal binding helper for if a timer object has been ref'ed
+   */
+  timerHasRef(timeoutId: number): boolean;
+
+  /**
+   * internal binding helper for ref'ing the timer
+   */
+  timerAddRef(timeoutId: number): void;
+
+  /**
+   * internal binding helper for unref'ing the timer
+   */
+  timerRemoveRef(timeoutId: number): void;
 };
 
 export = internalBinding;
