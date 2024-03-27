@@ -2,6 +2,21 @@ import pytest
 import pythonmonkey as pm
 import asyncio
 
+def test_timers_unref():
+    async def async_fn():
+        obj = {'val': 0}
+        pm.eval("""(obj) => {
+            setTimeout(()=>{ obj.val = 2 }, 1000).ref().ref().unref().ref().unref().unref(); 
+                // chaining, no use on the first two ref calls since it's already refed initially
+            setTimeout(()=>{ obj.val = 1 }, 100);
+        }""")(obj)
+        await pm.wait() # we shouldn't wait until the first timer is fired since it's currently unrefed
+        assert obj['val'] == 1
+
+        # making sure the async_fn is run
+        return True
+    assert asyncio.run(async_fn())
+
 def test_set_clear_timeout():
     # throw RuntimeError outside a coroutine
     with pytest.raises(RuntimeError, match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
@@ -21,9 +36,10 @@ def test_set_clear_timeout():
         def to_raise(msg):
             f1.set_exception(TypeError(msg))
         timeout_id0 = pm.eval("setTimeout")(to_raise, 100, "going to be there")
-        assert type(timeout_id0) == float
-        assert timeout_id0 > 0                  # `setTimeout` should return a positive integer value
-        assert int(timeout_id0) == timeout_id0
+        # `setTimeout` should return a `Timeout` instance wrapping a positive integer value
+        assert pm.eval("(t) => t instanceof setTimeout.Timeout")(timeout_id0)
+        assert pm.eval("(t) => Number(t) > 0")(timeout_id0)
+        assert pm.eval("(t) => Number.isInteger(Number(t))")(timeout_id0)
         with pytest.raises(TypeError, match="going to be there"):
             await f1                                # `clearTimeout` not called
         f1 = loop.create_future()

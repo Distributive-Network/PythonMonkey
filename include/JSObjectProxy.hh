@@ -48,13 +48,22 @@ public:
   static Py_ssize_t JSObjectProxy_length(JSObjectProxy *self);
 
   /**
-   * @brief Getter method (.mp_subscript), returns a value from the JSObjectProxy given a key, used by several built-in python methods as well as the [] operator
+   * @brief Getter method, returns a value from the JSObjectProxy given a key, used by several built-in python methods as well as the . operator
    *
    * @param self - The JSObjectProxy
    * @param key - The key for the value in the JSObjectProxy
    * @return PyObject* NULL on exception, the corresponding value otherwise
    */
   static PyObject *JSObjectProxy_get(JSObjectProxy *self, PyObject *key);
+
+  /**
+   * @brief Getter method (.mp_subscript), returns a value from the JSObjectProxy given a key, used by the [] operator
+   *
+   * @param self - The JSObjectProxy
+   * @param key - The key for the value in the JSObjectProxy
+   * @return PyObject* NULL on exception, the corresponding value otherwise
+   */
+  static PyObject *JSObjectProxy_get_subscript(JSObjectProxy *self, PyObject *key);
 
   /**
    * @brief Test method (.sq_contains), returns whether a key exists, used by the in operator
@@ -74,24 +83,6 @@ public:
    * @return int -1 on exception, any other value otherwise
    */
   static int JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value);
-
-  /**
-   * @brief .tp_traverse method
-   *
-   * @param self - The JSObjectProxy
-   * @param visitproc - The function to be applied on each element of the dict
-   * @param arg - The argument to the visit function
-   * @return 0 on success
-   */
-  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
-
-  /**
-   * @brief clear method
-   *
-   * @param self - The JSObjectProxy
-   * @return 0 on success
-   */
-  static int JSObjectProxy_clear(JSObjectProxy *self);
 
   /**
    * @brief Comparison method (.tp_richcompare), returns appropriate boolean given a comparison operator and other pyobject
@@ -289,7 +280,7 @@ PyDoc_STRVAR(dict_values__doc__,
  */
 static PyMappingMethods JSObjectProxy_mapping_methods = {
   .mp_length = (lenfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_length,
-  .mp_subscript = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
+  .mp_subscript = (binaryfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get_subscript,
   .mp_ass_subscript = (objobjargproc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign
 };
 

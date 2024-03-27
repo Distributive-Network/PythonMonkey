@@ -165,24 +165,6 @@ public:
   static PyObject *JSArrayProxy_clear_method(JSArrayProxy *self);
 
   /**
-   * @brief .tp_clear method
-   *
-   * @param self - The JSArrayProxy
-   * @return 0 on success
-   */
-  static int JSArrayProxy_clear(JSArrayProxy *self);
-
-  /**
-   * @brief .tp_traverse method
-   *
-   * @param self - The JSArrayProxy
-   * @param visitproc - The function to be applied on each element of the list
-   * @param arg - The argument to the visit function
-   * @return 0 on success
-   */
-  static int JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg);
-
-  /**
    * @brief copy method
    *
    * @param self - The JSArrayProxy

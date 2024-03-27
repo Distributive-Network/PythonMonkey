@@ -49,7 +49,6 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   self->jsObject->set(nullptr);
   delete self->jsObject;
-  PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -64,7 +63,7 @@ Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *s
   return props.length();
 }
 
-static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId id) {
+static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId id, bool checkPropertyShadowsMethod) {
   // look through the methods for dispatch
   for (size_t index = 0;; index++) {
     const char *methodName = JSObjectProxyType.tp_methods[index].ml_name;
@@ -111,6 +110,15 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
+        if (checkPropertyShadowsMethod) {
+          // just make sure no property is shadowing a method by name
+          JS::RootedValue value(GLOBAL_CX);
+          JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+          if (!value.isUndefined()) {
+            return pyTypeFactory(GLOBAL_CX, value)->getPyObject();
+          }
+        }
+
         return PyObject_GenericGetAttr((PyObject *)self, key);
       }
     }
@@ -125,7 +133,18 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self,
     return NULL;
   }
 
-  return getKey(self, key, id);
+  return getKey(self, key, id, false);
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get_subscript(JSObjectProxy *self, PyObject *key)
+{
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
+    return NULL;
+  }
+
+  return getKey(self, key, id, true);
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, PyObject *key)
@@ -160,17 +179,6 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, Py
 
   assignKeyValue(self, key, id, value);
 
-  return 0;
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg) {
-  // Nothing to be done
-  // TODO do we need to iterate through the dict and call traverse on proxied PyObjects?
-  return 0;
-}
-
-int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self) {
-  JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(self);
   return 0;
 }
 
@@ -582,7 +590,7 @@ skip_optional:
     return NULL;
   }
 
-  PyObject *value = getKey(self, key, id);
+  PyObject *value = getKey(self, key, id, true);
   if (value == Py_None) {
     assignKeyValue(self, key, id, default_value);
     Py_XINCREF(default_value);

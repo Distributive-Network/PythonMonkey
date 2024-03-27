@@ -29,7 +29,6 @@ void JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc(JSArrayProxy *self)
 {
   self->jsArray->set(nullptr);
   delete self->jsArray;
-  PyObject_GC_UnTrack(self);
   Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -734,17 +733,6 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_inplace_repeat(JSArrayProx
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_clear_method(JSArrayProxy *self) {
   JS::SetArrayLength(GLOBAL_CX, *(self->jsArray), 0);
   Py_RETURN_NONE;
-}
-
-int JSArrayProxyMethodDefinitions::JSArrayProxy_clear(JSArrayProxy *self) {
-  JS::SetArrayLength(GLOBAL_CX, *(self->jsArray), 0);
-  return 0;
-}
-
-int JSArrayProxyMethodDefinitions::JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg) {
-  // Nothing to be done
-  // TODO do we need to iterate through the list and call traverse on proxied PyObjects?
-  return 0;
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_copy(JSArrayProxy *self) {
