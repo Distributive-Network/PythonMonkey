@@ -18,11 +18,8 @@
  */
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
   PyObject *ret = PyObject_CallObject(jobFn, NULL);
+  Py_XDECREF(ret); // don't care about its return value
   PyEventLoop::_locker->decCounter();
-  if (!ret) {
-    return NULL;
-  }
-  Py_DECREF(ret);
   if (PyErr_Occurred()) {
     return NULL;
   } else {
