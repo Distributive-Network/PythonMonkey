@@ -22,6 +22,7 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         May 2023
 #
+# @copyright Copyright (c) 2023 Distributive Corp.
 
 import sys, os, io
 from typing import Union, Dict, Literal, List

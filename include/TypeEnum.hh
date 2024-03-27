@@ -2,7 +2,6 @@
  * @file TypeEnum.hh
  * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network) & Tom Tang (xmader@distributive.network)
  * @brief Enum for every PyType
- * @version 0.1
  * @date 2022-08-08
  *
  * @copyright Copyright (c) 2023 Distributive Corp.

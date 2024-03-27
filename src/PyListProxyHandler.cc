@@ -4,7 +4,7 @@
  * @brief Struct for creating JS proxy objects. Used by ListType for List coercion
  * @date 2023-12-01
  *
- * Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -44,10 +44,9 @@ static bool makeNewPyMethod(JSContext *cx, JS::MutableHandleValue function, JS::
   }
 
   PyObject *func = PyMethod_Function(method);
-  JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   JS::RootedValue thisValue(cx);
   thisValue.setObject(*thisObject);
-  PyObject *newSelf = pyTypeFactory(cx, &global, &thisValue)->getPyObject();
+  PyObject *newSelf = pyTypeFactory(cx, thisValue)->getPyObject();
   function.set(jsTypeFactory(cx, PyMethod_New(func, newSelf)));
 
   return true;
@@ -96,6 +95,7 @@ static bool array_pop(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -108,12 +108,11 @@ static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely 
   }
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
   unsigned numArgs = args.length();
+  JS::RootedValue elementVal(cx);
   for (unsigned index = 0; index < numArgs; index++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
-    elementVal->set(args[index].get());
-    if (PyList_Append(self, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+    elementVal.set(args[index].get());
+    if (PyList_Append(self, pyTypeFactory(cx, elementVal)->getPyObject()) < 0) {
       return false;
     }
   }
@@ -159,11 +158,10 @@ static bool array_unshift(JSContext *cx, unsigned argc, JS::Value *vp) { // sure
   }
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  JS::RootedValue elementVal(cx);
   for (int index = args.length() - 1; index >= 0; index--) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
-    elementVal->set(args[index].get());
-    if (PyList_Insert(self, 0, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+    elementVal.set(args[index].get());
+    if (PyList_Insert(self, 0, pyTypeFactory(cx, elementVal)->getPyObject()) < 0) {
       return false;
     }
   }
@@ -227,6 +225,7 @@ static bool array_slice(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -273,9 +272,8 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
   }
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0].get());
-  PyObject *result = PyObject_CallMethod(self, "index", "Oi", pyTypeFactory(cx, global, elementVal)->getPyObject(), start);
+  JS::RootedValue elementVal(cx, args[0].get());
+  PyObject *result = PyObject_CallMethod(self, "index", "Oi", pyTypeFactory(cx, elementVal)->getPyObject(), start);
 
   if (!result) {
     PyErr_Clear();
@@ -284,6 +282,7 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -352,10 +351,10 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+  JS::RootedValue elementVal(cx);
   for (int index = 0; index < insertCount; index++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx, args[index + 2].get());
-    if (PyList_SetItem(inserted, index, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+    elementVal.set(args[index + 2].get());
+    if (PyList_SetItem(inserted, index, pyTypeFactory(cx, elementVal)->getPyObject()) < 0) {
       return false;
     }
   }
@@ -365,6 +364,7 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   args.rval().set(jsTypeFactory(cx, deleted));
+  Py_DECREF(deleted);
   return true;
 }
 
@@ -417,9 +417,8 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
     actualEnd = uint64_t(std::min(double(relativeEnd), double(selfLength)));
   }
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *fillValue = new JS::RootedValue(cx, args[0].get());
-  PyObject *fillValueItem = pyTypeFactory(cx, global, fillValue)->getPyObject();
+  JS::RootedValue fillValue(cx, args[0].get());
+  PyObject *fillValueItem = pyTypeFactory(cx, fillValue)->getPyObject();
   for (int index = actualStart; index < actualEnd; index++) {
     if (PyList_SetItem(self, index, fillValueItem) < 0) {
       return false;
@@ -535,8 +534,6 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-
   Py_ssize_t selfSize = PyList_GET_SIZE(self);
 
   PyObject *result = PyList_New(selfSize);
@@ -546,20 +543,19 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   unsigned numArgs = args.length();
+  JS::RootedValue elementVal(cx);
   for (unsigned index = 0; index < numArgs; index++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
-    elementVal->set(args[index].get());
+    elementVal.set(args[index].get());
 
-    PyObject *item = pyTypeFactory(cx, global, elementVal)->getPyObject();
+    PyObject *item = pyTypeFactory(cx, elementVal)->getPyObject();
     if (PyObject_TypeCheck(item, &JSArrayProxyType)) {
       // flatten the array only a depth 1
       Py_ssize_t itemLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)item);
       for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
-        elementVal = new JS::RootedValue(cx);
-        if (!JS_GetElement(cx, ((JSArrayProxy *)item)->jsArray, flatIndex, elementVal)) {
+        if (!JS_GetElement(cx, *(((JSArrayProxy *)item)->jsArray), flatIndex, &elementVal)) {
           return false;
         }
-        if (PyList_Append(result, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+        if (PyList_Append(result, pyTypeFactory(cx, elementVal)->getPyObject()) < 0) {
           return false;
         }
       }
@@ -574,13 +570,14 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
       }
     }
     else {
-      if (PyList_Append(result, pyTypeFactory(cx, global, elementVal)->getPyObject()) < 0) {
+      if (PyList_Append(result, pyTypeFactory(cx, elementVal)->getPyObject()) < 0) {
         return false;
       }
     }
   }
 
   args.rval().set(jsTypeFactory(cx, result));
+  Py_DECREF(result);
   return true;
 }
 
@@ -623,9 +620,8 @@ static bool array_lastIndexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
   }
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *elementVal = new JS::RootedValue(cx, args[0].get());
-  PyObject *element = pyTypeFactory(cx, global, elementVal)->getPyObject();
+  JS::RootedValue elementVal(cx, args[0].get());
+  PyObject *element = pyTypeFactory(cx, elementVal)->getPyObject();
   for (int64_t index = start; index >= 0; index--) {
     PyObject *item = PyList_GetItem(self, index);
     Py_INCREF(item);
@@ -939,35 +935,33 @@ static bool array_reduceRight(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue callBack(cx, callbackfn);
 
   JS::Rooted<JS::ValueArray<4>> jArgs(cx);
-  JS::RootedValue *accumulator;
+  JS::RootedValue accumulator(cx);
 
   Py_ssize_t len = PyList_GET_SIZE(self);
 
   if (args.length() > 1) {
-    accumulator = new JS::RootedValue(cx, args[1].get());
+    accumulator.set(args[1].get());
   }
   else {
     if (len == 0) {
       JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr, JSMSG_EMPTY_ARRAY_REDUCE);
       return false;
     }
-    accumulator = new JS::RootedValue(cx, jsTypeFactory(cx, PyList_GetItem(self, len - 1)));
+    accumulator.set(jsTypeFactory(cx, PyList_GetItem(self, len - 1)));
   }
 
   for (int64_t index = args.length() > 1 ? len - 1 : len - 2; index >= 0; index--) {
-    jArgs[0].set(*accumulator);
+    jArgs[0].set(accumulator);
     jArgs[1].set(jsTypeFactory(cx, PyList_GetItem(self, index)));
     jArgs[2].setInt32(index);
     jArgs[3].set(selfValue);
 
-    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, accumulator)) {
-      delete accumulator;
+    if (!JS_CallFunctionValue(cx, nullptr, callBack, jArgs, &accumulator)) {
       return false;
     }
   }
 
-  args.rval().set(accumulator->get());
-  delete accumulator;
+  args.rval().set(accumulator.get());
   return true;
 }
 
@@ -1233,25 +1227,24 @@ static bool array_findIndex(JSContext *cx, unsigned argc, JS::Value *vp) {
 }
 
 // private
-static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
+static uint32_t FlattenIntoArray(JSContext *cx,
   JSObject *retArray, PyObject *source,
   Py_ssize_t sourceLen, uint32_t start, uint32_t depth) {
 
   uint32_t targetIndex = start;
 
-  JS::RootedObject rootedGlobal(cx, global);
+  JS::RootedValue elementVal(cx);
 
   for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
-    JS::RootedValue *elementVal = new JS::RootedValue(cx);
 
     if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
-      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, elementVal);
+      JS_GetElement(cx, *(((JSArrayProxy *)source)->jsArray), sourceIndex, &elementVal);
     }
     else if (PyObject_TypeCheck(source, &PyList_Type)) {
-      elementVal->set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
+      elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
     }
 
-    PyObject *element = pyTypeFactory(cx, &rootedGlobal, elementVal)->getPyObject();
+    PyObject *element = pyTypeFactory(cx, elementVal)->getPyObject();
 
     bool shouldFlatten;
     if (depth > 0) {
@@ -1269,7 +1262,7 @@ static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
         elementLen = PyList_GET_SIZE(element);
       }
 
-      targetIndex = FlattenIntoArray(cx, global,
+      targetIndex = FlattenIntoArray(cx,
         retArray,
         element,
         elementLen,
@@ -1286,7 +1279,7 @@ static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
         JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
       }
 
-      JS_SetElement(cx, rootedRetArray, targetIndex, *elementVal);
+      JS_SetElement(cx, rootedRetArray, targetIndex, elementVal);
 
       targetIndex++;
     }
@@ -1296,14 +1289,13 @@ static uint32_t FlattenIntoArray(JSContext *cx, JS::HandleObject global,
 }
 
 // private
-static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject global,
+static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx,
   JSObject *retArray, PyObject *source,
   Py_ssize_t sourceLen, uint32_t start, uint32_t depth,
   JS::HandleValue callBack, JS::HandleObject thisArg) {
 
   uint32_t targetIndex = start;
 
-  JS::RootedObject rootedGlobal(cx, global);
   JS::RootedValue sourceValue(cx, jsTypeFactory(cx, source));
   JS::Rooted<JS::ValueArray<3>> jArgs(cx);
   JS::RootedValue elementVal(cx);
@@ -1311,22 +1303,20 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
 
   for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
     if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
-      JS_GetElement(cx, ((JSArrayProxy *)source)->jsArray, sourceIndex, &elementVal);
+      JS_GetElement(cx, *(((JSArrayProxy *)source)->jsArray), sourceIndex, &elementVal);
     }
     else if (PyObject_TypeCheck(source, &PyList_Type)) {
       elementVal.set(jsTypeFactory(cx, PyList_GetItem(source, sourceIndex)));
     }
 
-    JS::RootedValue *retVal = new JS::RootedValue(cx);
-
     jArgs[0].set(elementVal);
     jArgs[1].setInt32(sourceIndex);
     jArgs[2].set(sourceValue);
-    if (!JS_CallFunctionValue(cx, thisArg, callBack, jArgs, retVal)) {
+    if (!JS_CallFunctionValue(cx, thisArg, callBack, jArgs, &retVal)) {
       return false;
     }
 
-    PyObject *element = pyTypeFactory(cx, &rootedGlobal, retVal)->getPyObject();
+    PyObject *element = pyTypeFactory(cx, retVal)->getPyObject();
 
     bool shouldFlatten;
     if (depth > 0) {
@@ -1344,7 +1334,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
     }
 
     if (shouldFlatten) {
-      targetIndex = FlattenIntoArrayWithCallBack(cx, global,
+      targetIndex = FlattenIntoArrayWithCallBack(cx,
         retArray,
         element,
         elementLen,
@@ -1365,7 +1355,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
         JS::RootedValue elementIndexVal(cx);
         for (uint32_t elementIndex = 0; elementIndex < elementLen; elementIndex++, targetIndex++) {
           if (PyObject_TypeCheck(element, &JSArrayProxyType)) {
-            JS_GetElement(cx, ((JSArrayProxy *)element)->jsArray, elementIndex, &elementIndexVal);
+            JS_GetElement(cx, *(((JSArrayProxy *)element)->jsArray), elementIndex, &elementIndexVal);
           }
           else {
             elementIndexVal.set(jsTypeFactory(cx, PyList_GetItem(element, elementIndex)));
@@ -1385,7 +1375,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx, JS::HandleObject glo
           JS::SetArrayLength(cx, rootedRetArray, targetIndex + 1);
         }
 
-        JS_SetElement(cx, rootedRetArray, targetIndex, *retVal);
+        JS_SetElement(cx, rootedRetArray, targetIndex, retVal);
 
         targetIndex++;
       }
@@ -1414,11 +1404,9 @@ static bool array_flat(JSContext *cx, unsigned argc, JS::Value *vp) {
     depthNum = 1;
   }
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-
   JSObject *retArray = JS::NewArrayObject(cx, sourceLen); // min end length
 
-  FlattenIntoArray(cx, *global, retArray, self, sourceLen, 0, depthNum);
+  FlattenIntoArray(cx, retArray, self, sourceLen, 0, depthNum);
 
   args.rval().setObject(*retArray);
   return true;
@@ -1467,11 +1455,9 @@ static bool array_flatMap(JSContext *cx, unsigned argc, JS::Value *vp) {
     rootedThisArg.set(nullptr);
   }
 
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-
   JSObject *retArray = JS::NewArrayObject(cx, sourceLen); // min end length
 
-  FlattenIntoArrayWithCallBack(cx, *global, retArray, self, sourceLen, 0, 1, callBack, rootedThisArg);
+  FlattenIntoArrayWithCallBack(cx, retArray, self, sourceLen, 0, 1, callBack, rootedThisArg);
 
   args.rval().setObject(*retArray);
   return true;
@@ -1493,12 +1479,12 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
     return true;
   }
 
-  JS::RootedString *rootedSeparator;
+  JS::RootedString rootedSeparator(cx);
   if (args.hasDefined(0)) {
-    rootedSeparator = new JS::RootedString(cx, JS::ToString(cx, args[0]));
+    rootedSeparator.set(JS::ToString(cx, args[0]));
   }
   else {
-    rootedSeparator = new JS::RootedString(cx, JS_NewStringCopyZ(cx, ","));
+    rootedSeparator.set(JS_NewStringCopyZ(cx, ","));
   }
 
   JSString *writer = JS_NewStringCopyZ(cx, "");
@@ -1507,7 +1493,7 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
   for (Py_ssize_t index = 0; index < selfLength; index++) {
     rootedWriter.set(writer);
     if (index > 0) {
-      writer = JS_ConcatStrings(cx, rootedWriter, *rootedSeparator);
+      writer = JS_ConcatStrings(cx, rootedWriter, rootedSeparator);
       rootedWriter.set(writer);
     }
 
@@ -1518,12 +1504,10 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
       JS::RootedObject retObject(cx);
 
       if (!JS_ValueToObject(cx, element, &retObject)) {
-        delete rootedSeparator;
         return false;
       }
 
       if (!JS_CallFunctionName(cx, retObject, "toString", JS::HandleValueArray::empty(), &rval)) {
-        delete rootedSeparator;
         return false;
       }
 
@@ -1531,8 +1515,6 @@ static bool array_join(JSContext *cx, unsigned argc, JS::Value *vp) {
       writer = JS_ConcatStrings(cx, rootedWriter, retString);
     }
   }
-
-  delete rootedSeparator;
 
   args.rval().setString(writer);
   return true;
@@ -2108,14 +2090,23 @@ bool PyListProxyHandler::defineProperty(
     return result.failInvalidDescriptor();
   }
 
-  // FIXME (Tom Tang): memory leak
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
-  JS::RootedValue *itemV = new JS::RootedValue(cx, desc.value());
-  PyObject *item = pyTypeFactory(cx, global, itemV)->getPyObject();
+  JS::RootedValue itemV(cx, desc.value());
+  PyObject *item = pyTypeFactory(cx, itemV)->getPyObject();
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   if (PyList_SetItem(self, index, item) < 0) {
-    return result.failBadIndex();
+    // we are out-of-bounds and need to expand
+    Py_ssize_t len = PyList_GET_SIZE(self);
+    // fill the space until the inserted index
+    for (Py_ssize_t i = len; i < index; i++) {
+      PyList_Append(self, Py_None);
+    }
+
+    PyList_Append(self, item);
+
+    // clear pending exception
+    PyErr_Clear();
   }
+
   return result.succeed();
 }
 
@@ -2139,14 +2130,14 @@ bool PyListProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::Hand
   Py_ssize_t index;
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   if (!idToIndex(cx, id, &index)) {
-    return result.failBadIndex(); // report failure
+    return result.failBadIndex();
   }
 
   // Set to undefined instead of actually deleting it
   if (PyList_SetItem(self, index, Py_None) < 0) {
-    return result.failCantDelete(); // report failure
+    return result.failCantDelete();
   }
-  return result.succeed(); // report success
+  return result.succeed();
 }
 
 bool PyListProxyHandler::isArray(JSContext *cx, JS::HandleObject proxy, JS::IsArrayAnswer *answer) const {

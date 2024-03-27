@@ -7,7 +7,7 @@ def test_eval_array_is_list():
 # extra nice but not necessary
 def test_eval_array_is_list_type_string():
     pythonListTypeString = str(type(pm.eval('[]')))
-    assert pythonListTypeString == "<class 'pythonmonkey.JSArrayProxy'>"
+    assert pythonListTypeString == "<class 'list'>"
 
 def test_eval_list_is_array():
     items = [1, 2, 3]

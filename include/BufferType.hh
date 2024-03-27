@@ -2,7 +2,6 @@
  * @file BufferType.hh
  * @author Tom Tang (xmader@distributive.network)
  * @brief Struct for representing ArrayBuffers
- * @version 0.1
  * @date 2023-04-27
  *
  * @copyright Copyright (c) 2023 Distributive Corp.

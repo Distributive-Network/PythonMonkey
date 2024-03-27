@@ -1,6 +1,7 @@
 # @file     pmdb - A gdb-like JavaScript debugger interface
 # @author   Tom Tang <xmader@distributive.network>
 # @date     July 2023
+# @copyright Copyright (c) 2023 Distributive Corp.
 
 import pythonmonkey as pm
 

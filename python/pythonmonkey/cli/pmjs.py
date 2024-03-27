@@ -2,6 +2,7 @@
 # @file         pmjs - PythonMonkey REPL
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
+# @copyright Copyright (c) 2023 Distributive Corp.
 
 import sys, os, signal, getopt
 import readline
@@ -300,18 +301,16 @@ PMJS_REPL_HISTORY             path to the persistent REPL history file"""
 
 def initGlobalThis():
     """
-    Initialize globalThis for for pmjs use in the extra-module context (eg -r, -e, -p). This context
-    needs a require function which resolve modules relative to the current working directory at pmjs
-    launch. The global require is to the JS function using a trick iinstead of a JS-wrapped-Python-wrapped function
+    Initialize globalThis for pmjs use in the extra-module context (eg -r, -e, -p). This context
+    needs a require function which resolves modules relative to the current working directory at pmjs
+    launch. The global require is to the JS function using a trick instead of a JS-wrapped-Python-wrapped function
     """
     global requirePath
 
     require = pm.createRequire(os.path.abspath(os.getcwd() + '/__pmjs_virtual__'), requirePath)
     globalThis.require = require
     globalInitModule = require(os.path.realpath(os.path.dirname(__file__) + "/../lib/pmjs/global-init")) # module load has side-effects
-    argvBuilder = globalInitModule.makeArgvBuilder()
-    for arg in sys.argv:
-        argvBuilder(arg); # list=>Array not working yet
+    globalThis.arguments = sys.argv
     return globalInitModule
 
 def main():
