@@ -263,8 +263,8 @@ PyTypeObject JSObjectItemsProxyType = {
 
 static void cleanup() {
   delete autoRealm;
-  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   delete global;
+  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   delete JOB_QUEUE;
   JS_ShutDown();
 }

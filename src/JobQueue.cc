@@ -11,6 +11,14 @@
 
 #include <stdexcept>
 
+JobQueue::JobQueue(JSContext *cx) {
+  finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);
+}
+
+JobQueue::~JobQueue() {
+  delete finalizationRegistryCallbacks;
+}
+
 JSObject *JobQueue::getIncumbentGlobal(JSContext *cx) {
   return JS::CurrentGlobalOrNull(cx);
 }
@@ -108,13 +116,13 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
-  mozilla::Unused << finalizationRegistryCallbacks.append(callback);
+  mozilla::Unused << finalizationRegistryCallbacks->append(callback);
 }
 
 bool JobQueue::runFinalizationRegistryCallbacks(JSContext *cx) {
   bool ranCallbacks = false;
   JS::Rooted<FunctionVector> callbacks(cx);
-  std::swap(callbacks.get(), finalizationRegistryCallbacks.get());
+  std::swap(callbacks.get(), finalizationRegistryCallbacks->get());
   for (JSFunction *f: callbacks) {
     JS::ExposeObjectToActiveJS(JS_GetFunctionObject(f));
 

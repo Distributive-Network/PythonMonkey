@@ -27,8 +27,8 @@ class JobQueue : public JS::JobQueue {
 // JS::JobQueue methods.
 //
 public:
-explicit JobQueue(JSContext *cx) : finalizationRegistryCallbacks(cx) {}
-~JobQueue() = default;
+explicit JobQueue(JSContext *cx);
+~JobQueue();
 
 /**
  * @brief Ask the embedding for the incumbent global.
@@ -92,7 +92,7 @@ bool runFinalizationRegistryCallbacks(JSContext *cx);
 
 private:
 using FunctionVector = JS::GCVector<JSFunction *, 0, js::SystemAllocPolicy>;
-JS::PersistentRooted<FunctionVector> finalizationRegistryCallbacks;
+JS::PersistentRooted<FunctionVector> *finalizationRegistryCallbacks;
 
 /**
  * @brief Capture this JobQueue's current job queue as a SavedJobQueue and return it,
