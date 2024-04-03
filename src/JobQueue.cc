@@ -15,10 +15,6 @@ JobQueue::JobQueue(JSContext *cx) {
   finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);
 }
 
-JobQueue::~JobQueue() {
-  delete finalizationRegistryCallbacks;
-}
-
 JSObject *JobQueue::getIncumbentGlobal(JSContext *cx) {
   return JS::CurrentGlobalOrNull(cx);
 }

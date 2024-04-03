@@ -28,7 +28,7 @@ class JobQueue : public JS::JobQueue {
 //
 public:
 explicit JobQueue(JSContext *cx);
-~JobQueue();
+~JobQueue() = default;
 
 /**
  * @brief Ask the embedding for the incumbent global.
