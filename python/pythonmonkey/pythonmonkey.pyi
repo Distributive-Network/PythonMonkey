@@ -1,5 +1,4 @@
 """
-stub file for type hints & documentations for the native module
 @see https://typing.readthedocs.io/en/latest/source/stubs.html
 """
 
@@ -38,31 +37,32 @@ def isCompilableUnit(code: str) -> bool:
     Hint if a string might be compilable Javascript without actual evaluation
     """
 
-def internalBinding(namespace: str) -> JSObjectProxy:
-    """
-    INTERNAL USE ONLY
-
-    See function declarations in ./builtin_modules/internal-binding.d.ts
-    """
-
 def collect() -> None:
     """
     Calls the spidermonkey garbage collector
     """
+class JSFunctionProxy():
+  """
+  JavaScript Function proxy
+  """
+class JSMethodProxy(JSFunctionProxy, object):
+    """
+    JavaScript Method proxy
+    This constructs a callable object based on the first argument, bound to the second argument
+    Useful when you wish to implement a method on a class object with JavaScript
+    Example:
+    import pythonmonkey as pm
 
-class bigint(int):
-    """
-    Representing JavaScript BigInt in Python
-    """
-
-class SpiderMonkeyError(Exception):
-    """
-    Representing a corresponding JS Error in Python
-    """
-
-class JSObjectProxy(dict):
-    """
-    JavaScript Object proxy dict
+    jsFunc = pm.eval("(function(value) { this.value = value})")
+    class Class:
+      def __init__(self):
+        self.value = 0
+        self.setValue = pm.JSMethodProxy(jsFunc, self) #setValue will be bound to self, so `this` will always be `self`
+    
+    myObject = Class()
+    print(myObject.value) # 0
+    myObject.setValue(42)
+    print(myObject.value) # 42.0
     """
     def __init__(self) -> None: ...
 

@@ -2,10 +2,9 @@
  * @file IntType.hh
  * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network) & Tom Tang (xmader@distributive.network)
  * @brief Struct for representing python ints
- * @version 0.2
  * @date 2023-03-16
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 

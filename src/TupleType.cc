@@ -1,18 +1,14 @@
 /**
  * @file TupleType.cc
- * @author Giovanni Tedesco
- * @brief Implementation for the methods of the Tuple Type struct
- * @version 0.1
+ * @author Giovanni Tedesco (giovanni@distributive.network)
+ * @brief Struct for representing python tuples
  * @date 2022-08-19
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 Distributive Corp.
  *
  */
 
 #include "include/TupleType.hh"
-
-#include "include/PyType.hh"
-#include "include/pyTypeFactory.hh"
 
 #include <Python.h>
 

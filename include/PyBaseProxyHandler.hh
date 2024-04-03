@@ -2,10 +2,9 @@
  * @file PyBaseProxyHandler.hh
  * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Structs for creating JS proxy objects.
- * @version 0.1
  * @date 2023-04-20
  *
- * Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -24,8 +23,7 @@
  */
 struct PyBaseProxyHandler : public js::BaseProxyHandler {
 public:
-  PyBaseProxyHandler(PyObject *pyObj, const void *family) : js::BaseProxyHandler(family), pyObject(pyObj) {};
-  PyObject *pyObject; // @TODO (Caleb Aikens) Consider putting this in a private slot
+  PyBaseProxyHandler(const void *family) : js::BaseProxyHandler(family) {};
 
   bool getPrototypeIfOrdinary(JSContext *cx, JS::HandleObject proxy, bool *isOrdinary, JS::MutableHandleObject protop) const override final;
   bool preventExtensions(JSContext *cx, JS::HandleObject proxy, JS::ObjectOpResult &result) const override final;

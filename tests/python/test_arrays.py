@@ -741,7 +741,7 @@ def test_sort_with_two_args_keyfunc_wrong_return_type():
     try:
         pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
         assert (False)
-    except Exception as e:    
+    except Exception as e:  
         assert str(type(e)) == "<class 'TypeError'>"
         assert str(e) == "incorrect compare function return type"      
  
@@ -753,8 +753,13 @@ def test_sort_with_two_args_keyfunc_wrong_data_type():
         pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)      
         assert (False)
     except Exception as e:    
-        assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "object of type 'float' has no len()"    
+        assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+        assert "object of type 'float' has no len()" in str(e)  
+        assert "test_arrays.py" in str(e)   
+        assert "line 751" in str(e)  
+        assert "in myFunc" in str(e) 
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e) 
 
 def test_sort_with_one_arg_keyfunc():
     items = ['Four', 'Three', 'One']   
@@ -765,16 +770,20 @@ def test_sort_with_one_arg_keyfunc():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("invalid Array.prototype.sort argument")  
+        assert "takes 1 positional argument but 2 were given" in str(e)
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e)  
 
 def test_sort_with_builtin_keyfunc():
     items = ['Four', 'Three', 'One']   
     try:
         pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, len)      
         assert (False)
-    except Exception as e:    
+    except Exception as e:  
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-        assert str(e).__contains__("invalid Array.prototype.sort argument")    
+        assert "len() takes exactly one argument (2 given)" in str(e)
+        assert "JS Stack Trace" in str(e) 
+        assert "@evaluate:1:27" in str(e)      
 
 def test_sort_with_js_func():
     items = ['Four', 'Three', 'One']  
@@ -860,34 +869,67 @@ def test_forEach_check_this_arg_wrong_type():
 
 # TODO python function support
 
-# this one does not get the result into items
-#def test_forEach_with_python_function():
-#    def func(element, index, array):
-#        return "to each his own"
-#    items = ['Four', 'Three', 'One'] 
-#    returnResult = [0]
-#    pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.forEach(func)}")(returnResult, items, func)
-#    assert items == ['to each his own', 'to each his own', 'to each his own']    
-#    assert returnResult == [None]   
+def test_forEach_with_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.forEach(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [None]   
 
-#def test_forEach_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_forEach_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.forEach(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3    
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.forEach(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3    
 
+def test_forEach_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.forEach(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_forEach_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++
+    }
+    let jsObj = {count: 0}
+    arr.forEach(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3
 
 # TODO should not pass
 def test_forEach_check_this_arg_null():
@@ -979,23 +1021,68 @@ def test_map_check_array_mutation():
     assert result[0] == ['Ten', 'Three', 'One']
     assert items == ['Ten', 'Three', 'One']
 
-#def test_map_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_map_with_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+      return 42
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.map(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [[42.0, 42.0, 42.0]]   
+
+def test_map_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.map(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3        
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.map(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3    
+
+def test_map_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.map(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_map_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++
+    }
+    let jsObj = {count: 0}
+    arr.map(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3     
     
 #filter
 def test_filter():
@@ -1051,23 +1138,67 @@ def test_filter_too_few_args():
         assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
         assert str(e).__contains__("TypeError: filter: At least 1 argument required, but only 0 passed")   
 
-#def test_filter_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_filter_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.filter(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [[]]   
+
+def test_filter_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.filter(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3                  
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.filter(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3    
+
+def test_filter_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.filter(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_filter_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++
+    }
+    let jsObj = {count: 0}
+    arr.filter(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3                
 
 #reduce
 def test_reduce():
@@ -1242,23 +1373,71 @@ def test_some_truthy_conversion():
     """)(result)
     assert result[0] == True  
 
-#def test_some_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_some_with_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+      return False
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.some(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [False]   
+
+def test_some_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
+     return False
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.some(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3        
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.some(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3    
+
+def test_some_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+    return False
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.some(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_some_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++;
+      return false;
+    }
+    let jsObj = {count: 0}
+    arr.some(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3     
 
 #every        
 def test_every_true():
@@ -1311,23 +1490,70 @@ def test_every_check_this_arg():
   )(result, items)
   assert result == [1]   
 
-#def test_every_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_every_with_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+      return True
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.every(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [True]   
+
+def test_every_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
+     return True
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.every(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3         
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.every(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3         
+
+def test_every_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.every(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_every_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++
+      return true;
+    }
+    let jsObj = {count: 0}
+    arr.every(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3
 
 #find
 def test_find_found_once():
@@ -1386,23 +1612,71 @@ def test_find_check_this_arg():
   )(result, items)
   assert result == [3]         
 
-#def test_find_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_find_with_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+      return False
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.find(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [None]   
+
+def test_find_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
+     return False
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.find(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3        
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.find(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3    
+
+def test_find_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+    return False
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.find(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_find_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++;
+      return false;
+    }
+    let jsObj = {count: 0}
+    arr.find(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3       
 
 #findIndex
 def test_findIndex_found_once():
@@ -1461,23 +1735,67 @@ def test_findIndex_check_this_arg():
   )(result, items)
   assert result == [3]      
 
-#def test_findIndex_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_findIndex_with_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.findIndex(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [-1]   
+
+def test_findIndex_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.findIndex(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3           
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.findIndex(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3    
+
+def test_findIndex_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.findIndex(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_findIndex_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++
+    }
+    let jsObj = {count: 0}
+    arr.findIndex(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3         
 
 #flat
 def test_flat():
@@ -1594,23 +1912,68 @@ def test_flatMap_check_this_arg():
   )(result, items)
   assert result == [3]   
 
-#def test_flatMap_self():
-#  items = ['Four', 'Three', 'One']
-#  class Counter:
-#    def __init__(self):
-#      self.count = 0
-#    def increment(self):
-#      self.count += 1
+def test_flatMap_with_python_function():
+   def func(element, index, array):
+      array[int(index)] = "to each his own"
+      return 42
+   items = ['Four', 'Three', 'One'] 
+   returnResult = [0]
+   pm.eval("(returnResult, arr, func) => {returnResult[0] = arr.flatMap(func)}")(returnResult, items, func)
+   assert items == ['to each his own', 'to each his own', 'to each his own']    
+   assert returnResult == [[42.0, 42.0, 42.0]]
+
+def test_flatMap_self_pymethod():
+ items = ['Four', 'Three', 'One']
+ class Counter:
+   def __init__(self):
+     self.count = 0
+   def increment(self, element, index, array):
+     self.count += 1
   
-#  obj = Counter()
-#  result = pm.eval("""
-#  (arr, increment, result) => {
-#    let jsObj = {count: 0}
-#    arr.flatMap(increment, jsObj);
-#    return jsObj.count;
-#  }
-#  """)(items, obj.increment)
-#  assert result == 3                  
+ obj = Counter()
+ assert obj.count == 0
+ result = pm.eval("""
+ (arr, increment, result) => {
+   let jsObj = {count: 0}
+   arr.flatMap(increment, jsObj);
+   return jsObj.count;
+ }
+ """)(items, obj.increment)
+ assert obj.count == 0
+ assert result == 3    
+
+def test_flatMap_self_pyfunction():
+  items = ['Four', 'Three', 'One']
+  def increment(self, element, index, array):
+    self.count += 1
+  
+  try:
+    pm.eval("""
+    (arr, increment, result) => {
+      let jsObj = {count: 0}
+      arr.flatMap(increment, jsObj);
+      return jsObj.count;
+    }
+    """)(items, increment)
+    assert False
+  except Exception as e:
+    assert type(e) is TypeError
+    assert str(e).__contains__("unbound python functions do not have a 'self' to bind") 
+
+def test_flatMap_self_jsfunction():
+  items = ['Four', 'Three', 'One']
+  
+  result = pm.eval("""
+  (arr) => {
+    function increment(element, index, array) {
+      this.count++
+    }
+    let jsObj = {count: 0}
+    arr.flatMap(increment, jsObj);
+    return jsObj.count;
+  }
+  """)(items)
+  assert result == 3                
 
 #valueOf
 def test_valueOf():
@@ -1752,4 +2115,59 @@ def test_iterator_last_next():
     result = [0]
     pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); iterator.next(); result[0] = iterator.next()}")(result, items)
     assert result[0].value == None
-    assert result[0].done == True                    
+    assert result[0].done == True      
+
+def test_iterator_iterator():
+    items = [1,2,3,4]
+    result = [0]
+    pm.eval("(result, arr) => {let iter = arr[Symbol.iterator](); let head = iter.next().value; result[0] = [...iter] }")(result, items)
+    assert result[0] == [2,3,4]        
+
+#Array.from
+def test_array_from():
+    items = [1,2]
+    result = [0]
+    pm.eval("(result, arr) => { result[0] = Array.from(arr)}")(result, items)
+    assert result[0] == [1,2]
+    assert result[0] is not items    
+
+# bad index size expansion
+def test_assign_bad_index():
+    items = [1,2,3]
+    result = []
+    pm.eval("(result, arr) => {result[0] = 4}")(result, items) 
+    assert result[0] == 4
+
+def test_assign_bad_index_with_existing_next():
+    items = [1,2,3]
+    result = [8]
+    pm.eval("(result, arr) => {result[1] = 4}")(result, items) 
+    assert result == [8,4]    
+
+def test_assign_bad_index_with_gap():
+    items = [1,2,3]
+    result = []
+    pm.eval("(result, arr) => {result[0] = 4; result[5] = 6}")(result, items) 
+    assert result == [4, None, None, None, None, 6]
+
+def test_array_subclass_behaves_as_array():
+     my_JS_function = pm.eval("""
+                      () => {
+                        class MyClass extends Array {
+                          constructor(...args)
+                          {
+                            super(...args);
+                            return this;
+                          }
+                        }
+                        return new MyClass(1,2);
+                      }
+                      """)
+     
+     a = my_JS_function()
+     assert a == [1,2]
+     result = []
+     for i in a:
+        result.append(i)
+     assert result == [1,2]
+     assert a is not result
