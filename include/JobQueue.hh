@@ -24,7 +24,7 @@
 class JobQueue : public JS::JobQueue {
 
 public:
-explicit JobQueue(JSContext *cx) : finalizationRegistryCallbacks(cx) {}
+explicit JobQueue(JSContext *cx);
 ~JobQueue() = default;
 
 /**
@@ -97,7 +97,7 @@ bool runFinalizationRegistryCallbacks(JSContext *cx);
 private:
 
 using FunctionVector = JS::GCVector<JSFunction *, 0, js::SystemAllocPolicy>;
-JS::PersistentRooted<FunctionVector> finalizationRegistryCallbacks;
+JS::PersistentRooted<FunctionVector> *finalizationRegistryCallbacks;
 
 /**
  * @brief Capture this JobQueue's current job queue as a SavedJobQueue and return it,
