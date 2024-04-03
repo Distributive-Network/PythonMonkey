@@ -4,6 +4,8 @@
  *
  * @author   Tom Tang <xmader@distributive.network>
  * @date     August 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 const { EventTarget, Event } = require('event-target');

@@ -2,10 +2,9 @@
  * @file PyObjectProxyHandler.cc
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief
- * @version 0.1
  * @date 2024-01-30
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -172,11 +171,11 @@ bool PyObjectProxyHandler::getOwnPropertyDescriptor(
 bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
-  JS::RootedValue *rootedV = new JS::RootedValue(cx, v);
+  JS::RootedValue rootedV(cx, v);
   PyObject *attrName = idToKey(cx, id);
-  JS::RootedObject *global = new JS::RootedObject(cx, JS::GetNonCCWObjectGlobal(proxy));
+
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (PyObject_SetAttr(self, attrName, pyTypeFactory(cx, global, rootedV)->getPyObject())) {
+  if (PyObject_SetAttr(self, attrName, pyTypeFactory(cx, rootedV)->getPyObject())) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();

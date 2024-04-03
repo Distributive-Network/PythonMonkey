@@ -1,5 +1,14 @@
-#include "include/StrType.hh"
+/**
+ * @file StrType.cc
+ * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @brief Struct for representing python strings
+ * @date 2022-08-08
+ *
+ * @copyright Copyright (c) 2022 Distributive Corp.
+ *
+ */
 
+#include "include/StrType.hh"
 #include "include/PyType.hh"
 #include "include/JSStringProxy.hh"
 

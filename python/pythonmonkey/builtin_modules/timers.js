@@ -2,6 +2,8 @@
  * @file     timers.js
  * @author   Tom Tang <xmader@distributive.network>
  * @date     May 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 const internalBinding = require('internal-binding');
 

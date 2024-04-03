@@ -3,6 +3,8 @@ import pythonmonkey as pm
 import random
 from datetime import datetime, timedelta, timezone
 import math
+from io import StringIO
+import sys
 
 def test_passes():
     assert True
@@ -131,7 +133,7 @@ def test_eval_exceptions_nested_py_js_py():
     }''')
     assert str(b(c)).__contains__("Caught in JS Error: Python Exception: this is an exception")
     assert str(b(c)).__contains__("test_pythonmonkey_eval.py")
-    assert str(b(c)).__contains__("line 124")
+    assert str(b(c)).__contains__("line 126")
     assert str(b(c)).__contains__("in c")
 
 def test_eval_exceptions_nested_js_py_js():
@@ -288,11 +290,7 @@ def test_eval_functions_pyfunctions_strs():
         for j in range(length2):
             codepoint = random.randint(0x0000, 0xFFFF)
             string2 += chr(codepoint)
-        assert caller(concatenate, string1, string2) == string1 + string2
-
-def test_globalThis():
-    obj = pm.eval('globalThis')
-    assert str(obj).__contains__("{'python': {'pythonMonkey':")
+        assert caller(concatenate, string1, string2) == string1 + string2  
 
 def test_py_evaloptions_string_type():
     evalOpts = {'filename': 'GoodFile'}     
@@ -335,3 +333,20 @@ def test_js_evaloptions_boolean_type():
         pm.eval("{a = 9}", evalOpts) 
     except Exception as e:    
         assert str(e).__contains__("ReferenceError: assignment to undeclared variable a")
+
+def test_globalThis():
+    obj = pm.eval('globalThis')
+    assert str(obj).__contains__("{'python': {'pythonMonkey':")
+
+def test_console_globalThis():
+    temp_out = StringIO()
+    sys.stdout = temp_out
+    pm.eval('console.log(globalThis)')
+    assert temp_out.getvalue().__contains__("{ python: \n   { pythonMonkey: \n")    
+
+def test_console_array():
+    temp_out = StringIO()
+    sys.stdout = temp_out
+    items = [1, 2, 3]
+    pm.eval('console.log')(items)
+    assert temp_out.getvalue() == "[ \x1b[33m1\x1b[39m, \x1b[33m2\x1b[39m, \x1b[33m3\x1b[39m ]\n"    

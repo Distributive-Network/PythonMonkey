@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2023-11-22
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -24,7 +24,7 @@
  */
 typedef struct {
   PyListObject list;
-  JS::RootedObject jsArray;
+  JS::PersistentRootedObject *jsArray;
 } JSArrayProxy;
 
 /**
@@ -39,26 +39,6 @@ public:
    * @param self - The JSArrayProxy to be free'd
    */
   static void JSArrayProxy_dealloc(JSArrayProxy *self);
-
-  /**
-   * @brief New method (.tp_new), creates a new instance of the JSArrayProxy type, exposed as the __new()__ method in python
-   *
-   * @param type - The type of object to be created, will always be JSArrayProxyType or a derived type
-   * @param args - arguments to the __new()__ method, not used
-   * @param kwds - keyword arguments to the __new()__ method, not used
-   * @return PyObject* - A new instance of JSArrayProxy
-   */
-  static PyObject *JSArrayProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
-
-  /**
-   * @brief Initialization method (.tp_init), initializes a newly created instance of JSArrayProxy. exposed as the __init()__ method in python
-   *
-   * @param self - The JSArrayProxy to be initialized
-   * @param args - arguments to the __init()__ method, expected to be a dict
-   * @param kwds - keyword arguments to the __init()__ method, not used
-   * @return int - -1 on exception, return any other value otherwise
-   */
-  static int JSArrayProxy_init(JSArrayProxy *self, PyObject *args, PyObject *kwds);
 
   /**
    * @brief Length method (.mp_length and .sq_length), returns the number of keys in the JSObject, used by the python len() method
@@ -78,13 +58,13 @@ public:
   static PyObject *JSArrayProxy_get(JSArrayProxy *self, PyObject *key);
 
 
-/**
- * @brief Getter method (.mp_subscript), returns a value from the JSArrayProxy given a key which can be a slice, used by several built-in python methods as well as the [] and operator
- *
- * @param self - The JSArrayProxy
- * @param key - The key for the value in the JSArrayProxy
- * @return PyObject* NULL on exception, the corresponding value otherwise
- */
+  /**
+   * @brief Getter method (.mp_subscript), returns a value from the JSArrayProxy given a key which can be a slice, used by several built-in python methods as well as the [] and operator
+   *
+   * @param self - The JSArrayProxy
+   * @param key - The key for the value in the JSArrayProxy
+   * @return PyObject* NULL on exception, the corresponding value otherwise
+   */
   static PyObject *JSArrayProxy_get_subscript(JSArrayProxy *self, PyObject *key);
 
   /**
@@ -182,25 +162,7 @@ public:
    * @param self - The JSArrayProxy
    * @return None
    */
-  static PyObject *JSArrayProxy_clear(JSArrayProxy *self);
-
-  /**
-   * @brief .tp_clear method
-   *
-   * @param self - The JSArrayProxy
-   * @return 0 on success
-   */
-  static int JSArrayProxy_clear_slot(JSArrayProxy *self);
-
-  /**
-   * @brief .tp_traverse method
-   *
-   * @param self - The JSArrayProxy
-   * @param visitproc - The function to be applied on each element of the list
-   * @param arg - The argument to the visit function
-   * @return 0 on success
-   */
-  static int JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg);
+  static PyObject *JSArrayProxy_clear_method(JSArrayProxy *self);
 
   /**
    * @brief copy method
@@ -413,7 +375,7 @@ PyDoc_STRVAR(list___reversed____doc__,
  */
 static PyMethodDef JSArrayProxy_methods[] = {
   {"__reversed__", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_iter_reverse, METH_NOARGS, list___reversed____doc__},
-  {"clear", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_clear, METH_NOARGS, py_list_clear__doc__},
+  {"clear", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_method, METH_NOARGS, py_list_clear__doc__},
   {"copy", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_copy, METH_NOARGS, list_copy__doc__},
   {"append", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_append, METH_O, list_append__doc__},
   {"insert", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_insert, METH_FASTCALL, list_insert__doc__},

@@ -2,10 +2,9 @@
  * @file JSFunctionProxy.cc
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief JSFunctionProxy is a custom C-implemented python type. It acts as a proxy for JSFunctions from Spidermonkey, and behaves like a function would.
- * @version 0.1
  * @date 2023-09-28
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -50,8 +49,8 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
   }
 
   JS::HandleValueArray jsArgs(jsArgsVector);
-  JS::Rooted<JS::Value> *jsReturnVal = new JS::Rooted<JS::Value>(cx);
-  if (!JS_CallFunctionValue(cx, thisObj, jsFunc, jsArgs, jsReturnVal)) {
+  JS::RootedValue jsReturnVal(cx);
+  if (!JS_CallFunctionValue(cx, thisObj, jsFunc, jsArgs, &jsReturnVal)) {
     setSpiderMonkeyException(cx);
     return NULL;
   }
@@ -60,5 +59,5 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
     return NULL;
   }
 
-  return pyTypeFactory(cx, &thisObj, jsReturnVal)->getPyObject();
+  return pyTypeFactory(cx, jsReturnVal)->getPyObject();
 }

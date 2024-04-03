@@ -4,13 +4,15 @@
  * @brief Struct for creating JS proxy objects
  * @date 2023-04-20
  *
- * Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
 
 #include "include/PyBaseProxyHandler.hh"
+
 #include <jsapi.h>
+
 #include <Python.h>
 
 

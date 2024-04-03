@@ -54,7 +54,13 @@ std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16
 
 struct PythonExternalString : public JSExternalStringCallbacks {
   void finalize(char16_t *chars) const override {
-    Py_DECREF(charToPyObjectMap[chars]);
+    // We cannot call Py_DECREF here when shutting down as the thread state is gone.
+    // Then, when shutting down, there is only on reference left, and we don't need
+    // to free the object since the entire process memory is being released.
+    PyObject *object = charToPyObjectMap[chars];
+    if (Py_REFCNT(object) > 1) {
+      Py_DECREF(object);
+    }
   }
   size_t sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const override {
     return 0;
@@ -147,7 +153,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
     uint16_t nargs = 0;
     if (PyFunction_Check(object)) {
-      // https://docs.python.org/3.11/reference/datamodel.html?highlight=co_argcount
       PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(object); // borrowed reference
       nargs = bytecode->co_argcount;
     }
@@ -189,7 +194,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObjectOrNull(typedArray);
   }
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
-    returnType.setObject(*((JSObjectProxy *)object)->jsObject);
+    returnType.setObject(**((JSObjectProxy *)object)->jsObject);
   }
   else if (PyObject_TypeCheck(object, &JSMethodProxyType)) {
     JS::RootedObject func(cx, *((JSMethodProxy *)object)->jsFunc);
@@ -220,7 +225,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setObject(**((JSFunctionProxy *)object)->jsFunc);
   }
   else if (PyObject_TypeCheck(object, &JSArrayProxyType)) {
-    returnType.setObject(*((JSArrayProxy *)object)->jsArray);
+    returnType.setObject(**((JSArrayProxy *)object)->jsArray);
   }
   else if (PyDict_Check(object) || PyList_Check(object)) {
     JS::RootedValue v(cx);
@@ -245,9 +250,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNull();
   }
   else if (PythonAwaitable_Check(object)) {
-    PromiseType *p = new PromiseType(object);
-    JSObject *promise = p->toJsPromise(cx); // may return null
-    returnType.setObjectOrNull(promise);
+    returnType.setObjectOrNull((new PromiseType(object))->toJsPromise(cx));
   }
   else {
     JS::RootedValue v(cx);
@@ -285,7 +288,7 @@ void setPyException(JSContext *cx) {
   }
 
   PyObject *type, *value, *traceback;
-  PyErr_Fetch(&type, &value, &traceback); // also clears the error indicator
+  PyErr_Fetch(&type, &value, &traceback);
 
   JSObject *jsException = ExceptionType::toJsError(cx, value, traceback);
 
@@ -306,9 +309,6 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
   PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
 
-  JS::RootedObject *thisv = new JS::RootedObject(cx);
-  JS_ValueToObject(cx, callargs.thisv(), thisv);
-
   unsigned int callArgsLength = callargs.length();
 
   if (!callArgsLength) {
@@ -328,8 +328,8 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   // populate python args tuple
   PyObject *pyArgs = PyTuple_New(callArgsLength);
   for (size_t i = 0; i < callArgsLength; i++) {
-    JS::RootedValue *jsArg = new JS::RootedValue(cx, callargs[i]);
-    PyType *pyArg = pyTypeFactory(cx, thisv, jsArg);
+    JS::RootedValue jsArg(cx, callargs[i]);
+    PyType *pyArg = pyTypeFactory(cx, jsArg);
     if (!pyArg) return false; // error occurred
     PyObject *pyArgObj = pyArg->getPyObject();
     if (!pyArgObj) return false; // error occurred

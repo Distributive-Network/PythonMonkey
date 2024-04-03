@@ -4,7 +4,7 @@
  * @brief Structs for creating JS proxy objects. Used by DictType for object coercion
  * @date 2023-04-20
  *
- * Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -49,7 +49,7 @@ public:
   /**
    * @brief [[HasProperty]]
    * @param cx - pointer to JSContext
-   * @param proxy - The proxy object who's propery we wish to check
+   * @param proxy - The proxy object who's property we wish to check
    * @param id - key value of the property to check
    * @param bp - out-paramter: true if object has property, false if not
    * @return true - call succeeded

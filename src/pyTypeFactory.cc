@@ -1,11 +1,10 @@
 /**
  * @file pyTypeFactory.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Function for wrapping arbitrary PyObjects into the appropriate PyType class, and coercing JS types to python types
- * @version 0.1
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023
+ * @copyright 2023-2024 Distributive Corp.
  *
  */
 
@@ -40,59 +39,32 @@
 
 #include <Python.h>
 
-PyType *pyTypeFactory(PyObject *object) {
-  PyType *pyType;
 
-  if (PyLong_Check(object)) {
-    pyType = new IntType(object);
-  }
-  else if (PyUnicode_Check(object)) {
-    pyType = new StrType(object);
-  }
-  else if (PyFunction_Check(object)) {
-    pyType = new FuncType(object);
-  }
-  else if (PyDict_Check(object)) {
-    pyType = new DictType(object);
-  }
-  else if (PyList_Check(object)) {
-    pyType = new ListType(object);
-  }
-  else if (PyTuple_Check(object)) {
-    pyType = new TupleType(object);
-  }
-  else {
-    return nullptr;
-  }
-
-  return pyType;
-}
-
-PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
-  if (rval->isUndefined()) {
+PyType *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
+  if (rval.isUndefined()) {
     return new NoneType();
   }
-  else if (rval->isNull()) {
+  else if (rval.isNull()) {
     return new NullType();
   }
-  else if (rval->isBoolean()) {
-    return new BoolType(rval->toBoolean());
+  else if (rval.isBoolean()) {
+    return new BoolType(rval.toBoolean());
   }
-  else if (rval->isNumber()) {
-    return new FloatType(rval->toNumber());
+  else if (rval.isNumber()) {
+    return new FloatType(rval.toNumber());
   }
-  else if (rval->isString()) {
-    return new StrType(cx, rval->toString());
+  else if (rval.isString()) {
+    return new StrType(cx, rval.toString());
   }
-  else if (rval->isSymbol()) {
+  else if (rval.isSymbol()) {
     printf("symbol type is not handled by PythonMonkey yet");
   }
-  else if (rval->isBigInt()) {
-    return new IntType(cx, rval->toBigInt());
+  else if (rval.isBigInt()) {
+    return new IntType(cx, rval.toBigInt());
   }
-  else if (rval->isObject()) {
+  else if (rval.isObject()) {
     JS::Rooted<JSObject *> obj(cx);
-    JS_ValueToObject(cx, *rval, &obj);
+    JS_ValueToObject(cx, rval, &obj);
     if (JS::GetClass(obj)->isProxyObject()) {
       if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family) { // this is one of our proxies for python dicts
         return new DictType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
@@ -117,7 +89,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
     case js::ESClass::BigInt:
     case js::ESClass::String:
       js::Unbox(cx, obj, &unboxed);
-      return pyTypeFactory(cx, thisObj, &unboxed);
+      return pyTypeFactory(cx, unboxed);
     case js::ESClass::Date:
       return new DateType(cx, obj);
     case js::ESClass::Promise:
@@ -133,7 +105,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
           pyFunc = (PyObject *)(pyFuncVal.toPrivate());
           f = new FuncType(pyFunc);
         } else {
-          f = new FuncType(cx, *rval);
+          f = new FuncType(cx, rval);
         }
         return f;
       }
@@ -145,26 +117,15 @@ PyType *pyTypeFactory(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted
         return new BufferType(cx, obj);
       }
     }
-    return new DictType(cx, *rval);
+    return new DictType(cx, rval);
   }
-  else if (rval->isMagic()) {
+  else if (rval.isMagic()) {
     printf("magic type is not handled by PythonMonkey yet\n");
   }
 
   std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");
-  JS::RootedString str(cx, JS::ToString(cx, *rval));
+  JS::RootedString str(cx, JS::ToString(cx, rval));
   errorString += JS_EncodeStringToUTF8(cx, str).get();
   PyErr_SetString(PyExc_TypeError, errorString.c_str());
   return NULL;
-}
-
-PyType *pyTypeFactorySafe(JSContext *cx, JS::Rooted<JSObject *> *thisObj, JS::Rooted<JS::Value> *rval) {
-  PyType *v = pyTypeFactory(cx, thisObj, rval);
-  if (PyErr_Occurred()) {
-    // Clear Python error
-    PyErr_Clear();
-    // Return `pythonmonkey.null` on error
-    return new NullType();
-  }
-  return v;
 }

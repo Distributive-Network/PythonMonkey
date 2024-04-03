@@ -2,10 +2,9 @@
  * @file JSMethodProxy.cc
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief JSMethodProxy is a custom C-implemented python type. It acts as a proxy for JSFunctions from Spidermonkey, and behaves like a method would, treating `self` as `this`.
- * @version 0.1
  * @date 2023-11-14
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -61,8 +60,8 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
   }
 
   JS::HandleValueArray jsArgs(jsArgsVector);
-  JS::Rooted<JS::Value> *jsReturnVal = new JS::Rooted<JS::Value>(cx);
-  if (!JS_CallFunctionValue(cx, selfObject, jsFunc, jsArgs, jsReturnVal)) {
+  JS::RootedValue jsReturnVal(cx);
+  if (!JS_CallFunctionValue(cx, selfObject, jsFunc, jsArgs, &jsReturnVal)) {
     setSpiderMonkeyException(cx);
     return NULL;
   }
@@ -71,6 +70,5 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
     return NULL;
   }
 
-  JS::RootedObject globalObj(cx, JS::CurrentGlobalOrNull(cx));
-  return pyTypeFactory(cx, &globalObj, jsReturnVal)->getPyObject();
+  return pyTypeFactory(cx, jsReturnVal)->getPyObject();
 }

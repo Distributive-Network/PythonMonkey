@@ -5,6 +5,8 @@
  *
  * @author   Tom Tang <xmader@distributive.network>
  * @date     June 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 const internalBinding = require("internal-binding")
@@ -84,7 +86,6 @@ function objectToString(o) {
 }
 
 // https://github.com/nodejs/node/blob/v8.17.0/lib/internal/util.js#L189-L202
-// MIT License
 function getConstructorOf(obj) {
   while (obj) {
     var descriptor = Object.getOwnPropertyDescriptor(obj, 'constructor');
@@ -100,10 +101,8 @@ function getConstructorOf(obj) {
   return null;
 }
 
-/*!
- * Modified from https://github.com/nodejs/node/blob/v8.17.0/lib/util.js#L59-L852
- * Node.js
- * MIT License, Copyright Joyent, Inc. and other Node contributors.
+/*! Start verbatim Node.js
+ *  https://github.com/nodejs/node/blob/v8.17.0/lib/util.js#L59-L852
  */
 const inspectDefaultOptions = Object.seal({
   showHidden: false,
@@ -897,7 +896,7 @@ function reduceToSingleString(ctx, output, base, braces, addLn) {
 }
 
 /*!
- * End of Node.js code
+ * End of verbatim Node.js excerpt
  */
 
 module.exports = exports = {

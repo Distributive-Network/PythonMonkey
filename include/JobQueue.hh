@@ -1,11 +1,10 @@
 /**
  * @file JobQueue.hh
  * @author Tom Tang (xmader@distributive.network)
- * @brief Implement the ECMAScript Job Queue
- * @version 0.1
+ * @brief Implements the ECMAScript Job Queue
  * @date 2023-04-03
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -23,12 +22,17 @@
  * @see https://hg.mozilla.org/releases/mozilla-esr102/file/5741ffa/js/public/Promise.h#l22
  */
 class JobQueue : public JS::JobQueue {
-//
-// JS::JobQueue methods.
-//
+
 public:
 explicit JobQueue(JSContext *cx);
 ~JobQueue() = default;
+
+/**
+ * @brief Initialize PythonMonkey's event-loop job queue
+ * @param cx - javascript context pointer
+ * @return success
+ */
+bool init(JSContext *cx);
 
 /**
  * @brief Ask the embedding for the incumbent global.
@@ -91,6 +95,7 @@ void queueFinalizationRegistryCallback(JSFunction *callback);
 bool runFinalizationRegistryCallbacks(JSContext *cx);
 
 private:
+
 using FunctionVector = JS::GCVector<JSFunction *, 0, js::SystemAllocPolicy>;
 JS::PersistentRooted<FunctionVector> *finalizationRegistryCallbacks;
 
@@ -105,18 +110,6 @@ JS::PersistentRooted<FunctionVector> *finalizationRegistryCallbacks;
  */
 js::UniquePtr<JS::JobQueue::SavedJobQueue> saveJobQueue(JSContext *) override;
 
-//
-// Custom methods
-//
-public:
-/**
- * @brief Initialize PythonMonkey's event-loop job queue
- * @param cx - javascript context pointer
- * @return success
- */
-bool init(JSContext *cx);
-
-private:
 /**
  * @brief The callback for dispatching an off-thread promise to the event loop
  *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l580
@@ -126,7 +119,8 @@ private:
  * @return not shutting down
  */
 static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
-};
+
+}; // class
 
 /**
  * @brief Send job to the Python event-loop on main thread

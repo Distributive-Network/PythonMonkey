@@ -55,7 +55,12 @@ def test_setdefault_no_params():
         assert (False)
     except Exception as e:    
         assert str(type(e)) == "<class 'TypeError'>"
-        assert str(e) == "setdefault expected at least 1 argument, got 0"      
+        assert str(e) == "setdefault expected at least 1 argument, got 0"    
+
+def test_setdefault_with_shadowing():
+    jsObj = pm.eval("({get: 'value'})")
+    a = jsObj.setdefault("get", "val")
+    assert a == 'value'
 
 #pop
 def test_pop_found():
@@ -176,7 +181,6 @@ def test_keys_iter():
         result.append(i)
     assert result == ['a', 'b']
 
-# TODO causes crash
 def test_keys_iter_reverse():
     obj = pm.eval("({ a: 123, b: 'test' })")
     result = []
@@ -445,3 +449,14 @@ def test_items_mapping():
     items = dishes.items()
     assert str(items.mapping) == "{'eggs': 2.0, 'sausage': 1.0, 'bacon': 1.0, 'spam': 500.0}"
     assert items.mapping['spam'] == 500
+
+#get method
+def test_get_method():     
+    dishes = pm.eval("({'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500})")
+    assert dishes.get('eggs') == 2
+
+#get method shadowing
+def test_method_shadowing():
+    jsObj = pm.eval("({get: 'value'})")
+    assert repr(jsObj.get).__contains__("<built-in method get of dict object at")
+    assert jsObj['get'] == 'value'

@@ -2,10 +2,9 @@
  * @file setSpiderMonkeyException.cc
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief Call this function whenever a JS_* function call fails in order to set an appropriate python exception (remember to also return NULL)
- * @version 0.1
  * @date 2023-02-28
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -19,7 +18,7 @@
 #include <codecvt>
 #include <locale>
 
-PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionStack) {
+PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionStack, bool printStack) {
   JS::ErrorReportBuilder reportBuilder(cx);
   if (!reportBuilder.init(cx, exceptionStack, JS::ErrorReportBuilder::WithSideEffects /* may call the `toString` method if an object is thrown */)) {
     return PyUnicode_FromString("Spidermonkey set an exception, but could not initialize the error report.");
@@ -42,7 +41,7 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
     std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
     std::string linebuf; // the offending JS line of code (can be empty)
 
-    outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ":\n";
+    outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ", column " << errorReport->column << ":\n";
     if (errorReport->linebuf()) {
       std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
       std::u16string u16linebuf(errorReport->linebuf());
@@ -57,11 +56,13 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
   // print out the SpiderMonkey error message
   outStrStream << reportBuilder.toStringResult().c_str() << "\n";
 
-  JS::HandleObject stackObj = exceptionStack.stack();
-  if (stackObj) { // stack can be null
-    JS::RootedString stackStr(cx);
-    BuildStackString(cx, nullptr, stackObj, &stackStr, /* indent */ 2, js::StackFormat::SpiderMonkey);
-    outStrStream << "Stack Trace: \n" << StrType(cx, stackStr).getValue();
+  if (printStack) {
+    JS::RootedObject stackObj(cx, exceptionStack.stack());
+    if (stackObj.get()) {
+      JS::RootedString stackStr(cx);
+      BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
+      outStrStream << "Stack Trace:\n" << StrType(cx, stackStr).getValue();
+    }
   }
 
   return PyUnicode_FromString(outStrStream.str().c_str());
@@ -80,11 +81,27 @@ void setSpiderMonkeyException(JSContext *cx) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey set an exception, but was unable to retrieve it.");
     return;
   }
+
+  // check if it is a Python Exception and already has a stack trace
+  bool printStack = true;
+
+  JS::RootedValue exn(cx);
+  if (JS_GetPendingException(cx, &exn)) {
+    if (exn.isObject()) {
+      JS::RootedObject exnObj(cx, &exn.toObject());
+      JS::RootedValue tmp(cx);
+      if (JS_GetProperty(cx, exnObj, "message", &tmp) && tmp.isString()) {
+        JS::RootedString rootedStr(cx, tmp.toString());
+        printStack = strstr(JS_EncodeStringToUTF8(cx, rootedStr).get(), "JS Stack Trace") == NULL;
+      }
+    }
+  }
+
   JS_ClearPendingException(cx);
 
   // `PyErr_SetString` uses `PyErr_SetObject` with `PyUnicode_FromString` under the hood
   //    see https://github.com/python/cpython/blob/3.9/Python/errors.c#L234-L236
-  PyObject *errStr = getExceptionString(cx, exceptionStack);
+  PyObject *errStr = getExceptionString(cx, exceptionStack, printStack);
   PyErr_SetObject(SpiderMonkeyError, errStr);
   Py_XDECREF(errStr);
 }
