@@ -42,23 +42,29 @@ async def request(
     onNetworkError: Callable[[aiohttp.ClientError], None],
     /
 ):
+    debug = pm.bootstrap.require("debug");
+
     class BytesPayloadWithProgress(aiohttp.BytesPayload):
         _chunkMaxLength = 2**16 # aiohttp default
 
         async def write(self, writer) -> None:
+            debug('xhr:io')('begin chunked write')
             buf = io.BytesIO(self._value)
             chunk = buf.read(self._chunkMaxLength)
             while chunk:
+                debug('xhr:io')('  writing', len(chunk), 'bytes')
                 await writer.write(chunk)
                 processRequestBodyChunkLength(len(chunk))
                 chunk = buf.read(self._chunkMaxLength)
             processRequestEndOfBody()
+            debug('xhr:io')('finish chunked write')
 
     if isinstance(body, str):
         body = bytes(body, "utf-8")
 
     # set default headers
     headers.setdefault("user-agent", f"Python/{platform.python_version()} PythonMonkey/{pm.__version__}")
+    debug('xhr:headers')('after set default\n', headers)
 
     if timeoutMs > 0:
         timeoutOptions = aiohttp.ClientTimeout(total=timeoutMs/1000) # convert to seconds
@@ -66,12 +72,14 @@ async def request(
         timeoutOptions = aiohttp.ClientTimeout() # default timeout
 
     try:
+        debug('xhr:aiohttp')('creating request for', url)
         async with aiohttp.request(method=method,
                                 url=yarl.URL(url, encoded=True),
                                 headers=headers,
                                 data=BytesPayloadWithProgress(body) if body else None,
                                 timeout=timeoutOptions,
         ) as res:
+            debug('xhr:aiohttp')('got', res.content_type, 'result')
             def getResponseHeader(name: str):
                 return res.headers.get(name)
             def getAllResponseHeaders():
@@ -81,6 +89,7 @@ async def request(
                 headers.sort()
                 return "\r\n".join(headers)
             def abort():
+                debug('xhr:io')('abort')
                 res.close()
 
             # readyState HEADERS_RECEIVED
@@ -92,15 +101,12 @@ async def request(
                 'getResponseHeader': getResponseHeader,
                 'getAllResponseHeaders': getAllResponseHeaders,
                 'abort': abort,
-                
                 'contentLength': res.content_length or 0,
             }
             processResponse(responseData)
 
-            # readyState LOADING
             async for data in res.content.iter_any():
                 processBodyChunk(bytearray(data)) # PythonMonkey only accepts the mutable bytearray type
-            
             # readyState DONE
             processEndOfBody()
     except asyncio.TimeoutError as e:

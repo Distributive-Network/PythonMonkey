@@ -19,10 +19,25 @@
 #               implementation in Python that doesn't leak global symbols should be possible once
 #               some PythonMonkey bugs are fixed.
 #
+#               Module Context Summary
+#               - what CommonJS modules you can access depends on what require symbol you have
+#               - pm means the pythonmonkey Python module exports
+#               - pm.bootstrap.require is a special require that knows about modules which are not stored
+#                 on disk. This is important, because ctx-module needs some modules, and this is how we
+#                 solve the chicken<>egg problem.
+#               - There is a node_modules folder inside the pminit module that comes with pythonmonkey.
+#                 This folder is managed by npm by invoking `pminit npm`. These modules are intended as
+#                 global modules, analogously to require('process') in nodejs.
+#               - pm.require is a require that works as expected from python source code; i.e. relative
+#                 modules are resolved relative to the python source code.
+#               - pm.require has access to the pminit node_modules modules but not the bootstrap modules.
+#               - The builtin_modules directory is available anywhere the pminit node_modules directory
+#                 is, and has a higher precedence.
+#
 # @author       Wes Garland, wes@distributive.network
 # @date         May 2023
 #
-# @copyright Copyright (c) 2023 Distributive Corp.
+# @copyright Copyright (c) 2023-2024 Distributive Corp.
 
 import sys, os, io
 from typing import Union, Dict, Literal, List
@@ -55,8 +70,6 @@ globalThis = pm.eval("globalThis;", evalOpts)
 pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }", evalOpts);
 globalThis.pmEval = pm.eval
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
-#globalThis.python.pythonMonkey.version = pm.__version__
-#globalThis.python.pythonMonkey.module = pm
 globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit
 globalThis.python.pythonMonkey.nodeModules = node_modules
 globalThis.python.print  = print
@@ -86,7 +99,7 @@ globalThis.python.exit = pm.eval("""'use strict';
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
 # The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
 # innermost code in ctx-module, without forcing ourselves to expose this minimalist code to
-# userland-require.
+# userland-require
 bootstrap = pm.eval("""
 'use strict'; (function IIFE(python) {
 
@@ -103,7 +116,12 @@ bootstrap.require = function bootstrapRequire(mid)
   if (bootstrap.modules.hasOwnProperty(mid))
     return bootstrap.modules[mid];
 
-  throw new Error('module not found: ' + mid);
+  if (bootstrap.modules['ctx-module'].CtxModule)
+    return bootstrap.requireFromDisk(mid);
+
+  const error = new Error('module not found: ' + mid);
+  error = 'MODULE_NOT_FOUND';
+  throw error;
 }
 
 bootstrap.modules.vm.runInContext = function runInContext(code, _unused_contextifiedObject, options)
@@ -149,7 +167,21 @@ bootstrap.modules.debug = function debug(selector)
       if (re.test(selector))
       {
         return (function debugInner() {
-          python.print(`${colour}${selector}${noColour} ` + Array.from(arguments).join(' '))
+          var output;
+          if (!bootstrap.inspect)
+            output = Array.from(arguments).join(' ');
+          else
+            output = Array.from(arguments).map(x => {
+              if (typeof x === 'string' || x instanceof String)
+                return x;
+              return bootstrap.inspect(x);
+            }).join(' ');
+
+          output = output.split('\\n');
+          python.print(`${colour}${selector}${noColour} ` + output[0]);
+          const spaces = ''.padEnd(selector.length + 1, ' ');
+          for (let i=1; i < output.length; i++)
+            python.print(spaces + output[i]);
         });
       }
     }
@@ -178,9 +210,6 @@ bootstrap.modules.fs = {
 
 /* Modules which will be available to all requires */
 bootstrap.builtinModules = { debug: bootstrap.modules.debug };
-
-/* temp workaround for PythonMonkey bug */
-globalThis.bootstrap = bootstrap;
 
 return bootstrap;
 })(globalThis.python)""", evalOpts)
@@ -227,15 +256,12 @@ bootstrap.modules.fs.existsSync     = existsSync
 # wrapper prologue to make stack traces line up.
 with open(node_modules + "/ctx-module/ctx-module.js", "r") as ctxModuleSource:
     initCtxModule = pm.eval("""'use strict';
-(function moduleWrapper_forCtxModule(broken_require, broken_exports)
+(function moduleWrapper_forCtxModule(require, exports)
 {
-  const require = bootstrap.require;
-  const exports = bootstrap.modules['ctx-module'];
-""".replace("\n", " ") + "\n" + ctxModuleSource.read() + """
+""" + ctxModuleSource.read() + """
 })
 """, { 'filename': node_modules + "/ctx-module/ctx-module.js", 'lineno': 0 });
-#broken initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'].exports)
-initCtxModule();
+initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'])
 
 def load(filename: str) -> Dict:  
     """
@@ -263,26 +289,21 @@ def load(filename: str) -> Dict:
     return module.exports
 globalThis.python.load = load
 
-# API: pm.createRequire
-# We cache the return value of createRequire to always use the same require for the same filename
-@functools.lru_cache(maxsize=None) # unbounded function cache that won't remove any old values
-def _createRequireInner(*args):
-    return pm.eval("""'use strict';(
+createRequireInner = pm.eval("""'use strict';(
 /**
  * Factory function which returns a fresh 'require' function. The module cache will inherit from
- * globalTHis.require, assuming it has been defined.
+ * globalThis.require, assuming it has been defined.
  *
  * @param {string} filename      the filename of the module that would get this require
- * @param {object} bootstrap     the bootstrap context; python imports that are invisible to normal JS
+ * @param {object} bootstrap     the bootstrap context; python imports, modules, etc, that are invisible
+ *                               to normal JS
  * @param {string} extraPaths    colon-delimited list of paths to add to require.path
  * @param {boolean} isMain       true if the module is to be used as a program module
  *
  * @returns {function} require
  */
-function createRequire(filename, bootstrap_broken, extraPaths, isMain)
+function createRequireInner(filename, bootstrap, extraPaths, isMain)
 {
-  filename = filename.split('\\\\').join('/');
-  const bootstrap = globalThis.bootstrap; /** @bug PM-65 */
   const CtxModule = bootstrap.modules['ctx-module'].CtxModule;
   const moduleCache = globalThis.require?.cache || {};
 
@@ -291,13 +312,22 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.exports = python.load(filename);
   }
 
+  // TODO - find a better way to deal with Windows paths
+  if (filename)
+    filename = filename.split('\\\\').join('/');
   if (moduleCache[filename])
     return moduleCache[filename].require;
 
   const module = new CtxModule(globalThis, filename, moduleCache);
-  moduleCache[filename] = module;
-  for (let path of Array.from(python.paths))
-    module.paths.push(path + '/node_modules');
+  if (!filename)
+    module.paths = [];   /* fully virtual module - no module.path or module.paths */
+  else
+  {
+    moduleCache[filename] = module;
+    for (let path of Array.from(python.paths))
+      module.paths.push(path + '/node_modules');
+  }
+
   module.require.path.push(python.pythonMonkey.dir + '/builtin_modules');
   module.require.path.push(python.pythonMonkey.nodeModules);
 
@@ -322,8 +352,10 @@ function createRequire(filename, bootstrap_broken, extraPaths, isMain)
     module.require.path.splice(module.require.path.length, 0, ...(extraPaths.split(',')));
 
   return module.require;
-})""", evalOpts)(*args)
+})""", evalOpts)
 
+# API: pm.createRequire
+# We cache the return value of createRequire to always use the same require for the same filename
 def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False, isMain = False):
     """
     returns a require function that resolves modules relative to the filename argument. 
@@ -339,7 +371,10 @@ def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False
         extraPathsStr = ':'.join(extraPaths)
     else:
         extraPathsStr = ''
-    return _createRequireInner(fullFilename, 'broken', extraPathsStr, isMain)
+    return createRequireInner(fullFilename, bootstrap, extraPathsStr, isMain)
+
+bootstrap.requireFromDisk = createRequireInner(None, bootstrap, '', False)
+bootstrap.inspect = bootstrap.requireFromDisk('util').inspect
 
 # API: pm.runProgramModule
 def runProgramModule(filename, argv, extraPaths=[]):
@@ -357,13 +392,19 @@ def runProgramModule(filename, argv, extraPaths=[]):
     with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
         pm.eval(mainModuleSource.read(), {'filename': fullFilename})
 
+# The pythonmonkey require export. Every time it is used, the stack is inspected so that the filename
+# passed to createRequire is correct. This is necessary so that relative requires work. If the filename
+# found on the stack doesn't exist, we assume we're in the REPL or something and simply use the current
+# directory as the location of a virtual module for relative require purposes.
+#
+# todo: instead of cwd+__main_virtual__, use a full pathname which includes the directory that the
+#       running python program is in.
+#
 def require(moduleIdentifier: str):
-    # Retrieve the caller’s filename from the call stack
     filename = inspect.stack()[1].filename
-    # From the REPL, the filename is "<stdin>", which is not a valid path
     if not os.path.exists(filename):
-      filename = os.path.join(os.getcwd(), "__main__") # use the CWD instead
+      filename = os.path.join(os.getcwd(), "__main_virtual__")
     return createRequire(filename)(moduleIdentifier)
 
 # Restrict what symbols are exposed to the pythonmonkey module.
-__all__ = ["globalThis", "require", "createRequire", "runProgramModule"]
+__all__ = ["globalThis", "require", "createRequire", "runProgramModule", "bootstrap"]

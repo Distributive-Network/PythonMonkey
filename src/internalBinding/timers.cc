@@ -27,7 +27,6 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Convert to a Python function
   JS::RootedValue jobArg(cx, jobArgVal);
   PyObject *job = pyTypeFactory(cx, jobArg)->getPyObject();
-
   // Schedule job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return false;
