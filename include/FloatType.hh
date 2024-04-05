@@ -2,10 +2,9 @@
  * @file FloatType.hh
  * @author Caleb Aikens (caleb@distributive.network)
  * @brief Struct for representing python floats
- * @version 0.1
  * @date 2022-12-02
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022 Distributive Corp.
  *
  */
 

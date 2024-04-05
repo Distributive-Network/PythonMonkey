@@ -2,6 +2,8 @@
  * @file     global.d.ts
  * @author   Tom Tang <xmader@distributive.network>
  * @date     May 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 declare const python: {

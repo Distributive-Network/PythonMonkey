@@ -222,7 +222,7 @@ def test_promises():
             # FIXME (Tom Tang): We currently handle Promise exceptions by converting the object thrown to a Python Exception object through `pyTypeFactory`
             #               <objects of this type are not handled by PythonMonkey yet>
             # await pm.eval("Promise.resolve().then(()=>{ throw {a:1,toString(){return'anything'}} })")
-        with pytest.raises(pm.SpiderMonkeyError, match="on line 1:\nTypeError: undefined has no properties"): # not going through the conversion
+        with pytest.raises(pm.SpiderMonkeyError, match="on line 1, column 31:\nTypeError: undefined has no properties"): # not going through the conversion
             await pm.eval("Promise.resolve().then(()=>{ (undefined).prop })")
 
         # TODO (Tom Tang): Modify this testcase once we support ES2020-style dynamic import
@@ -232,13 +232,13 @@ def test_promises():
         # TODO (Tom Tang): properly test unhandled rejection
 
         # await scheduled jobs on the Python event-loop
-        js_sleep = pm.eval("(second) => new Promise((resolve) => setTimeout(resolve, second*1000))")
-        def py_sleep(second): # asyncio.sleep has issues on Python 3.8
+        js_sleep = pm.eval("(seconds) => new Promise((resolve) => setTimeout(resolve, seconds*1000))")
+        def py_sleep(seconds): # asyncio.sleep has issues on Python 3.8
             loop = asyncio.get_running_loop()
             future = loop.create_future()
-            loop.call_later(second, lambda:future.set_result(None))
+            loop.call_later(seconds, lambda:future.set_result(None))
             return future
-        both_sleep = pm.eval("(js_sleep, py_sleep) => async (second) => { await js_sleep(second); await py_sleep(second) }")(js_sleep, py_sleep)
+        both_sleep = pm.eval("(js_sleep, py_sleep) => async (seconds) => { await js_sleep(seconds); await py_sleep(seconds) }")(js_sleep, py_sleep)
         await asyncio.wait_for(both_sleep(0.1), timeout=0.3) # won't be precisely 0.2s 
         with pytest.raises(asyncio.exceptions.TimeoutError):
             await asyncio.wait_for(both_sleep(0.1), timeout=0.19)

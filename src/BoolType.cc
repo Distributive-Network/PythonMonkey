@@ -1,3 +1,13 @@
+/**
+ * @file BoolType.cc
+ * @author Caleb Aikens (caleb@distributive.network)
+ * @brief Struct for representing python bools
+ * @date 2022-12-02
+ *
+ * @copyright Copyright (c) 2022 Distributive Corp.
+ *
+ */
+
 #include "include/BoolType.hh"
 
 #include "include/PyType.hh"

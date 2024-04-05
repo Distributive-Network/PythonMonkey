@@ -4,23 +4,23 @@
  * @brief Structs for creating JS proxy objects. Used by DictType for object coercion
  * @date 2023-04-20
  *
- * Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_PyDictProxy_
 #define PythonMonkey_PyDictProxy_
 
-#include "PyBaseProxyHandler.hh"
+#include "include/PyObjectProxyHandler.hh"
 
 
 /**
  * @brief This struct is the ProxyHandler for JS Proxy Objects pythonmonkey creates to handle coercion from python dicts to JS Objects
  *
  */
-struct PyDictProxyHandler : public PyBaseProxyHandler {
+struct PyDictProxyHandler : public PyObjectProxyHandler {
 public:
-  PyDictProxyHandler(PyObject *pyObj) : PyBaseProxyHandler(pyObj, &family) {};
+  PyDictProxyHandler() : PyObjectProxyHandler(&family) {};
   static const char family;
 
   /**
@@ -40,7 +40,7 @@ public:
    * @param cx - pointer to JSContext
    * @param proxy - The proxy object who's property we wish to delete
    * @param id - The key we wish to delete
-   * @param result - @TODO (Caleb Aikens) read up on JS::ObjectOpResult
+   * @param result - whether the call succeeded or not
    * @return true - call succeeded
    * @return false - call failed and an exception has been raised
    */
@@ -49,7 +49,7 @@ public:
   /**
    * @brief [[HasProperty]]
    * @param cx - pointer to JSContext
-   * @param proxy - The proxy object who's propery we wish to check
+   * @param proxy - The proxy object who's property we wish to check
    * @param id - key value of the property to check
    * @param bp - out-paramter: true if object has property, false if not
    * @return true - call succeeded
@@ -64,8 +64,8 @@ public:
    * @param proxy The proxy object who's property we wish to set
    * @param id Key of the property we wish to set
    * @param v Value that we wish to set the property to
-   * @param receiver @TODO (Caleb Aikens) read ECMAScript docs about this
-   * @param result @TODO (Caleb Aikens) read ECMAScript docs about this
+   * @param receiver The `this` value to use when executing any code
+   * @param result whether or not the call succeeded
    * @return true call succeed
    * @return false call failed and an exception has been raised
    */
@@ -79,7 +79,6 @@ public:
    * @param proxy - The proxy object who's keys we output
    * @param props - out-parameter of object IDsoverride;
 
-     // @TODO (Caleb Aikens) The following are Spidermonkey-unique extensions, need to read into them more
      /**
    * @return true - call succeeded
    * @return false - call failed and an exception has been raised
@@ -87,9 +86,8 @@ public:
   bool enumerate(JSContext *cx, JS::HandleObject proxy,
     JS::MutableHandleIdVector props) const override;
 
-  // @TODO (Caleb Aikens) The following are Spidermonkey-unique extensions, need to read into them more
   /**
-   * @brief @TODO (Caleb Aikens) read up on what this trap does exactly
+   * @brief Returns true if `id` is in `proxy`, false otherwise
    *
    * @param cx pointer to JSContext
    * @param proxy The proxy object who's property we wish to check
@@ -100,28 +98,19 @@ public:
    */
   bool hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     bool *bp) const override;
-  /**
-   * @brief @TODO (Caleb Aikens) read up on what this trap does exactly
-   *
-   * @param cx - pointer to JSContext
-   * @param proxy - The proxy object who's keys we outputoverride;
 
-     // @TODO (Caleb Aikens) The following are Spidermonkey-unique extensions, need to read into them more
-     /**
-   * @param props - out-parameter of object IDs
-   * @return true - call succeeded
-   * @return false - call failed and an exception has been raised
+  /**
+   * @brief Returns vector of proxy's own keys
+   *
+   * @param cx - Pointer to the JSContext
+   * @param proxy - the proxy object
+   * @param props - out parameter, the vector of proxy's own keys
+   * @return true - the call succeeded
+   * @return false - the call failed and an exception has been raised
    */
   bool getOwnEnumerablePropertyKeys(
     JSContext *cx, JS::HandleObject proxy,
     JS::MutableHandleIdVector props) const override;
-  /**
-   * @brief Handles python object reference count when JS Proxy object is finalized
-   *
-   * @param gcx pointer to JS::GCContext
-   * @param proxy the proxy object being finalized
-   */
-  void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,

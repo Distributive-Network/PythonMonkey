@@ -3,6 +3,8 @@
  * @brief   TypeScript type declarations for base64.py
  * @author  Tom Tang <xmader@distributive.network>
  * @date    July 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 /**

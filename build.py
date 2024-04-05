@@ -2,7 +2,9 @@
 #              Main PythonMonkey build automation script. Run with `poetry build`.
 # @author      Hamada Gasmallah, hamada@distributive.network
 # @date        April 2023
+# @copyright Copyright (c) 2023 Distributive Corp.
 #
+
 import subprocess
 import os, sys
 import platform
@@ -12,7 +14,7 @@ TOP_DIR = os.path.abspath(os.path.dirname(__file__))
 BUILD_DIR = os.path.join(TOP_DIR, "build")
 
 # Get number of CPU cores
-CPUS = os.cpu_count() or 1
+CPUS = os.getenv('CPUS') or os.cpu_count() or 1
 
 def execute(cmd: str, cwd: Optional[str] = None):
     popen = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.STDOUT,
