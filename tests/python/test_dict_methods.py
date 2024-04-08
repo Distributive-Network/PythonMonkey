@@ -460,3 +460,21 @@ def test_method_shadowing():
     jsObj = pm.eval("({get: 'value'})")
     assert repr(jsObj.get).__contains__("<built-in method get of dict object at")
     assert jsObj['get'] == 'value'
+
+
+#next operator
+def test_next_operator():
+    myit = pm.eval('function* makeIt() { yield 1; yield 2; }; makeIt')()   
+    first = myit.next()
+    assert(first.value == 1)
+    assert(first.done == False)
+    second = next(myit)
+    assert(second.value == 2)
+    assert(second.done == False)
+    try:
+        third = next(myit)          
+        assert (False)
+    except StopIteration as e:    
+        assert (True)  
+    fourth = next(myit, 'default')
+    assert fourth == 'default'
