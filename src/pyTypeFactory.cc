@@ -75,6 +75,7 @@ PyType *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
       if (js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) { // this is one of our proxies for python objects
         return new PyType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
       }
+      // TODO PyIteratorProxyHandler
     }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);

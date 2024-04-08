@@ -309,6 +309,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
   key = PyUnicode_FromString("done");
   PyObject *doneValue = JSObjectProxy_get((JSObjectProxy *)ret, key);
   if (doneValue == Py_True) {
+    // NULL marks the end
     return NULL;
   }
   return ret;
