@@ -21,6 +21,8 @@
 #include "include/pyTypeFactory.hh"
 #include "include/PyBaseProxyHandler.hh"
 
+#include "include/JSFunctionProxy.hh"
+
 #include <jsapi.h>
 #include <jsfriendapi.h>
 
@@ -285,6 +287,31 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
   }
   PyObject_GC_Track(iterator);
   return (PyObject *)iterator;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy *self) {
+  PyObject *key = PyUnicode_FromString("next");
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    PyErr_SetString(PyExc_SystemError, "JSObjectProxy failed type conversion");
+    return NULL;
+  }
+
+  PyObject *nextFunction = getKey(self, key, id, false);
+  if (nextFunction == NULL) {
+    return NULL;
+  }
+
+  PyObject *ret = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(nextFunction, PyTuple_New(0), NULL);
+  Py_DECREF(nextFunction);
+
+  // check if end of iteration
+  key = PyUnicode_FromString("done");
+  PyObject *doneValue = JSObjectProxy_get((JSObjectProxy *)ret, key);
+  if (doneValue == Py_True) {
+    return NULL;
+  }
+  return ret;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {

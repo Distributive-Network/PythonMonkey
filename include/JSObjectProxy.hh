@@ -114,6 +114,14 @@ public:
   static PyObject *JSObjectProxy_iter(JSObjectProxy *self);
 
   /**
+   * @brief Implements next operator function
+   *
+   * @param self - The JSObjectProxy
+   * @return PyObject* - call result
+   */
+  static PyObject *JSObjectProxy_iter_next(JSObjectProxy *self);
+
+  /**
    * @brief Compute a string representation of the JSObjectProxy
    *
    * @param self - The JSObjectProxy
