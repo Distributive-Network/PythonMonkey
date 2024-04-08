@@ -298,21 +298,24 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
   }
 
   PyObject *nextFunction = getKey(self, key, id, false);
+  Py_DECREF(key);
   if (nextFunction == NULL) {
     return NULL;
   }
 
-  PyObject *ret = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(nextFunction, PyTuple_New(0), NULL);
+  PyObject *retVal = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(nextFunction, PyTuple_New(0), NULL);
   Py_DECREF(nextFunction);
 
   // check if end of iteration
   key = PyUnicode_FromString("done");
-  PyObject *doneValue = JSObjectProxy_get((JSObjectProxy *)ret, key);
+  PyObject *doneValue = JSObjectProxy_get((JSObjectProxy *)retVal, key);
+  Py_DECREF(key);
   if (doneValue == Py_True) {
     // NULL marks the end
     return NULL;
   }
-  return ret;
+
+  return retVal;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
