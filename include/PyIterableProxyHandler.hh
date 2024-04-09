@@ -16,7 +16,7 @@
 
 
 /**
- * @brief This struct is the ProxyHandler for JS Proxy Iterable pythonmonkey creates to handle coercion from python iterators to JS Objects
+ * @brief This struct is the ProxyHandler for JS Proxy Iterable pythonmonkey creates to handle coercion from python iterables to JS Objects
  *
  */
 struct PyIterableProxyHandler : public PyObjectProxyHandler {
@@ -32,7 +32,7 @@ public:
    * @param vp - unused
    * @return true - this function returns true for success and false for failure
    */
-  static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp);
+  static bool iterable_next(JSContext *cx, unsigned argc, JS::Value *vp);
 
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
@@ -40,10 +40,10 @@ public:
   ) const override;
 
   /**
-   * @brief An array of method definitions for Iterator prototype methods
+   * @brief An array of method definitions for Iterable prototype methods
    *
    */
-  static JSMethodDef iterator_methods[];
+  static JSMethodDef iterable_methods[];
 };
 
 #endif
