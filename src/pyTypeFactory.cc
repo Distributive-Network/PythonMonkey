@@ -26,6 +26,7 @@
 #include "include/PyDictProxyHandler.hh"
 #include "include/PyListProxyHandler.hh"
 #include "include/PyObjectProxyHandler.hh"
+#include "include/PyIterableProxyHandler.hh"
 #include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
@@ -69,13 +70,15 @@ PyType *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
       if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family) { // this is one of our proxies for python dicts
         return new DictType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
       }
-      if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
+      else if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
         return new ListType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
       }
-      if (js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) { // this is one of our proxies for python objects
+      else if (js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) { // this is one of our proxies for python objects
         return new PyType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
       }
-      // TODO PyIteratorProxyHandler
+      else if (js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family) { // this is one of our proxies for python objects
+        return new PyType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
+      }
     }
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
