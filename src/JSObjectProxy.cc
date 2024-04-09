@@ -312,7 +312,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
   PyObject *doneValue = JSObjectProxy_get((JSObjectProxy *)retVal, key);
   Py_DECREF(key);
   if (doneValue == Py_True) {
-
     PyErr_SetNone(PyExc_StopIteration);
     return NULL;
   }
