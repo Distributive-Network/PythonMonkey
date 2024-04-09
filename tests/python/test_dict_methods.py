@@ -465,12 +465,10 @@ def test_method_shadowing():
 #next operator
 def test_next_operator():
     myit = pm.eval('function* makeIt() { yield 1; yield 2; }; makeIt')()   
-    first = myit.next()
-    assert(first.value == 1)
-    assert(first.done == False)
+    first = next(myit)
+    assert(first == 1.0)
     second = next(myit)
-    assert(second.value == 2)
-    assert(second.done == False)
+    assert(second == 2.0)
     try:
         third = next(myit)          
         assert (False)
