@@ -21,7 +21,7 @@
 
 const char PyIterableProxyHandler::family = 0;
 
-bool PyIterableProxyHandler::iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
+bool PyIterableProxyHandler::iterable_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JS::RootedObject thisObj(cx);
   if (!args.computeThis(cx, &thisObj)) return false;
@@ -61,8 +61,8 @@ bool PyIterableProxyHandler::iterator_next(JSContext *cx, unsigned argc, JS::Val
   return true;
 }
 
-JSMethodDef PyIterableProxyHandler::iterator_methods[] = {
-  {"next", PyIterableProxyHandler::iterator_next, 0},
+JSMethodDef PyIterableProxyHandler::iterable_methods[] = {
+  {"next", PyIterableProxyHandler::iterable_next, 0},
   {NULL, NULL, 0}
 };
 
@@ -73,12 +73,12 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   if (id.isString()) {
     for (size_t index = 0;; index++) {
       bool isThatFunction;
-      const char *methodName = iterator_methods[index].name;
+      const char *methodName = iterable_methods[index].name;
       if (methodName == NULL) {
         break;
       }
       else if (JS_StringEqualsAscii(cx, id.toString(), methodName, &isThatFunction) && isThatFunction) {
-        JSFunction *newFunction = JS_NewFunction(cx, iterator_methods[index].call, iterator_methods[index].nargs, 0, NULL);
+        JSFunction *newFunction = JS_NewFunction(cx, iterable_methods[index].call, iterable_methods[index].nargs, 0, NULL);
         if (!newFunction) return false;
         JS::RootedObject funObj(cx, JS_GetFunctionObject(newFunction));
         desc.set(mozilla::Some(
