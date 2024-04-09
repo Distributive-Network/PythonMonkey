@@ -1,5 +1,5 @@
 /**
- * @file PyObjectProxyHandler.cc
+ * @file PyIterableProxyHandler.cc
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief Struct for creating JS proxy iterators.
  * @date 2024-04-08
@@ -9,7 +9,7 @@
  */
 
 
-#include "include/PyIteratorProxyHandler.hh"
+#include "include/PyIterableProxyHandler.hh"
 
 #include "include/jsTypeFactory.hh"
 
@@ -19,9 +19,9 @@
 
 
 
-const char PyIteratorProxyHandler::family = 0;
+const char PyIterableProxyHandler::family = 0;
 
-bool PyIteratorProxyHandler::iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
+bool PyIterableProxyHandler::iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JS::RootedObject thisObj(cx);
   if (!args.computeThis(cx, &thisObj)) return false;
@@ -61,12 +61,12 @@ bool PyIteratorProxyHandler::iterator_next(JSContext *cx, unsigned argc, JS::Val
   return true;
 }
 
-JSMethodDef PyIteratorProxyHandler::iterator_methods[] = {
-  {"next", PyIteratorProxyHandler::iterator_next, 0},
+JSMethodDef PyIterableProxyHandler::iterator_methods[] = {
+  {"next", PyIterableProxyHandler::iterator_next, 0},
   {NULL, NULL, 0}
 };
 
-bool PyIteratorProxyHandler::getOwnPropertyDescriptor(
+bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
 ) const {

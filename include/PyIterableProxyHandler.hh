@@ -1,27 +1,27 @@
 /**
- * @file PyObjectProxyHandler.hh
+ * @file PyIterableProxyHandler.hh
  * @author Philippe Laporte (philippe@distributive.network)
- * @brief Struct for creating JS proxy iterators.
+ * @brief Struct for creating JS proxy iterables.
  * @date 2024-04-08
  *
  * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 
-#ifndef PythonMonkey_PyIteratorProxy_
-#define PythonMonkey_PyIteratorProxy_
+#ifndef PythonMonkey_PyIterableProxy_
+#define PythonMonkey_PyIterableProxy_
 
 
 #include "include/PyObjectProxyHandler.hh"
 
 
 /**
- * @brief This struct is the ProxyHandler for JS Proxy Iterator pythonmonkey creates to handle coercion from python iterators to JS Objects
+ * @brief This struct is the ProxyHandler for JS Proxy Iterable pythonmonkey creates to handle coercion from python iterators to JS Objects
  *
  */
-struct PyIteratorProxyHandler : public PyObjectProxyHandler {
+struct PyIterableProxyHandler : public PyObjectProxyHandler {
 public:
-  PyIteratorProxyHandler() : PyObjectProxyHandler(&family) {};
+  PyIterableProxyHandler() : PyObjectProxyHandler(&family) {};
   static const char family;
 
   /**

@@ -21,7 +21,7 @@
 #include "include/JSStringProxy.hh"
 #include "include/PyListProxyHandler.hh"
 #include "include/PyObjectProxyHandler.hh"
-#include "include/PyIteratorProxyHandler.hh"
+#include "include/PyIterableProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/StrType.hh"
 #include "include/IntType.hh"
@@ -50,7 +50,7 @@
 static PyDictProxyHandler pyDictProxyHandler;
 static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
-static PyIteratorProxyHandler pyIteratorProxyHandler;
+static PyIterableProxyHandler pyIterableProxyHandler;
 
 std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
 
@@ -258,7 +258,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     JS::RootedValue v(cx);
     JS::RootedObject objectPrototype(cx);
     JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
-    JSObject *proxy = js::NewProxyObject(cx, &pyIteratorProxyHandler, v, objectPrototype.get());
+    JSObject *proxy = js::NewProxyObject(cx, &pyIterableProxyHandler, v, objectPrototype.get());
     PyObject *iterable = PyObject_GetIter(object);
     Py_INCREF(iterable);
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(iterable));
