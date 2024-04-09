@@ -2171,3 +2171,37 @@ def test_array_subclass_behaves_as_array():
         result.append(i)
      assert result == [1,2]
      assert a is not result
+
+def test_iter_operator_tuple():
+   myit = iter((1, 2))
+   result = [None, None, None]
+   pm.eval('(result, myit) => { result[0] = myit.next(); result[1] = myit.next(); result[2] = myit.next()}')(result, myit)
+   assert result[0] == {'done': False, 'value': 1.0}
+   assert result[1] == {'done': False, 'value': 2.0}
+   assert result[2] == {'done': True}
+
+def test_iter_operator_array():
+   myit = iter([1, 2, 3])
+   result = [None, None, None, None]
+   pm.eval('(result, myit) => { result[0] = myit.next(); result[1] = myit.next(); result[2] = myit.next(); result[3] = myit.next()}')(result, myit)
+   assert result[0] == {'done': False, 'value': 1.0}  
+   assert result[1] == {'done': False, 'value': 2.0}
+   assert result[2] == {'done': False, 'value': 3.0}
+   assert result[3] == {'done': True} 
+
+def test_iter_reentrance():
+   myit = iter((1,2))
+   result = pm.eval("(iter) => iter")(myit)
+   assert myit is result
+
+def test_iter_reentrace_next():
+    myit = iter((1, 2))
+    result = [None]
+    pm.eval("(result, arr) => {result[0] = arr}")(result, myit)
+    next(result[0]) == 1
+    next(result[0]) == 2
+    try:
+        third = next(result[0])          
+        assert (False)
+    except StopIteration as e:    
+        assert (True)  
