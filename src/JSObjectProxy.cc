@@ -300,6 +300,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
   PyObject *nextFunction = getKey(self, key, id, false);
   Py_DECREF(key);
   if (nextFunction == NULL) {
+    PyErr_SetString(PyExc_SystemError, "JSObjectProxy could not retrieve key");
     return NULL;
   }
 
@@ -311,11 +312,16 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
   PyObject *doneValue = JSObjectProxy_get((JSObjectProxy *)retVal, key);
   Py_DECREF(key);
   if (doneValue == Py_True) {
-    // NULL marks the end
+
+    PyErr_SetNone(PyExc_StopIteration);
     return NULL;
   }
 
-  return retVal;
+  key = PyUnicode_FromString("value");
+  PyObject *value = JSObjectProxy_get((JSObjectProxy *)retVal, key);
+  Py_DECREF(key);
+
+  return value;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
