@@ -73,10 +73,10 @@ PyType *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
       else if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
         return new ListType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
       }
-      else if (js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) { // this is one of our proxies for python objects
+      else if (js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family) { // this is one of our proxies for python iterables
         return new PyType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
       }
-      else if (js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family) { // this is one of our proxies for python iterables
+      else if (js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) { // this is one of our proxies for python objects
         return new PyType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
       }
     }
