@@ -56,6 +56,10 @@ public:
      * If the job has already been canceled or executed, this method has no effect.
      */
     void cancel();
+    /**
+     * @return true if the job has been cancelled.
+     */
+    bool cancelled();
 
     /**
      * @brief Get the unique `timeoutID` for JS `setTimeout`/`clearTimeout` methods

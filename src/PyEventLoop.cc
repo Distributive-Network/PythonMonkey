@@ -45,7 +45,7 @@ static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
 
   PyObject *errType, *errValue, *traceback; // we can't call any Python code unless the error indicator is clear
   PyErr_Fetch(&errType, &errValue, &traceback);
-  if (repeat) {
+  if (repeat && !handle->cancelled()) {
     _enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat);
   } else {
     handle->removeRef();
@@ -207,6 +207,12 @@ void PyEventLoop::AsyncHandle::cancel() {
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancel
   PyObject *ret = PyObject_CallMethod(_handle, "cancel", NULL); // returns None
   Py_XDECREF(ret);
+}
+
+bool PyEventLoop::AsyncHandle::cancelled() {
+  // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancelled
+  PyObject *ret = PyObject_CallMethod(_handle, "cancelled", NULL); // returns Python bool
+  return ret == Py_True;
 }
 
 void PyEventLoop::Future::setResult(PyObject *result) {
