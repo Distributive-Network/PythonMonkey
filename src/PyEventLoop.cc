@@ -196,13 +196,9 @@ PyEventLoop PyEventLoop::getRunningLoop() {
 }
 
 void PyEventLoop::AsyncHandle::cancel() {
-  PyObject *scheduled = PyObject_GetAttrString(_handle, "_scheduled"); // this attribute only exists on asyncio.TimerHandle returned by loop.call_later
-                                                                       // NULL if no such attribute (on a strict asyncio.Handle returned by loop.call_soon)
-  bool finishedOrCanceled = scheduled && scheduled == Py_False; // the job function has already been executed or canceled
-  if (!finishedOrCanceled) {
+  if (!_finishedOrCancelled()) {
     removeRef(); // automatically unref at finish
   }
-  Py_XDECREF(scheduled);
 
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancel
   PyObject *ret = PyObject_CallMethod(_handle, "cancel", NULL); // returns None
@@ -213,6 +209,12 @@ bool PyEventLoop::AsyncHandle::cancelled() {
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancelled
   PyObject *ret = PyObject_CallMethod(_handle, "cancelled", NULL); // returns Python bool
   return ret == Py_True;
+}
+
+bool PyEventLoop::AsyncHandle::_finishedOrCancelled() {
+  PyObject *scheduled = PyObject_GetAttrString(_handle, "_scheduled"); // this attribute only exists on asyncio.TimerHandle returned by loop.call_later
+                                                                       // NULL if no such attribute (on a strict asyncio.Handle returned by loop.call_soon)
+  return scheduled && scheduled == Py_False; // not scheduled means the job function has already been executed or canceled
 }
 
 void PyEventLoop::Future::setResult(PyObject *result) {
