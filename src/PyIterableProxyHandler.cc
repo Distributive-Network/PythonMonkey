@@ -1,7 +1,7 @@
 /**
  * @file PyIterableProxyHandler.cc
  * @author Philippe Laporte (philippe@distributive.network)
- * @brief Struct for creating JS proxy iterators.
+ * @brief Struct for creating JS proxy objects for Iterables
  * @date 2024-04-08
  *
  * @copyright Copyright (c) 2024 Distributive Corp.

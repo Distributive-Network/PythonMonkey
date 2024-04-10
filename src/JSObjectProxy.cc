@@ -309,9 +309,9 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
 
   // check if end of iteration
   key = PyUnicode_FromString("done");
-  PyObject *doneValue = JSObjectProxy_get((JSObjectProxy *)retVal, key);
+  PyObject *done = JSObjectProxy_get((JSObjectProxy *)retVal, key);
   Py_DECREF(key);
-  if (doneValue == Py_True) {
+  if (done == Py_True) {
     PyErr_SetNone(PyExc_StopIteration);
     return NULL;
   }
