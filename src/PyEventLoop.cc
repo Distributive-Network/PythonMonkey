@@ -80,12 +80,12 @@ static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle::id
   return asyncHandle;
 }
 
-PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds, bool repeat) {
-  auto handler = PyEventLoop::AsyncHandle::newEmpty();
-  if (!_enqueueWithDelay(_loop, handler.first, jobFn, delaySeconds, repeat)) {
+PyEventLoop::AsyncHandle::id_t PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds, bool repeat) {
+  auto handleId = PyEventLoop::AsyncHandle::newEmpty();
+  if (!_enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat)) {
     PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
   }
-  return handler;
+  return handleId;
 }
 
 PyEventLoop::Future PyEventLoop::createFuture() {
