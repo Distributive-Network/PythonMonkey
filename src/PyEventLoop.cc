@@ -42,16 +42,21 @@ static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
 
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
-  if (!repeat) handle->removeRef();
-  if (PyErr_Occurred()) {
-    return NULL;
-  }
 
+  PyObject *errType, *errValue, *traceback; // we can't call any Python code unless the error indicator is clear
+  PyErr_Fetch(&errType, &errValue, &traceback);
   if (repeat) {
     _enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat);
+  } else {
+    handle->removeRef();
   }
 
-  Py_RETURN_NONE;
+  if (errType != NULL) { // PyErr_Occurred()
+    PyErr_Restore(errType, errValue, traceback);
+    return NULL;
+  } else {
+    Py_RETURN_NONE;
+  }
 }
 static PyMethodDef timerJobWrapperDef = {"timerJobWrapper", timerJobWrapper, METH_VARARGS, NULL};
 
