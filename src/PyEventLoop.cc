@@ -35,10 +35,10 @@ static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle *ha
  */
 static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
   PyObject *_loop = PyTuple_GetItem(args, 0);
-  PyObject *handlerPtr = PyTuple_GetItem(args, 1);
+  PyObject *handlePtr = PyTuple_GetItem(args, 1);
   double delaySeconds = PyFloat_AsDouble(PyTuple_GetItem(args, 2));
   bool repeat = (bool)PyLong_AsLong(PyTuple_GetItem(args, 3));
-  auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
+  auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlePtr);
 
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
