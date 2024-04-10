@@ -31,10 +31,10 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Schedule job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return false;
-  PyEventLoop::AsyncHandle::id_ptr_pair handler = loop.enqueueWithDelay(job, delaySeconds, repeat);
+  PyEventLoop::AsyncHandle::id_t handleId = loop.enqueueWithDelay(job, delaySeconds, repeat);
 
   // Return the `timeoutID` to use in `clearTimeout`
-  args.rval().setNumber(handler.first);
+  args.rval().setNumber(handleId);
   return true;
 }
 
