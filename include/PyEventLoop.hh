@@ -60,6 +60,10 @@ public:
      * @return true if the job has been cancelled.
      */
     bool cancelled();
+    /**
+     * @return true if the job function has already been executed or cancelled.
+     */
+    bool _finishedOrCancelled();
 
     /**
      * @brief Get the unique `timeoutID` for JS `setTimeout`/`clearTimeout` methods
@@ -107,7 +111,9 @@ public:
     inline void addRef() {
       if (!_refed) {
         _refed = true;
-        PyEventLoop::_locker->incCounter();
+        if (!_finishedOrCancelled()) { // noop if the timer is finished or canceled
+          PyEventLoop::_locker->incCounter();
+        }
       }
     }
 
