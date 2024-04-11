@@ -343,10 +343,16 @@ def main():
         elif o in ("-i", "--interactive"):
             forceRepl = True
         elif o in ("-e", "--eval"):
-            pm.eval(a, evalOpts)
+            async def runEval():
+                pm.eval(a, evalOpts)
+                await pm.wait()
+            asyncio.run(runEval())
             enterRepl = False
         elif o in ("-p", "--print"):
-            print(pm.eval(a, evalOpts))
+            async def runEvalPrint():
+                print(pm.eval(a, evalOpts))
+                await pm.wait()
+            asyncio.run(runEvalPrint())
             enterRepl = False
         elif o in ("-r", "--require"):
             globalThis.require(a)
