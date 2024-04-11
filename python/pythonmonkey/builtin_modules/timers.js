@@ -73,7 +73,7 @@ class Timeout
   refresh()
   {
     throw new DOMException('Timeout.refresh() method is not supported by PythonMonkey.', 'NotSupportedError');
-    // TODO: Do we really need to reassemble closely to the Node.js API?
+    // TODO: Do we really need to closely resemble the Node.js API?
     // This one is not easy to implement since we need to memorize the callback function and delay parameters in every `setTimeout`/`setInterval` call.
   }
 
