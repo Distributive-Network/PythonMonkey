@@ -17,7 +17,7 @@
           "run"
         ],
       },
-      "preLaunchTask": "Build",
+      "preLaunchTask": "Fast build",
       "cwd": "${fileDirname}",
       "environment": [],
       "externalConsole": false,
