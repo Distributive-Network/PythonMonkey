@@ -208,13 +208,17 @@ void PyEventLoop::AsyncHandle::cancel() {
 bool PyEventLoop::AsyncHandle::cancelled() {
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancelled
   PyObject *ret = PyObject_CallMethod(_handle, "cancelled", NULL); // returns Python bool
-  return ret == Py_True;
+  bool cancelled = ret == Py_True;
+  Py_XDECREF(ret);
+  return cancelled;
 }
 
 bool PyEventLoop::AsyncHandle::_finishedOrCancelled() {
   PyObject *scheduled = PyObject_GetAttrString(_handle, "_scheduled"); // this attribute only exists on asyncio.TimerHandle returned by loop.call_later
                                                                        // NULL if no such attribute (on a strict asyncio.Handle returned by loop.call_soon)
-  return scheduled && scheduled == Py_False; // not scheduled means the job function has already been executed or canceled
+  bool notScheduled = scheduled && scheduled == Py_False; // not scheduled means the job function has already been executed or canceled
+  Py_XDECREF(scheduled);
+  return notScheduled;
 }
 
 void PyEventLoop::Future::setResult(PyObject *result) {
