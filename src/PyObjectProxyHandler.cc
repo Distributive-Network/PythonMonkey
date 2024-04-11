@@ -1,7 +1,7 @@
 /**
  * @file PyObjectProxyHandler.cc
  * @author Caleb Aikens (caleb@distributive.network)
- * @brief
+ * @brief Struct for creating JS proxy objects for all objects
  * @date 2024-01-30
  *
  * @copyright Copyright (c) 2023 Distributive Corp.
