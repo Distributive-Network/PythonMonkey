@@ -28,21 +28,37 @@ static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
 }
 static PyMethodDef loopJobWrapperDef = {"eventLoopJobWrapper", eventLoopJobWrapper, METH_NOARGS, NULL};
 
+static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle::id_t handleId, PyObject *jobFn, double delaySeconds, bool repeat);
+
 /**
  * @brief Wrapper to remove the reference of the timer after the job finishes
  */
-static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *handlerPtr) {
-  auto handle = (PyEventLoop::AsyncHandle *)PyLong_AsVoidPtr(handlerPtr);
+static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
+  PyObject *_loop = PyTuple_GetItem(args, 0);
+  PyEventLoop::AsyncHandle::id_t handleId = PyLong_AsLong(PyTuple_GetItem(args, 1));
+  double delaySeconds = PyFloat_AsDouble(PyTuple_GetItem(args, 2));
+  bool repeat = (bool)PyLong_AsLong(PyTuple_GetItem(args, 3));
+  auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
+
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
-  handle->removeRef();
-  if (PyErr_Occurred()) {
+
+  PyObject *errType, *errValue, *traceback; // we can't call any Python code unless the error indicator is clear
+  PyErr_Fetch(&errType, &errValue, &traceback);
+  if (repeat && !handle->cancelled()) {
+    _enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat);
+  } else {
+    handle->removeRef();
+  }
+
+  if (errType != NULL) { // PyErr_Occurred()
+    PyErr_Restore(errType, errValue, traceback);
     return NULL;
   } else {
     Py_RETURN_NONE;
   }
 }
-static PyMethodDef timerJobWrapperDef = {"timerJobWrapper", timerJobWrapper, METH_O, NULL};
+static PyMethodDef timerJobWrapperDef = {"timerJobWrapper", timerJobWrapper, METH_VARARGS, NULL};
 
 PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   PyEventLoop::_locker->incCounter();
@@ -53,20 +69,28 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
-PyEventLoop::AsyncHandle::id_ptr_pair PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds) {
-  auto handler = PyEventLoop::AsyncHandle::newEmpty();
+static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle::id_t handleId, PyObject *jobFn, double delaySeconds, bool repeat) {
   PyObject *wrapper = PyCFunction_New(&timerJobWrapperDef, jobFn);
-  PyObject *handlerPtr = PyLong_FromVoidPtr(handler.second);
   // Schedule job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
-  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dOO", delaySeconds, wrapper, handlerPtr); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
-  if (asyncHandle == nullptr) {
-    PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
-    return handler;
+  PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dOOIdb", delaySeconds, wrapper, _loop, handleId, delaySeconds, repeat); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  if (!asyncHandle) {
+    return nullptr; // RuntimeError
   }
-  handler.second->swap(asyncHandle);
-  handler.second->addRef();
-  return handler;
+
+  auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
+  Py_XDECREF(handle->swap(asyncHandle));
+  handle->addRef();
+
+  return asyncHandle;
+}
+
+PyEventLoop::AsyncHandle::id_t PyEventLoop::enqueueWithDelay(PyObject *jobFn, double delaySeconds, bool repeat) {
+  auto handleId = PyEventLoop::AsyncHandle::newEmpty();
+  if (!_enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat)) {
+    PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
+  }
+  return handleId;
 }
 
 PyEventLoop::Future PyEventLoop::createFuture() {
@@ -172,17 +196,29 @@ PyEventLoop PyEventLoop::getRunningLoop() {
 }
 
 void PyEventLoop::AsyncHandle::cancel() {
-  PyObject *scheduled = PyObject_GetAttrString(_handle, "_scheduled"); // this attribute only exists on asyncio.TimerHandle returned by loop.call_later
-                                                                       // NULL if no such attribute (on a strict asyncio.Handle returned by loop.call_soon)
-  bool finishedOrCanceled = scheduled && scheduled == Py_False; // the job function has already been executed or canceled
-  if (!finishedOrCanceled) {
+  if (!_finishedOrCancelled()) {
     removeRef(); // automatically unref at finish
   }
-  Py_XDECREF(scheduled);
 
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancel
   PyObject *ret = PyObject_CallMethod(_handle, "cancel", NULL); // returns None
   Py_XDECREF(ret);
+}
+
+bool PyEventLoop::AsyncHandle::cancelled() {
+  // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancelled
+  PyObject *ret = PyObject_CallMethod(_handle, "cancelled", NULL); // returns Python bool
+  bool cancelled = ret == Py_True;
+  Py_XDECREF(ret);
+  return cancelled;
+}
+
+bool PyEventLoop::AsyncHandle::_finishedOrCancelled() {
+  PyObject *scheduled = PyObject_GetAttrString(_handle, "_scheduled"); // this attribute only exists on asyncio.TimerHandle returned by loop.call_later
+                                                                       // NULL if no such attribute (on a strict asyncio.Handle returned by loop.call_soon)
+  bool notScheduled = scheduled && scheduled == Py_False; // not scheduled means the job function has already been executed or canceled
+  Py_XDECREF(scheduled);
+  return notScheduled;
 }
 
 void PyEventLoop::Future::setResult(PyObject *result) {

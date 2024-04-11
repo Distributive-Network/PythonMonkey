@@ -15,6 +15,8 @@ const {
   timerRemoveRef,
 } = internalBinding('timers');
 
+const { DOMException } = require('dom-exception');
+
 /**
  * Implement Node.js-style `timeoutId` class returned from setTimeout() and setInterval()
  * @see https://nodejs.org/api/timers.html#class-timeout
@@ -63,11 +65,16 @@ class Timeout
   }
 
   /**
-   * @returns a number that can be used to reference this timeout
+   * Sets the timer's start time to the current time, 
+   * and reschedules the timer to call its callback at the previously specified duration adjusted to the current time.
+   * 
+   * Using this on a timer that has already called its callback will reactivate the timer.
    */
-  [Symbol.toPrimitive]()
+  refresh()
   {
-    return this.#numericId;
+    throw new DOMException('Timeout.refresh() method is not supported by PythonMonkey.', 'NotSupportedError');
+    // TODO: Do we really need to closely resemble the Node.js API?
+    // This one is not easy to implement since we need to memorize the callback function and delay parameters in every `setTimeout`/`setInterval` call.
   }
 
   /**
@@ -78,6 +85,45 @@ class Timeout
   {
     return clearTimeout(this);
   }
+
+  /**
+   * @returns a number that can be used to reference this timeout
+   */
+  [Symbol.toPrimitive]()
+  {
+    return this.#numericId;
+  }
+}
+
+/**
+ * Normalize the arguments to `setTimeout` or `setInterval`
+ * @param {Function | string} handler
+ * @param {number} delayMs timeout milliseconds
+ * @param {any[]} additionalArgs additional arguments to be passed to the `handler`
+ */
+function _normalizeTimerArgs(handler, delayMs, additionalArgs)
+{
+  // Ensure the first parameter is a function
+  // We support passing a `code` string to `setTimeout` as the callback function
+  if (typeof handler !== 'function')
+    handler = new Function(handler);
+
+  // `setTimeout` allows passing additional arguments to the callback, as spec-ed
+  // FIXME (Tom Tang): the spec doesn't allow additional arguments to be passed if the original `handler` is not a function
+  const thisArg = globalThis; // HTML spec requires `thisArg` to be the global object
+  // Wrap the job function into a bound function with the given additional arguments
+  //    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
+  /** @type {Function} */
+  const boundHandler = handler.bind(thisArg, ...additionalArgs);
+
+  // Get the delay time in seconds
+  //  JS `setTimeout` takes milliseconds, but Python takes seconds
+  delayMs = Number(delayMs) || 0; // ensure the `delayMs` is a `number`, explicitly do type coercion
+  if (delayMs < 0)
+    delayMs = 0; // as spec-ed
+  const delaySeconds = delayMs / 1000; // convert ms to s
+
+  return { boundHandler, delaySeconds };
 }
 
 /**
@@ -91,27 +137,8 @@ class Timeout
  */
 function setTimeout(handler, delayMs = 0, ...args) 
 {
-  // Ensure the first parameter is a function
-  // We support passing a `code` string to `setTimeout` as the callback function
-  if (typeof handler !== 'function')
-    handler = new Function(handler);
-
-  // `setTimeout` allows passing additional arguments to the callback, as spec-ed
-  // FIXME (Tom Tang): the spec doesn't allow additional arguments to be passed if the original `handler` is not a function
-  const thisArg = globalThis; // HTML spec requires `thisArg` to be the global object
-  // Wrap the job function into a bound function with the given additional arguments
-  //    https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
-  /** @type {Function} */
-  const boundHandler = handler.bind(thisArg, ...args);
-
-  // Get the delay time in seconds
-  //  JS `setTimeout` takes milliseconds, but Python takes seconds
-  delayMs = Number(delayMs) || 0; // ensure the `delayMs` is a `number`, explicitly do type coercion
-  if (delayMs < 0)
-    delayMs = 0; // as spec-ed
-  const delaySeconds = delayMs / 1000; // convert ms to s
-
-  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds));
+  const { boundHandler, delaySeconds } = _normalizeTimerArgs(handler, delayMs, args);
+  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, false));
 }
 
 /**
@@ -130,13 +157,43 @@ function clearTimeout(timeoutId)
   return cancelByTimeoutId(Number(timeoutId));
 }
 
+/**
+ * Implement the `setInterval` global function
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/setInterval and
+ * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-setinterval
+ * @param {Function | string} handler
+ * @param {number} delayMs timeout milliseconds, use value of 0 if this is omitted
+ * @param {any[]} args additional arguments to be passed to the `handler`
+ * @return {Timeout} timeoutId
+ */
+function setInterval(handler, delayMs = 0, ...args) 
+{
+  const { boundHandler, delaySeconds } = _normalizeTimerArgs(handler, delayMs, args);
+  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, true));
+}
+
+/**
+ * Implement the `clearInterval` global function
+ * @alias to `clearTimeout`
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/clearInterval
+ */
+const clearInterval = clearTimeout;
+
 // expose the `Timeout` class
 setTimeout.Timeout = Timeout;
+setInterval.Timeout = Timeout;
 
 if (!globalThis.setTimeout)
   globalThis.setTimeout = setTimeout;
 if (!globalThis.clearTimeout)
   globalThis.clearTimeout = clearTimeout;
 
+if (!globalThis.setInterval)
+  globalThis.setInterval = setInterval;
+if (!globalThis.clearInterval)
+  globalThis.clearInterval = clearInterval;
+
 exports.setTimeout = setTimeout;
 exports.clearTimeout = clearTimeout;
+exports.setInterval = setInterval;
+exports.clearInterval = clearInterval;

@@ -32,7 +32,6 @@ public:
    */
   struct AsyncHandle {
     using id_t = uint32_t;
-    using id_ptr_pair = std::pair<id_t, AsyncHandle *>;
   public:
     explicit AsyncHandle(PyObject *handle) : _handle(handle) {};
     AsyncHandle(const AsyncHandle &old) = delete; // forbid copy-initialization
@@ -42,9 +41,14 @@ public:
         Py_XDECREF(_handle);
       }
     }
-    static inline id_ptr_pair newEmpty() {
+
+    /**
+     * @brief Create a new `AsyncHandle` without an associated `asyncio.Handle` Python object
+     * @return the timeoutId
+     */
+    static inline id_t newEmpty() {
       auto handle = AsyncHandle(Py_None);
-      return AsyncHandle::getUniqueIdAndPtr(std::move(handle));
+      return AsyncHandle::getUniqueId(std::move(handle));
     }
 
     /**
@@ -52,6 +56,14 @@ public:
      * If the job has already been canceled or executed, this method has no effect.
      */
     void cancel();
+    /**
+     * @return true if the job has been cancelled.
+     */
+    bool cancelled();
+    /**
+     * @return true if the job function has already been executed or cancelled.
+     */
+    bool _finishedOrCancelled();
 
     /**
      * @brief Get the unique `timeoutID` for JS `setTimeout`/`clearTimeout` methods
@@ -68,11 +80,6 @@ public:
       } catch (...) { // std::out_of_range&
         return nullptr; // invalid timeoutID
       }
-    }
-    static inline id_ptr_pair getUniqueIdAndPtr(AsyncHandle &&handle) {
-      auto timeoutID = getUniqueId(std::move(handle));
-      auto ptr = fromId(timeoutID);
-      return std::make_pair(timeoutID, ptr);
     }
 
     /**
@@ -104,7 +111,9 @@ public:
     inline void addRef() {
       if (!_refed) {
         _refed = true;
-        PyEventLoop::_locker->incCounter();
+        if (!_finishedOrCancelled()) { // noop if the timer is finished or canceled
+          PyEventLoop::_locker->incCounter();
+        }
       }
     }
 
@@ -132,9 +141,10 @@ public:
    * @brief Schedule a job to the Python event-loop, with the given delay
    * @param jobFn - The JS event-loop job converted to a Python function
    * @param delaySeconds - The job function will be called after the given number of seconds
-   * @return the timeoutId and a pointer to the AsyncHandle
+   * @param repeat - If true, the job will be executed repeatedly on a fixed interval
+   * @return the timeoutId
    */
-  [[nodiscard]] AsyncHandle::id_ptr_pair enqueueWithDelay(PyObject *jobFn, double delaySeconds);
+  [[nodiscard]] AsyncHandle::id_t enqueueWithDelay(PyObject *jobFn, double delaySeconds, bool repeat);
 
   /**
    * @brief C++ wrapper for Python `asyncio.Future` class
