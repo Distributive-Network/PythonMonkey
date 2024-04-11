@@ -26,7 +26,7 @@ const timer = setInterval(()=>
   n++;
   if (n >= 5) clearInterval(timer); // clearInterval should work inside the callback
 
-  throw new Error("testing from the callback"); // timer should continue running regardless the job function succeeds or not
+  throw new Error("testing from the callback"); // timer should continue running regardless of whether the job function succeeds or not
 }, 50);
 '
 
