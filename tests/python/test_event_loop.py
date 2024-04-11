@@ -17,6 +17,17 @@ def test_timers_unref():
         return True
     assert asyncio.run(async_fn())
 
+def test_finished_timer_ref():
+    async def async_fn():
+        # Making sure the event-loop won't be activated again when a finished timer gets re-refed.
+        pm.eval("""
+            const timer = setTimeout(()=>{}, 100);
+            setTimeout(()=>{ timer.ref() }, 200);
+        """)
+        await pm.wait()
+        return True
+    assert asyncio.run(async_fn())
+
 def test_set_clear_timeout():
     # throw RuntimeError outside a coroutine
     with pytest.raises(RuntimeError, match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
