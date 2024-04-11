@@ -34,7 +34,7 @@ declare function internalBinding(namespace: "utils"): {
 
 declare function internalBinding(namespace: "timers"): {
   /**
-   * internal binding helper for the `setTimeout`/`setInterval` global function
+   * internal binding helper for the `setTimeout`/`setInterval` global functions
    * 
    * **UNSAFE**, does not perform argument type checks
    * 
