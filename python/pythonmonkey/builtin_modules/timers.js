@@ -15,6 +15,8 @@ const {
   timerRemoveRef,
 } = internalBinding('timers');
 
+const { DOMException } = require('dom-exception');
+
 /**
  * Implement Node.js-style `timeoutId` class returned from setTimeout() and setInterval()
  * @see https://nodejs.org/api/timers.html#class-timeout
@@ -70,7 +72,9 @@ class Timeout
    */
   refresh()
   {
-    
+    throw new DOMException('Timeout.refresh() method is not supported by PythonMonkey.', 'NotSupportedError');
+    // TODO: Do we really need to reassemble closely to the Node.js API?
+    // This one is not easy to implement since we need to memorize the callback function and delay parameters in every `setTimeout`/`setInterval` call.
   }
 
   /**
