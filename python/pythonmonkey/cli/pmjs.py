@@ -350,7 +350,8 @@ def main():
             enterRepl = False
         elif o in ("-p", "--print"):
             async def runEvalPrint():
-                print(pm.eval(a, evalOpts))
+                ret = pm.eval(a, evalOpts)
+                pm.eval("ret => console.log(ret)", evalOpts)(ret)
                 await pm.wait()
             asyncio.run(runEvalPrint())
             enterRepl = False
