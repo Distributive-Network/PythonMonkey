@@ -80,7 +80,6 @@ static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle::id
 
   auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
   Py_XDECREF(handle->swap(asyncHandle));
-  handle->addRef();
 
   return asyncHandle;
 }
@@ -90,6 +89,8 @@ PyEventLoop::AsyncHandle::id_t PyEventLoop::enqueueWithDelay(PyObject *jobFn, do
   if (!_enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat)) {
     PyErr_Print(); // RuntimeError: Non-thread-safe operation invoked on an event loop other than the current one
   }
+  auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
+  handle->addRef();
   return handleId;
 }
 
