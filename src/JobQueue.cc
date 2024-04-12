@@ -114,7 +114,7 @@ bool sendJobToMainLoop(PyObject *pyFunc) {
 
   PyGILState_Release(gstate);
   return true;
-}  
+}
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
   mozilla::Unused << finalizationRegistryCallbacks->append(callback);
