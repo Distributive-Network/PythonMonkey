@@ -2,7 +2,7 @@ import pytest
 import pythonmonkey as pm
 import asyncio
 
-def test_timers_unref():
+def test_setTimeout_unref():
     async def async_fn():
         obj = {'val': 0}
         pm.eval("""(obj) => {
@@ -14,6 +14,18 @@ def test_timers_unref():
         assert obj['val'] == 1
 
         # making sure the async_fn is run
+        return True
+    assert asyncio.run(async_fn())
+
+def test_setInterval_unref():
+    async def async_fn():
+        obj = {'val': 0}
+        pm.eval("""(obj) => {
+            setInterval(()=>{ obj.val++ }, 200).unref()
+            setTimeout(()=>{ }, 500)
+        }""")(obj)
+        await pm.wait() # It should stop after the setTimeout timer's 500ms.
+        assert obj['val'] == 2 # The setInterval timer should only run twice (500 // 200 == 2)
         return True
     assert asyncio.run(async_fn())
 
