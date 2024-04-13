@@ -2,7 +2,7 @@
  * @file utils.cc
  * @author Tom Tang (xmader@distributive.network)
  * @brief Implement functions in `internalBinding("utils")`
- * 
+ *
  * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
