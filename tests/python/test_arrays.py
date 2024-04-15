@@ -2205,3 +2205,10 @@ def test_iter_reentrace_next():
         assert (False)
     except StopIteration as e:    
         assert (True)  
+
+def test_iter_for_of():
+    myit = iter((1,2))
+    result = [None, None]
+    pm.eval("""(result, myit) => {let index = 0; for (const value of myit) {result[index++] = value}}""")(result, myit)
+    assert result[0] == 1.0
+    assert result[1] == 2.0
