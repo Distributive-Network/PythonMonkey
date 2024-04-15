@@ -72,7 +72,7 @@ JSMethodDef PyIterableProxyHandler::iterable_methods[] = {
 // IterableIterator
 
 enum {
-  IterableIteratorSlotIteratedObject,
+  IterableIteratorSlotIterableObject,
   IterableIteratorSlotCount
 };
 
@@ -83,7 +83,7 @@ static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedObject thisObj(cx);
   if (!args.computeThis(cx, &thisObj)) return false;
 
-  PyObject *it = JS::GetMaybePtrFromReservedSlot<PyObject>(thisObj, IterableIteratorSlotIteratedObject);
+  PyObject *it = JS::GetMaybePtrFromReservedSlot<PyObject>(thisObj, IterableIteratorSlotIterableObject);
 
   JS::RootedObject result(cx, JS_NewPlainObject(cx));
 
@@ -189,7 +189,7 @@ static bool iterable_values(JSContext *cx, unsigned argc, JS::Value *vp) {
   if (!JS::Construct(cx, constructor_val, JS::HandleValueArray::empty(), &obj)) return false;
   if (!obj) return false;
 
-  JS::SetReservedSlot(obj, IterableIteratorSlotIteratedObject, JS::PrivateValue((void *)self));
+  JS::SetReservedSlot(obj, IterableIteratorSlotIterableObject, JS::PrivateValue((void *)self));
 
   args.rval().setObject(*obj);
   return true;
