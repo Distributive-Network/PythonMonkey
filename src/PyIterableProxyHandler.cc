@@ -21,15 +21,8 @@
 
 const char PyIterableProxyHandler::family = 0;
 
-// TODO merge shared _next code
 
-bool PyIterableProxyHandler::iterable_next(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  JS::RootedObject thisObj(cx);
-  if (!args.computeThis(cx, &thisObj)) return false;
-
-  PyObject *it = JS::GetMaybePtrFromReservedSlot<PyObject>(thisObj, PyObjectSlot);
-
+static bool iter_next(JSContext *cx, JS::CallArgs args, PyObject *it) {
   JS::RootedObject result(cx, JS_NewPlainObject(cx));
 
   PyObject *(*iternext)(PyObject *) = *Py_TYPE(it)->tp_iternext;
@@ -63,8 +56,18 @@ bool PyIterableProxyHandler::iterable_next(JSContext *cx, unsigned argc, JS::Val
   return true;
 }
 
+static bool iterable_next(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+  JS::RootedObject thisObj(cx);
+  if (!args.computeThis(cx, &thisObj)) return false;
+
+  PyObject *it = JS::GetMaybePtrFromReservedSlot<PyObject>(thisObj, PyObjectSlot);
+
+  return iter_next(cx, args, it);
+}
+
 JSMethodDef PyIterableProxyHandler::iterable_methods[] = {
-  {"next", PyIterableProxyHandler::iterable_next, 0},
+  {"next", iterable_next, 0},
   {NULL, NULL, 0}
 };
 
@@ -85,37 +88,7 @@ static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   PyObject *it = JS::GetMaybePtrFromReservedSlot<PyObject>(thisObj, IterableIteratorSlotIterableObject);
 
-  JS::RootedObject result(cx, JS_NewPlainObject(cx));
-
-  PyObject *(*iternext)(PyObject *) = *Py_TYPE(it)->tp_iternext;
-
-  PyObject *item = iternext(it);
-
-  if (item == NULL) {
-    if (PyErr_Occurred()) {
-      if (PyErr_ExceptionMatches(PyExc_StopIteration) ||
-          PyErr_ExceptionMatches(PyExc_SystemError)) {      // TODO this handles a result like   SystemError: Objects/dictobject.c:1778: bad argument to internal function. Why are we getting that?
-        PyErr_Clear();
-      }
-      else {
-        return false;
-      }
-    }
-
-    JS::RootedValue done(cx, JS::BooleanValue(true));
-    if (!JS_SetProperty(cx, result, "done", done)) return false;
-    args.rval().setObject(*result);
-    return result;
-  }
-
-  JS::RootedValue done(cx, JS::BooleanValue(false));
-  if (!JS_SetProperty(cx, result, "done", done)) return false;
-
-  JS::RootedValue value(cx, jsTypeFactory(cx, item));
-  if (!JS_SetProperty(cx, result, "value", value)) return false;
-
-  args.rval().setObject(*result);
-  return true;
+  return iter_next(cx, args, it);
 }
 
 static JSFunctionSpec iterable_iterator_methods[] = {

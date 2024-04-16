@@ -24,16 +24,6 @@ public:
   PyIterableProxyHandler() : PyObjectProxyHandler(&family) {};
   static const char family;
 
-  /**
-   * @brief Helper function to return next item in iteration
-   *
-   * @param cx - pointer to the JSContext
-   * @param argc - unused
-   * @param vp - unused
-   * @return true - this function returns true for success and false for failure
-   */
-  static bool iterable_next(JSContext *cx, unsigned argc, JS::Value *vp);
-
   bool getOwnPropertyDescriptor(
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
