@@ -38,10 +38,9 @@ HTML_EXTRA_FILES      = @CMAKE_CURRENT_SOURCE_DIR@/favicon.ico \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-paragraph-link.js \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-interactive-toc.js
 HTML_COLORSTYLE       = LIGHT
-HTML_TIMESTAMP        = YES
+TIMESTAMP        = YES
 
 # Diagrams with Graphviz
 HAVE_DOT = YES
 DOT_IMAGE_FORMAT = svg
-DOT_TRANSPARENT = YES
 INTERACTIVE_SVG = YES
