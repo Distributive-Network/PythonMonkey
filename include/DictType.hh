@@ -27,7 +27,7 @@ public:
    *
    * @param cx - pointer to the JSContext
    * @param jsObject - pointer to the JSObject to be coerced
-   * 
+   *
    * @returns PyObject* pointer to the resulting PyObject
    */
   static PyObject *getPyObject(JSContext *cx, JS::Handle<JS::Value> jsObject);

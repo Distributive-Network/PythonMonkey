@@ -23,7 +23,7 @@ public:
    *
    * @param cx - javascript context pointer
    * @param bufObj - JS object to be coerced
-   * 
+   *
    * @returns PyObject* pointer to the resulting PyObject
    */
   static PyObject *getPyObject(JSContext *cx, JS::HandleObject bufObj);

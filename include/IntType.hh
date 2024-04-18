@@ -25,7 +25,7 @@ public:
    *
    * @param cx - javascript context pointer
    * @param bigint - JS::BigInt pointer
-   * 
+   *
    * @returns PyObject* pointer to the resulting PyObject
    */
   static PyObject *getPyObject(JSContext *cx, JS::BigInt *bigint);
