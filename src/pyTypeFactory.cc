@@ -68,7 +68,9 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
           js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family ||            // this is one of our proxies for python iterables
           js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) {              // this is one of our proxies for python objects
 
-        return JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot);
+        PyObject *pyObject = JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot);
+        Py_INCREF(pyObject);
+        return pyObject;
       }
     }
 
