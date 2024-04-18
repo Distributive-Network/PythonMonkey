@@ -36,7 +36,7 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
 
   // Convert the `job` JS function to a Python function for event-loop callback
   JS::RootedValue jobv(cx, JS::ObjectValue(*job));
-  PyObject *callback = pyTypeFactory(cx, jobv)->getPyObject();
+  PyObject *callback = pyTypeFactory(cx, jobv);
 
   // Send job to the running Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
