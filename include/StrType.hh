@@ -31,6 +31,8 @@ public:
    *
    * @param cx - javascript context pointer
    * @param str - JSString pointer
+   * 
+   * @returns PyObject* pointer to the resulting PyObject
    */
   static PyObject *getPyObject(JSContext *cx, JSString *str);
 

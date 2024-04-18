@@ -25,6 +25,8 @@ public:
    *
    * @param cx - javascript context pointer
    * @param error - JS Error object to be converted
+   * 
+   * @returns PyObject* pointer to the resulting PyObject
    */
   static PyObject *getPyObject(JSContext *cx, JS::HandleObject error);
 
