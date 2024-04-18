@@ -70,5 +70,5 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
     return NULL;
   }
 
-  return pyTypeFactory(cx, jsReturnVal)->getPyObject();
+  return pyTypeFactory(cx, jsReturnVal);
 }

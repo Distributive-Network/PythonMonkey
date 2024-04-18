@@ -12,7 +12,6 @@
 
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
-#include "include/StrType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -69,7 +68,7 @@ bool PyDictProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId
   PyObject *attrName = idToKey(cx, id);
 
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (PyDict_SetItem(self, attrName, pyTypeFactory(cx, rootedV)->getPyObject())) {
+  if (PyDict_SetItem(self, attrName, pyTypeFactory(cx, rootedV))) {
     return result.failCantSetInterposed(); // raises JS exception
   }
   return result.succeed();

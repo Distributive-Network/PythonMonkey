@@ -48,6 +48,14 @@ public:
   static int JSObjectKeysProxy_traverse(JSObjectKeysProxy *self, visitproc visit, void *arg);
 
   /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSObjectKeysProxy
+   * @return 0 on success
+   */
+  static int JSObjectKeysProxy_clear(JSObjectKeysProxy *self);
+
+  /**
    * @brief Length method (.sq_length), returns the number of key-value pairs in the JSObject, used by the python len() method
    *
    * @param self - The JSObjectProxy
