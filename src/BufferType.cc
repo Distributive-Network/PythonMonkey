@@ -29,6 +29,8 @@ PyObject *BufferType::getPyObject(JSContext *cx, JS::HandleObject bufObj) {
     pyObject = nullptr;
   }
 
+  Py_INCREF(pyObject);
+
   return pyObject;
 }
 
