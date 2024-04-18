@@ -11,16 +11,12 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PromiseType.hh"
 #include "include/PyEventLoop.hh"
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/jsTypeFactory.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
 #include <js/Promise.h>
-
-#include <Python.h>
 
 // slot ids to access the python object in JS callbacks
 #define PY_FUTURE_OBJ_SLOT 0
@@ -37,7 +33,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   // Convert the Promise's result (either fulfilled resolution or rejection reason) to a Python object
   //  The result might be another JS function, so we must keep them alive
   JS::RootedValue resultArg(cx, args[0]);
-  PyObject *result = pyTypeFactory(cx, resultArg)->getPyObject();
+  PyObject *result = pyTypeFactory(cx, resultArg);
   if (state == JS::PromiseState::Rejected && !PyExceptionInstance_Check(result)) {
     // Wrap the result object into a SpiderMonkeyError object
     // because only *Exception objects can be thrown in Python `raise` statement and alike
@@ -65,12 +61,10 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-PromiseType::PromiseType(PyObject *object) : PyType(object) {}
-
-PromiseType::PromiseType(JSContext *cx, JS::HandleObject promise) {
+PyObject *PromiseType::getPyObject(JSContext *cx, JS::HandleObject promise) {
   // Create a python asyncio.Future on the running python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
-  if (!loop.initialized()) return;
+  if (!loop.initialized()) return NULL;
   PyEventLoop::Future future = loop.createFuture();
 
   // Callbacks to settle the Python asyncio.Future once the JS Promise is resolved
@@ -79,7 +73,7 @@ PromiseType::PromiseType(JSContext *cx, JS::HandleObject promise) {
   js::SetFunctionNativeReserved(onResolved, PROMISE_OBJ_SLOT, JS::ObjectValue(*promise));
   AddPromiseReactions(cx, promise, onResolved, onResolved);
 
-  pyObject = future.getFutureObject(); // must be a new reference
+  return future.getFutureObject(); // must be a new reference
 }
 
 // Callback to resolve or reject the JS Promise when the Future is done
@@ -117,7 +111,7 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
 }
 static PyMethodDef futureCallbackDef = {"futureOnDoneCallback", futureOnDoneCallback, METH_VARARGS, NULL};
 
-JSObject *PromiseType::toJsPromise(JSContext *cx) {
+JSObject *PromiseType::toJsPromise(JSContext *cx, PyObject *pyObject) {
   // Create a new JS Promise object
   JSObject *promise = JS::NewPromiseObject(cx, nullptr);
 
@@ -133,7 +127,7 @@ JSObject *PromiseType::toJsPromise(JSContext *cx) {
   PyObject *futureCallbackTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(rootedPtr));
   PyObject *onDoneCb = PyCFunction_New(&futureCallbackDef, futureCallbackTuple);
   future.addDoneCallback(onDoneCb);
-
+  Py_INCREF(pyObject);
   return promise;
 }
 

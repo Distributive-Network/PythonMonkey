@@ -1,18 +1,15 @@
 /**
  * @file StrType.cc
- * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network), Giovanni Tedesco (giovanni@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing python strings
  * @date 2022-08-08
  *
- * @copyright Copyright (c) 2022 Distributive Corp.
+ * @copyright Copyright (c) 2022,2024 Distributive Corp.
  *
  */
 
 #include "include/StrType.hh"
-#include "include/PyType.hh"
 #include "include/JSStringProxy.hh"
-
-#include <Python.h>
 
 #include <jsapi.h>
 #include <js/String.h>
@@ -55,19 +52,55 @@ static bool containsSurrogatePair(const char16_t *chars, size_t length) {
   return false;
 }
 
-StrType::StrType(PyObject *object) : PyType(object) {}
+/**
+ * @brief creates new UCS4-encoded pyObject string. This must be called by the user if the original JSString contains any surrogate pairs
+ *
+ * @return PyObject* - the UCS4-encoding of the pyObject string
+ *
+ */
+static PyObject *asUCS4(PyObject *pyObject) {
+  if (PyUnicode_KIND(pyObject) != PyUnicode_2BYTE_KIND) {
+    // return a new reference to match the behaviour of `PyUnicode_FromKindAndData`
+    Py_INCREF(pyObject);
+    return pyObject;
+  }
 
-StrType::StrType(char *string) : PyType(Py_BuildValue("s", string)) {}
+  uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
+  size_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
 
-StrType::StrType(JSContext *cx, JSString *str) {
+  uint32_t *ucs4String = new uint32_t[length];
+  size_t ucs4Length = 0;
+
+  for (size_t i = 0; i < length; i++, ucs4Length++) {
+    if (Py_UNICODE_IS_LOW_SURROGATE(chars[i])) { // character is an unpaired low surrogate
+      return NULL;
+    } else if (Py_UNICODE_IS_HIGH_SURROGATE(chars[i])) { // character is a high surrogate
+      if ((i + 1 < length) && Py_UNICODE_IS_LOW_SURROGATE(chars[i+1])) { // next character is a low surrogate
+        ucs4String[ucs4Length] = Py_UNICODE_JOIN_SURROGATES(chars[i], chars[i+1]);
+        i++; // skip over low surrogate
+      }
+      else { // next character is not a low surrogate
+        return NULL;
+      }
+    } else { // character is not a surrogate, and is in the BMP
+      ucs4String[ucs4Length] = chars[i];
+    }
+  }
+
+  PyObject *ret = PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, ucs4String, ucs4Length);
+  delete[] ucs4String;
+  return ret;
+}
+
+static PyObject *processString(JSContext *cx, JSString *str) {
   JSLinearString *lstr = JS_EnsureLinearString(cx, str);
   JS::AutoCheckCannotGC nogc;
   PyObject *p;
 
   size_t length = JS::GetLinearStringLength(lstr);
 
-  pyObject = (PyObject *)PyObject_New(JSStringProxy, &JSStringProxyType); // new reference
-  Py_INCREF(pyObject); // XXX: Why?
+  PyObject *pyObject = (PyObject *)PyObject_New(JSStringProxy, &JSStringProxyType); // new reference
+  Py_INCREF(pyObject);
 
   ((JSStringProxy *)pyObject)->jsString.setString((JSString *)lstr);
 
@@ -121,50 +154,23 @@ StrType::StrType(JSContext *cx, JSString *str) {
       PyObject *ucs4Obj = asUCS4(pyObject); // convert to a new PyUnicodeObject with UCS4 data
       if (!ucs4Obj) {
         // conversion fails, keep the original `pyObject`
-        return;
+        return pyObject;
       }
-      Py_DECREF(pyObject); // cleanup the old `pyObject`
-      Py_INCREF(ucs4Obj); // XXX: Same as the above `Py_INCREF(pyObject);`. Why double freed on GC?
-      pyObject = ucs4Obj;
-    }
-  }
-}
-
-const char *StrType::getValue() const {
-  return PyUnicode_AsUTF8(pyObject);
-}
-
-/* static */
-PyObject *StrType::asUCS4(PyObject *pyObject) {
-  if (PyUnicode_KIND(pyObject) != PyUnicode_2BYTE_KIND) {
-    // return a new reference to match the behaviour of `PyUnicode_FromKindAndData`
-    Py_INCREF(pyObject);
-    return pyObject;
-  }
-
-  uint16_t *chars = PY_UNICODE_OBJECT_DATA_UCS2(pyObject);
-  size_t length = PY_UNICODE_OBJECT_LENGTH(pyObject);
-
-  uint32_t *ucs4String = new uint32_t[length];
-  size_t ucs4Length = 0;
-
-  for (size_t i = 0; i < length; i++, ucs4Length++) {
-    if (Py_UNICODE_IS_LOW_SURROGATE(chars[i])) { // character is an unpaired low surrogate
-      return NULL;
-    } else if (Py_UNICODE_IS_HIGH_SURROGATE(chars[i])) { // character is a high surrogate
-      if ((i + 1 < length) && Py_UNICODE_IS_LOW_SURROGATE(chars[i+1])) { // next character is a low surrogate
-        ucs4String[ucs4Length] = Py_UNICODE_JOIN_SURROGATES(chars[i], chars[i+1]);
-        i++; // skip over low surrogate
-      }
-      else { // next character is not a low surrogate
-        return NULL;
-      }
-    } else { // character is not a surrogate, and is in the BMP
-      ucs4String[ucs4Length] = chars[i];
+      Py_DECREF(pyObject);
+      return ucs4Obj;
     }
   }
 
-  PyObject *ret = PyUnicode_FromKindAndData(PyUnicode_4BYTE_KIND, ucs4String, ucs4Length);
-  delete[] ucs4String;
-  return ret;
+  return pyObject;
+}
+
+PyObject *StrType::getPyObject(JSContext *cx, JSString *str) {
+  return processString(cx, str);
+}
+
+const char *StrType::getValue(JSContext *cx, JSString *str) {
+  PyObject *pyObject = processString(cx, str);
+  const char *value = PyUnicode_AsUTF8(pyObject);
+  Py_DECREF(pyObject);
+  return value;
 }

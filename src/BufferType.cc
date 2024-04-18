@@ -1,28 +1,24 @@
 /**
  * @file BufferType.cc
- * @author Tom Tang (xmader@distributive.network)
+ * @author Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing ArrayBuffers
  * @date 2023-04-27
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #include "include/BufferType.hh"
 
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
 
 #include <jsapi.h>
 #include <js/ArrayBuffer.h>
 #include <js/experimental/TypedData.h>
 #include <js/ScalarType.h>
 
-#include <Python.h>
 
-BufferType::BufferType(PyObject *object) : PyType(object) {}
-
-BufferType::BufferType(JSContext *cx, JS::HandleObject bufObj) {
+PyObject *BufferType::getPyObject(JSContext *cx, JS::HandleObject bufObj) {
+  PyObject *pyObject;
   if (JS_IsTypedArrayObject(bufObj)) {
     pyObject = fromJsTypedArray(cx, bufObj);
   } else if (JS::IsArrayBufferObject(bufObj)) {
@@ -32,6 +28,8 @@ BufferType::BufferType(JSContext *cx, JS::HandleObject bufObj) {
     PyErr_SetString(PyExc_TypeError, "`bufObj` is neither a TypedArray object nor an ArraryBuffer object.");
     pyObject = nullptr;
   }
+
+  return pyObject;
 }
 
 /* static */
@@ -92,7 +90,7 @@ PyObject *BufferType::fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuf
   return PyMemoryView_FromBuffer(&bufInfo);
 }
 
-JSObject *BufferType::toJsTypedArray(JSContext *cx) {
+JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
   // Get the pyObject's underlying buffer pointer and size
   Py_buffer *view = new Py_buffer{};
   if (PyObject_GetBuffer(pyObject, view, PyBUF_ND | PyBUF_WRITABLE /* C-contiguous and writable */ | PyBUF_FORMAT) < 0) {

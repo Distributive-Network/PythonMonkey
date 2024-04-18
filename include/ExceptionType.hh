@@ -4,15 +4,12 @@
  * @brief Struct for representing Python Exception objects from a corresponding JS Error object
  * @date 2023-04-11
  *
- * @copyright Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_ExceptionType_
 #define PythonMonkey_ExceptionType_
-
-#include "PyType.hh"
-#include "TypeEnum.hh"
 
 #include <jsapi.h>
 
@@ -21,7 +18,7 @@
 /**
  * @brief This struct represents a Python Exception object from the corresponding JS Error object
  */
-struct ExceptionType : public PyType {
+struct ExceptionType {
 public:
   /**
    * @brief Construct a new SpiderMonkeyError from the JS Error object.
@@ -29,9 +26,7 @@ public:
    * @param cx - javascript context pointer
    * @param error - JS Error object to be converted
    */
-  ExceptionType(JSContext *cx, JS::HandleObject error);
-
-  const TYPE returnType = TYPE::EXCEPTION;
+  static PyObject *getPyObject(JSContext *cx, JS::HandleObject error);
 
   /**
    * @brief Convert a python Exception object to a JS Error object

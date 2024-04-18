@@ -10,11 +10,7 @@
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
-#include "include/BoolType.hh"
 #include "include/setSpiderMonkeyException.hh"
-#include "include/DateType.hh"
-#include "include/FloatType.hh"
-#include "include/FuncType.hh"
 #include "include/JSFunctionProxy.hh"
 #include "include/JSMethodProxy.hh"
 #include "include/JSArrayIterProxy.hh"
@@ -25,9 +21,7 @@
 #include "include/JSObjectItemsProxy.hh"
 #include "include/JSObjectProxy.hh"
 #include "include/JSStringProxy.hh"
-#include "include/PyType.hh"
 #include "include/pyTypeFactory.hh"
-#include "include/StrType.hh"
 #include "include/PyEventLoop.hh"
 #include "include/internalBinding.hh"
 
@@ -70,6 +64,24 @@ bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
 static void cleanupFinalizationRegistry(JSFunction *callback, JSObject *global [[maybe_unused]], void *user_data [[maybe_unused]]) {
   JOB_QUEUE->queueFinalizationRegistryCallback(callback);
 }
+
+static PyObject *PythonMonkey_Null;
+static PyObject *PythonMonkey_BigInt;
+
+PyObject *getPythonMonkeyNull() {
+  if (!PythonMonkey_Null) {
+    PythonMonkey_Null = PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null");
+  }
+  return PythonMonkey_Null;
+}
+
+PyObject *getPythonMonkeyBigInt() {
+  if (!PythonMonkey_BigInt) {
+    PythonMonkey_BigInt = PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint");
+  }
+  return PythonMonkey_BigInt;
+}
+
 
 typedef struct {
   PyObject_HEAD
@@ -254,6 +266,8 @@ PyTypeObject JSObjectItemsProxyType = {
 };
 
 static void cleanup() {
+  Py_XDECREF(PythonMonkey_Null);
+  Py_XDECREF(PythonMonkey_BigInt);
   delete autoRealm;
   delete global;
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
@@ -323,17 +337,13 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  StrType *code = NULL;
+  PyObject *code = NULL;
   FILE *file = NULL;
   PyObject *arg0 = PyTuple_GetItem(args, 0);
   PyObject *arg1 = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
 
   if (PyUnicode_Check(arg0)) {
-    code = new StrType(arg0);
-    if (!code || !PyUnicode_Check(code->getPyObject())) {
-      PyErr_SetString(PyExc_TypeError, "JS code must originate from a Unicode string");
-      return NULL;
-    }
+    code = arg0;
   } else if (1 /*PyFile_Check(arg0)*/) {
     /* First argument is an open file. Open a stream with a dup of the underlying fd (so we can fclose
      * the stream later). Future: seek to current Python file position IFF the fd is for a real file.
@@ -407,12 +417,11 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
   if (code) {
     JS::SourceText<mozilla::Utf8Unit> source;
-    if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
+    const char *codeChars = PyUnicode_AsUTF8(code);
+    if (!source.init(GLOBAL_CX, codeChars, strlen(codeChars), JS::SourceOwnership::Borrowed)) {
       setSpiderMonkeyException(GLOBAL_CX);
-      delete code;
       return NULL;
     }
-    delete code;
     script = JS::Compile(GLOBAL_CX, options, source);
   } else {
     assert(file);
@@ -432,7 +441,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // translate to the proper python type
-  PyType *returnValue = pyTypeFactory(GLOBAL_CX, *rval);
+  PyObject *returnValue = pyTypeFactory(GLOBAL_CX, *rval);
   if (PyErr_Occurred()) {
     return NULL;
   }
@@ -448,7 +457,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   if (returnValue) {
-    return returnValue->getPyObject();
+    return returnValue;
   }
   else {
     Py_RETURN_NONE;
@@ -467,19 +476,15 @@ static PyObject *waitForEventLoop(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED
 }
 
 static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
-  StrType *buffer = new StrType(PyTuple_GetItem(args, 0));
-  const char *bufferUtf8;
-  bool compilable;
-
-  if (!PyUnicode_Check(buffer->getPyObject())) {
+  PyObject *item = PyTuple_GetItem(args, 0);
+  if (!PyUnicode_Check(item)) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
     return NULL;
   }
 
-  bufferUtf8 = buffer->getValue();
-  compilable = JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8));
+  const char *bufferUtf8 = PyUnicode_AsUTF8(item);
 
-  if (compilable)
+  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8)))
     Py_RETURN_TRUE;
   else
     Py_RETURN_FALSE;
@@ -489,7 +494,7 @@ PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"wait", waitForEventLoop, METH_NOARGS, "The event-loop shield. Blocks until all asynchronous jobs finish."},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
-  {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
+  {"collect", collect, METH_VARARGS, "Calls the Spidermonkey garbage collector"},
   {NULL, NULL, 0, NULL}
 };
 
@@ -571,7 +576,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
       return JS::DOMProxyShadowsResult::ShadowCheckFailed;
     }, nullptr);
 
-  PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)
     return NULL;
   if (PyType_Ready(&BigIntType) < 0)
@@ -597,7 +601,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   if (PyType_Ready(&JSObjectItemsProxyType) < 0)
     return NULL;
 
-  pyModule = PyModule_Create(&pythonmonkey);
+  PyObject *pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
     return NULL;
 

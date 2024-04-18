@@ -1,24 +1,18 @@
 /**
  * @file BoolType.cc
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing python bools
  * @date 2022-12-02
  *
- * @copyright Copyright (c) 2022 Distributive Corp.
+ * @copyright Copyright (c) 2022,2024 Distributive Corp.
  *
  */
 
 #include "include/BoolType.hh"
 
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
 
-#include <Python.h>
-
-BoolType::BoolType(PyObject *object) : PyType(object) {}
-
-BoolType::BoolType(long n) : PyType(PyBool_FromLong(n)) {}
-
-long BoolType::getValue() const {
-  return PyLong_AS_LONG(pyObject);
+PyObject *BoolType::getPyObject(long n) {
+  PyObject *boolVal = PyBool_FromLong(n);
+  Py_INCREF(boolVal);
+  return boolVal;
 }

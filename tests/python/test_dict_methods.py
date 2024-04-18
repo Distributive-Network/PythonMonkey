@@ -410,7 +410,7 @@ def test_items_xor():
 
 def test_items_intersect_one_own_smaller():
     dishes = pm.eval("({'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500})")
-    items = dishes.items()# TODO causes crash
+    items = dishes.items()
     b = items & {('eggs', 2), ('bacon', 1), ('salad', 12), ('jam', 34)}
     c = {('eggs', 2), ('bacon', 1), ('salad', 12), ('jam', 34)} & items
     assert b == {('bacon', 1), ('eggs', 2)} == c
@@ -431,7 +431,7 @@ def test_items_len():
     dishes = pm.eval("({'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500})")
     items = dishes.items()
     assert len(items) == 4
-# TODO causes crash
+
 # TODO tuple support
 #def test_items_contains(): 
 #    dishes = pm.eval("({'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500})")
