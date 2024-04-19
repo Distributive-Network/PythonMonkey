@@ -123,7 +123,14 @@ function _normalizeTimerArgs(handler, delayMs, additionalArgs)
     delayMs = 0; // as spec-ed
   const delaySeconds = delayMs / 1000; // convert ms to s
 
-  return { boundHandler, delaySeconds };
+  // Populate debug information for the WTFPythonMonkey tool
+  const debugInfo = {
+    fn: handler,
+    args: additionalArgs,
+    delaySeconds,
+  };
+
+  return { boundHandler, delaySeconds, debugInfo };
 }
 
 /**
@@ -137,8 +144,8 @@ function _normalizeTimerArgs(handler, delayMs, additionalArgs)
  */
 function setTimeout(handler, delayMs = 0, ...args) 
 {
-  const { boundHandler, delaySeconds } = _normalizeTimerArgs(handler, delayMs, args);
-  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, false));
+  const { boundHandler, delaySeconds, debugInfo } = _normalizeTimerArgs(handler, delayMs, args);
+  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, false, debugInfo));
 }
 
 /**
@@ -168,8 +175,8 @@ function clearTimeout(timeoutId)
  */
 function setInterval(handler, delayMs = 0, ...args) 
 {
-  const { boundHandler, delaySeconds } = _normalizeTimerArgs(handler, delayMs, args);
-  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, true));
+  const { boundHandler, delaySeconds, debugInfo } = _normalizeTimerArgs(handler, delayMs, args);
+  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, true, debugInfo));
 }
 
 /**
