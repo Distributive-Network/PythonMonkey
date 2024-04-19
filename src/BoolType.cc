@@ -12,7 +12,5 @@
 
 
 PyObject *BoolType::getPyObject(long n) {
-  PyObject *boolVal = PyBool_FromLong(n);
- // Py_INCREF(boolVal);
-  return boolVal;
+  return PyBool_FromLong(n);
 }

@@ -21,7 +21,7 @@
 #include <stdexcept>
 
 JobQueue::JobQueue(JSContext *cx) {
-  finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);
+  finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);   // Leaks but it's OK since freed at process exit
 }
 
 JSObject *JobQueue::getIncumbentGlobal(JSContext *cx) {

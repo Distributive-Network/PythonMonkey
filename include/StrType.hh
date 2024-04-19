@@ -21,7 +21,7 @@
 struct StrType {
 public:
   /**
-   * @brief Construct a new StrType object from a JSString. Automatically handles encoding conversion for latin1 & UCS2:
+   * @brief Construct a new unicode PyObject from a JSString. Automatically handles encoding conversion for latin1 & UCS2:
    * codepoint     | Python          | Spidermonkey     | identical representation?
    * 000000-0000FF | latin1          | latin1           | Yes
    * 000100-00D7FF | UCS2            | UTF16            | Yes
