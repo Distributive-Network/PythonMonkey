@@ -21,4 +21,5 @@ PyObject *ListType::getPyObject(JSContext *cx, JS::HandleObject jsArrayObj) {
     proxy->jsArray->set(jsArrayObj);
     return (PyObject *)proxy;
   }
+  return NULL;
 }

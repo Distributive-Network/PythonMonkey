@@ -25,4 +25,5 @@ PyObject *DictType::getPyObject(JSContext *cx, JS::Handle<JS::Value> jsObject) {
     proxy->jsObject->set(obj);
     return (PyObject *)proxy;
   }
+  return NULL;
 }
