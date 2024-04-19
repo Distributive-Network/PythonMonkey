@@ -12,6 +12,6 @@
 
 PyObject *FloatType::getPyObject(double n) {
   PyObject *doubleVal = Py_BuildValue("d", n);
- // Py_INCREF(doubleVal);
+  Py_INCREF(doubleVal);
   return doubleVal;
 }
