@@ -73,6 +73,7 @@ static PyObject *asUCS4(PyObject *pyObject) {
 
   for (size_t i = 0; i < length; i++, ucs4Length++) {
     if (Py_UNICODE_IS_LOW_SURROGATE(chars[i])) { // character is an unpaired low surrogate
+      delete[] ucs4String;
       return NULL;
     } else if (Py_UNICODE_IS_HIGH_SURROGATE(chars[i])) { // character is a high surrogate
       if ((i + 1 < length) && Py_UNICODE_IS_LOW_SURROGATE(chars[i+1])) { // next character is a low surrogate
@@ -80,6 +81,7 @@ static PyObject *asUCS4(PyObject *pyObject) {
         i++; // skip over low surrogate
       }
       else { // next character is not a low surrogate
+        delete[] ucs4String;
         return NULL;
       }
     } else { // character is not a surrogate, and is in the BMP
