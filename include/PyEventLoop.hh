@@ -131,16 +131,16 @@ public:
     /**
      * @brief Set the debug info object for WTFPythonMonkey tool
      */
-    inline void setDebugInfo(JSObject *obj) {
+    inline void setDebugInfo(PyObject *obj) {
       _debugInfo = obj;
     }
-    inline JSObject *getDebugInfo() {
+    inline PyObject *getDebugInfo() {
       return _debugInfo;
     }
   protected:
     PyObject *_handle;
     std::atomic_bool _refed = false;
-    JSObject *_debugInfo = nullptr;
+    PyObject *_debugInfo = nullptr;
   };
 
   /**

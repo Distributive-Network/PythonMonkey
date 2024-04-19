@@ -8,6 +8,7 @@
 
 #include "include/internalBinding.hh"
 #include "include/pyTypeFactory.hh"
+#include "include/jsTypeFactory.hh"
 #include "include/PyEventLoop.hh"
 
 #include <jsapi.h>
@@ -24,7 +25,7 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::HandleValue jobArgVal = args.get(0);
   double delaySeconds = args.get(1).toNumber();
   bool repeat = args.get(2).toBoolean();
-  JSObject *debugInfoObj = args.get(3).toObjectOrNull();
+  JS::HandleValue debugInfo = args.get(3);
 
   // Convert to a Python function
   JS::RootedValue jobArg(cx, jobArgVal);
@@ -37,7 +38,7 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Set debug info for the WTFPythonMonkey tool
   auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
-  handle->setDebugInfo(debugInfoObj);
+  handle->setDebugInfo(pyTypeFactory(cx, debugInfo)->getPyObject());
 
   // Return the `timeoutID` to use in `clearTimeout`
   args.rval().setNumber(handleId);
@@ -108,7 +109,8 @@ static bool getDebugInfo(JSContext *cx, unsigned argc, JS::Value *vp) {
   AsyncHandle *handle = AsyncHandle::fromId((uint32_t)timeoutID);
   if (!handle) return false; // error no such timeoutID
 
-  args.rval().setObjectOrNull(handle->getDebugInfo());
+  JS::Value debugInfo = jsTypeFactory(cx, handle->getDebugInfo());
+  args.rval().set(debugInfo);
   return true;
 }
 
