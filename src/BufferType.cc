@@ -91,6 +91,8 @@ PyObject *BufferType::fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuf
 }
 
 JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
+  Py_INCREF(pyObject);
+
   // Get the pyObject's underlying buffer pointer and size
   Py_buffer *view = new Py_buffer{};
   if (PyObject_GetBuffer(pyObject, view, PyBUF_ND | PyBUF_WRITABLE /* C-contiguous and writable */ | PyBUF_FORMAT) < 0) {
