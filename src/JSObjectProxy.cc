@@ -169,9 +169,9 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, 
     PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
     return -1;
   }
-  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, value);
-  return value->isUndefined() ? 0 : 1;
+  JS::RootedValue value(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+  return value.isUndefined() ? 0 : 1;
 }
 
 static inline void assignKeyValue(JSObjectProxy *self, PyObject *key, JS::HandleId id, PyObject *value) {
