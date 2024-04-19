@@ -478,6 +478,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
     if (!k) {
       break;
     }
+    Py_DECREF(leftItem);
   }
 
   if (index >= selfLength || index >= otherLength) {
