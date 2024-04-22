@@ -47,6 +47,7 @@ static bool makeNewPyMethod(JSContext *cx, JS::MutableHandleValue function, JS::
   thisValue.setObject(*thisObject);
   PyObject *newSelf = pyTypeFactory(cx, thisValue);
   function.set(jsTypeFactory(cx, PyMethod_New(func, newSelf)));
+  Py_DECREF(newSelf);
 
   return true;
 }
