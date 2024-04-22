@@ -1027,6 +1027,7 @@ skip_optional:
     Py_INCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
     Py_DECREF(obj);
+    Py_DECREF(obj);
     if (cmp > 0) {
       return PyLong_FromSsize_t(index);
     }
@@ -1049,6 +1050,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_count(JSArrayProxy *self, 
     PyObject *obj = pyTypeFactory(GLOBAL_CX, elementVal);
     Py_INCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
+    Py_DECREF(obj);
     Py_DECREF(obj);
     if (cmp > 0) {
       count++;
