@@ -362,9 +362,12 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue elementVal(cx);
   for (int index = 0; index < insertCount; index++) {
     elementVal.set(args[index + 2].get());
-    if (PyList_SetItem(inserted, index, pyTypeFactory(cx, elementVal)) < 0) {
+    PyObject *value = pyTypeFactory(cx, elementVal);
+    if (PyList_SetItem(inserted, index, value) < 0) {
+      Py_DECREF(value);
       return false;
     }
+    Py_DECREF(value);
   }
 
   if (PyList_SetSlice(self, actualStart, actualStart + actualDeleteCount, inserted) < 0) {
