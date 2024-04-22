@@ -1163,13 +1163,16 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
       args.rval().setInt32(reverse ? -1 : 1);
     }
     else {
+      Py_DECREF(args_1);
       return false;
     }
   }
   else {
+    Py_DECREF(args_1);
     return false;
   }
 
+  Py_DECREF(args_1);
   return true;
 }
 
