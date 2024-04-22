@@ -504,7 +504,10 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
 
   JS_GetElement(GLOBAL_CX, *(self->jsArray), index, &elementVal);
   /* Compare the final item again using the proper operator */
-  return PyObject_RichCompare(pyTypeFactory(GLOBAL_CX, elementVal), ((PyListObject *)other)->ob_item[index], op);
+  PyObject *pyElementVal = pyTypeFactory(GLOBAL_CX, elementVal);
+  PyObject *result = PyObject_RichCompare(pyElementVal, ((PyListObject *)other)->ob_item[index], op);
+  Py_DECREF(pyElementVal);
+  return result;
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
