@@ -699,6 +699,7 @@ int JSArrayProxyMethodDefinitions::JSArrayProxy_contains(JSArrayProxy *self, PyO
     Py_INCREF(item);
     cmp = PyObject_RichCompareBool(item, element, Py_EQ);
     Py_DECREF(item);
+    Py_DECREF(item);
   }
   return cmp;
 }
@@ -959,6 +960,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_remove(JSArrayProxy *self,
     PyObject *obj = pyTypeFactory(GLOBAL_CX, elementVal);
     Py_INCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
+    Py_DECREF(obj);
     Py_DECREF(obj);
     if (cmp > 0) {
       JS::Rooted<JS::ValueArray<2>> jArgs(GLOBAL_CX);
