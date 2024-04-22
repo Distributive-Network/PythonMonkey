@@ -279,7 +279,9 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   JS::RootedValue elementVal(cx, args[0].get());
-  PyObject *result = PyObject_CallMethod(self, "index", "Oi", pyTypeFactory(cx, elementVal), start);
+  PyObject *value = pyTypeFactory(cx, elementVal);
+  PyObject *result = PyObject_CallMethod(self, "index", "Oi", value, start);
+  Py_DECREF(value);
 
   if (!result) {
     PyErr_Clear();
