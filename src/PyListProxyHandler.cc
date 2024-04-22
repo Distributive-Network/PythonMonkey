@@ -164,9 +164,12 @@ static bool array_unshift(JSContext *cx, unsigned argc, JS::Value *vp) { // sure
   JS::RootedValue elementVal(cx);
   for (int index = args.length() - 1; index >= 0; index--) {
     elementVal.set(args[index].get());
-    if (PyList_Insert(self, 0, pyTypeFactory(cx, elementVal)) < 0) {
+    PyObject *value = pyTypeFactory(cx, elementVal);
+    if (PyList_Insert(self, 0, value) < 0) {
+      Py_DECREF(value);
       return false;
     }
+    Py_DECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
