@@ -58,6 +58,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
     future.setException(result);
   }
 
+  Py_XDECREF(result);
   return true;
 }
 

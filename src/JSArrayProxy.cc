@@ -456,27 +456,36 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
 
     PyObject *leftItem = pyTypeFactory(GLOBAL_CX, elementVal);
     PyObject *rightItem;
+
+    bool needToDecRefRightItem;
     if (PyObject_TypeCheck(other, &JSArrayProxyType)) {
       JS_GetElement(GLOBAL_CX, *(((JSArrayProxy *)other)->jsArray), index, &elementVal);
       rightItem = pyTypeFactory(GLOBAL_CX, elementVal);
+      needToDecRefRightItem = true;
     } else {
       rightItem = ((PyListObject *)other)->ob_item[index];
+      needToDecRefRightItem = false;
     }
 
     if (leftItem == rightItem) {
       continue;
     }
 
-    Py_INCREF(leftItem);
+    Py_XINCREF(leftItem);
     Py_INCREF(rightItem);
     int k = PyObject_RichCompareBool(leftItem, rightItem, Py_EQ);
-    Py_DECREF(leftItem);
+    Py_XDECREF(leftItem);
     Py_DECREF(rightItem);
     if (k < 0) {
       return NULL;
     }
     if (!k) {
       break;
+    }
+
+    Py_XDECREF(leftItem);
+    if (needToDecRefRightItem) {
+      Py_DECREF(rightItem);
     }
   }
 
@@ -497,7 +506,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
   /* Compare the final item again using the proper operator */
   PyObject *pyElementVal = pyTypeFactory(GLOBAL_CX, elementVal);
   PyObject *result = PyObject_RichCompare(pyElementVal, ((PyListObject *)other)->ob_item[index], op);
-  Py_DECREF(pyElementVal);
+  Py_XDECREF(pyElementVal);
   return result;
 }
 
@@ -542,7 +551,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
     } else {
       PyObject *pyElementVal = pyTypeFactory(GLOBAL_CX, elementVal);
       s = PyObject_Repr(pyElementVal);
-      Py_DECREF(pyElementVal);
+      Py_XDECREF(pyElementVal);
     }
     if (s == NULL) {
       goto error;
@@ -687,9 +696,10 @@ int JSArrayProxyMethodDefinitions::JSArrayProxy_contains(JSArrayProxy *self, PyO
   for (index = 0, cmp = 0; cmp == 0 && index < numElements; ++index) {
     JS_GetElement(GLOBAL_CX, *(self->jsArray), index, &elementVal);
     PyObject *item = pyTypeFactory(GLOBAL_CX, elementVal);
-    Py_INCREF(item);
+    Py_XINCREF(item);
     cmp = PyObject_RichCompareBool(item, element, Py_EQ);
-    Py_DECREF(item);
+    Py_XDECREF(item);
+    Py_XDECREF(item);
   }
   return cmp;
 }
@@ -948,9 +958,10 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_remove(JSArrayProxy *self,
   for (Py_ssize_t index = 0; index < selfSize; index++) {
     JS_GetElement(GLOBAL_CX, *(self->jsArray), index, &elementVal);
     PyObject *obj = pyTypeFactory(GLOBAL_CX, elementVal);
-    Py_INCREF(obj);
+    Py_XINCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
-    Py_DECREF(obj);
+    Py_XDECREF(obj);
+    Py_XDECREF(obj);
     if (cmp > 0) {
       JS::Rooted<JS::ValueArray<2>> jArgs(GLOBAL_CX);
       jArgs[0].setInt32(index);
@@ -1013,9 +1024,10 @@ skip_optional:
   for (Py_ssize_t index = start; index < stop && index < selfSize; index++) {
     JS_GetElement(GLOBAL_CX, *(self->jsArray), index, &elementVal);
     PyObject *obj = pyTypeFactory(GLOBAL_CX, elementVal);
-    Py_INCREF(obj);
+    Py_XINCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
-    Py_DECREF(obj);
+    Py_XDECREF(obj);
+    Py_XDECREF(obj);
     if (cmp > 0) {
       return PyLong_FromSsize_t(index);
     }
@@ -1036,9 +1048,10 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_count(JSArrayProxy *self, 
   for (Py_ssize_t index = 0; index < length; index++) {
     JS_GetElement(GLOBAL_CX, *(self->jsArray), index, &elementVal);
     PyObject *obj = pyTypeFactory(GLOBAL_CX, elementVal);
-    Py_INCREF(obj);
+    Py_XINCREF(obj);
     int cmp = PyObject_RichCompareBool(obj, value, Py_EQ);
-    Py_DECREF(obj);
+    Py_XDECREF(obj);
+    Py_XDECREF(obj);
     if (cmp > 0) {
       count++;
     }
@@ -1084,7 +1097,7 @@ static bool sort_compare_key_func(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue elementVal0(cx, args[0]);
   PyObject *args_0 = pyTypeFactory(cx, elementVal0);
   PyObject *args_0_result = PyObject_CallFunction(keyfunc, "O", args_0);
-  Py_DECREF(args_0);
+  Py_XDECREF(args_0);
   if (!args_0_result) {
     return false;
   }
@@ -1092,7 +1105,7 @@ static bool sort_compare_key_func(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue elementVal1(cx, args[1]);
   PyObject *args_1 = pyTypeFactory(cx, elementVal1);
   PyObject *args_1_result = PyObject_CallFunction(keyfunc, "O", args_1);
-  Py_DECREF(args_1);
+  Py_XDECREF(args_1);
   if (!args_1_result) {
     return false;
   }
@@ -1150,13 +1163,19 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
       args.rval().setInt32(reverse ? -1 : 1);
     }
     else {
+      Py_XDECREF(args_0);
+      Py_XDECREF(args_1);
       return false;
     }
   }
   else {
+    Py_XDECREF(args_0);
+    Py_XDECREF(args_1);
     return false;
   }
 
+  Py_XDECREF(args_0);
+  Py_XDECREF(args_1);
   return true;
 }
 
