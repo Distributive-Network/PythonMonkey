@@ -112,9 +112,12 @@ static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely 
   JS::RootedValue elementVal(cx);
   for (unsigned index = 0; index < numArgs; index++) {
     elementVal.set(args[index].get());
-    if (PyList_Append(self, pyTypeFactory(cx, elementVal)) < 0) {
+    PyObject *value = pyTypeFactory(cx, elementVal);
+    if (PyList_Append(self, value) < 0) {
+      Py_DECREF(value);
       return false;
     }
+    Py_DECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
