@@ -259,6 +259,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
     PyObject *pyKey = pyTypeFactory(GLOBAL_CX, key);
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
+    Py_DECREF(pyKey);
     if (!pyVal2) { // if other.key is NULL then not equal
       return false;
     }
