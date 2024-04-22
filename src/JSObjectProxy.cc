@@ -416,7 +416,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     } else {
       value = pyTypeFactory(GLOBAL_CX, elementVal);
     }
-    Py_INCREF(value);
 
     s = PyObject_Repr(value);
     if (s == NULL) {
