@@ -564,11 +564,16 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
       Py_ssize_t itemLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)item);
       for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
         if (!JS_GetElement(cx, *(((JSArrayProxy *)item)->jsArray), flatIndex, &elementVal)) {
+          Py_XDECREF(item);
           return false;
         }
-        if (PyList_Append(result, pyTypeFactory(cx, elementVal)) < 0) {
+        PyObject *value = pyTypeFactory(cx, elementVal);
+        if (PyList_Append(result, value) < 0) {
+          Py_XDECREF(item);
+          Py_XDECREF(value);
           return false;
         }
+        Py_XDECREF(value);
       }
     }
     else if (PyObject_TypeCheck(item, &PyList_Type)) {
@@ -576,15 +581,22 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
       Py_ssize_t itemLength = PyList_GET_SIZE(item);
       for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
         if (PyList_Append(result, PyList_GetItem(item, flatIndex)) < 0) {
+          Py_XDECREF(item);
           return false;
         }
       }
     }
     else {
-      if (PyList_Append(result, pyTypeFactory(cx, elementVal)) < 0) {
+      PyObject *value = pyTypeFactory(cx, elementVal);
+      if (PyList_Append(result, value) < 0) {
+        Py_XDECREF(item);
+        Py_XDECREF(value);
         return false;
       }
+      Py_XDECREF(value);
     }
+
+    Py_XDECREF(item);
   }
 
   args.rval().set(jsTypeFactory(cx, result));
@@ -639,13 +651,16 @@ static bool array_lastIndexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
     int cmp = PyObject_RichCompareBool(item, element, Py_EQ);
     Py_DECREF(item);
     if (cmp < 0) {
+      Py_XDECREF(element);
       return false;
     }
     else if (cmp == 1) {
+      Py_XDECREF(element);
       args.rval().setInt32(index);
       return true;
     }
   }
+  Py_XDECREF(element);
 
   args.rval().setInt32(-1);
   return true;
@@ -1247,7 +1262,6 @@ static uint32_t FlattenIntoArray(JSContext *cx,
   JS::RootedValue elementVal(cx);
 
   for (uint32_t sourceIndex = 0; sourceIndex < sourceLen; sourceIndex++) {
-
     if (PyObject_TypeCheck(source, &JSArrayProxyType)) {
       JS_GetElement(cx, *(((JSArrayProxy *)source)->jsArray), sourceIndex, &elementVal);
     }
@@ -1294,6 +1308,8 @@ static uint32_t FlattenIntoArray(JSContext *cx,
 
       targetIndex++;
     }
+
+    Py_XDECREF(element);
   }
 
   return targetIndex;
@@ -1391,6 +1407,8 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx,
         targetIndex++;
       }
     }
+
+    Py_XDECREF(element);
   }
 
   return targetIndex;
