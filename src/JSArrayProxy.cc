@@ -1092,6 +1092,7 @@ static bool sort_compare_key_func(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue elementVal1(cx, args[1]);
   PyObject *args_1 = pyTypeFactory(cx, elementVal1);
   PyObject *args_1_result = PyObject_CallFunction(keyfunc, "O", args_1);
+  Py_DECREF(args_1);
   if (!args_1_result) {
     return false;
   }
