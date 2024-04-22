@@ -456,11 +456,15 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
 
     PyObject *leftItem = pyTypeFactory(GLOBAL_CX, elementVal);
     PyObject *rightItem;
+
+    bool needToDecRefRightItem;
     if (PyObject_TypeCheck(other, &JSArrayProxyType)) {
       JS_GetElement(GLOBAL_CX, *(((JSArrayProxy *)other)->jsArray), index, &elementVal);
       rightItem = pyTypeFactory(GLOBAL_CX, elementVal);
+      needToDecRefRightItem = true;
     } else {
       rightItem = ((PyListObject *)other)->ob_item[index];
+      needToDecRefRightItem = false;
     }
 
     if (leftItem == rightItem) {
@@ -478,7 +482,11 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
     if (!k) {
       break;
     }
+
     Py_DECREF(leftItem);
+    if (needToDecRefRightItem) {
+      Py_DECREF(rightItem);
+    }
   }
 
   if (index >= selfLength || index >= otherLength) {
