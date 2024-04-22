@@ -47,6 +47,7 @@ bool JobQueue::enqueuePromiseJob(JSContext *cx,
 
   loop.enqueue(callback);
 
+  Py_XDECREF(callback);
   return true;
 }
 
