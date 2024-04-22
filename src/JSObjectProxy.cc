@@ -412,6 +412,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
 
     if (&elementVal.toObject() == (*(self->jsObject)).get()) {
       value = (PyObject *)self;
+      Py_INCREF(value);
     } else {
       value = pyTypeFactory(GLOBAL_CX, elementVal);
     }
