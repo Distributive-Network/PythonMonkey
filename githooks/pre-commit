@@ -8,6 +8,8 @@
 # @author Caleb Aikens, caleb@distributive.network
 # @date   Apr 2024
 
+git diff --cached --name-only --diff-filter=ACM -z
+
 nocclinting=$(git config --type=bool hooks.nocclinting)
 nojslinting=$(git config --type=bool hooks.nojslinting)
 nopylinting=$(git config --type=bool hooks.nopylinting)
@@ -15,7 +17,7 @@ nopylinting=$(git config --type=bool hooks.nopylinting)
 UNCRUSTIFY_SUCCESS=true
 if [ "$nocclinting" != "true" ]; then
   echo "linting C++ files ..."
-  for ccFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./uncrustify-source \) -prune -o \( -name '*.hh' -o -name '*.cc'     \) -exec echo {} \;`;
+  for ccFile in `git diff --cached --name-only --diff-filter=ACM | grep -E '.cc$|.hh$' | cat`;
   do
     ./uncrustify --check -c uncrustify.cfg "${ccFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -43,7 +45,7 @@ fi
 ESLINT_SUCCESS=true
 if [ "$nojslinting" != "true" ]; then
   echo "linting JavaScript files ..."
-  for jsFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official -o -path ./cmake -o -path */node_modules -o -path ./uncrustify-source \) -prune -o \( -name '*.js' -o -name '*.simple' \) -exec echo {} \;`;
+  for jsFile in `git diff --cached --name-only --diff-filter=ACM | grep -E '.js$|.simple$' | cat`;
   do
     ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=1 "${jsFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -72,7 +74,7 @@ fi
 AUTOPEP8_SUCCESS=true
 if [ "$nopylinting" != "true" ]; then
   echo "linting python files ..."
-  for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official -o -path ./uncrustify-source \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
+  for pythonFile in `git diff --cached --name-only --diff-filter=ACM | grep -E '.py$|.pyi$' | cat`;
   do
     autopep8 "${pythonFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
