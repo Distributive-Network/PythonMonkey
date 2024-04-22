@@ -2,6 +2,8 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# set git hooks
+ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit
 
 # Get number of CPU cores
 CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
@@ -36,6 +38,7 @@ else
   POETRY_BIN=`echo ~/.local/bin/poetry` # expand tilde
 fi
 $POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
+poetry run pip install autopep8
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"

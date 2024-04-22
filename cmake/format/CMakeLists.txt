@@ -57,29 +57,6 @@ add_custom_target("${PROJECT_NAME}-format-cpp" ALL
 )
 # pythonmonkey_target_initialize("${PROJECT_NAME}-format-cpp")
 
-if(NOT AUTOPEP8_SCRIPT)
-  if(AUTOPEP8_ROOT STREQUAL "")
-    message(STATUS "Target '${PROJECT_NAME}-format-python' not added:"
-      " AUTOPEP8_ROOT not set"
-    )
-    return()
-  endif()
-
-  find_program(AUTOPEP8_SCRIPT
-    NAMES "autopep8.py"
-    DOC "autopep8 script path"
-    PATHS "${AUTOPEP8_ROOT}"
-    NO_DEFAULT_PATH
-  )
-  if(NOT AUTOPEP8_SCRIPT)
-    message(STATUS "Target '${PROJECT_NAME}-format-python' not added:"
-      " autopep8 not found"
-    )
-    return()
-  endif()
-endif()
-message(STATUS "Using autopep8: ${AUTOPEP8_SCRIPT}")
-
 option(PYTHONMONKEY_PYTHON_FORMAT_FIX "Automatically fix formatting errors." ON)
 if(PYTHONMONKEY_PYTHON_FORMAT_FIX)
   message(STATUS "Automatically fixing Python formatting errors")
@@ -96,15 +73,4 @@ endif()
 file(GLOB_RECURSE PYTHONMONKEY_PYTHON_FORMAT_FILES CONFIGURE_DEPENDS
   "${PROJECT_SOURCE_DIR}/python/*.py"
   "${PROJECT_SOURCE_DIR}/tests/python/*.py"
-)
-
-set(PYTHONMONKEY_PYTHON_FORMAT_COMMAND
-  "python3 ${AUTOPEP8_SCRIPT}"
-  ${PYTHONMONKEY_PYTHON_FORMAT_OPTIONS}
-  ${PYTHONMONKEY_PYTHON_FORMAT_FILES}
-)
-
-execute_process(
-  COMMAND ${PYTHONMONKEY_PYTHON_FORMAT_COMMAND}
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )

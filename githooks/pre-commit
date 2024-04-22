@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# This hook script lints all code with Uncrustify, ESLint, and autopep8 on
+# what is about to be commited. Called by "git commit". If this script
+# exits with a non-zero status nothing will be committed. 
+
+AUTOPEP8_SUCCESS=true
+for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -path ./tests/commonjs-official \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
+do
+  autopep8 "${pythonFile}" > /dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    AUTOPEP8_SUCCESS=false
+    echo "autopep8 failed on: ${pythonFile}"
+  fi
+done
+
+if [ "$AUTOPEP8_SUCCESS" = false ]; then
+
+cat <<EOF
+You can check what needs to be fixed with 'autopep8 <filename>'.
+Most issues can be automatically fixed with 'autopep8 -i <filename>'.
+A description of each warning code can be seen with 'autopep8 --list-fixes'.
+Alternatively, you can temporarily disable autopep8 linting in a python file with '# autopep8: off'
+and re-enable it with '# autopep8: on'.
+EOF
+
+fi
+
+if [ "$AUTOPEP8_SUCCESS" = false ]; then
+  exit 1
+fi
+
+exit 0

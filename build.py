@@ -37,6 +37,9 @@ def ensure_spidermonkey():
     # Build SpiderMonkey
     execute("bash ./setup.sh", cwd = TOP_DIR)
 
+def ensure_githooks():
+    execute("ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit", cwd=TOP_DIR)
+
 def run_cmake_build():
     os.makedirs(BUILD_DIR, exist_ok=True) # mkdir -p
     if platform.system() == "Windows":
@@ -55,6 +58,7 @@ def copy_artifacts():
 
 def build():
     ensure_spidermonkey()
+    ensure_githooks()
     run_cmake_build()
     copy_artifacts()
 
