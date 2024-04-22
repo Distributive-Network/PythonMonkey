@@ -549,7 +549,9 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
     if (&elementVal.toObject() == (*(self->jsArray)).get()) {
       s = PyObject_Repr((PyObject *)self);
     } else {
-      s = PyObject_Repr(pyTypeFactory(GLOBAL_CX, elementVal));
+      PyObject *pyElementVal = pyTypeFactory(GLOBAL_CX, elementVal);
+      s = PyObject_Repr(pyElementVal);
+      Py_DECREF(pyElementVal);
     }
     if (s == NULL) {
       goto error;
