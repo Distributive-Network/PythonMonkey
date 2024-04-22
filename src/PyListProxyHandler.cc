@@ -47,6 +47,7 @@ static bool makeNewPyMethod(JSContext *cx, JS::MutableHandleValue function, JS::
   thisValue.setObject(*thisObject);
   PyObject *newSelf = pyTypeFactory(cx, thisValue);
   function.set(jsTypeFactory(cx, PyMethod_New(func, newSelf)));
+  Py_DECREF(newSelf);
 
   return true;
 }
@@ -111,9 +112,12 @@ static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely 
   JS::RootedValue elementVal(cx);
   for (unsigned index = 0; index < numArgs; index++) {
     elementVal.set(args[index].get());
-    if (PyList_Append(self, pyTypeFactory(cx, elementVal)) < 0) {
+    PyObject *value = pyTypeFactory(cx, elementVal);
+    if (PyList_Append(self, value) < 0) {
+      Py_DECREF(value);
       return false;
     }
+    Py_DECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
@@ -160,9 +164,12 @@ static bool array_unshift(JSContext *cx, unsigned argc, JS::Value *vp) { // sure
   JS::RootedValue elementVal(cx);
   for (int index = args.length() - 1; index >= 0; index--) {
     elementVal.set(args[index].get());
-    if (PyList_Insert(self, 0, pyTypeFactory(cx, elementVal)) < 0) {
+    PyObject *value = pyTypeFactory(cx, elementVal);
+    if (PyList_Insert(self, 0, value) < 0) {
+      Py_DECREF(value);
       return false;
     }
+    Py_DECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
@@ -272,7 +279,9 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   JS::RootedValue elementVal(cx, args[0].get());
-  PyObject *result = PyObject_CallMethod(self, "index", "Oi", pyTypeFactory(cx, elementVal), start);
+  PyObject *value = pyTypeFactory(cx, elementVal);
+  PyObject *result = PyObject_CallMethod(self, "index", "Oi", value, start);
+  Py_DECREF(value);
 
   if (!result) {
     PyErr_Clear();
@@ -353,9 +362,12 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue elementVal(cx);
   for (int index = 0; index < insertCount; index++) {
     elementVal.set(args[index + 2].get());
-    if (PyList_SetItem(inserted, index, pyTypeFactory(cx, elementVal)) < 0) {
+    PyObject *value = pyTypeFactory(cx, elementVal);
+    if (PyList_SetItem(inserted, index, value) < 0) {
+      Py_DECREF(value);
       return false;
     }
+    Py_DECREF(value);
   }
 
   if (PyList_SetSlice(self, actualStart, actualStart + actualDeleteCount, inserted) < 0) {

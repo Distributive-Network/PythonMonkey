@@ -68,9 +68,12 @@ bool PyDictProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleId
   PyObject *attrName = idToKey(cx, id);
 
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (PyDict_SetItem(self, attrName, pyTypeFactory(cx, rootedV))) {
+  PyObject *value = pyTypeFactory(cx, rootedV);
+  if (PyDict_SetItem(self, attrName, value)) {
+    Py_DECREF(value);
     return result.failCantSetInterposed(); // raises JS exception
   }
+  Py_DECREF(value);
   return result.succeed();
 }
 
