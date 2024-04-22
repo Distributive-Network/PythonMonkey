@@ -47,7 +47,7 @@ static bool makeNewPyMethod(JSContext *cx, JS::MutableHandleValue function, JS::
   thisValue.setObject(*thisObject);
   PyObject *newSelf = pyTypeFactory(cx, thisValue);
   function.set(jsTypeFactory(cx, PyMethod_New(func, newSelf)));
-  Py_DECREF(newSelf);
+  Py_XDECREF(newSelf);
 
   return true;
 }
@@ -114,10 +114,10 @@ static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely 
     elementVal.set(args[index].get());
     PyObject *value = pyTypeFactory(cx, elementVal);
     if (PyList_Append(self, value) < 0) {
-      Py_DECREF(value);
+      Py_XDECREF(value);
       return false;
     }
-    Py_DECREF(value);
+    Py_XDECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
@@ -166,10 +166,10 @@ static bool array_unshift(JSContext *cx, unsigned argc, JS::Value *vp) { // sure
     elementVal.set(args[index].get());
     PyObject *value = pyTypeFactory(cx, elementVal);
     if (PyList_Insert(self, 0, value) < 0) {
-      Py_DECREF(value);
+      Py_XDECREF(value);
       return false;
     }
-    Py_DECREF(value);
+    Py_XDECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
@@ -281,7 +281,7 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue elementVal(cx, args[0].get());
   PyObject *value = pyTypeFactory(cx, elementVal);
   PyObject *result = PyObject_CallMethod(self, "index", "Oi", value, start);
-  Py_DECREF(value);
+  Py_XDECREF(value);
 
   if (!result) {
     PyErr_Clear();
@@ -364,10 +364,8 @@ static bool array_splice(JSContext *cx, unsigned argc, JS::Value *vp) {
     elementVal.set(args[index + 2].get());
     PyObject *value = pyTypeFactory(cx, elementVal);
     if (PyList_SetItem(inserted, index, value) < 0) {
-      Py_DECREF(value);
       return false;
     }
-    Py_DECREF(value);
   }
 
   if (PyList_SetSlice(self, actualStart, actualStart + actualDeleteCount, inserted) < 0) {
@@ -430,10 +428,16 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   JS::RootedValue fillValue(cx, args[0].get());
   PyObject *fillValueItem = pyTypeFactory(cx, fillValue);
+  bool setItemCalled = false;
   for (int index = actualStart; index < actualEnd; index++) {
+    setItemCalled = true;
     if (PyList_SetItem(self, index, fillValueItem) < 0) {
       return false;
     }
+  }
+
+  if (!setItemCalled) {
+    Py_XDECREF(fillValueItem);
   }
 
   // return ref to self
