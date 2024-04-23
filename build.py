@@ -42,7 +42,7 @@ def ensure_githooks():
 
 def run_cmake_build():
   os.makedirs(BUILD_DIR, exist_ok=True)  # mkdir -p
-  build_type = "Debug" if "DEBUG" in os.environ else "Release"
+  build_type = os.environ["BUILD_TYPE"] if "BUILD_TYPE" in os.environ else "Release"
   build_docs = "ON" if "BUILD_DOCS" in os.environ else "OFF"
 
   if platform.system() == "Windows":

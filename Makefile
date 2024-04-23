@@ -4,7 +4,7 @@
 # @date         March 2024
 #
 
-BUILD  = debug
+BUILD  = Debug	# Release, DRelease, Debug, or Profile
 DOCS	 = false
 VERBOSE= true
 PYTHON = python3
@@ -19,8 +19,14 @@ CPUS := $(shell test $(CPU_COUNT) -lt $(MAX_JOBS) && echo $(CPU_COUNT) || echo $
 PYTHON_BUILD_ENV += CPUS=$(CPUS)
 endif
 
-ifeq ($(BUILD),debug)
-PYTHON_BUILD_ENV += DEBUG=1
+ifeq ($(BUILD),Profile)
+PYTHON_BUILD_ENV += BUILD_TYPE=Profile
+else ifeq ($(BUILD),Debug)
+PYTHON_BUILD_ENV += BUILD_TYPE=Debug
+else ifeq ($(BUILD),DRelease)
+PYTHON_BUILD_ENV += BUILD_TYPE=DRelease
+else # Release build
+PYTHON_BUILD_ENV += BUILD_TYPE=Release
 endif
 
 ifeq ($(DOCS),true)

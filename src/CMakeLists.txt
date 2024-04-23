@@ -14,6 +14,7 @@ add_library(pythonmonkey SHARED
 )
 
 target_include_directories(pythonmonkey PUBLIC ..)
+target_compile_definitions(pythonmonkey PRIVATE BUILD_TYPE="${CMAKE_BUILD_TYPE} $<CONFIG>")
 
 if(WIN32)
   set_target_properties(

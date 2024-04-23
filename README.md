@@ -78,9 +78,12 @@ Read this if you want to build a local version.
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
-2. Run `poetry install`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv. 
-To build a Debug version of the project, run `DEBUG=1 poetry install`.
-To build the docs as well, run `BUILD_DOCS=1 poetry install`.
+2. Run `poetry install`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv. If you would like to build the docs, set the `BUILD_DOCS` environment variable, like so: `BUILD_DOCS=1 poetry install`.
+PythonMonkey supports multiple build types, which you can build by setting the `BUILD_TYPE` environment variable, like so: `BUILD_TYPE=Debug poetry install`. The build types are:
+- `Release`: stripped symbols, maximum optimizations (default)
+- `DRelease`: same as `Release`, except symbols are not stripped
+- `Debug`: minimal optimizations
+- `Profile`: same as `Debug`, except profiling is enabled 
 
 If you are using VSCode, you can just press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> to [run build task](https://code.visualstudio.com/docs/editor/tasks#_custom-tasks) - We have [the `tasks.json` file configured for you](.vscode/tasks.json).
 
