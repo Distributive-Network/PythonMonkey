@@ -176,10 +176,10 @@ bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::Handle
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   PyObject *value = pyTypeFactory(cx, rootedV);
   if (PyObject_SetAttr(self, attrName, value)) {
-    Py_XDECREF(value);
+    Py_DECREF(value);
     return result.failCantSetInterposed(); // raises JS exception
   }
-  Py_XDECREF(value);
+  Py_DECREF(value);
   return result.succeed();
 }
 

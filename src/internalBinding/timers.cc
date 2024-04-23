@@ -32,7 +32,7 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return false;
   PyEventLoop::AsyncHandle::id_t handleId = loop.enqueueWithDelay(job, delaySeconds, repeat);
-  Py_XDECREF(job);
+  Py_DECREF(job);
 
   // Return the `timeoutID` to use in `clearTimeout`
   args.rval().setNumber(handleId);

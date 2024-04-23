@@ -42,7 +42,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
     #else
     PyObject *wrapped = PyObject_CallFunction(SpiderMonkeyError, "O", result); // PyObject_CallOneArg is not available in Python < 3.9
     #endif
-    Py_XDECREF(result);
+    Py_DECREF(result);
     result = wrapped;
   }
 
@@ -58,7 +58,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
     future.setException(result);
   }
 
-  Py_XDECREF(result);
+  Py_DECREF(result);
   return true;
 }
 

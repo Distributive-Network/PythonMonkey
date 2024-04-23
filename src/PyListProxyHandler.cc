@@ -47,7 +47,7 @@ static bool makeNewPyMethod(JSContext *cx, JS::MutableHandleValue function, JS::
   thisValue.setObject(*thisObject);
   PyObject *newSelf = pyTypeFactory(cx, thisValue);
   function.set(jsTypeFactory(cx, PyMethod_New(func, newSelf)));
-  Py_XDECREF(newSelf);
+  Py_DECREF(newSelf);
 
   return true;
 }
@@ -114,10 +114,10 @@ static bool array_push(JSContext *cx, unsigned argc, JS::Value *vp) { // surely 
     elementVal.set(args[index].get());
     PyObject *value = pyTypeFactory(cx, elementVal);
     if (PyList_Append(self, value) < 0) {
-      Py_XDECREF(value);
+      Py_DECREF(value);
       return false;
     }
-    Py_XDECREF(value);
+    Py_DECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
@@ -166,10 +166,10 @@ static bool array_unshift(JSContext *cx, unsigned argc, JS::Value *vp) { // sure
     elementVal.set(args[index].get());
     PyObject *value = pyTypeFactory(cx, elementVal);
     if (PyList_Insert(self, 0, value) < 0) {
-      Py_XDECREF(value);
+      Py_DECREF(value);
       return false;
     }
-    Py_XDECREF(value);
+    Py_DECREF(value);
   }
 
   args.rval().setInt32(PyList_GET_SIZE(self));
@@ -281,7 +281,7 @@ static bool array_indexOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedValue elementVal(cx, args[0].get());
   PyObject *value = pyTypeFactory(cx, elementVal);
   PyObject *result = PyObject_CallMethod(self, "index", "Oi", value, start);
-  Py_XDECREF(value);
+  Py_DECREF(value);
 
   if (!result) {
     PyErr_Clear();
@@ -437,7 +437,7 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   if (!setItemCalled) {
-    Py_XDECREF(fillValueItem);
+    Py_DECREF(fillValueItem);
   }
 
   // return ref to self
@@ -568,16 +568,16 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
       Py_ssize_t itemLength = JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)item);
       for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
         if (!JS_GetElement(cx, *(((JSArrayProxy *)item)->jsArray), flatIndex, &elementVal)) {
-          Py_XDECREF(item);
+          Py_DECREF(item);
           return false;
         }
         PyObject *value = pyTypeFactory(cx, elementVal);
         if (PyList_Append(result, value) < 0) {
-          Py_XDECREF(item);
-          Py_XDECREF(value);
+          Py_DECREF(item);
+          Py_DECREF(value);
           return false;
         }
-        Py_XDECREF(value);
+        Py_DECREF(value);
       }
     }
     else if (PyObject_TypeCheck(item, &PyList_Type)) {
@@ -585,7 +585,7 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
       Py_ssize_t itemLength = PyList_GET_SIZE(item);
       for (Py_ssize_t flatIndex = 0; flatIndex < itemLength; flatIndex++) {
         if (PyList_Append(result, PyList_GetItem(item, flatIndex)) < 0) {
-          Py_XDECREF(item);
+          Py_DECREF(item);
           return false;
         }
       }
@@ -593,14 +593,14 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
     else {
       PyObject *value = pyTypeFactory(cx, elementVal);
       if (PyList_Append(result, value) < 0) {
-        Py_XDECREF(item);
-        Py_XDECREF(value);
+        Py_DECREF(item);
+        Py_DECREF(value);
         return false;
       }
-      Py_XDECREF(value);
+      Py_DECREF(value);
     }
 
-    Py_XDECREF(item);
+    Py_DECREF(item);
   }
 
   args.rval().set(jsTypeFactory(cx, result));
@@ -1313,7 +1313,7 @@ static uint32_t FlattenIntoArray(JSContext *cx,
       targetIndex++;
     }
 
-    Py_XDECREF(element);
+    Py_DECREF(element);
   }
 
   return targetIndex;
@@ -1412,7 +1412,7 @@ static uint32_t FlattenIntoArrayWithCallBack(JSContext *cx,
       }
     }
 
-    Py_XDECREF(element);
+    Py_DECREF(element);
   }
 
   return targetIndex;
