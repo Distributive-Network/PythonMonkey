@@ -69,7 +69,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.autopep8]
 max_line_length=120
-ignore="E121"
+ignore="E111,E114,E121" # allow 2-space indents
 verbose=true
 indent-size=2
 aggressive=3

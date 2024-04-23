@@ -5,7 +5,8 @@
 # exits with a non-zero status nothing will be committed. 
 
 AUTOPEP8_SUCCESS=true
-for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -path ./tests/commonjs-official \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
+echo "linting python files ..."
+for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
 do
   autopep8 "${pythonFile}" > /dev/null 2>&1
   if [ $? -ne 0 ]; then
@@ -19,7 +20,8 @@ if [ "$AUTOPEP8_SUCCESS" = false ]; then
 cat <<EOF
 You can check what needs to be fixed with 'autopep8 <filename>'.
 Most issues can be automatically fixed with 'autopep8 -i <filename>'.
-A description of each warning code can be seen with 'autopep8 --list-fixes'.
+A description of each warning code can be seen with 'autopep8 --list-fixes',
+or at: https://pep8.readthedocs.io/en/release-1.7.x/intro.html
 Alternatively, you can temporarily disable autopep8 linting in a python file with '# autopep8: off'
 and re-enable it with '# autopep8: on'.
 EOF
