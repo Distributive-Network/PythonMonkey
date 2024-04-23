@@ -56,7 +56,11 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
     if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
       return NULL; // Fail-fast
     }
-    jsArgsVector.append(jsValue);
+    if (!jsArgsVector.append(jsValue)) {
+      // out of memory
+      setSpiderMonkeyException(cx);
+      return NULL;
+    }
   }
 
   JS::HandleValueArray jsArgs(jsArgsVector);

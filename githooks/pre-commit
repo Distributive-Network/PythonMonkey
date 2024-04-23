@@ -24,7 +24,7 @@ if [ "$nocclinting" != "true" ]; then
     ./uncrustify --check -c uncrustify.cfg "${ccFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
       UNCRUSTIFY_SUCCESS=false
-      echo -e "uncrustify failed on: ${RED}{ccFile}${ENDCOLOUR}"
+      echo -e "uncrustify failed on: ${RED}${ccFile}${ENDCOLOUR}"
     fi
   done
   echo "finished linting C++ files."
@@ -36,7 +36,7 @@ cat <<EOF
 ${YELLOW}
 You can check what needs to be fixed with './uncrustify -c uncrustify.cfg <filename>'.
 This will output the fixed file in the same directory with a .uncrustify extension.
-You can automatically fix the file with './uncrustify -c uncrustify.cfg --replace --no-backup'
+You can automatically fix the file with './uncrustify -c uncrustify.cfg --replace --no-backup <filename>'
 Alternatively, you can temporarily disable uncrustify linting in a C++ file with '/* *INDENT-OFF* */'
 and re-enable it with '/* *INDENT-ON* */'.
 If you know what you are doing you can disable this check using:
