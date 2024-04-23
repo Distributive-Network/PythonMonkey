@@ -1,2 +1,2 @@
-//python.print('LOADED', __file)
-console.log('LOADED', __filename)
+// python.print('LOADED', __file)
+console.log('LOADED', __filename);

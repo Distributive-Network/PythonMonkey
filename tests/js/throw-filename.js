@@ -6,9 +6,9 @@
  */
 try
 {
-  throw new Error("lp0 on fire");
+  throw new Error('lp0 on fire');
 }
 catch(error)
 {
-  console.log(error.stack)
+  console.log(error.stack);
 }

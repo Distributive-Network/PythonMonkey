@@ -6,9 +6,12 @@
  */
 'use strict';
 
-var resolve, reject;
+var resolve;
 var valToResolve = 1;
-const examplePromise = new Promise((res, rej) => {resolve = res, reject = rej});
+const examplePromise = new Promise((res, rej) => 
+{
+  resolve = res;
+});
 
 const pythonCode = `
 import asyncio
@@ -19,15 +22,15 @@ async def awaitPromise(promise):
 `;
 
 python.exec(pythonCode);
-const pythonFunction = python.eval("awaitPromise")
+const pythonFunction = python.eval('awaitPromise');
 
 async function test()
 {
   const backValue = await pythonFunction(examplePromise);
   if (backValue !== 1)
-    throw new Error(`Received value ${backValue} instead of ${valToResolve} from awaiting a JS promise in python`)
+    throw new Error(`Received value ${backValue} instead of ${valToResolve} from awaiting a JS promise in python`);
 }
-test()
+test();
 
 resolve(valToResolve);
 

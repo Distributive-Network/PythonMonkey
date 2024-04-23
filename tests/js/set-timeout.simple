@@ -17,7 +17,7 @@ const start = time();
  */
 function check100ms()
 {
-  end = time();
+  let end = time();
 
   if (end - start < 0.1)
     throw new Error('timer fired too soon');

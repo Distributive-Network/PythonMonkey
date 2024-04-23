@@ -8,16 +8,20 @@
 'use strict';
 
 
-var resolve, reject;
-const examplePromise = new Promise((res, rej) => {resolve = res, reject = rej});
+var resolve;
+const examplePromise = new Promise((res, rej) => 
+{
+  resolve = res;
+});
 
-const pythonCode = `lambda x: x`;
+const pythonCode = 'lambda x: x';
 
 const pythonLambda = python.eval(pythonCode);
 const outPromise = pythonLambda(examplePromise);
 
-outPromise.then(() => {
-  console.log("able to resolve promise after going through python");
+outPromise.then(() => 
+{
+  console.log('able to resolve promise after going through python');
   python.exit();
 });
 

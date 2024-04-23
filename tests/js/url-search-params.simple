@@ -18,7 +18,8 @@ const NODE = false;
 
 const { getPrototypeOf, getOwnPropertyDescriptor } = Object;
 
-QUnit.test('URLSearchParams', assert => {
+QUnit.test('URLSearchParams', assert => 
+{
   assert.isFunction(URLSearchParams);
   assert.arity(URLSearchParams, 0);
   assert.name(URLSearchParams, 'URLSearchParams');
@@ -124,21 +125,26 @@ QUnit.test('URLSearchParams', assert => {
     // !!! { input: { 'a\0b': '42', 'c\uD83D': '23', dሴ: 'foo' }, output: [['a\0b', '42'], ['c\uFFFD', '23'], ['d\u1234', 'foo']], name: 'object with NULL, non-ASCII, and surrogate keys' },
   ];
 
-  for (const { input, output, name } of testData) {
+  for (const { input, output, name } of testData) 
+  {
     params = new URLSearchParams(input);
     let i = 0;
-    params.forEach((value, key) => {
+    params.forEach((value, key) => 
+    {
       const [reqKey, reqValue] = output[i++];
       assert.same(key, reqKey, `construct with ${ name }`);
       assert.same(value, reqValue, `construct with ${ name }`);
     });
   }
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
+    // eslint-disable-next-line new-cap
     URLSearchParams('');
   }, 'TypeError: Incorrect invocation'); // throws w/o `new`
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     new URLSearchParams([[1, 2, 3]]);
   }, 'TypeError: Expected sequence with length 2');
 
@@ -146,7 +152,8 @@ QUnit.test('URLSearchParams', assert => {
   //   new URLSearchParams([createIterable([createIterable([1, 2, 3])])]);
   // }, 'sequence elements must be pairs #2');
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     new URLSearchParams([[1]]);
   }, 'TypeError: Expected sequence with length 2');
 
@@ -155,7 +162,8 @@ QUnit.test('URLSearchParams', assert => {
   // }, 'sequence elements must be pairs #4');
 });
 
-QUnit.test('URLSearchParams#append', assert => {
+QUnit.test('URLSearchParams#append', assert => 
+{
   const { append } = URLSearchParams.prototype;
   assert.isFunction(append);
   assert.arity(append, 2);
@@ -203,12 +211,14 @@ QUnit.test('URLSearchParams#append', assert => {
   params.append('first', 10);
   assert.same(params.get('first'), '1', 'search params object has name "first" with value "1"');
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     return new URLSearchParams('').append();
   }, 'TypeError: Not enough arguments'); // throws w/o arguments
 });
 
-QUnit.test('URLSearchParams#delete', assert => {
+QUnit.test('URLSearchParams#delete', assert => 
+{
   const $delete = URLSearchParams.prototype.delete;
   assert.isFunction($delete);
   assert.arity($delete, 1);
@@ -258,7 +268,8 @@ QUnit.test('URLSearchParams#delete', assert => {
   params.delete('a', undefined);
   assert.same(String(params), 'b=4');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     let url = new URL('http://example.com/?param1&param2');
     url.searchParams.delete('param1');
     url.searchParams.delete('param2');
@@ -271,12 +282,14 @@ QUnit.test('URLSearchParams#delete', assert => {
     assert.same(url.search, '', 'url.search does not have ?');
   }
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     return new URLSearchParams('').delete();
   }, 'TypeError: Not enough arguments');
 });
 
-QUnit.test('URLSearchParams#get', assert => {
+QUnit.test('URLSearchParams#get', assert => 
+{
   const { get } = URLSearchParams.prototype;
   assert.isFunction(get);
   assert.arity(get, 1);
@@ -338,12 +351,14 @@ QUnit.test('URLSearchParams#get', assert => {
 
   assert.same(new URLSearchParams('=').get(''), '', 'parse =');
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     return new URLSearchParams('').get();
   }, 'TypeError: Not enough arguments');
 });
 
-QUnit.test('URLSearchParams#getAll', assert => {
+QUnit.test('URLSearchParams#getAll', assert => 
+{
   const { getAll } = URLSearchParams.prototype;
   assert.isFunction(getAll);
   assert.arity(getAll, 1);
@@ -370,12 +385,14 @@ QUnit.test('URLSearchParams#getAll', assert => {
   params.set('a', 'one');
   assert.arrayEqual(params.getAll('a'), ['one'], 'search params object has expected name "a" values');
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     return new URLSearchParams('').getAll();
   }, 'TypeError: Not enough arguments');
 });
 
-QUnit.test('URLSearchParams#has', assert => {
+QUnit.test('URLSearchParams#has', assert => 
+{
   const { has } = URLSearchParams.prototype;
   assert.isFunction(has);
   assert.arity(has, 1);
@@ -416,12 +433,14 @@ QUnit.test('URLSearchParams#has', assert => {
   assert.true(params.has('b', undefined));
   assert.false(params.has('c', undefined));
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     return new URLSearchParams('').has();
   }, 'TypeError: Not enough arguments');
 });
 
-QUnit.test('URLSearchParams#set', assert => {
+QUnit.test('URLSearchParams#set', assert => 
+{
   const { set } = URLSearchParams.prototype;
   assert.isFunction(set);
   assert.arity(set, 2);
@@ -451,12 +470,14 @@ QUnit.test('URLSearchParams#set', assert => {
   assert.same(params.get('a'), '4', 'search params object has name "a" with value "4"');
   assert.same(String(params), 'a=4&first=4');
 
-  assert.throws(() => {
+  assert.throws(() => 
+  {
     return new URLSearchParams('').set();
   }, 'TypeError: Not enough arguments');
 });
 
-QUnit.test('URLSearchParams#sort', assert => {
+QUnit.test('URLSearchParams#sort', assert => 
+{
   const { sort } = URLSearchParams.prototype;
   assert.isFunction(sort);
   assert.arity(sort, 0);
@@ -523,11 +544,13 @@ QUnit.test('URLSearchParams#sort', assert => {
     },
   ];
 
-  for (const { input, output } of testData) {
+  for (const { input, output } of testData) 
+  {
     let i = 0;
     params = new URLSearchParams(input);
     params.sort();
-    params.forEach((value, key) => {
+    params.forEach((value, key) => 
+    {
       const [reqKey, reqValue] = output[i++];
       assert.same(key, reqKey);
       assert.same(value, reqValue);
@@ -537,14 +560,16 @@ QUnit.test('URLSearchParams#sort', assert => {
     const url = new URL(`?${ input }`, 'https://example/');
     params = url.searchParams;
     params.sort();
-    params.forEach((value, key) => {
+    params.forEach((value, key) => 
+    {
       const [reqKey, reqValue] = output[i++];
       assert.same(key, reqKey);
       assert.same(value, reqValue);
     });
   }
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     const url = new URL('http://example.com/?');
     url.searchParams.sort();
     assert.same(url.href, 'http://example.com/', 'Sorting non-existent params removes ? from URL');
@@ -552,7 +577,8 @@ QUnit.test('URLSearchParams#sort', assert => {
   }
 });
 
-QUnit.test('URLSearchParams#toString', assert => {
+QUnit.test('URLSearchParams#toString', assert => 
+{
   const { toString } = URLSearchParams.prototype;
   assert.isFunction(toString);
   assert.arity(toString, 0);
@@ -650,7 +676,8 @@ QUnit.test('URLSearchParams#toString', assert => {
   assert.same(String(params), 'a=&a=b');
 });
 
-QUnit.test('URLSearchParams#forEach', assert => {
+QUnit.test('URLSearchParams#forEach', assert => 
+{
   const { forEach } = URLSearchParams.prototype;
   assert.isFunction(forEach);
   assert.arity(forEach, 1);
@@ -661,7 +688,8 @@ QUnit.test('URLSearchParams#forEach', assert => {
   const expectedValues = { a: '1', b: '2', c: '3' };
   let params = new URLSearchParams('a=1&b=2&c=3');
   let result = '';
-  params.forEach((value, key, that) => {
+  params.forEach((value, key, that) => 
+  {
     assert.same(params.get(key), expectedValues[key]);
     assert.same(value, expectedValues[key]);
     assert.same(that, params);
@@ -669,16 +697,19 @@ QUnit.test('URLSearchParams#forEach', assert => {
   });
   assert.same(result, 'abc');
 
-  new URL('http://a.b/c').searchParams.forEach(() => {
+  new URL('http://a.b/c').searchParams.forEach(() => 
+  {
     assert.avoid();
   });
 
   // fails in Chrome 66-
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     const url = new URL('http://a.b/c?a=1&b=2&c=3&d=4');
     params = url.searchParams;
     result = '';
-    params.forEach((val, key) => {
+    params.forEach((val, key) => 
+    {
       url.search = 'x=1&y=2&z=3';
       result += key + val;
     });
@@ -688,14 +719,16 @@ QUnit.test('URLSearchParams#forEach', assert => {
   // fails in Chrome 66-
   params = new URLSearchParams('a=1&b=2&c=3');
   result = '';
-  params.forEach((value, key) => {
+  params.forEach((value, key) => 
+  {
     params.delete('b');
     result += key + value;
   });
   assert.same(result, 'a1c3');
 });
 
-QUnit.test('URLSearchParams#entries', assert => {
+QUnit.test('URLSearchParams#entries', assert => 
+{
   const { entries } = URLSearchParams.prototype;
   assert.isFunction(entries);
   assert.arity(entries, 0);
@@ -708,7 +741,8 @@ QUnit.test('URLSearchParams#entries', assert => {
   let iterator = params.entries();
   let result = '';
   let entry;
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     const [key, value] = entry.value;
     assert.same(params.get(key), expectedValues[key]);
     assert.same(value, expectedValues[key]);
@@ -719,11 +753,13 @@ QUnit.test('URLSearchParams#entries', assert => {
   assert.true(new URL('http://a.b/c').searchParams.entries().next().done, 'should be finished');
 
   // fails in Chrome 66-
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     const url = new URL('http://a.b/c?a=1&b=2&c=3&d=4');
     iterator = url.searchParams.entries();
     result = '';
-    while (!(entry = iterator.next()).done) {
+    while (!(entry = iterator.next()).done) 
+    {
       const [key, value] = entry.value;
       url.search = 'x=1&y=2&z=3';
       result += key + value;
@@ -735,7 +771,8 @@ QUnit.test('URLSearchParams#entries', assert => {
   params = new URLSearchParams('a=1&b=2&c=3');
   iterator = params.entries();
   result = '';
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     params.delete('b');
     const [key, value] = entry.value;
     result += key + value;
@@ -745,7 +782,8 @@ QUnit.test('URLSearchParams#entries', assert => {
   if (DESCRIPTORS) assert.true(getOwnPropertyDescriptor(getPrototypeOf(new URLSearchParams().entries()), 'next').enumerable, 'enumerable .next');
 });
 
-QUnit.test('URLSearchParams#keys', assert => {
+QUnit.test('URLSearchParams#keys', assert => 
+{
   const { keys } = URLSearchParams.prototype;
   assert.isFunction(keys);
   assert.arity(keys, 0);
@@ -756,7 +794,8 @@ QUnit.test('URLSearchParams#keys', assert => {
   let iterator = new URLSearchParams('a=1&b=2&c=3').keys();
   let result = '';
   let entry;
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     result += entry.value;
   }
   assert.same(result, 'abc');
@@ -764,11 +803,13 @@ QUnit.test('URLSearchParams#keys', assert => {
   assert.true(new URL('http://a.b/c').searchParams.keys().next().done, 'should be finished');
 
   // fails in Chrome 66-
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     const url = new URL('http://a.b/c?a=1&b=2&c=3&d=4');
     iterator = url.searchParams.keys();
     result = '';
-    while (!(entry = iterator.next()).done) {
+    while (!(entry = iterator.next()).done) 
+    {
       const key = entry.value;
       url.search = 'x=1&y=2&z=3';
       result += key;
@@ -780,7 +821,8 @@ QUnit.test('URLSearchParams#keys', assert => {
   const params = new URLSearchParams('a=1&b=2&c=3');
   iterator = params.keys();
   result = '';
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     params.delete('b');
     const key = entry.value;
     result += key;
@@ -790,7 +832,8 @@ QUnit.test('URLSearchParams#keys', assert => {
   if (DESCRIPTORS) assert.true(getOwnPropertyDescriptor(getPrototypeOf(new URLSearchParams().keys()), 'next').enumerable, 'enumerable .next');
 });
 
-QUnit.test('URLSearchParams#values', assert => {
+QUnit.test('URLSearchParams#values', assert => 
+{
   const { values } = URLSearchParams.prototype;
   assert.isFunction(values);
   assert.arity(values, 0);
@@ -801,7 +844,8 @@ QUnit.test('URLSearchParams#values', assert => {
   let iterator = new URLSearchParams('a=1&b=2&c=3').values();
   let result = '';
   let entry;
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     result += entry.value;
   }
   assert.same(result, '123');
@@ -809,11 +853,13 @@ QUnit.test('URLSearchParams#values', assert => {
   assert.true(new URL('http://a.b/c').searchParams.values().next().done, 'should be finished');
 
   // fails in Chrome 66-
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     const url = new URL('http://a.b/c?a=a&b=b&c=c&d=d');
     iterator = url.searchParams.keys();
     result = '';
-    while (!(entry = iterator.next()).done) {
+    while (!(entry = iterator.next()).done) 
+    {
       const { value } = entry;
       url.search = 'x=x&y=y&z=z';
       result += value;
@@ -825,7 +871,8 @@ QUnit.test('URLSearchParams#values', assert => {
   const params = new URLSearchParams('a=1&b=2&c=3');
   iterator = params.values();
   result = '';
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     params.delete('b');
     const key = entry.value;
     result += key;
@@ -835,7 +882,8 @@ QUnit.test('URLSearchParams#values', assert => {
   if (DESCRIPTORS) assert.true(getOwnPropertyDescriptor(getPrototypeOf(new URLSearchParams().values()), 'next').enumerable, 'enumerable .next');
 });
 
-QUnit.test('URLSearchParams#@@iterator', assert => {
+QUnit.test('URLSearchParams#@@iterator', assert => 
+{
   const entries = URLSearchParams.prototype[Symbol.iterator];
   assert.isFunction(entries);
   assert.arity(entries, 0);
@@ -849,7 +897,8 @@ QUnit.test('URLSearchParams#@@iterator', assert => {
   let iterator = params[Symbol.iterator]();
   let result = '';
   let entry;
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     const [key, value] = entry.value;
     assert.same(params.get(key), expectedValues[key]);
     assert.same(value, expectedValues[key]);
@@ -860,11 +909,13 @@ QUnit.test('URLSearchParams#@@iterator', assert => {
   assert.true(new URL('http://a.b/c').searchParams[Symbol.iterator]().next().done, 'should be finished');
 
   // fails in Chrome 66-
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     const url = new URL('http://a.b/c?a=1&b=2&c=3&d=4');
     iterator = url.searchParams[Symbol.iterator]();
     result = '';
-    while (!(entry = iterator.next()).done) {
+    while (!(entry = iterator.next()).done) 
+    {
       const [key, value] = entry.value;
       url.search = 'x=1&y=2&z=3';
       result += key + value;
@@ -876,7 +927,8 @@ QUnit.test('URLSearchParams#@@iterator', assert => {
   params = new URLSearchParams('a=1&b=2&c=3');
   iterator = params[Symbol.iterator]();
   result = '';
-  while (!(entry = iterator.next()).done) {
+  while (!(entry = iterator.next()).done) 
+  {
     params.delete('b');
     const [key, value] = entry.value;
     result += key + value;
@@ -886,12 +938,14 @@ QUnit.test('URLSearchParams#@@iterator', assert => {
   if (DESCRIPTORS) assert.true(getOwnPropertyDescriptor(getPrototypeOf(new URLSearchParams()[Symbol.iterator]()), 'next').enumerable, 'enumerable .next');
 });
 
-QUnit.test('URLSearchParams#size', assert => {
+QUnit.test('URLSearchParams#size', assert => 
+{
   const params = new URLSearchParams('a=1&b=2&b=3');
   assert.true('size' in params);
   assert.same(params.size, 3);
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.true('size' in URLSearchParams.prototype);
 
     const { enumerable, configurable, get } = getOwnPropertyDescriptor(URLSearchParams.prototype, 'size');
@@ -905,15 +959,19 @@ QUnit.test('URLSearchParams#size', assert => {
   }
 });
 
-QUnit.test('URLSearchParams#@@toStringTag', assert => {
+QUnit.test('URLSearchParams#@@toStringTag', assert => 
+{
   const params = new URLSearchParams('a=b');
   assert.same(({}).toString.call(params), '[object URLSearchParams]');
 });
 
-if (typeof Request == 'function') {
-  QUnit.test('URLSearchParams with Request', assert => {
+if (typeof Request === 'function') 
+{
+  QUnit.test('URLSearchParams with Request', assert => 
+  {
     const async = assert.async();
-    new Request('http://zloirock.ru', { body: new URLSearchParams({ foo: 'baz' }), method: 'POST' }).text().then(text => {
+    new Request('http://zloirock.ru', { body: new URLSearchParams({ foo: 'baz' }), method: 'POST' }).text().then(text => 
+    {
       assert.same(text, 'foo=baz');
       async();
     });
