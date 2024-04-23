@@ -1,22 +1,61 @@
 #!/bin/bash
+#
+# @file   pre-commit
+#         This hook script lints all code with Uncrustify, ESLint, and autopep8 on
+#         what is about to be commited. Called by "git commit". If this script
+#         exits with a non-zero status nothing will be committed. 
+#
+# @author Caleb Aikens, caleb@distributive.network
+# @date   Apr 2024
 
-# This hook script lints all code with Uncrustify, ESLint, and autopep8 on
-# what is about to be commited. Called by "git commit". If this script
-# exits with a non-zero status nothing will be committed. 
+nocclinting=$(git config --type=bool hooks.nocclinting)
+nojslinting=$(git config --type=bool hooks.nojslinting)
+nopylinting=$(git config --type=bool hooks.nopylinting)
+
+ESLINT_SUCCESS=true
+if [ "$nojslinting" != "true" ]; then
+  echo "linting JavaScript files ..."
+  for jsFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official -o -path ./cmake -o -path */node_modules \) -prune -o \( -name '*.js' -o -name '*.simple' \) -exec echo {} \;`;
+  do
+    ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=1 "${jsFile}" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      ESLINT_SUCCESS=false
+      echo "eslint failed on: ${jsFile}"
+    fi
+  done
+  echo "finished linting JavaScript files."
+fi
+
+if [ "$ESLINT_SUCCESS" = false ]; then
+cat <<EOF
+You can check what needs to be fixed with 'eslint <filename>'.
+Most issues can be automatically fixed with 'eslint --fix <filename>'.
+NOTE: If using v9.0.0 of eslint or greater, you will have to set the ESLINT_USE_FLAT_CONFIG
+environment variable to false.
+Alternatively, you can temporarily disable eslint linting in a js file with '/* eslint-disable */'
+and re-enable it with '/* eslint-enable */'.
+If you know what you are doing you can disable this check using:
+
+  git config hooks.nojslinting true
+
+EOF
+fi
 
 AUTOPEP8_SUCCESS=true
-echo "linting python files ..."
-for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
-do
-  autopep8 "${pythonFile}" > /dev/null 2>&1
-  if [ $? -ne 0 ]; then
-    AUTOPEP8_SUCCESS=false
-    echo "autopep8 failed on: ${pythonFile}"
-  fi
-done
+if [ "$nopylinting" != "true" ]; then
+  echo "linting python files ..."
+  for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
+  do
+    autopep8 "${pythonFile}" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      AUTOPEP8_SUCCESS=false
+      echo "autopep8 failed on: ${pythonFile}"
+    fi
+  done
+  echo "finished linting python files."
+fi
 
 if [ "$AUTOPEP8_SUCCESS" = false ]; then
-
 cat <<EOF
 You can check what needs to be fixed with 'autopep8 <filename>'.
 Most issues can be automatically fixed with 'autopep8 -i <filename>'.
@@ -24,11 +63,14 @@ A description of each warning code can be seen with 'autopep8 --list-fixes',
 or at: https://pep8.readthedocs.io/en/release-1.7.x/intro.html
 Alternatively, you can temporarily disable autopep8 linting in a python file with '# autopep8: off'
 and re-enable it with '# autopep8: on'.
-EOF
+If you know what you are doing you can disable this check using:
 
+  git config hooks.nopylinting true
+
+EOF
 fi
 
-if [ "$AUTOPEP8_SUCCESS" = false ]; then
+if [ "$ESLINT_SUCCESS" = false ] || [ "$AUTOPEP8_SUCCESS" = false ]; then
   exit 1
 fi
 
