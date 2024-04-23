@@ -41,7 +41,7 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSObjectValuesProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */
@@ -92,6 +92,7 @@ public:
    * @brief mapping method
    *
    * @param self - The JSObjectValuesProxy
+   * @param Py_UNUSED
    * @return PyObject* The resulting new dict
    */
   static PyObject *JSObjectValuesProxy_mapping(PyObject *self, void *Py_UNUSED(ignored));
