@@ -58,6 +58,14 @@ public:
   static int JSArrayIterProxy_traverse(JSArrayIterProxy *self, visitproc visit, void *arg);
 
   /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSArrayIterProxy
+   * @return 0 on success
+   */
+  static int JSArrayIterProxy_clear(JSArrayIterProxy *self);
+
+  /**
    * @brief .tp_iter method
    *
    * @param self - The JSArrayIterProxy

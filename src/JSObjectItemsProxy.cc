@@ -45,6 +45,11 @@ int JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_traverse(JSObjectIte
   return 0;
 }
 
+int JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_clear(JSObjectItemsProxy *self) {
+  Py_CLEAR(self->dv.dv_dict);
+  return 0;
+}
+
 PyObject *JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_iter(JSObjectItemsProxy *self) {
   JSObjectIterProxy *iterator = PyObject_GC_New(JSObjectIterProxy, &JSObjectIterProxyType);
   if (iterator == NULL) {

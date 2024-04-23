@@ -11,8 +11,6 @@
 #include "include/jsTypeFactory.hh"
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
-#include "include/PyType.hh"
-#include "include/FuncType.hh"
 #include "include/JSFunctionProxy.hh"
 #include "include/JSMethodProxy.hh"
 #include "include/JSObjectProxy.hh"
@@ -23,7 +21,6 @@
 #include "include/PyObjectProxyHandler.hh"
 #include "include/PyIterableProxyHandler.hh"
 #include "include/pyTypeFactory.hh"
-#include "include/StrType.hh"
 #include "include/IntType.hh"
 #include "include/PromiseType.hh"
 #include "include/DateType.hh"
@@ -101,8 +98,8 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setBoolean(PyLong_AsLong(object));
   }
   else if (PyLong_Check(object)) {
-    if (PyObject_IsInstance(object, PythonMonkey_BigInt)) { // pm.bigint is a subclass of the builtin int type
-      JS::BigInt *bigint = IntType(object).toJsBigInt(cx);
+    if (PyObject_IsInstance(object, getPythonMonkeyBigInt())) { // pm.bigint is a subclass of the builtin int type
+      JS::BigInt *bigint = IntType::toJsBigInt(cx, object);
       returnType.setBigInt(bigint);
     } else if (_PyLong_NumBits(object) <= 53) { // num <= JS Number.MAX_SAFE_INTEGER, the mantissa of a float64 is 53 bits (with 52 explicitly stored and the highest bit always being 1)
       int64_t num = PyLong_AsLongLong(object);
@@ -187,12 +184,11 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     }
   }
   else if (PyDateTime_Check(object)) {
-    JSObject *dateObj = DateType(object).toJsDate(cx);
+    JSObject *dateObj = DateType::toJsDate(cx, object);
     returnType.setObject(*dateObj);
   }
   else if (PyObject_CheckBuffer(object)) {
-    BufferType *pmBuffer = new BufferType(object);
-    JSObject *typedArray = pmBuffer->toJsTypedArray(cx); // may return null
+    JSObject *typedArray = BufferType::toJsTypedArray(cx, object); // may return null
     returnType.setObjectOrNull(typedArray);
   }
   else if (PyObject_TypeCheck(object, &JSObjectProxyType)) {
@@ -248,11 +244,21 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
   else if (object == Py_None) {
     returnType.setUndefined();
   }
-  else if (object == PythonMonkey_Null) {
+  else if (object == getPythonMonkeyNull()) {
     returnType.setNull();
   }
   else if (PythonAwaitable_Check(object)) {
-    returnType.setObjectOrNull((new PromiseType(object))->toJsPromise(cx));
+    returnType.setObjectOrNull(PromiseType::toJsPromise(cx, object));
+  }
+  else if (PyIter_Check(object)) {
+    JS::RootedValue v(cx);
+    JS::RootedObject objectPrototype(cx);
+    JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
+    JSObject *proxy = js::NewProxyObject(cx, &pyIterableProxyHandler, v, objectPrototype.get());
+    PyObject *iterable = PyObject_GetIter(object);
+    Py_INCREF(iterable);
+    JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(iterable));
+    returnType.setObject(*proxy);
   }
   else if (PyIter_Check(object)) {
     JS::RootedValue v(cx);
@@ -341,9 +347,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   PyObject *pyArgs = PyTuple_New(callArgsLength);
   for (size_t i = 0; i < callArgsLength; i++) {
     JS::RootedValue jsArg(cx, callargs[i]);
-    PyType *pyArg = pyTypeFactory(cx, jsArg);
-    if (!pyArg) return false; // error occurred
-    PyObject *pyArgObj = pyArg->getPyObject();
+    PyObject *pyArgObj = pyTypeFactory(cx, jsArg);
     if (!pyArgObj) return false; // error occurred
     PyTuple_SetItem(pyArgs, i, pyArgObj);
   }

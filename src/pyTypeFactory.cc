@@ -27,10 +27,8 @@
 #include "include/PyListProxyHandler.hh"
 #include "include/PyObjectProxyHandler.hh"
 #include "include/PyIterableProxyHandler.hh"
-#include "include/PyType.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
-#include "include/TupleType.hh"
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
 #include <jsapi.h>
@@ -38,54 +36,51 @@
 #include <js/Object.h>
 #include <js/ValueArray.h>
 
-#include <Python.h>
-
-
-PyType *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
+PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
   if (rval.isUndefined()) {
-    return new NoneType();
+    return NoneType::getPyObject();
   }
   else if (rval.isNull()) {
-    return new NullType();
+    return NullType::getPyObject();
   }
   else if (rval.isBoolean()) {
-    return new BoolType(rval.toBoolean());
+    return BoolType::getPyObject(rval.toBoolean());
   }
   else if (rval.isNumber()) {
-    return new FloatType(rval.toNumber());
+    return FloatType::getPyObject(rval.toNumber());
   }
   else if (rval.isString()) {
-    return new StrType(cx, rval.toString());
+    return StrType::getPyObject(cx, rval.toString());
   }
   else if (rval.isSymbol()) {
     printf("symbol type is not handled by PythonMonkey yet");
   }
   else if (rval.isBigInt()) {
-    return new IntType(cx, rval.toBigInt());
+    return IntType::getPyObject(cx, rval.toBigInt());
   }
   else if (rval.isObject()) {
     JS::Rooted<JSObject *> obj(cx);
     JS_ValueToObject(cx, rval, &obj);
+
     if (JS::GetClass(obj)->isProxyObject()) {
-      if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family) { // this is one of our proxies for python dicts
-        return new DictType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
-      }
-      else if (js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family) { // this is one of our proxies for python lists
-        return new ListType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
-      }
-      else if (js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family) { // this is one of our proxies for python iterables
-        return new PyType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
-      }
-      else if (js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) { // this is one of our proxies for python objects
-        return new PyType(JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot));
+      if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family ||                // this is one of our proxies for python dicts
+          js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family ||                // this is one of our proxies for python lists
+          js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family ||            // this is one of our proxies for python iterables
+          js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) {              // this is one of our proxies for python objects
+
+        PyObject *pyObject = JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot);
+        Py_INCREF(pyObject);
+        return pyObject;
       }
     }
+
     js::ESClass cls;
     JS::GetBuiltinClass(cx, obj, &cls);
     if (JS_ObjectIsBoundFunction(obj)) {
       cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
                                    // js::ESClass::Function only assigns to JSFunction objects by JS::GetBuiltinClass.
     }
+
     JS::RootedValue unboxed(cx);
     switch (cls) {
     case js::ESClass::Boolean:
@@ -95,33 +90,31 @@ PyType *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
       js::Unbox(cx, obj, &unboxed);
       return pyTypeFactory(cx, unboxed);
     case js::ESClass::Date:
-      return new DateType(cx, obj);
+      return DateType::getPyObject(cx, obj);
     case js::ESClass::Promise:
-      return new PromiseType(cx, obj);
+      return PromiseType::getPyObject(cx, obj);
     case js::ESClass::Error:
-      return new ExceptionType(cx, obj);
+      return ExceptionType::getPyObject(cx, obj);
     case js::ESClass::Function: {
-        PyObject *pyFunc;
-        FuncType *f;
         if (JS_IsNativeFunction(obj, callPyFunc)) { // It's a wrapped python function by us
           // Get the underlying python function from the 0th reserved slot
           JS::Value pyFuncVal = js::GetFunctionNativeReserved(obj, 0);
-          pyFunc = (PyObject *)(pyFuncVal.toPrivate());
-          f = new FuncType(pyFunc);
+          PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
+          Py_INCREF(pyFunc);
+          return pyFunc;
         } else {
-          f = new FuncType(cx, rval);
+          return FuncType::getPyObject(cx, rval);
         }
-        return f;
       }
     case js::ESClass::Array:
-      return new ListType(cx, obj);
+      return ListType::getPyObject(cx, obj);
     default:
       if (BufferType::isSupportedJsTypes(obj)) { // TypedArray or ArrayBuffer
         // TODO (Tom Tang): ArrayBuffers have cls == js::ESClass::ArrayBuffer
-        return new BufferType(cx, obj);
+        return BufferType::getPyObject(cx, obj);
       }
     }
-    return new DictType(cx, rval);
+    return DictType::getPyObject(cx, rval);
   }
   else if (rval.isMagic()) {
     printf("magic type is not handled by PythonMonkey yet\n");

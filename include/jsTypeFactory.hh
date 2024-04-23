@@ -11,9 +11,9 @@
 #ifndef PythonMonkey_JsTypeFactory_
 #define PythonMonkey_JsTypeFactory_
 
-#include "include/PyType.hh"
-
 #include <jsapi.h>
+
+#include <Python.h>
 
 
 struct PythonExternalString;

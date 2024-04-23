@@ -51,7 +51,20 @@ void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
   self->jsObject->set(nullptr);
   delete self->jsObject;
-  Py_TYPE(self)->tp_free((PyObject *)self);
+  PyObject_GC_UnTrack(self);
+  PyObject_GC_Del(self);
+}
+
+int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg)
+{
+  // Nothing to be done
+  return 0;
+}
+
+int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self)
+{
+  // Nothing to be done
+  return 0;
 }
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
@@ -108,7 +121,7 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
         }
       }
 
-      return pyTypeFactory(GLOBAL_CX, value)->getPyObject();
+      return pyTypeFactory(GLOBAL_CX, value);
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
@@ -117,7 +130,7 @@ static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId 
           JS::RootedValue value(GLOBAL_CX);
           JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
           if (!value.isUndefined()) {
-            return pyTypeFactory(GLOBAL_CX, value)->getPyObject();
+            return pyTypeFactory(GLOBAL_CX, value);
           }
         }
 
@@ -156,9 +169,9 @@ int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, 
     PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
     return -1;
   }
-  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, value);
-  return value->isUndefined() ? 0 : 1;
+  JS::RootedValue value(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+  return value.isUndefined() ? 0 : 1;
 }
 
 static inline void assignKeyValue(JSObjectProxy *self, PyObject *key, JS::HandleId id, PyObject *value) {
@@ -243,9 +256,10 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
     JS::RootedValue key(GLOBAL_CX);
     key.setString(id.toString());
 
-    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, key)->getPyObject();
+    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, key);
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
+    Py_DECREF(pyKey);
     if (!pyVal2) { // if other.key is NULL then not equal
       return false;
     }
@@ -398,10 +412,10 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
 
     if (&elementVal.toObject() == (*(self->jsObject)).get()) {
       value = (PyObject *)self;
+      Py_INCREF(value);
     } else {
-      value = pyTypeFactory(GLOBAL_CX, elementVal)->getPyObject();
+      value = pyTypeFactory(GLOBAL_CX, elementVal);
     }
-    Py_INCREF(value);
 
     s = PyObject_Repr(value);
     if (s == NULL) {
@@ -543,7 +557,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, 
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
-    return pyTypeFactory(GLOBAL_CX, ret)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, ret);
   }
 }
 
@@ -670,7 +684,7 @@ skip_optional:
     JS::ObjectOpResult ignoredResult;
     JS_DeletePropertyById(GLOBAL_CX, *(self->jsObject), id, ignoredResult);
 
-    return pyTypeFactory(GLOBAL_CX, value)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, value);
   }
 }
 
@@ -711,7 +725,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProx
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
-  return pyTypeFactory(GLOBAL_CX, ret)->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, ret);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectProxy *self, PyObject *args, PyObject *kwds) {

@@ -64,6 +64,14 @@ public:
   static int JSObjectIterProxy_traverse(JSObjectIterProxy *self, visitproc visit, void *arg);
 
   /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSObjectIterProxy
+   * @return 0 on success
+   */
+  static int JSObjectIterProxy_clear(JSObjectIterProxy *self);
+
+  /**
    * @brief .tp_iter method
    *
    * @param self - The JSObjectIterProxy
