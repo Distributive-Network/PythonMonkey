@@ -1,1 +1,1 @@
-exports['which']="python"
+exports['which'] = "python"

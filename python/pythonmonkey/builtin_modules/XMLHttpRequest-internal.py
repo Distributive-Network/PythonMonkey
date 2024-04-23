@@ -12,17 +12,19 @@ import platform
 import pythonmonkey as pm
 from typing import Union, ByteString, Callable, TypedDict
 
+
 class XHRResponse(TypedDict, total=True):
-    """
-    See definitions in `XMLHttpRequest-internal.d.ts`
-    """
-    url: str
-    status: int
-    statusText: str
-    contentLength: int
-    getResponseHeader: Callable[[str], Union[str, None]]
-    getAllResponseHeaders: Callable[[], str]
-    abort: Callable[[], None]
+  """
+  See definitions in `XMLHttpRequest-internal.d.ts`
+  """
+  url: str
+  status: int
+  statusText: str
+  contentLength: int
+  getResponseHeader: Callable[[str], Union[str, None]]
+  getAllResponseHeaders: Callable[[], str]
+  abort: Callable[[], None]
+
 
 async def request(
     method: str,
@@ -42,83 +44,88 @@ async def request(
     onNetworkError: Callable[[aiohttp.ClientError], None],
     /
 ):
-    debug = pm.bootstrap.require("debug");
+  debug = pm.bootstrap.require("debug")
 
-    class BytesPayloadWithProgress(aiohttp.BytesPayload):
-        _chunkMaxLength = 2**16 # aiohttp default
+  class BytesPayloadWithProgress(aiohttp.BytesPayload):
+    _chunkMaxLength = 2**16  # aiohttp default
 
-        async def write(self, writer) -> None:
-            debug('xhr:io')('begin chunked write')
-            buf = io.BytesIO(self._value)
-            chunk = buf.read(self._chunkMaxLength)
-            while chunk:
-                debug('xhr:io')('  writing', len(chunk), 'bytes')
-                await writer.write(chunk)
-                processRequestBodyChunkLength(len(chunk))
-                chunk = buf.read(self._chunkMaxLength)
-            processRequestEndOfBody()
-            debug('xhr:io')('finish chunked write')
+    async def write(self, writer) -> None:
+      debug('xhr:io')('begin chunked write')
+      buf = io.BytesIO(self._value)
+      chunk = buf.read(self._chunkMaxLength)
+      while chunk:
+        debug('xhr:io')('  writing', len(chunk), 'bytes')
+        await writer.write(chunk)
+        processRequestBodyChunkLength(len(chunk))
+        chunk = buf.read(self._chunkMaxLength)
+      processRequestEndOfBody()
+      debug('xhr:io')('finish chunked write')
 
-    if isinstance(body, str):
-        body = bytes(body, "utf-8")
+  if isinstance(body, str):
+    body = bytes(body, "utf-8")
 
-    # set default headers
-    headers.setdefault("user-agent", f"Python/{platform.python_version()} PythonMonkey/{pm.__version__}")
-    debug('xhr:headers')('after set default\n', headers)
+  # set default headers
+  headers.setdefault("user-agent", f"Python/{platform.python_version()} PythonMonkey/{pm.__version__}")
+  debug('xhr:headers')('after set default\n', headers)
 
-    if timeoutMs > 0:
-        timeoutOptions = aiohttp.ClientTimeout(total=timeoutMs/1000) # convert to seconds
-    else:
-        timeoutOptions = aiohttp.ClientTimeout() # default timeout
+  if timeoutMs > 0:
+    timeoutOptions = aiohttp.ClientTimeout(total=timeoutMs / 1000)  # convert to seconds
+  else:
+    timeoutOptions = aiohttp.ClientTimeout()  # default timeout
 
-    try:
-        debug('xhr:aiohttp')('creating request for', url)
-        async with aiohttp.request(method=method,
-                                url=yarl.URL(url, encoded=True),
-                                headers=headers,
-                                data=BytesPayloadWithProgress(body) if body else None,
-                                timeout=timeoutOptions,
-        ) as res:
-            debug('xhr:aiohttp')('got', res.content_type, 'result')
-            def getResponseHeader(name: str):
-                return res.headers.get(name)
-            def getAllResponseHeaders():
-                headers = []
-                for name, value in res.headers.items():
-                    headers.append(f"{name.lower()}: {value}")
-                headers.sort()
-                return "\r\n".join(headers)
-            def abort():
-                debug('xhr:io')('abort')
-                res.close()
+  try:
+    debug('xhr:aiohttp')('creating request for', url)
+    async with aiohttp.request(method=method,
+                               url=yarl.URL(url, encoded=True),
+                               headers=headers,
+                               data=BytesPayloadWithProgress(body) if body else None,
+                               timeout=timeoutOptions,
+                               ) as res:
+      debug('xhr:aiohttp')('got', res.content_type, 'result')
 
-            # readyState HEADERS_RECEIVED
-            responseData: XHRResponse = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
-                'url': str(res.real_url),
-                'status': res.status,
-                'statusText': str(res.reason or ''),
+      def getResponseHeader(name: str):
+        return res.headers.get(name)
 
-                'getResponseHeader': getResponseHeader,
-                'getAllResponseHeaders': getAllResponseHeaders,
-                'abort': abort,
-                'contentLength': res.content_length or 0,
-            }
-            processResponse(responseData)
+      def getAllResponseHeaders():
+        headers = []
+        for name, value in res.headers.items():
+          headers.append(f"{name.lower()}: {value}")
+        headers.sort()
+        return "\r\n".join(headers)
 
-            async for data in res.content.iter_any():
-                processBodyChunk(bytearray(data)) # PythonMonkey only accepts the mutable bytearray type
-            # readyState DONE
-            processEndOfBody()
-    except asyncio.TimeoutError as e:
-        onTimeoutError(e)
-        raise # rethrow
-    except aiohttp.ClientError as e:
-        onNetworkError(e)
-        raise # rethrow
+      def abort():
+        debug('xhr:io')('abort')
+        res.close()
 
-def decodeStr(data: bytes, encoding='utf-8'): # XXX: Remove this once we get proper TextDecoder support
-    return str(data, encoding=encoding)
+      # readyState HEADERS_RECEIVED
+      responseData: XHRResponse = {  # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
+          'url': str(res.real_url),
+          'status': res.status,
+          'statusText': str(res.reason or ''),
+
+          'getResponseHeader': getResponseHeader,
+          'getAllResponseHeaders': getAllResponseHeaders,
+          'abort': abort,
+          'contentLength': res.content_length or 0,
+      }
+      processResponse(responseData)
+
+      async for data in res.content.iter_any():
+        processBodyChunk(bytearray(data))  # PythonMonkey only accepts the mutable bytearray type
+      # readyState DONE
+      processEndOfBody()
+  except asyncio.TimeoutError as e:
+    onTimeoutError(e)
+    raise  # rethrow
+  except aiohttp.ClientError as e:
+    onNetworkError(e)
+    raise  # rethrow
+
+
+def decodeStr(data: bytes, encoding='utf-8'):  # XXX: Remove this once we get proper TextDecoder support
+  return str(data, encoding=encoding)
+
 
 # Module exports
-exports['request'] = request # type: ignore
-exports['decodeStr'] = decodeStr # type: ignore
+exports['request'] = request  # type: ignore
+exports['decodeStr'] = decodeStr  # type: ignore

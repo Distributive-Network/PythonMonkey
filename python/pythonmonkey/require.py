@@ -39,7 +39,9 @@
 #
 # @copyright Copyright (c) 2023-2024 Distributive Corp.
 
-import sys, os, io
+import sys
+import os
+import io
 from typing import Union, Dict, Literal, List
 import importlib
 import importlib.util
@@ -47,32 +49,35 @@ from importlib import machinery
 import inspect
 import functools
 
-from . import pythonmonkey as pm 
+from . import pythonmonkey as pm
 
 node_modules = os.path.abspath(
   os.path.join(
-    importlib.util.find_spec("pminit").submodule_search_locations[0], # type: ignore
+    importlib.util.find_spec("pminit").submodule_search_locations[0],  # type: ignore
     "..",
     "pythonmonkey",
     "node_modules"
   )
 )
-evalOpts = { 'filename': __file__, 'fromPythonFrame': True } # type: pm.EvalOptions
+evalOpts = {'filename': __file__, 'fromPythonFrame': True}  # type: pm.EvalOptions
 
 # Force to use UTF-8 encoding
 # Windows may use other encodings / code pages that have many characters missing/unrepresentable
-if isinstance(sys.stdin,  io.TextIOWrapper): sys.stdin.reconfigure(encoding='utf-8')
-if isinstance(sys.stdout, io.TextIOWrapper): sys.stdout.reconfigure(encoding='utf-8')
-if isinstance(sys.stderr, io.TextIOWrapper): sys.stderr.reconfigure(encoding='utf-8')
+if isinstance(sys.stdin, io.TextIOWrapper):
+  sys.stdin.reconfigure(encoding='utf-8')
+if isinstance(sys.stdout, io.TextIOWrapper):
+  sys.stdout.reconfigure(encoding='utf-8')
+if isinstance(sys.stderr, io.TextIOWrapper):
+  sys.stderr.reconfigure(encoding='utf-8')
 
 # Add some python functions to the global python object for code in this file to use.
 globalThis = pm.eval("globalThis;", evalOpts)
-pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }", evalOpts);
+pm.eval("globalThis.python = { pythonMonkey: {}, stdout: {}, stderr: {} }", evalOpts)
 globalThis.pmEval = pm.eval
 globalThis.python.pythonMonkey.dir = os.path.dirname(__file__)
 globalThis.python.pythonMonkey.isCompilableUnit = pm.isCompilableUnit
 globalThis.python.pythonMonkey.nodeModules = node_modules
-globalThis.python.print  = print
+globalThis.python.print = print
 globalThis.python.stdout.write = lambda s: sys.stdout.write(s)
 globalThis.python.stderr.write = lambda s: sys.stderr.write(s)
 globalThis.python.stdout.read = lambda n: sys.stdout.read(n)
@@ -80,7 +85,7 @@ globalThis.python.stderr.read = lambda n: sys.stderr.read(n)
 globalThis.python.eval = eval
 globalThis.python.exec = exec
 globalThis.python.getenv = os.getenv
-globalThis.python.paths  = sys.path
+globalThis.python.paths = sys.path
 
 globalThis.python.exit = pm.eval("""'use strict';
 (exit) => function pythonExitWrapper(exitCode) {
@@ -94,7 +99,7 @@ globalThis.python.exit = pm.eval("""'use strict';
     exitCode = 1n;
   exit(exitCode);
 }
-""", evalOpts)(sys.exit);
+""", evalOpts)(sys.exit)
 
 # bootstrap is effectively a scoping object which keeps us from polluting the global JS scope.
 # The idea is that we hold a reference to the bootstrap object in Python-load, for use by the
@@ -202,8 +207,8 @@ bootstrap.modules.fs = {
     if (ret)
       return ret;
 
-    const err = new Error('file not found: ' + filename); 
-    err.code='ENOENT'; 
+    const err = new Error('file not found: ' + filename);
+    err.code='ENOENT';
     throw err;
   },
 };
@@ -214,38 +219,42 @@ bootstrap.builtinModules = { debug: bootstrap.modules.debug };
 return bootstrap;
 })(globalThis.python)""", evalOpts)
 
-def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
-    """
-    Inner function for statSync.
 
-    Returns:
-        Union[Dict[str, int], False]: The mode of the file or False if the file doesn't exist.
-    """
-    from os import stat
-    filename = os.path.normpath(filename)
-    if (os.path.exists(filename)):
-        sb = stat(filename)
-        return { 'mode': sb.st_mode }
-    else:
-        return False
+def statSync_inner(filename: str) -> Union[Dict[str, int], bool]:
+  """
+  Inner function for statSync.
+
+  Returns:
+      Union[Dict[str, int], False]: The mode of the file or False if the file doesn't exist.
+  """
+  from os import stat
+  filename = os.path.normpath(filename)
+  if (os.path.exists(filename)):
+    sb = stat(filename)
+    return {'mode': sb.st_mode}
+  else:
+    return False
+
 
 def readFileSync(filename, charset) -> str:
-    """
-    Utility function for reading files.
-    Returns:
-        str: The contents of the file
-    """
-    filename = os.path.normpath(filename)
-    with open(filename, "r", encoding=charset) as fileHnd:
-        return fileHnd.read()
+  """
+  Utility function for reading files.
+  Returns:
+      str: The contents of the file
+  """
+  filename = os.path.normpath(filename)
+  with open(filename, "r", encoding=charset) as fileHnd:
+    return fileHnd.read()
+
 
 def existsSync(filename: str) -> bool:
-    filename = os.path.normpath(filename)
-    return os.path.exists(filename)
+  filename = os.path.normpath(filename)
+  return os.path.exists(filename)
+
 
 bootstrap.modules.fs.statSync_inner = statSync_inner
-bootstrap.modules.fs.readFileSync   = readFileSync
-bootstrap.modules.fs.existsSync     = existsSync
+bootstrap.modules.fs.readFileSync = readFileSync
+bootstrap.modules.fs.existsSync = existsSync
 
 # Read ctx-module module from disk and invoke so that this file is the "main module" and ctx-module has
 # require and exports symbols injected from the bootstrap object above. Current PythonMonkey bugs
@@ -255,38 +264,43 @@ bootstrap.modules.fs.existsSync     = existsSync
 # lineno should be -5 but jsapi 102 uses unsigned line numbers, so we take the newlines out of the
 # wrapper prologue to make stack traces line up.
 with open(node_modules + "/ctx-module/ctx-module.js", "r") as ctxModuleSource:
-    initCtxModule = pm.eval("""'use strict';
+  initCtxModule = pm.eval("""'use strict';
 (function moduleWrapper_forCtxModule(require, exports)
 {
 """ + ctxModuleSource.read() + """
 })
-""", { 'filename': node_modules + "/ctx-module/ctx-module.js", 'lineno': 0 });
+""", {'filename': node_modules + "/ctx-module/ctx-module.js", 'lineno': 0})
 initCtxModule(bootstrap.require, bootstrap.modules['ctx-module'])
 
-def load(filename: str) -> Dict:  
-    """
-    Loads a python module using the importlib machinery sourcefileloader, prefills it with an exports object and returns the module.
-    If the module is already loaded, returns it.
 
-    Args:
-        filename (str): The filename of the python module to load.
+def load(filename: str) -> Dict:
+  """
+  Loads a python module using the importlib machinery sourcefileloader, prefills it with an exports object and returns
+  the module.
+  If the module is already loaded, returns it.
 
-    Returns:
-        : The loaded python module
-    """
+  Args:
+      filename (str): The filename of the python module to load.
 
-    filename = os.path.normpath(filename)
-    name = os.path.basename(filename)
-    if name not in sys.modules:
-        sourceFileLoader = machinery.SourceFileLoader(name, filename)
-        spec: machinery.ModuleSpec = importlib.util.spec_from_loader(sourceFileLoader.name, sourceFileLoader) # type: ignore
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[name] = module
-        module.exports = {} # type: ignore
-        spec.loader.exec_module(module) # type: ignore
-    else:
-        module = sys.modules[name]
-    return module.exports
+  Returns:
+      : The loaded python module
+  """
+
+  filename = os.path.normpath(filename)
+  name = os.path.basename(filename)
+  if name not in sys.modules:
+    sourceFileLoader = machinery.SourceFileLoader(name, filename)
+    spec: machinery.ModuleSpec = importlib.util.spec_from_loader(
+      sourceFileLoader.name, sourceFileLoader)  # type: ignore
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    module.exports = {}  # type: ignore
+    spec.loader.exec_module(module)  # type: ignore
+  else:
+    module = sys.modules[name]
+  return module.exports
+
+
 globalThis.python.load = load
 
 createRequireInner = pm.eval("""'use strict';(
@@ -356,41 +370,46 @@ function createRequireInner(filename, bootstrap, extraPaths, isMain)
 
 # API: pm.createRequire
 # We cache the return value of createRequire to always use the same require for the same filename
-def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False, isMain = False):
-    """
-    returns a require function that resolves modules relative to the filename argument. 
-    Conceptually the same as node:module.createRequire().
 
-    example:
-    from pythonmonkey import createRequire
-    require = createRequire(__file__)
-    require('./my-javascript-module')
-    """
-    fullFilename: str = os.path.abspath(filename)
-    if (extraPaths):
-        extraPathsStr = ':'.join(extraPaths)
-    else:
-        extraPathsStr = ''
-    return createRequireInner(fullFilename, bootstrap, extraPathsStr, isMain)
+
+def createRequire(filename, extraPaths: Union[List[str], Literal[False]] = False, isMain=False):
+  """
+  returns a require function that resolves modules relative to the filename argument.
+  Conceptually the same as node:module.createRequire().
+
+  example:
+  from pythonmonkey import createRequire
+  require = createRequire(__file__)
+  require('./my-javascript-module')
+  """
+  fullFilename: str = os.path.abspath(filename)
+  if (extraPaths):
+    extraPathsStr = ':'.join(extraPaths)
+  else:
+    extraPathsStr = ''
+  return createRequireInner(fullFilename, bootstrap, extraPathsStr, isMain)
+
 
 bootstrap.requireFromDisk = createRequireInner(None, bootstrap, '', False)
 bootstrap.inspect = bootstrap.requireFromDisk('util').inspect
 
 # API: pm.runProgramModule
+
+
 def runProgramModule(filename, argv, extraPaths=[]):
-    """
-    Run the program module. This loads the code from disk, sets up the execution environment, and then
-    invokes the program module (aka main module). The program module is different from other modules in that
-    1. it cannot return (must throw)
-    2. the outermost block scope is the global scope, effectively making its scope a super-global to
-       other modules
-    """
-    fullFilename = os.path.abspath(filename)
-    createRequire(fullFilename, extraPaths, True)
-    globalThis.__filename = fullFilename;
-    globalThis.__dirname = os.path.dirname(fullFilename);
-    with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
-        pm.eval(mainModuleSource.read(), {'filename': fullFilename})
+  """
+  Run the program module. This loads the code from disk, sets up the execution environment, and then
+  invokes the program module (aka main module). The program module is different from other modules in that
+  1. it cannot return (must throw)
+  2. the outermost block scope is the global scope, effectively making its scope a super-global to
+     other modules
+  """
+  fullFilename = os.path.abspath(filename)
+  createRequire(fullFilename, extraPaths, True)
+  globalThis.__filename = fullFilename
+  globalThis.__dirname = os.path.dirname(fullFilename)
+  with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
+    pm.eval(mainModuleSource.read(), {'filename': fullFilename})
 
 # The pythonmonkey require export. Every time it is used, the stack is inspected so that the filename
 # passed to createRequire is correct. This is necessary so that relative requires work. If the filename
@@ -400,11 +419,14 @@ def runProgramModule(filename, argv, extraPaths=[]):
 # todo: instead of cwd+__main_virtual__, use a full pathname which includes the directory that the
 #       running python program is in.
 #
+
+
 def require(moduleIdentifier: str):
-    filename = inspect.stack()[1].filename
-    if not os.path.exists(filename):
-      filename = os.path.join(os.getcwd(), "__main_virtual__")
-    return createRequire(filename)(moduleIdentifier)
+  filename = inspect.stack()[1].filename
+  if not os.path.exists(filename):
+    filename = os.path.join(os.getcwd(), "__main_virtual__")
+  return createRequire(filename)(moduleIdentifier)
+
 
 # Restrict what symbols are exposed to the pythonmonkey module.
 __all__ = ["globalThis", "require", "createRequire", "runProgramModule", "bootstrap"]

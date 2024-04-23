@@ -6,7 +6,8 @@
 #
 
 import subprocess
-import os, sys
+import os
+import sys
 import platform
 from typing import Optional
 
@@ -16,29 +17,33 @@ BUILD_DIR = os.path.join(TOP_DIR, "build")
 # Get number of CPU cores
 CPUS = os.getenv('CPUS') or os.cpu_count() or 1
 
-def execute(cmd: str, cwd: Optional[str] = None):
-    popen = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.STDOUT,
-        shell = True, text = True, cwd = cwd )
-    for stdout_line in iter(popen.stdout.readline, ""):
-        sys.stdout.write(stdout_line)
-        sys.stdout.flush()
 
-    popen.stdout.close()
-    return_code = popen.wait()
-    if return_code:
-        raise subprocess.CalledProcessError(return_code, cmd)
+def execute(cmd: str, cwd: Optional[str] = None):
+  popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           shell=True, text=True, cwd=cwd)
+  for stdout_line in iter(popen.stdout.readline, ""):
+    sys.stdout.write(stdout_line)
+    sys.stdout.flush()
+
+  popen.stdout.close()
+  return_code = popen.wait()
+  if return_code:
+    raise subprocess.CalledProcessError(return_code, cmd)
+
 
 def ensure_spidermonkey():
-    # Check if SpiderMonkey libs already exist
-    spidermonkey_lib_exist = os.path.exists(os.path.join( TOP_DIR, "_spidermonkey_install/lib" ))
-    if spidermonkey_lib_exist:
-        return
+  # Check if SpiderMonkey libs already exist
+  spidermonkey_lib_exist = os.path.exists(os.path.join(TOP_DIR, "_spidermonkey_install/lib"))
+  if spidermonkey_lib_exist:
+    return
 
-    # Build SpiderMonkey
-    execute("bash ./setup.sh", cwd = TOP_DIR)
+  # Build SpiderMonkey
+  execute("bash ./setup.sh", cwd=TOP_DIR)
+
 
 def ensure_githooks():
-    execute("ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit", cwd=TOP_DIR)
+  execute("ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit", cwd=TOP_DIR)
+
 
 def run_cmake_build():
   os.makedirs(BUILD_DIR, exist_ok=True)  # mkdir -p
@@ -54,18 +59,20 @@ def run_cmake_build():
 
 
 def copy_artifacts():
-    if platform.system() == "Windows":
-        execute("cp ./build/src/*/pythonmonkey.pyd ./python/pythonmonkey/", cwd=TOP_DIR) # Release or Debug build
-        execute("cp ./_spidermonkey_install/lib/mozjs-*.dll ./python/pythonmonkey/", cwd=TOP_DIR)
-    else:
-        execute("cp ./build/src/pythonmonkey.so ./python/pythonmonkey/", cwd=TOP_DIR)
-        execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/", cwd=TOP_DIR)
+  if platform.system() == "Windows":
+    execute("cp ./build/src/*/pythonmonkey.pyd ./python/pythonmonkey/", cwd=TOP_DIR)  # Release or Debug build
+    execute("cp ./_spidermonkey_install/lib/mozjs-*.dll ./python/pythonmonkey/", cwd=TOP_DIR)
+  else:
+    execute("cp ./build/src/pythonmonkey.so ./python/pythonmonkey/", cwd=TOP_DIR)
+    execute("cp ./_spidermonkey_install/lib/libmozjs* ./python/pythonmonkey/", cwd=TOP_DIR)
+
 
 def build():
-    ensure_spidermonkey()
-    ensure_githooks()
-    run_cmake_build()
-    copy_artifacts()
+  ensure_spidermonkey()
+  ensure_githooks()
+  run_cmake_build()
+  copy_artifacts()
+
 
 if __name__ == "__main__":
-    build()
+  build()
