@@ -84,6 +84,3 @@ endif()
 
 # Add compiled folder directories
 add_subdirectory(src)
-
-pythonmonkey_add_external("uncrustify")
-add_subdirectory(cmake/format)

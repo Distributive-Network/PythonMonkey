@@ -41,6 +41,22 @@ $POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
 poetry run pip install autopep8
 echo "Done installing dependencies"
 
+echo "Downloading uncrustify source code"
+wget -c -q https://github.com/uncrustify/uncrustify/archive/refs/tags/uncrustify-0.78.1.tar.gz
+mkdir -p uncrustify-source
+tar -xzvf uncrustify-0.78.1.tar.gz -C uncrustify-source --strip-components=1 # strip the root folder
+echo "Done downloading uncrustify source doe"
+
+echo "Building uncrustify"
+cd uncrustify-source
+mkdir -p build
+cd build
+cmake ../
+make -j4
+cp uncrustify ../../uncrustify
+cd ../..
+echo "Done building uncrustify"
+
 echo "Downloading spidermonkey source code"
 wget -c -q https://ftp.mozilla.org/pub/firefox/releases/115.8.0esr/source/firefox-115.8.0esr.source.tar.xz
 mkdir -p firefox-source

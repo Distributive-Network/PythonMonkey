@@ -12,10 +12,38 @@ nocclinting=$(git config --type=bool hooks.nocclinting)
 nojslinting=$(git config --type=bool hooks.nojslinting)
 nopylinting=$(git config --type=bool hooks.nopylinting)
 
+UNCRUSTIFY_SUCCESS=true
+if [ "$nocclinting" != "true" ]; then
+  echo "linting C++ files ..."
+  for ccFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./uncrustify-source \) -prune -o \( -name '*.hh' -o -name '*.cc'     \) -exec echo {} \;`;
+  do
+    ./uncrustify --check -c uncrustify.cfg "${ccFile}" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      UNCRUSTIFY_SUCCESS=false
+      echo "uncrustify failed on: ${ccFile}"
+    fi
+  done
+  echo "finished linting C++ files."
+fi
+
+if [ "$UNCRUSTIFY_SUCCESS" = false ]; then
+cat <<EOF
+You can check what needs to be fixed with './uncrustify -c uncrustify.cfg <filename>'.
+This will output the fixed file in the same directory with a .uncrustify extension.
+You can automatically fix the file with './uncrustify -c uncrustify.cfg --replace --no-backup'
+Alternatively, you can temporarily disable uncrustify linting in a C++ file with '/* *INDENT-OFF* */'
+and re-enable it with '/* *INDENT-ON* */'.
+If you know what you are doing you can disable this check using:
+
+  git config hooks.nocclinting true
+
+EOF
+fi
+
 ESLINT_SUCCESS=true
 if [ "$nojslinting" != "true" ]; then
   echo "linting JavaScript files ..."
-  for jsFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official -o -path ./cmake -o -path */node_modules \) -prune -o \( -name '*.js' -o -name '*.simple' \) -exec echo {} \;`;
+  for jsFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official -o -path ./cmake -o -path */node_modules -o -path ./uncrustify-source \) -prune -o \( -name '*.js' -o -name '*.simple' \) -exec echo {} \;`;
   do
     ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=1 "${jsFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -44,7 +72,7 @@ fi
 AUTOPEP8_SUCCESS=true
 if [ "$nopylinting" != "true" ]; then
   echo "linting python files ..."
-  for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
+  for pythonFile in `find . -type d \( -path ./build -o -path ./firefox-source -o -path ./_spidermonkey_install -o -path ./tests/commonjs-official -o -path ./uncrustify-source \) -prune -o \( -name '*.py'  -o -name '*.pyi' \) -exec echo {} \;`;
   do
     autopep8 "${pythonFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -70,7 +98,7 @@ If you know what you are doing you can disable this check using:
 EOF
 fi
 
-if [ "$ESLINT_SUCCESS" = false ] || [ "$AUTOPEP8_SUCCESS" = false ]; then
+if [ "$UNCRUSTIFY_SUCCESS" = false ] ||[ "$ESLINT_SUCCESS" = false ] || [ "$AUTOPEP8_SUCCESS" = false ]; then
   exit 1
 fi
 
