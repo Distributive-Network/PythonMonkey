@@ -78,7 +78,9 @@ Read this if you want to build a local version.
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
-2. Run `poetry install`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv.
+2. Run `poetry install`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv. 
+To build a Debug version of the project, run `DEBUG=1 poetry install`.
+To build the docs as well, run `BUILD_DOCS=1 poetry install`.
 
 If you are using VSCode, you can just press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> to [run build task](https://code.visualstudio.com/docs/editor/tasks#_custom-tasks) - We have [the `tasks.json` file configured for you](.vscode/tasks.json).
 

@@ -8,11 +8,13 @@
 # @author Caleb Aikens, caleb@distributive.network
 # @date   Apr 2024
 
-git diff --cached --name-only --diff-filter=ACM -z
-
 nocclinting=$(git config --type=bool hooks.nocclinting)
 nojslinting=$(git config --type=bool hooks.nojslinting)
 nopylinting=$(git config --type=bool hooks.nopylinting)
+
+RED="\e[31m"
+YELLOW="\e[33m"
+ENDCOLOUR="\e[0m"
 
 UNCRUSTIFY_SUCCESS=true
 if [ "$nocclinting" != "true" ]; then
@@ -22,14 +24,16 @@ if [ "$nocclinting" != "true" ]; then
     ./uncrustify --check -c uncrustify.cfg "${ccFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
       UNCRUSTIFY_SUCCESS=false
-      echo "uncrustify failed on: ${ccFile}"
+      echo -e "uncrustify failed on: ${RED}{ccFile}${ENDCOLOUR}"
     fi
   done
   echo "finished linting C++ files."
 fi
 
 if [ "$UNCRUSTIFY_SUCCESS" = false ]; then
+echo -e "$(
 cat <<EOF
+${YELLOW}
 You can check what needs to be fixed with './uncrustify -c uncrustify.cfg <filename>'.
 This will output the fixed file in the same directory with a .uncrustify extension.
 You can automatically fix the file with './uncrustify -c uncrustify.cfg --replace --no-backup'
@@ -38,8 +42,9 @@ and re-enable it with '/* *INDENT-ON* */'.
 If you know what you are doing you can disable this check using:
 
   git config hooks.nocclinting true
-
+${ENDCOLOUR}
 EOF
+)"
 fi
 
 ESLINT_SUCCESS=true
@@ -50,14 +55,16 @@ if [ "$nojslinting" != "true" ]; then
     ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=1 "${jsFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
       ESLINT_SUCCESS=false
-      echo "eslint failed on: ${jsFile}"
+      echo -e "eslint failed on: ${RED}${jsFile}${ENDCOLOUR}"
     fi
   done
   echo "finished linting JavaScript files."
 fi
 
 if [ "$ESLINT_SUCCESS" = false ]; then
+echo -e "$(
 cat <<EOF
+${YELLOW}
 You can check what needs to be fixed with 'eslint <filename>'.
 Most issues can be automatically fixed with 'eslint --fix <filename>'.
 NOTE: If using v9.0.0 of eslint or greater, you will have to set the ESLINT_USE_FLAT_CONFIG
@@ -67,8 +74,9 @@ and re-enable it with '/* eslint-enable */'.
 If you know what you are doing you can disable this check using:
 
   git config hooks.nojslinting true
-
+${ENDCOLOUR}
 EOF
+)"
 fi
 
 AUTOPEP8_SUCCESS=true
@@ -79,14 +87,16 @@ if [ "$nopylinting" != "true" ]; then
     autopep8 "${pythonFile}" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
       AUTOPEP8_SUCCESS=false
-      echo "autopep8 failed on: ${pythonFile}"
+      echo -e "autopep8 failed on: ${RED}${pythonFile}${ENDCOLOUR}"
     fi
   done
   echo "finished linting python files."
 fi
 
 if [ "$AUTOPEP8_SUCCESS" = false ]; then
+echo -e "$(
 cat <<EOF
+${YELLOW}
 You can check what needs to be fixed with 'autopep8 <filename>'.
 Most issues can be automatically fixed with 'autopep8 -i <filename>'.
 A description of each warning code can be seen with 'autopep8 --list-fixes',
@@ -96,8 +106,9 @@ and re-enable it with '# autopep8: on'.
 If you know what you are doing you can disable this check using:
 
   git config hooks.nopylinting true
-
+${ENDCOLOUR}
 EOF
+)"
 fi
 
 if [ "$UNCRUSTIFY_SUCCESS" = false ] ||[ "$ESLINT_SUCCESS" = false ] || [ "$AUTOPEP8_SUCCESS" = false ]; then

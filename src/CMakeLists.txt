@@ -34,7 +34,7 @@ endif()
 
 # Don't link against `libpython` on Unix, see https://peps.python.org/pep-0513/#libpythonx-y-so-1
 if (WIN32) # linker error on Windows: `lld-link: could not open 'python311.lib': no such file or directory`
-  target_link_libraries(pythonmonkey ${PYTHON_LIBRARIES})
+  target_link_libraries(pythonmonkey ${Python_LIBRARIES})
 endif()
 
 # Stop complaining about missing symbols
@@ -45,5 +45,5 @@ endif()
 
 target_link_libraries(pythonmonkey ${SPIDERMONKEY_LIBRARIES})
 
-target_include_directories(pythonmonkey PRIVATE ${PYTHON_INCLUDE_DIR})
+target_include_directories(pythonmonkey PRIVATE ${Python_INCLUDE_DIRS})
 target_include_directories(pythonmonkey PRIVATE ${SPIDERMONKEY_INCLUDE_DIR})

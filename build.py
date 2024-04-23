@@ -41,12 +41,17 @@ def ensure_githooks():
     execute("ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit", cwd=TOP_DIR)
 
 def run_cmake_build():
-    os.makedirs(BUILD_DIR, exist_ok=True) # mkdir -p
-    if platform.system() == "Windows":
-        execute("cmake .. -T ClangCL", cwd=BUILD_DIR) # use Clang/LLVM toolset for Visual Studio
-    else:
-        execute("cmake ..", cwd=BUILD_DIR)
-    execute(f"cmake --build . -j{CPUS} --config Release", cwd=BUILD_DIR)
+  os.makedirs(BUILD_DIR, exist_ok=True)  # mkdir -p
+  build_type = "Debug" if "DEBUG" in os.environ else "Release"
+  build_docs = "ON" if "BUILD_DOCS" in os.environ else "OFF"
+
+  if platform.system() == "Windows":
+    execute("cmake .. -T ClangCL", cwd=BUILD_DIR)  # use Clang/LLVM toolset for Visual Studio
+  else:
+    execute(f"cmake -DBUILD_DOCS={build_docs} -DCMAKE_BUILD_TYPE={build_type} ..", cwd=BUILD_DIR)
+
+  execute(f"cmake --build . -j{CPUS} --config {build_type}", cwd=BUILD_DIR)
+
 
 def copy_artifacts():
     if platform.system() == "Windows":
