@@ -10,7 +10,6 @@
 #ifndef PythonMonkey_Module_PythonMonkey
 #define PythonMonkey_Module_PythonMonkey
 
-#include "include/PyType.hh"
 #include "include/JobQueue.hh"
 
 #include <jsapi.h>
@@ -19,14 +18,16 @@
 
 #include <Python.h>
 
-#define PythonMonkey_Null   PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null")   /**< macro for pythonmonkey.null object*/
-#define PythonMonkey_BigInt PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint") /**< macro for pythonmonkey.bigint class object */
 
 extern JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 extern JS::PersistentRootedObject jsFunctionRegistry; /**<// this is a FinalizationRegistry for JSFunctions that depend on Python functions. It is used to handle reference counts when the JSFunction is finalized */
 static JS::Rooted<JSObject *> *global; /**< pointer to the global object of PythonMonkey's JSContext */
 static JSAutoRealm *autoRealm; /**< pointer to PythonMonkey's AutoRealm */
 static JobQueue *JOB_QUEUE; /**< pointer to PythonMonkey's event-loop job queue */
+
+// Get handle on global object
+PyObject *getPythonMonkeyNull();
+PyObject *getPythonMonkeyBigInt();
 
 /**
  * @brief Destroys the JSContext and deletes associated memory. Called when python quits or faces a fatal exception.

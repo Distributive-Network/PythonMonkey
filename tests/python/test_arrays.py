@@ -2133,21 +2133,18 @@ def test_array_from():
 
 # bad index size expansion
 def test_assign_bad_index():
-    items = [1,2,3]
     result = []
-    pm.eval("(result, arr) => {result[0] = 4}")(result, items) 
+    pm.eval("(result) => {result[0] = 4}")(result) 
     assert result[0] == 4
 
 def test_assign_bad_index_with_existing_next():
-    items = [1,2,3]
     result = [8]
-    pm.eval("(result, arr) => {result[1] = 4}")(result, items) 
+    pm.eval("(result) => {result[1] = 4}")(result) 
     assert result == [8,4]    
 
 def test_assign_bad_index_with_gap():
-    items = [1,2,3]
     result = []
-    pm.eval("(result, arr) => {result[0] = 4; result[5] = 6}")(result, items) 
+    pm.eval("(result) => {result[0] = 4; result[5] = 6}")(result) 
     assert result == [4, None, None, None, None, 6]
 
 def test_array_subclass_behaves_as_array():

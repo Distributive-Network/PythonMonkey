@@ -39,6 +39,11 @@ int JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_traverse(JSObjectIterP
   return 0;
 }
 
+int JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_clear(JSObjectIterProxy *self) {
+  Py_CLEAR(self->it.di_dict);
+  return 0;
+}
+
 PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_iter(JSObjectIterProxy *self) {
   Py_INCREF(&self->it);
   return (PyObject *)&self->it;
@@ -59,7 +64,7 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
       if (self->it.kind != KIND_KEYS) {
         JS::RootedValue jsVal(GLOBAL_CX);
         JS_GetPropertyById(GLOBAL_CX, *(((JSObjectProxy *)(self->it.di_dict))->jsObject), id, &jsVal);
-        value = pyTypeFactory(GLOBAL_CX, jsVal)->getPyObject();
+        value = pyTypeFactory(GLOBAL_CX, jsVal);
       }
 
       PyObject *ret;
@@ -71,6 +76,10 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
       }
       else {
         ret = key;
+      }
+
+      if (self->it.kind != KIND_KEYS) {
+        Py_DECREF(value);
       }
 
       Py_INCREF(ret);
@@ -85,7 +94,7 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
       if (self->it.kind != KIND_KEYS) {
         JS::RootedValue jsVal(GLOBAL_CX);
         JS_GetPropertyById(GLOBAL_CX, *(((JSObjectProxy *)(self->it.di_dict))->jsObject), id, &jsVal);
-        value = pyTypeFactory(GLOBAL_CX, jsVal)->getPyObject();
+        value = pyTypeFactory(GLOBAL_CX, jsVal);
       }
 
       PyObject *ret;
@@ -98,6 +107,11 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
       else {
         ret = key;
       }
+
+      if (self->it.kind != KIND_KEYS) {
+        Py_DECREF(value);
+      }
+
       Py_INCREF(ret);
       return ret;
     }

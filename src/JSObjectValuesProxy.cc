@@ -53,6 +53,11 @@ int JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_traverse(JSObjectV
   return 0;
 }
 
+int JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_clear(JSObjectValuesProxy *self) {
+  Py_CLEAR(self->dv.dv_dict);
+  return 0;
+}
+
 // private
 static int all_contained_in(PyObject *self, PyObject *other) {
   PyObject *iter = PyObject_GetIter(self);
