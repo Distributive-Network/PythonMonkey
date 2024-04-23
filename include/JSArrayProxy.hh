@@ -261,6 +261,8 @@ public:
    * @brief tp_traverse
    *
    * @param self - The JSArrayProxy
+   * @param visit - The function to be applied on each element of the list
+   * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg);

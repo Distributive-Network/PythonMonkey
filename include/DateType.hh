@@ -30,6 +30,7 @@ public:
    * @brief Convert a Python datetime object to JS Date
    *
    * @param cx - javascript context pointer
+   * @param pyObject - the python datetime object to be converted
    */
   static JSObject *toJsDate(JSContext *cx, PyObject *pyObject);
 };

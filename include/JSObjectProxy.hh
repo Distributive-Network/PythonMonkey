@@ -232,6 +232,8 @@ public:
    * @brief tp_traverse
    *
    * @param self - The JSObjectProxy
+   * @param visit - The function to be applied on each element of the object
+   * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
