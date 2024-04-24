@@ -234,8 +234,8 @@ jobs:
           fi
           poetry run bash ./peter-jr ./tests/js/
       - name: SSH debug session
-        if: $PP (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled_os == matrix.os && inputs.debug_enabled_python == matrix.python_version}}
-        uses: fawazahmed0/action-debug@mail
+        if: ${{ (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled_os == matrix.os && inputs.debug_enabled_python == matrix.python_version}}
+        uses: fawazahmed0/action-debug@main
         with:
           credentials: "admin:admin"
       - name: Upload core dumps as CI artifacts
