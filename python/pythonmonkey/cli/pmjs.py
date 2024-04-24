@@ -8,7 +8,7 @@ import sys, os, signal, getopt
 import readline
 import asyncio
 import pythonmonkey as pm
-from pythonmonkey.lib import pmdb
+from pythonmonkey.lib import pmdb, wtfpm
 
 globalThis = pm.eval("globalThis")
 evalOpts = { 'filename': __file__, 'fromPythonFrame': True, 'strict': False } # type: pm.EvalOptions
@@ -292,6 +292,7 @@ Options:
   -v, --version        print PythonMonkey version
   --use-strict         evaluate -e, -p, and REPL code in strict mode
   --inspect            enable pmdb, a gdb-like JavaScript debugger interface
+  --wtf                enable WTFPythonMonkey, a tool that can detect hanging timers when Ctrl-C is hit
 
 Environment variables:
 TZ                            specify the timezone configuration
@@ -323,7 +324,7 @@ def main():
     global requirePath
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "interactive", "use-strict", "inspect"])
+        opts, args = getopt.getopt(sys.argv[1:], "hie:p:r:v", ["help", "eval=", "print=", "require=", "version", "interactive", "use-strict", "inspect", "wtf"])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)  # will print something like "option -a not recognized"
@@ -331,6 +332,7 @@ def main():
         sys.exit(2)
     output = None
     verbose = False
+    enableWTF = False
     for o, a in opts:
         if o in ("-v", "--version"):
             print(pm.__version__)
@@ -359,6 +361,8 @@ def main():
             globalThis.require(a)
         elif o in ("--inspect"):
             pmdb.enable()
+        elif o in ("--wtf"):
+            enableWTF = True
         else:
             assert False, "unhandled option"
 
@@ -371,6 +375,8 @@ def main():
             asyncio.run(runJS())
         except KeyboardInterrupt:
             print() # silently going to end the program instead of printing out the Python traceback
+            if enableWTF:
+                wtfpm.printTimersDebugInfo()
     elif (enterRepl or forceRepl):
         async def runREPL():
             globalInitModule.initReplLibs()
