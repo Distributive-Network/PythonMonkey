@@ -96,7 +96,7 @@ class Timeout
 }
 
 /**
- * Normalize the arguments to `setTimeout` or `setInterval`
+ * Normalize the arguments to `setTimeout`,`setImmediate` or `setInterval`
  * @param {Function | string} handler
  * @param {number} delayMs timeout milliseconds
  * @param {any[]} additionalArgs additional arguments to be passed to the `handler`
@@ -125,13 +125,13 @@ function _normalizeTimerArgs(handler, delayMs, additionalArgs)
 
   // Populate debug information for the WTFPythonMonkey tool
   const stacks = new Error().stack.split('\n');
-  const timerType = stacks[1]?.match(/^set(Timeout|Interval)/)?.[0]; // `setTimeout@...`/`setInterval@...` is on the second line of stack trace
+  const timerType = stacks[1]?.match(/^set(Timeout|Immediate|Interval)/)?.[0]; // `setTimeout@...`/`setImmediate@...`/`setInterval@...` is on the second line of stack trace
   const debugInfo = {
-    type: timerType, // "setTimeout" or "setInterval"
+    type: timerType, // "setTimeout", "setImmediate", or "setInterval"
     fn: handler,
     args: additionalArgs,
     delaySeconds,
-    stack: stacks.slice(2).join('\n'), // remove the first line `_normalizeTimerArgs@...` and the second line `setTimeout/setInterval@...`
+    stack: stacks.slice(2).join('\n'), // remove the first line `_normalizeTimerArgs@...` and the second line `setTimeout/setImmediate/setInterval@...`
   };
 
   return { boundHandler, delaySeconds, debugInfo };
@@ -169,6 +169,29 @@ function clearTimeout(timeoutId)
 }
 
 /**
+ * Implement the `setImmediate` global function  
+ * **NON-STANDARD**, for Node.js compatibility only.
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/setImmediate and
+ * @see https://nodejs.org/en/learn/asynchronous-work/understanding-setimmediate
+ * @param {Function | string} handler
+ * @param {any[]} args additional arguments to be passed to the `handler`
+ */
+function setImmediate(handler, ...args)
+{
+  // setImmediate is equal to setTimeout with a 0ms delay
+  const { boundHandler, debugInfo } = _normalizeTimerArgs(handler, 0, args);
+  return new Timeout(enqueueWithDelay(boundHandler, 0, false, debugInfo));
+}
+
+/**
+ * Implement the `clearImmediate` global function  
+ * **NON-STANDARD**, for Node.js compatibility only.
+ * @alias to `clearTimeout`
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/clearImmediate
+ */
+const clearImmediate = clearTimeout;
+
+/**
  * Implement the `setInterval` global function
  * @see https://developer.mozilla.org/en-US/docs/Web/API/setInterval and
  * @see https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#dom-setinterval
@@ -192,12 +215,18 @@ const clearInterval = clearTimeout;
 
 // expose the `Timeout` class
 setTimeout.Timeout = Timeout;
+setImmediate.Timeout = Timeout;
 setInterval.Timeout = Timeout;
 
 if (!globalThis.setTimeout)
   globalThis.setTimeout = setTimeout;
 if (!globalThis.clearTimeout)
   globalThis.clearTimeout = clearTimeout;
+
+if (!globalThis.setImmediate)
+  globalThis.setImmediate = setImmediate;
+if (!globalThis.clearImmediate)
+  globalThis.clearImmediate = clearImmediate;
 
 if (!globalThis.setInterval)
   globalThis.setInterval = setInterval;
@@ -206,5 +235,7 @@ if (!globalThis.clearInterval)
 
 exports.setTimeout = setTimeout;
 exports.clearTimeout = clearTimeout;
+exports.setImmediate = setImmediate;
+exports.clearImmediate = clearImmediate;
 exports.setInterval = setInterval;
 exports.clearInterval = clearInterval;
