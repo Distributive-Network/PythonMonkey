@@ -367,7 +367,10 @@ def main():
             globalInitModule.patchGlobalRequire()
             pm.runProgramModule(args[0], args, requirePath)
             await pm.wait() # blocks until all asynchronous calls finish
-        asyncio.run(runJS())
+        try:
+            asyncio.run(runJS())
+        except KeyboardInterrupt:
+            print() # silently going to end the program instead of printing out the Python traceback
     elif (enterRepl or forceRepl):
         async def runREPL():
             globalInitModule.initReplLibs()
