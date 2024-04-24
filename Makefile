@@ -4,17 +4,17 @@
 # @date         March 2024
 #
 
-BUILD  = Debug	# Release, DRelease, Debug, or Profile
-DOCS	 = false
-VERBOSE= true
+BUILD = Debug	# (case-insensitive) Release, DRelease, Debug, or Profile
+DOCS = false
+VERBOSE = true
 PYTHON = python3
-RUN    = poetry run
+RUN = poetry run
 
 OS_NAME := $(shell uname -s)
 
 ifeq ($(OS_NAME),Linux)
-CPU_COUNT=$(shell cat /proc/cpuinfo  | grep -c processor)
-MAX_JOBS=10
+CPU_COUNT = $(shell cat /proc/cpuinfo  | grep -c processor)
+MAX_JOBS = 10
 CPUS := $(shell test $(CPU_COUNT) -lt $(MAX_JOBS) && echo $(CPU_COUNT) || echo $(MAX_JOBS))
 PYTHON_BUILD_ENV += CPUS=$(CPUS)
 endif
