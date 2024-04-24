@@ -10,13 +10,9 @@
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/IntType.hh"
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
 
 #include <jsapi.h>
 #include <js/BigInt.h>
-
-#include <Python.h>
 
 #include <vector>
 
@@ -72,11 +68,8 @@ static inline bool PythonLong_IsNegative(const PyLongObject *op) {
 #endif
 }
 
-IntType::IntType(PyObject *object) : PyType(object) {}
 
-IntType::IntType(long n) : PyType(Py_BuildValue("i", n)) {}
-
-IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
+PyObject *IntType::getPyObject(JSContext *cx, JS::BigInt *bigint) {
   // Get the sign bit
   bool isNegative = BigIntIsNegative(bigint);
 
@@ -110,9 +103,9 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   //  allowing Py<->JS two-way BigInt conversion.
   // We don't do `Py_SET_TYPE` because `_PyLong_FromByteArray` may cache and reuse objects for small ints
   #if PY_VERSION_HEX >= 0x03090000
-  pyObject = PyObject_CallOneArg(PythonMonkey_BigInt, pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
+  PyObject *pyObject = PyObject_CallOneArg(getPythonMonkeyBigInt(), pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
   #else
-  pyObject = PyObject_CallFunction(PythonMonkey_BigInt, "O", pyIntObj); // PyObject_CallOneArg is not available in Python < 3.9
+  PyObject *pyObject = PyObject_CallFunction(getPythonMonkeyBigInt(), "O", pyIntObj); // PyObject_CallOneArg is not available in Python < 3.9
   #endif
   Py_DECREF(pyIntObj);
 
@@ -120,9 +113,11 @@ IntType::IntType(JSContext *cx, JS::BigInt *bigint) {
   if (isNegative) {
     PythonLong_SetSign((PyLongObject *)pyObject, -1);
   }
+
+  return pyObject;
 }
 
-JS::BigInt *IntType::toJsBigInt(JSContext *cx) {
+JS::BigInt *IntType::toJsBigInt(JSContext *cx, PyObject *pyObject) {
   // Figure out how many 64-bit "digits" we would have for JS BigInt
   //    see https://github.com/python/cpython/blob/3.9/Modules/_randommodule.c#L306
   size_t bitCount = _PyLong_NumBits(pyObject);

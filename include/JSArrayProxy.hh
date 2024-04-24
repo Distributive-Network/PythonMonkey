@@ -255,6 +255,22 @@ public:
    * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames);
+
+  /**
+   * @brief tp_traverse
+   *
+   * @param self - The JSArrayProxy
+   * @return 0 on success
+   */
+  static int JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief tp_clear
+   *
+   * @param self - The JSArrayProxy
+   * @return 0 on success
+   */
+  static int JSArrayProxy_clear(JSArrayProxy *self);
 };
 
 

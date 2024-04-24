@@ -1,42 +1,36 @@
 /**
  * @file DictType.hh
- * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network), Giovanni Tedesco (giovanni@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct representing python dictionaries
  * @date 2022-08-10
  *
- * @copyright Copyright (c) 2022 Distributive Corp.
+ * @copyright Copyright (c) 2022,2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_DictType_
 #define PythonMonkey_DictType_
 
-#include "PyType.hh"
-#include "TypeEnum.hh"
-
 #include <jsapi.h>
 
 #include <Python.h>
 
 /**
- * @brief This struct represents a dictionary in python. It derives from the PyType struct
+ * @brief This struct represents a dictionary in python.
  *
  * @author Giovanni
  */
-struct DictType : public PyType {
+struct DictType {
 public:
-  DictType();
-  DictType(PyObject *object);
-
   /**
    * @brief Construct a new DictType object from a JSObject.
    *
    * @param cx - pointer to the JSContext
    * @param jsObject - pointer to the JSObject to be coerced
+   *
+   * @returns PyObject* pointer to the resulting PyObject
    */
-  DictType(JSContext *cx, JS::Handle<JS::Value> jsObject);
-
-  const TYPE returnType = TYPE::DICT;
+  static PyObject *getPyObject(JSContext *cx, JS::Handle<JS::Value> jsObject);
 };
 
 #endif

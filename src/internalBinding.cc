@@ -60,5 +60,5 @@ PyObject *getInternalBindingPyFn(JSContext *cx) {
 
   // Convert to a Python function
   JS::RootedValue jsFnVal(cx, JS::ObjectValue(*jsFn));
-  return pyTypeFactory(cx, jsFnVal)->getPyObject();
+  return pyTypeFactory(cx, jsFnVal);
 }

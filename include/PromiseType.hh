@@ -1,18 +1,15 @@
 /**
  * @file PromiseType.hh
- * @author Tom Tang (xmader@distributive.network)
+ * @author Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing Promises
  * @date 2023-03-29
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_PromiseType_
 #define PythonMonkey_PromiseType_
-
-#include "PyType.hh"
-#include "TypeEnum.hh"
 
 #include <jsapi.h>
 #include <js/Promise.h>
@@ -20,28 +17,26 @@
 #include <Python.h>
 
 /**
- * @brief This struct represents the JS Promise type in Python using our custom pythonmonkey.promise type. It inherits from the PyType struct
+ * @brief This struct represents the JS Promise type in Python using our custom pythonmonkey.promise type
  */
-struct PromiseType : public PyType {
+struct PromiseType {
 public:
-  PromiseType(PyObject *object);
-
   /**
    * @brief Construct a new PromiseType object from a JS::PromiseObject.
    *
    * @param cx - javascript context pointer
    * @param promise - JS::PromiseObject to be coerced
+   *
+   * @returns PyObject* pointer to the resulting PyObject
    */
-  PromiseType(JSContext *cx, JS::HandleObject promise);
-
-  const TYPE returnType = TYPE::PYTHONMONKEY_PROMISE;
+  static PyObject *getPyObject(JSContext *cx, JS::HandleObject promise);
 
   /**
    * @brief Convert a Python [awaitable](https://docs.python.org/3/library/asyncio-task.html#awaitables) object to JS Promise
    *
    * @param cx - javascript context pointer
    */
-  JSObject *toJsPromise(JSContext *cx);
+  static JSObject *toJsPromise(JSContext *cx, PyObject *pyObject);
 };
 
 /**

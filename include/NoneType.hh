@@ -1,26 +1,25 @@
 /**
  * @file NoneType.hh
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing None
  * @date 2023-02-22
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_NoneType_
 #define PythonMonkey_NoneType_
 
-#include "PyType.hh"
-#include "TypeEnum.hh"
+#include <Python.h>
 
 /**
- * @brief This struct represents the 'None' type in Python. It inherits from the PyType struct
+ * @brief This struct represents the 'None' type in Python
  */
-struct NoneType : public PyType {
+struct NoneType {
 public:
-  NoneType();
-  TYPE returnType = TYPE::NONE;
+  static PyObject *getPyObject();
+
 };
 
 #endif

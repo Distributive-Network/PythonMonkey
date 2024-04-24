@@ -12,7 +12,6 @@
 
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
-#include "include/StrType.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -175,9 +174,12 @@ bool PyObjectProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::Handle
   PyObject *attrName = idToKey(cx, id);
 
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (PyObject_SetAttr(self, attrName, pyTypeFactory(cx, rootedV)->getPyObject())) {
+  PyObject *value = pyTypeFactory(cx, rootedV);
+  if (PyObject_SetAttr(self, attrName, value)) {
+    Py_DECREF(value);
     return result.failCantSetInterposed(); // raises JS exception
   }
+  Py_DECREF(value);
   return result.succeed();
 }
 

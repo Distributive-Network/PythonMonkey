@@ -17,6 +17,7 @@
 
 #include <unordered_map>
 
+
 /**
  * @brief The typedef for the backing store that will be used by JSObjectProxy objects. All it contains is a pointer to the JSObject
  *
@@ -226,6 +227,22 @@ public:
    * @return PyObject* items view of the dict
    */
   static PyObject *JSObjectProxy_items_method(JSObjectProxy *self);
+
+  /**
+   * @brief tp_traverse
+   *
+   * @param self - The JSObjectProxy
+   * @return 0 on success
+   */
+  static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief tp_clear
+   *
+   * @param self - The JSObjectProxy
+   * @return 0 on success
+   */
+  static int JSObjectProxy_clear(JSObjectProxy *self);
 };
 
 
