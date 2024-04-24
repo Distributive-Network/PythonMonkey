@@ -128,6 +128,7 @@ function _normalizeTimerArgs(handler, delayMs, additionalArgs)
     fn: handler,
     args: additionalArgs,
     delaySeconds,
+    stack: new Error().stack.split('\n').slice(1).join('\n'), // remove the first line `_normalizeTimerArgs@...`
   };
 
   return { boundHandler, delaySeconds, debugInfo };
