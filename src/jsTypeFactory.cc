@@ -260,16 +260,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(iterable));
     returnType.setObject(*proxy);
   }
-  else if (PyIter_Check(object)) {
-    JS::RootedValue v(cx);
-    JS::RootedObject objectPrototype(cx);
-    JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype); // so that instanceof will work, not that prototype methods will
-    JSObject *proxy = js::NewProxyObject(cx, &pyIterableProxyHandler, v, objectPrototype.get());
-    PyObject *iterable = PyObject_GetIter(object);
-    Py_INCREF(iterable);
-    JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(iterable));
-    returnType.setObject(*proxy);
-  }
   else {
     JS::RootedValue v(cx);
     JS::RootedObject objectPrototype(cx);
