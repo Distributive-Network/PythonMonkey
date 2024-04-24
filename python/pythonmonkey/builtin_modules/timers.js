@@ -130,6 +130,7 @@ function _normalizeTimerArgs(handler, delayMs, additionalArgs)
     type: timerType, // "setTimeout", "setImmediate", or "setInterval"
     fn: handler,
     args: additionalArgs,
+    startTime: new Date(),
     delaySeconds,
     stack: stacks.slice(2).join('\n'), // remove the first line `_normalizeTimerArgs@...` and the second line `setTimeout/setImmediate/setInterval@...`
   };
