@@ -9,16 +9,44 @@ on:
   workflow_call:
   workflow_dispatch:
     inputs:
-      debug_enabled:
-        type: boolean
-        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+      debug_enabled_os:
+        type: choice
+        description: Optionally, choose an OS to run the build with SSH debugging on (https://github.com/fawazahmed0/action-debug)
         required: false
-        default: false
+        options:
+        - ''
+        - 'ubuntu-20.04'
+        - 'macos-11'
+        - 'macos-12'
+        - 'macos-13'
+        - 'macos-14'
+        - 'windows-2019'
+      debug_enabled_python:
+        type: choice
+        description: Choose a Python version to run the build with SSH debugging on
+        required: false
+        options:
+        - ''
+        - '3.8'
+        - '3.9'
+        - '3.10'
+        - '3.11'
+        - '3.12'
       dump_cores:
         type: boolean
         description: 'Include core dumps in CI artifacts'
         required: false
         default: false
+      build_type:
+        type: choice
+        description: 'Choose the build type to use'
+        required: false
+        default: 'Debug'
+        options:
+        - 'Debug'
+        - 'Profile'
+        - 'DRelease'
+        - 'Release'
   pull_request:
 
 env:
@@ -100,11 +128,10 @@ jobs:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'windows-2019', 'macos-14' ]
+        os: [ 'ubuntu-20.04', 'macos-11', 'macos-12', 'macos-13', 'macos-14', 'windows-2019' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
-          # FIXME: We can't build on macOS 11 for now because our prebuilt `uncrustify` binary requires macOS 12
           - os: 'macos-12'
             python_version: '3.8'
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
@@ -146,7 +173,7 @@ jobs:
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
           poetry env use python3 # use the correct Python version we've set up
-          BUILD_DOCS=1 BUILD_TYPE=Release poetry install --no-root --only=dev
+          BUILD_TYPE=${{ inputs.build_type }} poetry install --no-root --only=dev
           echo "Installed Dependencies"
       - name: Use cached spidermonkey build
         uses: actions/cache@v4
@@ -165,7 +192,7 @@ jobs:
       - name: Build wheel
         run: |
           echo $(poetry run python --version)
-          BUILD_DOCS=1 BUILD_TYPE=Release poetry build --format=wheel
+          BUILD_TYPE=${{ inputs.build_type }} poetry build --format=wheel
           ls -lah ./dist/
       - name: Upload wheel as CI artifacts
         uses: actions/upload-artifact@v3
@@ -196,7 +223,7 @@ jobs:
           # TODO (Caleb Aikens) figure out how to get Windows core dumps
             ulimit -c unlimited
           fi
-          BUILD_DOCS=1 BUILD_TYPE=Release poetry run python -m pip install --force-reinstall --verbose ./dist/*
+          BUILD_TYPE=${{ inputs.build_type }} poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
         if: ${{ (success() || failure()) }}
@@ -206,6 +233,11 @@ jobs:
             ulimit -c unlimited
           fi
           poetry run bash ./peter-jr ./tests/js/
+      - name: SSH debug session
+        if: $PP (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled_os == matrix.os && inputs.debug_enabled_python == matrix.python_version}}
+        uses: fawazahmed0/action-debug@mail
+        with:
+          credentials: "admin:admin"
       - name: Upload core dumps as CI artifacts
         uses: actions/upload-artifact@v3
         if: ${{ matrix.os != 'windows-2019' && github.event_name == 'workflow_dispatch' && inputs.dump_cores }}
@@ -213,13 +245,6 @@ jobs:
         with:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
           path: /cores
-      # Enable tmate debugging of manually-triggered workflows if the input option was provided
-      - name: SSH debug session
-        if: ${{ (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        uses: mxschmitt/action-tmate@v3
-        with:
-          detached: true
-          limit-access-to-actor: true
   sdist:
     runs-on: ubuntu-20.04
     steps:
@@ -236,7 +261,7 @@ jobs:
       - name: Build source distribution (sdist) file
         run: |
           poetry self add "poetry-dynamic-versioning[plugin]"
-          poetry build --format=sdist
+          BUILD_DOCS=1 BUILD_TYPE=Release poetry build --format=sdist
           ls -lah ./dist/
       - name: Upload sdist as CI artifacts
         uses: actions/upload-artifact@v3
