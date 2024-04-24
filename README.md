@@ -79,7 +79,7 @@ Read this if you want to build a local version.
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
 2. Run `poetry install`. This command automatically compiles the project and installs the project as well as dependencies into the poetry virtualenv. If you would like to build the docs, set the `BUILD_DOCS` environment variable, like so: `BUILD_DOCS=1 poetry install`.
-PythonMonkey supports multiple build types, which you can build by setting the `BUILD_TYPE` environment variable, like so: `BUILD_TYPE=Debug poetry install`. The build types are:
+PythonMonkey supports multiple build types, which you can build by setting the `BUILD_TYPE` environment variable, like so: `BUILD_TYPE=Debug poetry install`. The build types are (case-insensitive):
 - `Release`: stripped symbols, maximum optimizations (default)
 - `DRelease`: same as `Release`, except symbols are not stripped
 - `Debug`: minimal optimizations

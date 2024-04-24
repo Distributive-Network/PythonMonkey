@@ -17,8 +17,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-file (GLOB_RECURSE HEADER_FILES "include/*.hh") # Find all header files in the include directory
-file (GLOB_RECURSE SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory
+file (GLOB_RECURSE HEADER_FILES "include/*.hh") # Find all header files in the include directory and below
+file (GLOB_RECURSE SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory and below
 
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
