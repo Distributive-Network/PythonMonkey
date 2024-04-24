@@ -51,11 +51,11 @@ def run_cmake_build():
   build_docs = "ON" if "BUILD_DOCS" in os.environ and os.environ["BUILD_DOCS"] in ("1", "ON", "on") else "OFF"
 
   if platform.system() == "Windows":
-    execute("cmake .. -T ClangCL", cwd=BUILD_DIR)  # use Clang/LLVM toolset for Visual Studio
-    execute(f"cmake --build . -j{CPUS} --config {build_type}", cwd=BUILD_DIR)
+    # use Clang/LLVM toolset for Visual Studio
+    execute(f"cmake -DBUILD_DOCS={build_docs} -DCMAKE_BUILD_TYPE={build_type} .. -T ClangCL", cwd=BUILD_DIR)
   else:
     execute(f"cmake -DBUILD_DOCS={build_docs} -DCMAKE_BUILD_TYPE={build_type} ..", cwd=BUILD_DIR)
-    execute(f"cmake --build . -j{CPUS}", cwd=BUILD_DIR)
+  execute(f"cmake --build . -j{CPUS}", cwd=BUILD_DIR)
 
 
 def copy_artifacts():
