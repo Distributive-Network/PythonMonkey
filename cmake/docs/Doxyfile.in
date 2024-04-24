@@ -1,6 +1,5 @@
 OUTPUT_DIRECTORY      = "@CMAKE_BINARY_DIR@/docs/"
 INPUT                 = "@CMAKE_SOURCE_DIR@/README.md" \
-                        "@CMAKE_SOURCE_DIR@/docs/" \
                         "@CMAKE_SOURCE_DIR@/src/" \
                         "@CMAKE_SOURCE_DIR@/include/" \
                         "@CMAKE_SOURCE_DIR@/python/pythonmonkey/"
