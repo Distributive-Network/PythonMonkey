@@ -39,7 +39,7 @@ static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Set debug info for the WTFPythonMonkey tool
   auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
-  handle->setDebugInfo(pyTypeFactory(cx, debugInfo)->getPyObject());
+  handle->setDebugInfo(pyTypeFactory(cx, debugInfo));
 
   // Return the `timeoutID` to use in `clearTimeout`
   args.rval().setNumber(handleId);
