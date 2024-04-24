@@ -45,7 +45,7 @@ echo "Downloading uncrustify source code"
 wget -c -q https://github.com/uncrustify/uncrustify/archive/refs/tags/uncrustify-0.78.1.tar.gz
 mkdir -p uncrustify-source
 tar -xzvf uncrustify-0.78.1.tar.gz -C uncrustify-source --strip-components=1 # strip the root folder
-echo "Done downloading uncrustify source doe"
+echo "Done downloading uncrustify source code"
 
 echo "Building uncrustify"
 cd uncrustify-source
