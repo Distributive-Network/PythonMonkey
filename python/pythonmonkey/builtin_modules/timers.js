@@ -124,11 +124,14 @@ function _normalizeTimerArgs(handler, delayMs, additionalArgs)
   const delaySeconds = delayMs / 1000; // convert ms to s
 
   // Populate debug information for the WTFPythonMonkey tool
+  const stacks = new Error().stack.split('\n');
+  const timerType = stacks[1]?.match(/^set(Timeout|Interval)/)?.[0]; // `setTimeout@...`/`setInterval@...` is on the second line of stack trace
   const debugInfo = {
+    type: timerType, // "setTimeout" or "setInterval"
     fn: handler,
     args: additionalArgs,
     delaySeconds,
-    stack: new Error().stack.split('\n').slice(1).join('\n'), // remove the first line `_normalizeTimerArgs@...`
+    stack: stacks.slice(2).join('\n'), // remove the first line `_normalizeTimerArgs@...` and the second line `setTimeout/setInterval@...`
   };
 
   return { boundHandler, delaySeconds, debugInfo };
