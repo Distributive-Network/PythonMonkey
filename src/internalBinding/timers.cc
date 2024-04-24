@@ -12,6 +12,7 @@
 #include "include/PyEventLoop.hh"
 
 #include <jsapi.h>
+#include <js/Array.h>
 
 using AsyncHandle = PyEventLoop::AsyncHandle;
 
@@ -114,6 +115,19 @@ static bool getDebugInfo(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
+static bool getAllRefedTimersDebugInfo(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedVector<JS::Value> results(cx);
+  for (AsyncHandle &timer: AsyncHandle::getAllRefed()) {
+    JS::Value debugInfo = jsTypeFactory(cx, timer.getDebugInfo());
+    results.append(debugInfo);
+  }
+
+  args.rval().setObjectOrNull(JS::NewArrayObject(cx, results));
+  return true;
+}
+
 JSFunctionSpec InternalBinding::timers[] = {
   JS_FN("enqueueWithDelay", enqueueWithDelay, /* nargs */ 2, 0),
   JS_FN("cancelByTimeoutId", cancelByTimeoutId, 1, 0),
@@ -121,5 +135,6 @@ JSFunctionSpec InternalBinding::timers[] = {
   JS_FN("timerAddRef", timerAddRef, 1, 0),
   JS_FN("timerRemoveRef", timerRemoveRef, 1, 0),
   JS_FN("getDebugInfo", getDebugInfo, 1, 0),
+  JS_FN("getAllRefedTimersDebugInfo", getAllRefedTimersDebugInfo, 1, 0),
   JS_FS_END
 };

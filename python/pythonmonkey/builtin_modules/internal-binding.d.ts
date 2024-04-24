@@ -69,6 +69,11 @@ declare function internalBinding(namespace: "timers"): {
    * Retrieve debug info inside the timer for the WTFPythonMonkey tool
    */
   getDebugInfo(timeoutId: number): TimerDebugInfo;
+
+  /**
+   * Retrieve the debug info for all timers that are still ref'ed
+   */
+  getAllRefedTimersDebugInfo(): TimerDebugInfo[];
 };
 
 export = internalBinding;
