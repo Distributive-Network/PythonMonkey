@@ -5,6 +5,17 @@
 #         what is about to be commited. Called by "git commit". If this script
 #         exits with a non-zero status nothing will be committed. 
 #
+#         To disable checks on C++ files, do "git config hooks.nocclinting true", 
+#         and "git config hooks.nocclinting false" to re-enable checks.
+#
+#         To disable checks on JavaScript files, do "git config hooks.nojslinting true",
+#         and "git config hooks.nojslinting false" to re-enable checks.
+#
+#         To disable checks on Python files, do "git config hooks.nopylinting true",
+#         and "git config hooks.pylinting false" to re-enable checks.
+#
+#         To commit without this hook running at all, do "git commit --no-verify"
+#
 # @author Caleb Aikens, caleb@distributive.network
 # @date   Apr 2024
 
