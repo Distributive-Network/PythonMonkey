@@ -161,7 +161,7 @@ bootstrap.modules.debug = function debug(selector)
 
   if (debugEnv)
   {
-    for (let sym of debugEnv.split(' '))
+    for (let sym of debugEnv.split(','))
     {
       const re = new RegExp('^' + sym.replace('*', '.*') + '$');
       if (re.test(selector))
