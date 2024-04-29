@@ -93,7 +93,7 @@ async def request(
                 res.close()
 
             # readyState HEADERS_RECEIVED
-            responseData: XHRResponse = { # FIXME: PythonMonkey bug: the dict will be GCed if directly as an argument
+            processResponse({
                 'url': str(res.real_url),
                 'status': res.status,
                 'statusText': str(res.reason or ''),
@@ -102,8 +102,7 @@ async def request(
                 'getAllResponseHeaders': getAllResponseHeaders,
                 'abort': abort,
                 'contentLength': res.content_length or 0,
-            }
-            processResponse(responseData)
+            })
 
             async for data in res.content.iter_any():
                 processBodyChunk(bytearray(data)) # PythonMonkey only accepts the mutable bytearray type
