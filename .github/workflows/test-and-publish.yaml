@@ -169,6 +169,8 @@ jobs:
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
             brew install cmake doxygen pkg-config wget coreutils # `coreutils` installs the `realpath` command
+          else # windows
+            ln -s -f ./python.exe "$(which python)"_d.exe
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
