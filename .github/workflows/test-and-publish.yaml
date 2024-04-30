@@ -32,11 +32,6 @@ on:
         - '3.10'
         - '3.11'
         - '3.12'
-      dump_cores:
-        type: boolean
-        description: 'Include core dumps in CI artifacts'
-        required: false
-        default: false
       build_type:
         type: choice
         description: 'Choose the build type to use'
@@ -171,6 +166,9 @@ jobs:
             brew install cmake doxygen pkg-config wget coreutils # `coreutils` installs the `realpath` command
           else # windows
             ln -s -f ./python.exe "$(which python)"_d.exe
+            for fileName in `find "$(dirname "$(which python)")/libs/" -maxdepth 1 -type f -exec echo {} \;`; do
+              ln -s -f $fileName "${fileName%.lib}_d.lib"
+            done
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
@@ -210,7 +208,7 @@ jobs:
           name: docs-${{ github.run_id }}-${{ github.sha }}
           path: ./build/docs/html/
       - name: Set cores to get stored in /cores
-        if: ${{ matrix.os != 'windows-2019' && github.event_name == 'workflow_dispatch' && inputs.dump_cores }}
+        if: ${{ matrix.os != 'windows-2019' }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         run: |
           sudo mkdir -p /cores
@@ -245,7 +243,7 @@ jobs:
           credentials: "admin:admin"
       - name: Upload core dumps as CI artifacts
         uses: actions/upload-artifact@v3
-        if: ${{ matrix.os != 'windows-2019' && github.event_name == 'workflow_dispatch' && inputs.dump_cores }}
+        if: ${{ matrix.os != 'windows-2019' && failure() }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
