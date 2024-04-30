@@ -119,6 +119,7 @@ PyEventLoop::Future PyEventLoop::ensureFuture(PyObject *awaitable) {
   Py_DECREF(args);
   Py_DECREF(kwargs);
 
+  Py_INCREF(futureObj); // needs to be kept alive as `PyEventLoop::Future` will decrease the reference count in its destructor
   return PyEventLoop::Future(futureObj);
 }
 
