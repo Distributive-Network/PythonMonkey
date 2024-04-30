@@ -29,8 +29,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   ### Code block from: https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
   include(FetchContent)
 
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    SET(COMPILE_FLAGS "/GR-")
+  if (WIN32)
+    SET(COMPILE_FLAGS "/GR- /W0")
 
     SET(OPTIMIZED "/O2")
     SET(UNOPTIMIZED "/Od")
