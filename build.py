@@ -55,7 +55,7 @@ def run_cmake_build():
     execute(f"cmake -DBUILD_DOCS={build_docs} -DPM_BUILD_TYPE={build_type} .. -T ClangCL", cwd=BUILD_DIR)
   else:
     execute(f"cmake -DBUILD_DOCS={build_docs} -DPM_BUILD_TYPE={build_type} ..", cwd=BUILD_DIR)
-  execute(f"cmake --build . -j{CPUS}", cwd=BUILD_DIR)
+  execute(f"cmake --build . -j{CPUS} --config Release", cwd=BUILD_DIR)
 
 
 def copy_artifacts():
