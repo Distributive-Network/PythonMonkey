@@ -4,6 +4,8 @@ IFS=$'\n\t'
 
 # set git hooks
 ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit
+# set blame ignore file
+git config blame.ignorerevsfile .git-blame-ignore-revs
 
 # Get number of CPU cores
 CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
