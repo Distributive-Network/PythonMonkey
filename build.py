@@ -52,9 +52,9 @@ def run_cmake_build():
 
   if platform.system() == "Windows":
     # use Clang/LLVM toolset for Visual Studio
-    execute(f"cmake -DBUILD_DOCS={build_docs} -DCMAKE_BUILD_TYPE={build_type} .. -T ClangCL", cwd=BUILD_DIR)
+    execute(f"cmake -DBUILD_DOCS={build_docs} -DPM_BUILD_TYPE={build_type} .. -T ClangCL", cwd=BUILD_DIR)
   else:
-    execute(f"cmake -DBUILD_DOCS={build_docs} -DCMAKE_BUILD_TYPE={build_type} ..", cwd=BUILD_DIR)
+    execute(f"cmake -DBUILD_DOCS={build_docs} -DPM_BUILD_TYPE={build_type} ..", cwd=BUILD_DIR)
   execute(f"cmake --build . -j{CPUS}", cwd=BUILD_DIR)
 
 
