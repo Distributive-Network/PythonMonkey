@@ -173,7 +173,7 @@ jobs:
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
           poetry env use python3 # use the correct Python version we've set up
-          BUILD_TYPE=${{ inputs.build_type }} poetry install --no-root --only=dev
+          poetry install --no-root --only=dev
           echo "Installed Dependencies"
       - name: Use cached spidermonkey build
         uses: actions/cache@v4
@@ -192,6 +192,7 @@ jobs:
       - name: Build wheel
         run: |
           echo $(poetry run python --version)
+          echo "BUILD_TYPE: ${{ inputs.build_type}}"
           BUILD_TYPE=${{ inputs.build_type }} poetry build --format=wheel
           ls -lah ./dist/
       - name: Upload wheel as CI artifacts
