@@ -59,6 +59,9 @@ def run_cmake_build():
 
 
 def copy_artifacts():
+  if "BUILD_TYPE" in os.environ and os.environ["BUILD_TYPE"].title() == "None":
+    return  # do not copy artifacts if we did not build them
+
   if platform.system() == "Windows":
     execute("cp ./build/src/*/pythonmonkey.pyd ./python/pythonmonkey/", cwd=TOP_DIR)  # Release or Debug build
     execute("cp ./_spidermonkey_install/lib/mozjs-*.dll ./python/pythonmonkey/", cwd=TOP_DIR)
