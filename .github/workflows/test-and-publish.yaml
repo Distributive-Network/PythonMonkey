@@ -194,12 +194,6 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
-      - name: Upload Doxygen-generated docs as CI artifacts
-        uses: actions/upload-artifact@v3
-        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }} # making sure we only upload once
-        with:
-          name: docs-${{ github.run_id }}-${{ github.sha }}
-          path: ./build/docs/html/
       - name: Set cores to get stored in /cores
         if: ${{ matrix.os != 'windows-2019' }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
@@ -264,6 +258,11 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
+      - name: Upload Doxygen-generated docs as CI artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs-${{ github.run_id }}-${{ github.sha }}
+          path: ./build/docs/html/
   publish:
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04
