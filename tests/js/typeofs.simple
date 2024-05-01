@@ -17,7 +17,7 @@ function check(jsval, expected)
   switch (typeof expected)
   {
     case 'function':
-      disp = expected.name || '(anonymous function)'
+      disp = expected.name || '(anonymous function)';
       break;
     case 'object':
       disp = JSON.stringify(expected);
@@ -42,16 +42,16 @@ function check(jsval, expected)
   }
 }
 
-check(throughBoth(123) ,         'number')
-check(throughBoth(123n),         'bigint')
-check(throughBoth('sn'),         'string')
-check(throughBoth({}),           'object')
-check(throughBoth(true),         'boolean')
-check(throughBoth(false),        'boolean')
-check(throughBoth(undefined),    'undefined')
-check(throughBoth(null),         'object')
-check(throughBoth([1,1]),        'object')
-check(throughBoth(()=>1),        'function')
-check(throughBoth([2,2]),        Array)
-check(throughBoth(new Array(1)), Array)
+check(throughBoth(123) ,         'number');
+check(throughBoth(123n),         'bigint');
+check(throughBoth('sn'),         'string');
+check(throughBoth({}),           'object');
+check(throughBoth(true),         'boolean');
+check(throughBoth(false),        'boolean');
+check(throughBoth(undefined),    'undefined');
+check(throughBoth(null),         'object');
+check(throughBoth([1,1]),        'object');
+check(throughBoth(()=>1),        'function');
+check(throughBoth([2,2]),        Array);
+check(throughBoth(new Array(1)), Array);
 /** see also typeofs-segfaults.simple.failing */

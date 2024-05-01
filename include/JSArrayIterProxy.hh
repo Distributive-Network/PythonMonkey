@@ -51,7 +51,7 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSArrayIterProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */

@@ -4,15 +4,16 @@
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
 
-import sys, os
+import sys
+import os
 import pythonmonkey as pm
 
 
 def test_reentrance():
-    globalThis = pm.eval("globalThis;");
-    globalThis.pmEval = pm.eval;
-    globalThis.pyEval = eval;
+  globalThis = pm.eval("globalThis;")
+  globalThis.pmEval = pm.eval
+  globalThis.pyEval = eval
 
-    abc=(pm.eval("() => { return {def: pyEval('123')} };"))()
-    assert(abc['def'] == 123)
-    print(pm.eval("pmEval(`pyEval(\"'test passed'\")`)"))
+  abc = (pm.eval("() => { return {def: pyEval('123')} };"))()
+  assert (abc['def'] == 123)
+  print(pm.eval("pmEval(`pyEval(\"'test passed'\")`)"))

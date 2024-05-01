@@ -1,1 +1,1 @@
-exports.which = "javascript"
+exports.which = 'javascript';

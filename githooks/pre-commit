@@ -1,0 +1,129 @@
+#!/bin/bash
+#
+# @file   pre-commit
+#         This hook script lints all code with Uncrustify, ESLint, and autopep8 on
+#         what is about to be commited. Called by "git commit". If this script
+#         exits with a non-zero status nothing will be committed. 
+#
+#         To disable checks on C++ files, do "git config hooks.nocclinting true", 
+#         and "git config hooks.nocclinting false" to re-enable checks.
+#
+#         To disable checks on JavaScript files, do "git config hooks.nojslinting true",
+#         and "git config hooks.nojslinting false" to re-enable checks.
+#
+#         To disable checks on Python files, do "git config hooks.nopylinting true",
+#         and "git config hooks.pylinting false" to re-enable checks.
+#
+#         To commit without this hook running at all, do "git commit --no-verify"
+#
+# @author Caleb Aikens, caleb@distributive.network
+# @date   Apr 2024
+
+nocclinting=$(git config --type=bool hooks.nocclinting)
+nojslinting=$(git config --type=bool hooks.nojslinting)
+nopylinting=$(git config --type=bool hooks.nopylinting)
+
+RED="\e[31m"
+YELLOW="\e[33m"
+ENDCOLOUR="\e[0m"
+
+UNCRUSTIFY_SUCCESS=true
+if [ "$nocclinting" != "true" ]; then
+  echo "linting C++ files ..."
+  for ccFile in `git diff --cached --name-only --diff-filter=ACM | grep -E '.cc$|.hh$' | cat`;
+  do
+    ./uncrustify --check -c uncrustify.cfg "${ccFile}" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      UNCRUSTIFY_SUCCESS=false
+      echo -e "uncrustify failed on: ${RED}${ccFile}${ENDCOLOUR}"
+    fi
+  done
+  echo "finished linting C++ files."
+fi
+
+if [ "$UNCRUSTIFY_SUCCESS" = false ]; then
+echo -e "$(
+cat <<EOF
+${YELLOW}
+You can check what needs to be fixed with './uncrustify -c uncrustify.cfg <filename>'.
+This will output the fixed file in the same directory with a .uncrustify extension.
+You can automatically fix the file with './uncrustify -c uncrustify.cfg --replace --no-backup <filename>'
+Alternatively, you can temporarily disable uncrustify linting in a C++ file with '/* *INDENT-OFF* */'
+and re-enable it with '/* *INDENT-ON* */'.
+If you know what you are doing you can disable this check using:
+
+  git config hooks.nocclinting true
+${ENDCOLOUR}
+EOF
+)"
+fi
+
+ESLINT_SUCCESS=true
+if [ "$nojslinting" != "true" ]; then
+  echo "linting JavaScript files ..."
+  for jsFile in `git diff --cached --name-only --diff-filter=ACM | grep -E '.js$|.simple$' | cat`;
+  do
+    ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings=1 "${jsFile}" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      ESLINT_SUCCESS=false
+      echo -e "eslint failed on: ${RED}${jsFile}${ENDCOLOUR}"
+    fi
+  done
+  echo "finished linting JavaScript files."
+fi
+
+if [ "$ESLINT_SUCCESS" = false ]; then
+echo -e "$(
+cat <<EOF
+${YELLOW}
+You can check what needs to be fixed with 'eslint <filename>'.
+Most issues can be automatically fixed with 'eslint --fix <filename>'.
+NOTE: If using v9.0.0 of eslint or greater, you will have to set the ESLINT_USE_FLAT_CONFIG
+environment variable to false.
+Alternatively, you can temporarily disable eslint linting in a js file with '/* eslint-disable */'
+and re-enable it with '/* eslint-enable */'.
+If you know what you are doing you can disable this check using:
+
+  git config hooks.nojslinting true
+${ENDCOLOUR}
+EOF
+)"
+fi
+
+AUTOPEP8_SUCCESS=true
+if [ "$nopylinting" != "true" ]; then
+  echo "linting python files ..."
+  for pythonFile in `git diff --cached --name-only --diff-filter=ACM | grep -E '.py$|.pyi$' | cat`;
+  do
+    autopep8 "${pythonFile}" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      AUTOPEP8_SUCCESS=false
+      echo -e "autopep8 failed on: ${RED}${pythonFile}${ENDCOLOUR}"
+    fi
+  done
+  echo "finished linting python files."
+fi
+
+if [ "$AUTOPEP8_SUCCESS" = false ]; then
+echo -e "$(
+cat <<EOF
+${YELLOW}
+You can check what needs to be fixed with 'autopep8 <filename>'.
+Most issues can be automatically fixed with 'autopep8 -i <filename>'.
+A description of each warning code can be seen with 'autopep8 --list-fixes',
+or at: https://pep8.readthedocs.io/en/release-1.7.x/intro.html
+Alternatively, you can temporarily disable autopep8 linting in a python file with '# autopep8: off'
+and re-enable it with '# autopep8: on'.
+If you know what you are doing you can disable this check using:
+
+  git config hooks.nopylinting true
+${ENDCOLOUR}
+EOF
+)"
+fi
+
+if [ "$UNCRUSTIFY_SUCCESS" = false ] ||[ "$ESLINT_SUCCESS" = false ] || [ "$AUTOPEP8_SUCCESS" = false ]; then
+  exit 1
+fi
+
+exit 0

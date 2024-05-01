@@ -4,24 +4,37 @@
 # @date         March 2024
 #
 
-BUILD  = debug
+BUILD = Debug	# (case-insensitive) Release, DRelease, Debug, or Profile
+DOCS = false
+VERBOSE = true
 PYTHON = python3
-RUN    = poetry run
+RUN = poetry run
 
-PYTHON_BUILD_ENV = VERBOSE=1 EXTRA_CMAKE_CXX_FLAGS="$(EXTRA_CMAKE_CXX_FLAGS)"
 OS_NAME := $(shell uname -s)
 
 ifeq ($(OS_NAME),Linux)
-CPU_COUNT=$(shell cat /proc/cpuinfo  | grep -c processor)
-MAX_JOBS=10
+CPU_COUNT = $(shell cat /proc/cpuinfo  | grep -c processor)
+MAX_JOBS = 10
 CPUS := $(shell test $(CPU_COUNT) -lt $(MAX_JOBS) && echo $(CPU_COUNT) || echo $(MAX_JOBS))
 PYTHON_BUILD_ENV += CPUS=$(CPUS)
 endif
 
-EXTRA_CMAKE_CXX_FLAGS = -Wno-invalid-offsetof $(JOBS)
+ifeq ($(BUILD),Profile)
+PYTHON_BUILD_ENV += BUILD_TYPE=Profile
+else ifeq ($(BUILD),Debug)
+PYTHON_BUILD_ENV += BUILD_TYPE=Debug
+else ifeq ($(BUILD),DRelease)
+PYTHON_BUILD_ENV += BUILD_TYPE=DRelease
+else # Release build
+PYTHON_BUILD_ENV += BUILD_TYPE=Release
+endif
 
-ifeq ($(BUILD),debug)
-EXTRA_CMAKE_CXX_FLAGS += -O0
+ifeq ($(DOCS),true)
+PYTHON_BUILD_ENV += BUILD_DOCS=1
+endif
+
+ifeq ($(VERBOSE),true)
+PYTHON_BUILD_ENV += VERBOSE=1
 endif
 
 .PHONY: build test all clean debug
@@ -37,10 +50,9 @@ all:	build test
 clean:
 	rm -rf build/src/CMakeFiles/pythonmonkey.dir
 	rm -f build/src/pythonmonkey.so
-	rm -f python/pythonmonkey.so
+	rm -f python/pythonmonkey/pythonmonkey.so
 
 debug:
-	@echo EXTRA_CMAKE_CXX_FLAGS=$(EXTRA_CMAKE_CXX_FLAGS)
 	@echo JOBS=$(JOBS)
 	@echo CPU_COUNT=$(CPU_COUNT)
 	@echo OS_NAME=$(OS_NAME)

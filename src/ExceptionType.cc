@@ -80,7 +80,10 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   assert(exceptionValue != NULL);
 
   // Gather JS context
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wformat-zero-length"
   JS_ReportErrorASCII(cx, ""); // throw JS error and gather all details
+  #pragma GCC diagnostic pop
 
   JS::ExceptionStack exceptionStack(cx);
   if (!JS::GetPendingExceptionStack(cx, &exceptionStack)) {

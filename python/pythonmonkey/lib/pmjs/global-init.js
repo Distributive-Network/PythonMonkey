@@ -29,9 +29,9 @@ for (let mid in require.cache)
 exports.patchGlobalRequire = function pmjs$$patchGlobalRequire()
 {
   globalThis.require = require;
-}
+};
 
 exports.initReplLibs = function pmjs$$initReplLibs()
 {
   globalThis.util = require('util');
-}
+};

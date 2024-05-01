@@ -3,10 +3,11 @@ import subprocess
 import weakref
 import sys
 
+
 def test_python_functions_self():
   def pyFunc(param):
     return param
-  
+
   assert 1 == pyFunc(1)
   assert 2 == pm.eval("""(pyFunc) => {
     return pyFunc(2);
@@ -18,6 +19,7 @@ def test_python_functions_self():
     return pyFunc(3);
   }
   """)(pyFunc)
+
 
 def test_python_methods_self():
   def pyFunc(self, param):
@@ -44,13 +46,14 @@ def test_python_methods_self():
     return jsObj.pyMethod(4);
   }
   """)(pyObj)
-  assert pyObj == result[0] and 4 == result[1] #pyMethod is bound to pyObj, so `self` is not `jsObj`
+  assert pyObj == result[0] and 4 == result[1]  # pyMethod is bound to pyObj, so `self` is not `jsObj`
   result = pm.eval("""(pyObj) => {
     let pyMethod = pyObj.pyMethod;
     return pyMethod(5);
   }
   """)(pyObj)
-  assert pyObj == result[0] and 5 == result[1] #pyMethod is bound to pyObj, so `self` is not `globalThis`
+  assert pyObj == result[0] and 5 == result[1]  # pyMethod is bound to pyObj, so `self` is not `globalThis`
+
 
 def test_javascript_functions_this():
   jsFunc = pm.eval("""
@@ -61,8 +64,8 @@ def test_javascript_functions_this():
 
   class Class:
     pass
-  Class.jsFunc = jsFunc # jsFunc is not bound to Class, so `this` will be `globalThis`, not the object
-  
+  Class.jsFunc = jsFunc  # jsFunc is not bound to Class, so `this` will be `globalThis`, not the object
+
   pyObj = Class()
   jsObj = pm.eval("({})")
   jsObj.jsFunc = jsFunc
@@ -89,6 +92,7 @@ def test_javascript_functions_this():
   """)(jsObj)
   assert jsObj == result[0] and 6 == result[1]
 
+
 def test_JSMethodProxy_this():
   jsFunc = pm.eval("""
   (function(param) {
@@ -98,9 +102,9 @@ def test_JSMethodProxy_this():
 
   class Class:
     pass
-  
+
   pyObj = Class()
-  pyObj.jsMethod = pm.JSMethodProxy(jsFunc, pyObj) # jsMethod is bound to pyObj, so `this` will always be `pyObj`
+  pyObj.jsMethod = pm.JSMethodProxy(jsFunc, pyObj)  # jsMethod is bound to pyObj, so `this` will always be `pyObj`
   jsObj = pm.eval("({})")
   jsObj.jsMethod = pyObj.jsMethod
   globalThis = pm.eval("globalThis")
@@ -119,13 +123,16 @@ def test_JSMethodProxy_this():
   """)(jsObj)
   assert pyObj == result[0] and 4 == result[1]
 
-#require
+# require
+
+
 def test_require_correct_this():
-    subprocess.check_call('npm install crypto-js', shell=True)
-    CryptoJS = pm.require('crypto-js')
-    cipher = CryptoJS.SHA256("Hello, World!").toString()
-    assert cipher == "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
-    subprocess.check_call('npm uninstall crypto-js', shell=True)
+  subprocess.check_call('npm install crypto-js', shell=True)
+  CryptoJS = pm.require('crypto-js')
+  cipher = CryptoJS.SHA256("Hello, World!").toString()
+  assert cipher == "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
+  subprocess.check_call('npm uninstall crypto-js', shell=True)
+
 
 def test_require_correct_this_old_style_class():
   example = pm.eval("""
@@ -164,15 +171,16 @@ def test_require_correct_this_old_style_class():
     return { Rectangle: Rectangle, Rectangle2: Rectangle2};
   }
   """)()
-  r = pm.new(example.Rectangle)(1,2)
+  r = pm.new(example.Rectangle)(1, 2)
 
   assert r.getArea() == 2
   assert r.getThis() == r
 
-  r2 = pm.new(example.Rectangle2)(1,2)
+  r2 = pm.new(example.Rectangle2)(1, 2)
 
   assert r2.getArea() == 2
   assert r2.getThis() == r2
+
 
 def test_function_finalization():
   ref = []
@@ -181,7 +189,7 @@ def test_function_finalization():
   def outerScope():
     def pyFunc():
       return 42
-    
+
     ref.append(weakref.ref(pyFunc))
     starting_ref_count.append(sys.getrefcount(pyFunc))
     assert 42 == pm.eval("(func) => func()")(pyFunc)
@@ -191,6 +199,6 @@ def test_function_finalization():
     assert current_ref_count == starting_ref_count[0] + 1
 
   outerScope()
-  pm.collect() # this should collect the JS proxy to pyFunc, which should decref pyFunc
-  #pyFunc should be collected by now
+  pm.collect()  # this should collect the JS proxy to pyFunc, which should decref pyFunc
+  # pyFunc should be collected by now
   assert ref[0]() is None

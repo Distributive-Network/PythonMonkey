@@ -7,29 +7,31 @@
 #
 # @copyright Copyright (c) 2023 Distributive Corp.
 
-from . import pythonmonkey as pm 
-evalOpts = { 'filename': __file__, 'fromPythonFrame': True }
+from . import pythonmonkey as pm
+evalOpts = {'filename': __file__, 'fromPythonFrame': True}
+
 
 def typeof(jsval):
-    """
-    typeof function - wraps JS typeof operator
-    """
-    return pm.eval("""'use strict'; (
-function pmTypeof(jsval) 
+  """
+  typeof function - wraps JS typeof operator
+  """
+  return pm.eval("""'use strict'; (
+function pmTypeof(jsval)
 {
   return typeof jsval;
 }
-    )""", evalOpts)(jsval);
+    )""", evalOpts)(jsval)
+
 
 def new(ctor):
-    """
-    new function - emits function which wraps JS new operator, emitting a lambda which constructs a new
-    JS object upon invocation.
-    """
-    if (typeof(ctor) == 'string'):
-        ctor = pm.eval(ctor)
+  """
+  new function - emits function which wraps JS new operator, emitting a lambda which constructs a new
+  JS object upon invocation.
+  """
+  if (typeof(ctor) == 'string'):
+    ctor = pm.eval(ctor)
 
-    newCtor = pm.eval("""'use strict'; (
+  newCtor = pm.eval("""'use strict'; (
 function pmNewFactory(ctor)
 {
   return function newCtor(args) {
@@ -38,13 +40,14 @@ function pmNewFactory(ctor)
   };
 }
     )""", evalOpts)(ctor)
-    return (lambda *args: newCtor(list(args)))
+  return (lambda *args: newCtor(list(args)))
+
 
 # List which symbols are exposed to the pythonmonkey module.
-__all__ = [ "new", "typeof" ]
+__all__ = ["new", "typeof"]
 
 # Add the non-enumerable properties of globalThis which don't collide with pythonmonkey.so as exports:
-globalThis = pm.eval('globalThis');
+globalThis = pm.eval('globalThis')
 pmGlobals = vars(pm)
 
 exports = pm.eval("""
@@ -53,7 +56,7 @@ Object.getOwnPropertyNames(globalThis)
 """, evalOpts)
 
 for index in range(0, len(exports)):
-    name = exports[index]
-    if (pmGlobals.get(name) == None):
-        globals().update({name: globalThis[name]})
-        __all__.append(name)
+  name = exports[index]
+  if (pmGlobals.get(name) is None):
+    globals().update({name: globalThis[name]})
+    __all__.append(name)

@@ -210,10 +210,10 @@ const char *BufferType::_toPyBufferFormatCode(JS::Scalar::Type subtype) {
 JSObject *BufferType::_newTypedArrayWithBuffer(JSContext *cx, JS::Scalar::Type subtype, JS::HandleObject arrayBuffer) {
   switch (subtype) {
 #define NEW_TYPED_ARRAY_WITH_BUFFER(ExternalType, NativeType, Name) \
-case JS::Scalar::Name: \
-  return JS_New ## Name ## ArrayWithBuffer(cx, arrayBuffer, 0 /* byteOffset */, -1 /* use up the ArrayBuffer */);
+        case JS::Scalar::Name: \
+          return JS_New ## Name ## ArrayWithBuffer(cx, arrayBuffer, 0 /* byteOffset */, -1 /* use up the ArrayBuffer */);
 
-    JS_FOR_EACH_TYPED_ARRAY(NEW_TYPED_ARRAY_WITH_BUFFER)
+  JS_FOR_EACH_TYPED_ARRAY(NEW_TYPED_ARRAY_WITH_BUFFER)
 #undef NEW_TYPED_ARRAY_WITH_BUFFER
   default: // invalid
     PyErr_SetString(PyExc_TypeError, "Invalid Python buffer type.");

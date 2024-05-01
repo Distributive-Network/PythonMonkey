@@ -1,6 +1,5 @@
 OUTPUT_DIRECTORY      = "@CMAKE_BINARY_DIR@/docs/"
 INPUT                 = "@CMAKE_SOURCE_DIR@/README.md" \
-                        "@CMAKE_SOURCE_DIR@/docs/" \
                         "@CMAKE_SOURCE_DIR@/src/" \
                         "@CMAKE_SOURCE_DIR@/include/" \
                         "@CMAKE_SOURCE_DIR@/python/pythonmonkey/"
@@ -20,8 +19,8 @@ GENERATE_XML = YES
 OPTIMIZE_OUTPUT_JAVA = YES
 STRIP_FROM_PATH = "@CMAKE_SOURCE_DIR@"
 
-FILE_PATTERNS = *.cc *.hh *.py *.pyi *.js *.ts *.md
-EXTENSION_MAPPING = pyi=python js=javascript ts=javascript
+FILE_PATTERNS = *.cc *.hh *.py *.pyi *.md
+EXTENSION_MAPPING = pyi=python
 
 # Doxygen Theme
 # https://jothepro.github.io/doxygen-awesome-css/
@@ -38,10 +37,9 @@ HTML_EXTRA_FILES      = @CMAKE_CURRENT_SOURCE_DIR@/favicon.ico \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-paragraph-link.js \
                         @CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-css/doxygen-awesome-interactive-toc.js
 HTML_COLORSTYLE       = LIGHT
-HTML_TIMESTAMP        = YES
+TIMESTAMP        = YES
 
 # Diagrams with Graphviz
 HAVE_DOT = YES
 DOT_IMAGE_FORMAT = svg
-DOT_TRANSPARENT = YES
 INTERACTIVE_SVG = YES
