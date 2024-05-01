@@ -30,7 +30,7 @@ include = [
 python = "^3.8"
 pyreadline3 = { version = "^3.4.1", platform = "win32" }
 aiohttp = { version = "^3.9.5", extras = ["speedups"] }
-pminit = { version = "*", allow-prereleases = true }
+pminit = { version = ">=0.4.0", allow-prereleases = true }
 
 
 [tool.poetry-dynamic-versioning]
