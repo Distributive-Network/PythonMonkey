@@ -84,6 +84,7 @@ PythonMonkey supports multiple build types, which you can build by setting the `
 - `DRelease`: same as `Release`, except symbols are not stripped
 - `Debug`: minimal optimizations
 - `Profile`: same as `Debug`, except profiling is enabled 
+- `None`: don't compile (useful if you only want to build the docs)
 
 If you are using VSCode, you can just press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> to [run build task](https://code.visualstudio.com/docs/editor/tasks#_custom-tasks) - We have [the `tasks.json` file configured for you](.vscode/tasks.json).
 
