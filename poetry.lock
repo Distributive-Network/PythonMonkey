@@ -704,19 +704,6 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
-name = "pminit"
-version = "0.3.1.dev37+f1e980c"
-description = "Post-install hook for PythonMonkey"
-optional = false
-python-versions = "^3.8"
-files = []
-develop = true
-
-[package.source]
-type = "directory"
-url = "python/pminit"
-
-[[package]]
 name = "pycares"
 version = "4.4.0"
 description = "Python interface for c-ares"
@@ -943,4 +930,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "c246eb1c36e99b5e0ae61277ac3f0a2404a3dfbcfbaa61ef5b5fef0fd8cbe443"
+content-hash = "11d3704623455cf65a35174a88b275bb80ab36ae0dc95074b1a943ef0be3c08d"
