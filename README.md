@@ -83,6 +83,7 @@ PythonMonkey supports multiple build types, which you can build by setting the `
 - `Release`: stripped symbols, maximum optimizations (default)
 - `DRelease`: same as `Release`, except symbols are not stripped
 - `Debug`: minimal optimizations
+- `Sanitize`: same as `Debug`, except with [AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer) enabled
 - `Profile`: same as `Debug`, except profiling is enabled 
 - `None`: don't compile (useful if you only want to build the docs)
 
