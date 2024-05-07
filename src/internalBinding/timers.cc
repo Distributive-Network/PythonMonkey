@@ -120,7 +120,9 @@ static bool getAllRefedTimersDebugInfo(JSContext *cx, unsigned argc, JS::Value *
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   JS::RootedVector<JS::Value> results(cx);
-  for (AsyncHandle &timer: AsyncHandle::getAllRefed()) {
+  for (AsyncHandle &timer: AsyncHandle::getAllTimers()) {
+    if (!timer.hasRef()) continue; // we only need ref'ed timers
+
     JS::Value debugInfo = jsTypeFactory(cx, timer.getDebugInfo());
     if (!results.append(debugInfo)) {
       // out of memory

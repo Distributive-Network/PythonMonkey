@@ -16,7 +16,6 @@
 #include <vector>
 #include <utility>
 #include <atomic>
-#include <ranges>
 
 struct PyEventLoop {
 public:
@@ -140,14 +139,10 @@ public:
     }
 
     /**
-     * @brief Get an iterator for the `AsyncHandle`s of all ref'ed timers
+     * @brief Get an iterator for the `AsyncHandle`s of all timers
      */
-    static inline auto getAllRefed() {
-      return std::views::filter(_timeoutIdMap,
-        [](AsyncHandle &timer) {
-          return timer.hasRef();
-        }
-      );
+    static inline auto &getAllTimers() {
+      return _timeoutIdMap;
     }
   protected:
     PyObject *_handle;
