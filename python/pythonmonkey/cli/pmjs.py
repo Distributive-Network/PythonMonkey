@@ -394,6 +394,8 @@ def main():
       await pm.wait()
     asyncio.run(runREPL())
 
+  globalThis.python.exit()  # need for python.exit.code in require.py
+
 
 if __name__ == "__main__":
   main()
