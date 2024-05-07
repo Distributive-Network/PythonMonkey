@@ -39,6 +39,7 @@ on:
         options:
         - 'Debug'
         - 'Profile'
+        - 'Sanitize'
         - 'DRelease'
         - 'Release'
         - 'None'

@@ -4,7 +4,7 @@
 # @date         March 2024
 #
 
-BUILD = Debug	# (case-insensitive) Release, DRelease, Debug, Profile, or None
+BUILD = Debug	# (case-insensitive) Release, DRelease, Debug, Sanitize, Profile, or None
 DOCS = false
 VERBOSE = true
 PYTHON = python3
@@ -21,6 +21,8 @@ endif
 
 ifeq ($(BUILD),Profile)
 PYTHON_BUILD_ENV += BUILD_TYPE=Profile
+else ifeq ($(BUILD),Sanitize)
+PYTHON_BUILD_ENV += BUILD_TYPE=Sanitize
 else ifeq ($(BUILD),Debug)
 PYTHON_BUILD_ENV += BUILD_TYPE=Debug
 else ifeq ($(BUILD),DRelease)
