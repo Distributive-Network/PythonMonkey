@@ -10,6 +10,7 @@
 #include "include/pyTypeFactory.hh"
 #include "include/jsTypeFactory.hh"
 #include "include/PyEventLoop.hh"
+#include "include/setSpiderMonkeyException.hh"
 
 #include <jsapi.h>
 #include <js/Array.h>
@@ -121,7 +122,11 @@ static bool getAllRefedTimersDebugInfo(JSContext *cx, unsigned argc, JS::Value *
   JS::RootedVector<JS::Value> results(cx);
   for (AsyncHandle &timer: AsyncHandle::getAllRefed()) {
     JS::Value debugInfo = jsTypeFactory(cx, timer.getDebugInfo());
-    results.append(debugInfo);
+    if (!results.append(debugInfo)) {
+      // out of memory
+      setSpiderMonkeyException(cx);
+      return false;
+    }
   }
 
   args.rval().setObjectOrNull(JS::NewArrayObject(cx, results));
