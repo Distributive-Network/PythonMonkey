@@ -17,23 +17,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Add an external; appends to `PYTHONMONKEY_EXTERNAL_FILES` in the parent scope.
-function(pythonmonkey_add_external PYTHONMONKEY_EXTERNAL)
-  add_subdirectory("cmake/externals/${PYTHONMONKEY_EXTERNAL}")
-  set(PYTHONMONKEY_EXTERNAL_FILE "cmake/externals/${PYTHONMONKEY_EXTERNAL}/CMakeLists.txt")
-  source_group(
-    TREE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/externals/${PYTHONMONKEY_EXTERNAL}"
-    PREFIX "Externals\\${PYTHONMONKEY_EXTERNAL}"
-    FILES "${PYTHONMONKEY_EXTERNAL_FILE}"
-  )
-  list(APPEND PYTHONMONKEY_EXTERNAL_FILES "${PYTHONMONKEY_EXTERNAL_FILE}")
+file (GLOB_RECURSE HEADER_FILES "include/*.hh") # Find all header files in the include directory and below
+file (GLOB_RECURSE SOURCE_FILES "src/*.cc") # Find all C++ files in the src directory and below
 
-  set(PYTHONMONKEY_EXTERNAL_FILES ${PYTHONMONKEY_EXTERNAL_FILES} PARENT_SCOPE)
-endfunction()
-
-file (GLOB SOURCE_FILES "src/*.cc" "src/internalBinding/*.cc") # Find all C++ files in the src directory
-file (GLOB HEADER_FILES "include/*.hh") # Find all header files in the include directory
-file (GLOB PYTHON_FILES "python/*.cc" "python/*.hh") # Find all the python bindings in the python directory
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
@@ -43,48 +29,97 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   ### Code block from: https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
   include(FetchContent)
 
-  SET(COMPILE_FLAGS "-ggdb -Ofast -fno-rtti") # optimize but also emit debug symbols
-  SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS} $ENV{EXTRA_CMAKE_CXX_FLAGS}")
+  if (WIN32)
+    SET(COMPILE_FLAGS "/GR- /W0")
 
-  set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
-  if(APPLE)
-    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
-    find_package(SpiderMonkey REQUIRED)
-    set(PYTHON_MAJOR $ENV{Python_VERSION_MAJOR})
-    set(PYTHON_MINOR $ENV{Python_VERSION_MINOR})
-    set(PYTHONLIBS_VERSION_STRING ${Python_VERSION})
-    set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
-    set(PYTHON_LIBRARIES ${Python_LIBRARIES})
-    message("Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
-  elseif(UNIX)
-    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
-    set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
-    set(PYTHON_LIBRARIES ${Python_LIBRARIES})
-    set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
-    message("Linux - Using Python:${Python_VERSION_MAJOR}.${Python_VERSION_MINOR} - Libraries:${PYTHON_LIBRARIES} - IncludeDirs: ${PYTHON_INCLUDE_DIR}")
-    find_package(SpiderMonkey REQUIRED)
-  elseif(WIN32)
-    find_package(PythonInterp 3.8 REQUIRED)
-    find_package(PythonLibs 3.8   REQUIRED)
-    find_package(SpiderMonkey REQUIRED)
-    set(PYTHONLIBS_VERSION_STRING $ENV{PY_VERSION})
+    SET(OPTIMIZED "/O2")
+    SET(UNOPTIMIZED "/Od")
+    SET(KEEP_SYMBOLS "/DEBUG:FULL")
+    SET(STRIP_SYMBOLS "/DEBUG:NONE")
+    SET(PROFILE "/PROFILE")
+    SET(ADDRESS_SANITIZE "/fsanitize=address /Oy-")
+  else()
+    SET(COMPILE_FLAGS "-fno-rtti -Wno-invalid-offsetof")
+
+    SET(OPTIMIZED "-Ofast -DNDEBUG")
+    SET(UNOPTIMIZED "-O0")
+    SET(KEEP_SYMBOLS "-ggdb")
+    SET(STRIP_SYMBOLS "-s")
+    SET(PROFILE "-pg")
+    SET(ADDRESS_SANITIZE "-fsanitize=address -fno-omit-frame-pointer")
   endif()
-  include_directories(${PYTHON_INCLUDE_DIRS})
-  include_directories(${SPIDERMONKEY_INCLUDE_DIR})
+  SET(PROFILE_FLAGS  "${UNOPTIMIZED} ${KEEP_SYMBOLS} ${PROFILE}")
+  SET(SANITIZE_FLAGS "${UNOPTIMIZED} ${KEEP_SYMBOLS} ${ADDRESS_SANITIZE}")
+  SET(DEBUG_FLAGS    "${UNOPTIMIZED} ${KEEP_SYMBOLS}")
+  SET(DRELEASE_FLAGS   "${OPTIMIZED} ${KEEP_SYMBOLS}")
+  SET(RELEASE_FLAGS    "${OPTIMIZED} ${STRIP_SYMBOLS}")
+
+  if(GENERATOR_IS_MULTI_CONFIG)
+    set(CMAKE_CONFIGURATION_TYPES "Profile;Sanitize;Debug;DRelease;Release;None" CACHE STRING "" FORCE)
+    string(APPEND COMPILE_FLAGS "$<$<CONFIG:Profile>:${PROFILE_FLAGS}> $<$<CONFIG:Sanitize>:${SANITIZE_FLAGS}> $<$<CONFIG:Debug>:${DEBUG_FLAGS}> $<$<CONFIG:DRelease>:${DRELEASE_FLAGS}> $<$<CONFIG:Release>:${RELEASE_FLAGS}>")
+  else()
+    set_property(CACHE PM_BUILD_TYPE PROPERTY HELPSTRING "Choose the type of build")
+    set_property(CACHE PM_BUILD_TYPE PROPERTY STRINGS "Profile;Sanitize;Debug;DRelease;Release;None")
+    if(PM_BUILD_TYPE STREQUAL "Profile")
+      list(APPEND COMPILE_FLAGS "${PROFILE_FLAGS}")
+    elseif(PM_BUILD_TYPE STREQUAL "Sanitize")
+      list(APPEND COMPILE_FLAGS "${SANITIZE_FLAGS}")
+    elseif(PM_BUILD_TYPE STREQUAL "Debug")
+      list(APPEND COMPILE_FLAGS "${DEBUG_FLAGS}")
+    elseif(PM_BUILD_TYPE STREQUAL "DRelease")
+      list(APPEND COMPILE_FLAGS "${DRELEASE_FLAGS}")
+    elseif(PM_BUILD_TYPE STREQUAL "None")
+      message("PM_BUILD_TYPE is None. Not compiling.")
+    else()  #Release build
+      message("PM_BUILD_TYPE not detected or invalid value, defaulting to Release build.")
+      set(PM_BUILD_TYPE Release CACHE STRING "" FORCE)
+      list(APPEND COMPILE_FLAGS "${RELEASE_FLAGS}") 
+    endif()
+    message("PythonMonkey build type is: ${PM_BUILD_TYPE}")
+    list(JOIN COMPILE_FLAGS " " COMPILE_FLAGS)
+  endif()
+  
+  if(NOT PM_BUILD_TYPE STREQUAL "None")
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}")
+
+    set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
+    if(APPLE)
+      find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+      find_package(SpiderMonkey REQUIRED)
+      set(PYTHON_MAJOR $ENV{Python_VERSION_MAJOR})
+      set(PYTHON_MINOR $ENV{Python_VERSION_MINOR})
+      set(PYTHONLIBS_VERSION_STRING ${Python_VERSION})
+      set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
+      set(PYTHON_LIBRARIES ${Python_LIBRARIES})
+    elseif(UNIX)
+      find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+      set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
+      set(PYTHON_LIBRARIES ${Python_LIBRARIES})
+      set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
+      find_package(SpiderMonkey REQUIRED)
+    elseif(WIN32)
+      find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+      set(Python_FIND_VIRTUALENV FIRST) # (require cmake >= v3.15 and this is the default) use the Python version configured by pyenv if available
+      set(PYTHON_LIBRARIES ${Python_LIBRARIES})
+      set(PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS})
+      find_package(SpiderMonkey REQUIRED)
+    endif()
+    message("${CMAKE_SYSTEM_NAME} - Using Python:${Python_VERSION} - Libraries:${Python_LIBRARIES} - IncludeDirs: ${Python_INCLUDE_DIRS}")
+    include_directories(${Python_INCLUDE_DIRS})
+    include_directories(${SPIDERMONKEY_INCLUDE_DIR})
+    # Add compiled folder directories
+    add_subdirectory(src)
+  endif(NOT PM_BUILD_TYPE STREQUAL "None")
 
   # Add doxygen if this is the main app
-  find_package(Doxygen)
-  if(Doxygen_FOUND)
+  option(BUILD_DOCS "Build documentation" OFF)
+  if(BUILD_DOCS)
+    find_package(Doxygen)
+    if(Doxygen_FOUND)
       add_subdirectory(cmake/docs)
-  else()
+    else()
       message(STATUS "Doxygen not found. Not building docs.")
+    endif()
   endif()
 
 endif()  
-
-# Add compiled folder directories
-add_subdirectory(src)
-
-pythonmonkey_add_external("uncrustify")
-pythonmonkey_add_external("autopep8")
-add_subdirectory(cmake/format)

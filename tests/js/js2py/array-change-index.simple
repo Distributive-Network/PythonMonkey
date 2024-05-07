@@ -14,7 +14,7 @@ def setArrayAtIndex(array, index, new):
   array[1] = new # can't index "array" based on "index"... probably because index is a float. So just pass "1"
   return array
 `);
-const setArrayAtIndex = python.eval("setArrayAtIndex")
+const setArrayAtIndex = python.eval('setArrayAtIndex');
 const numbersBack = setArrayAtIndex(numbers, 1, 999);
 
 // check that the array data was modified by reference in python

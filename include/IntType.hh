@@ -31,9 +31,10 @@ public:
   static PyObject *getPyObject(JSContext *cx, JS::BigInt *bigint);
 
   /**
-   * @brief Convert the IntType object to a JS::BigInt
+   * @brief Convert an int object to a JS::BigInt
    *
    * @param cx - javascript context pointer
+   * @param pyObject - the int object to be converted
    */
   static JS::BigInt *toJsBigInt(JSContext *cx, PyObject *pyObject);
 };

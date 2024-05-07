@@ -29,8 +29,8 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.8"
 pyreadline3 = { version = "^3.4.1", platform = "win32" }
-aiohttp = { version = "^3.9.3", extras = ["speedups"] }
-pminit = { version = "*", allow-prereleases = true }
+aiohttp = { version = "^3.9.5", extras = ["speedups"] }
+pminit = { version = ">=0.4.0", allow-prereleases = true }
 
 
 [tool.poetry-dynamic-versioning]
@@ -66,3 +66,11 @@ pminit = { path = "./python/pminit", develop = true }
 [build-system]
 requires = ["poetry-core>=1.1.1", "poetry-dynamic-versioning==1.1.1"]
 build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.autopep8]
+max_line_length=120
+ignore="E111,E114,E121" # allow 2-space indents
+verbose=true
+indent-size=2
+aggressive=3
+exit-code=true

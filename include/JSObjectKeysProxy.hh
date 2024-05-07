@@ -41,7 +41,7 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSObjectKeysProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */
@@ -120,7 +120,6 @@ public:
    * @brief reverse iterator method
    *
    * @param self - The JSObjectKeysProxy
-   * @param other - The other PyObject to be and'd, expected to be dict or JSObjectKeysProxy
    * @return PyObject* The resulting new dict
    */
   static PyObject *JSObjectKeysProxy_iter_reverse(JSObjectKeysProxy *self);
@@ -129,6 +128,7 @@ public:
    * @brief mapping method
    *
    * @param self - The JSObjectKeysProxy
+   * @param Py_UNUSED
    * @return PyObject* The resulting new dict
    */
   static PyObject *JSObjectKeysProxy_mapping(PyObject *self, void *Py_UNUSED(ignored));

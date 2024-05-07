@@ -35,6 +35,7 @@ public:
    * @brief Convert a Python [awaitable](https://docs.python.org/3/library/asyncio-task.html#awaitables) object to JS Promise
    *
    * @param cx - javascript context pointer
+   * @param pyObject - the python awaitable to be converted
    */
   static JSObject *toJsPromise(JSContext *cx, PyObject *pyObject);
 };

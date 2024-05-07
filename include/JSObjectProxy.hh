@@ -199,7 +199,7 @@ public:
    *
    * @param self - The JSObjectProxy
    * @param args - arguments to the sort method
-   * @param nargs - number of arguments to the sort method
+   * @param kwds - keyword arguments to the sort method (key-value pairs to be updated in the dict)
    * @return None
    */
   static PyObject *JSObjectProxy_update_method(JSObjectProxy *self, PyObject *args, PyObject *kwds);
@@ -232,6 +232,8 @@ public:
    * @brief tp_traverse
    *
    * @param self - The JSObjectProxy
+   * @param visit - The function to be applied on each element of the object
+   * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg);

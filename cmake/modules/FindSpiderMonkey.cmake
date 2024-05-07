@@ -93,8 +93,8 @@ check_cxx_source_compiles(
 	"#include <jsapi.h>
 	int main()
 	{
-    JSRuntime *rt = JS_NewRuntime(8L * 1024L * 1024L);
-		if (rt != NULL)
+    JSContext *cx = JS_NewContext(JS::DefaultHeapMaxBytes);
+		if (cx != NULL)
 		{
 		return 0;
   }

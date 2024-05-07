@@ -1,5 +1,6 @@
 import pythonmonkey as pm
 
+
 def test_finalizationregistry():
   result = pm.eval("""
   (collect) => {
@@ -20,5 +21,3 @@ def test_finalizationregistry():
 
   assert result[0] == 0
   assert result[1] == 1
-
-

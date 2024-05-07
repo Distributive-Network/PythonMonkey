@@ -33,6 +33,7 @@ public:
    * The subtype (Uint8Array, Float64Array, ...) is automatically determined by the Python buffer's [format](https://docs.python.org/3.9/c-api/buffer.html#c.Py_buffer.format)
    *
    * @param cx - javascript context pointer
+   * @param pyObject - the object to be converted
    */
   static JSObject *toJsTypedArray(JSContext *cx, PyObject *pyObject);
 

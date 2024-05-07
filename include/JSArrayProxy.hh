@@ -195,7 +195,7 @@ public:
    * @brief extend method
    *
    * @param self - The JSArrayProxy
-   * @param value - The value to be appended
+   * @param iterable - The value to be appended
    * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_extend(JSArrayProxy *self, PyObject *iterable);
@@ -250,8 +250,9 @@ public:
    * @brief sort method   sort in place
    *
    * @param self - The JSArrayProxy
-   * @param args - arguments to the sort method
+   * @param args - arguments to the sort method (not used)
    * @param nargs - number of arguments to the sort method
+   * @param kwnames - keyword arguments to the sort method (reverse=True|False, key=keyfunction)
    * @return PyObject* NULL on exception, None otherwise
    */
   static PyObject *JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames);
@@ -260,6 +261,8 @@ public:
    * @brief tp_traverse
    *
    * @param self - The JSArrayProxy
+   * @param visit - The function to be applied on each element of the list
+   * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSArrayProxy_traverse(JSArrayProxy *self, visitproc visit, void *arg);

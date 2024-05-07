@@ -77,9 +77,7 @@ public:
    *
    * @param cx - pointer to JSContext
    * @param proxy - The proxy object who's keys we output
-   * @param props - out-parameter of object IDsoverride;
-
-     /**
+   * @param props - out-parameter of object IDs
    * @return true - call succeeded
    * @return false - call failed and an exception has been raised
    */
