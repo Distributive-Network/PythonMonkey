@@ -5,6 +5,8 @@
  *
  * @author      Wes Garland, wes@distributive.network
  * @date        June 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 'use strict';
 
@@ -22,7 +24,8 @@ const python = globalThis.python = new EventEmitter('python');
 Object.assign(python, originalPython);
 
 /* Emulate node's process.on('error') behaviour with python.on('error'). */
-python.on('error', function unhandledError(error) {
+python.on('error', function unhandledError(error) 
+{
   if (python.listenerCount('error') > 1)
     return;
   if (python.listenerCount('error') === 0 || python.listeners('error')[0] === unhandledError)
@@ -41,9 +44,9 @@ exports.makeArgvBuilder = function globalInit$$makeArgvBuilder()
 
   function argvBuilder(arg)
   {
-    globalThis.arguments.push(arg)
+    globalThis.arguments.push(arg);
   }
-}
+};
 
 /**
  * runProgramModule wants to include the require.cache from the pre-program loads (e.g. via -r or -e), but
@@ -57,13 +60,13 @@ exports.makeArgvBuilder = function globalInit$$makeArgvBuilder()
 exports.patchGlobalRequire = function pmjs$$patchGlobalRequire()
 {
   globalThis.require = require;
-}
+};
 
 exports.initReplLibs = function pmjs$$initReplLibs()
 {
   globalThis.util = require('util');
   globalThis.events = require('events');
-}
+};
 
 /**
  * Temporary API until we get EventEmitters working. Replace this export for a custom handler.
@@ -78,7 +81,7 @@ exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler
     console.error(error);
     python.exit(1);
   }
-}
+};
 
 /**
  * Temporary API until we get EventEmitters working. Replace this export for a custom handler.
@@ -92,4 +95,4 @@ exports.unhandledRejectionHandler = function globalInit$$unhandledRejectionHandl
     console.error(error);
     python.exit(1);
   }
-}
+};

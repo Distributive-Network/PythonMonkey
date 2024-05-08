@@ -2,6 +2,10 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# set git hooks
+ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit
+# set blame ignore file
+git config blame.ignorerevsfile .git-blame-ignore-revs
 
 # Get number of CPU cores
 CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
@@ -19,7 +23,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
-  brew install cmake doxygen graphviz pkg-config wget coreutils # `coreutils` installs the `realpath` command
+  brew install cmake doxygen pkg-config wget coreutils # `coreutils` installs the `realpath` command
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
@@ -36,12 +40,29 @@ else
   POETRY_BIN=`echo ~/.local/bin/poetry` # expand tilde
 fi
 $POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
+poetry run pip install autopep8
 echo "Done installing dependencies"
 
+echo "Downloading uncrustify source code"
+wget -c -q https://github.com/uncrustify/uncrustify/archive/refs/tags/uncrustify-0.78.1.tar.gz
+mkdir -p uncrustify-source
+tar -xzvf uncrustify-0.78.1.tar.gz -C uncrustify-source --strip-components=1 # strip the root folder
+echo "Done downloading uncrustify source code"
+
+echo "Building uncrustify"
+cd uncrustify-source
+mkdir -p build
+cd build
+cmake ../
+make -j4
+cp uncrustify ../../uncrustify
+cd ../..
+echo "Done building uncrustify"
+
 echo "Downloading spidermonkey source code"
-wget -c -q https://ftp.mozilla.org/pub/firefox/releases/115.7.0esr/source/firefox-115.7.0esr.source.tar.xz
+wget -c -q https://ftp.mozilla.org/pub/firefox/releases/115.8.0esr/source/firefox-115.8.0esr.source.tar.xz
 mkdir -p firefox-source
-tar xf firefox-115.7.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
+tar xf firefox-115.8.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"

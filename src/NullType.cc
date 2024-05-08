@@ -1,18 +1,19 @@
 /**
- * @file NullType.hh
- * @author Caleb Aikens (caleb@distributive.network)
+ * @file NullType.cc
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing JS null in a python object
- * @version 0.1
  * @date 2023-02-22
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #include "include/NullType.hh"
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
 
-NullType::NullType() : PyType(PythonMonkey_Null) {}
+PyObject *NullType::getPyObject() {
+  PyObject *pmNull = getPythonMonkeyNull();
+  Py_INCREF(pmNull);
+  return pmNull;
+}

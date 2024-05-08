@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2024-01-15
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 
@@ -51,11 +51,19 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSArrayIterProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSArrayIterProxy_traverse(JSArrayIterProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSArrayIterProxy
+   * @return 0 on success
+   */
+  static int JSArrayIterProxy_clear(JSArrayIterProxy *self);
 
   /**
    * @brief .tp_iter method

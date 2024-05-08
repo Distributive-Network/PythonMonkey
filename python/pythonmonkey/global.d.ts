@@ -2,6 +2,8 @@
  * @file     global.d.ts
  * @author   Tom Tang <xmader@distributive.network>
  * @date     May 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
 
 declare const python: {
@@ -54,6 +56,9 @@ declare var btoa: typeof import("base64").btoa;
 // Expose `setTimeout`/`clearTimeout` APIs
 declare var setTimeout: typeof import("timers").setTimeout;
 declare var clearTimeout: typeof import("timers").clearTimeout;
+// Expose `setInterval`/`clearInterval` APIs
+declare var setInterval: typeof import("timers").setInterval;
+declare var clearInterval: typeof import("timers").clearInterval;
 
 // Expose `URL`/`URLSearchParams` APIs
 declare var URL: typeof import("url").URL;

@@ -1,48 +1,42 @@
 /**
  * @file IntType.hh
- * @author Caleb Aikens (caleb@distributive.network) & Giovanni Tedesco (giovanni@distributive.network) & Tom Tang (xmader@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network), Giovanni Tedesco (giovanni@distributive.network), Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing python ints
- * @version 0.2
  * @date 2023-03-16
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_IntType_
 #define PythonMonkey_IntType_
 
-#include "PyType.hh"
-#include "TypeEnum.hh"
-
 #include <jsapi.h>
 
 #include <Python.h>
 
 /**
- * @brief This struct represents the 'int' type (arbitrary-precision) in Python. It inherits from the PyType struct
+ * @brief This struct represents the 'int' type (arbitrary-precision) in Python
  */
-struct IntType : public PyType {
+struct IntType {
 public:
-  IntType(PyObject *object);
-  IntType(long n);
-
   /**
-   * @brief Construct a new IntType object from a JS::BigInt.
+   * @brief Construct a new PyObject from a JS::BigInt.
    *
    * @param cx - javascript context pointer
    * @param bigint - JS::BigInt pointer
+   *
+   * @returns PyObject* pointer to the resulting PyObject
    */
-  IntType(JSContext *cx, JS::BigInt *bigint);
-
-  const TYPE returnType = TYPE::INT;
+  static PyObject *getPyObject(JSContext *cx, JS::BigInt *bigint);
 
   /**
-   * @brief Convert the IntType object to a JS::BigInt
+   * @brief Convert an int object to a JS::BigInt
    *
    * @param cx - javascript context pointer
+   * @param pyObject - the int object to be converted
    */
-  JS::BigInt *toJsBigInt(JSContext *cx);
+  static JS::BigInt *toJsBigInt(JSContext *cx, PyObject *pyObject);
 };
 
 #endif

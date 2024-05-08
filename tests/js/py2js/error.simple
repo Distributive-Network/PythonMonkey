@@ -8,17 +8,20 @@
  */
 'use strict';
 
-class RandomError extends Error {
-  constructor(message) {
+class RandomError extends Error 
+{
+  constructor(message) 
+  {
     super(message);
   }
 }
 
-const exceptionjs = new RandomError("I was created!");
+const exceptionjs = new RandomError('I was created!');
 const throughPython = python.eval('(lambda x: x)');
 const exceptionpy = throughPython(exceptionjs);
 
-if (!exceptionpy.toString().includes(exceptionjs.toString())) {
+if (!exceptionpy.toString().includes(exceptionjs.toString())) 
+{
   console.error('Expected\n', exceptionjs.toString(), '\nbut got\n', exceptionpy.toString());
   throw new Error('test failed');
 }

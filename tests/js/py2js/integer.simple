@@ -15,7 +15,7 @@ if (typeof number !== 'number')
 }
 if (number !== 777)
 {
-  console.error(`expected ${777} but got ${bigint}`);
+  console.error(`expected ${777} but got ${number}`);
   throw new Error('test failed');
 }
 

@@ -1,0 +1,20 @@
+/**
+ * @file        collide.simple
+ *              Test to ensure require module identitifier collision that resolves both py and js
+ *              modules correctly prefers py modules.
+ * @author      Wes Garland <wes@distributive.network>
+ * @date        Mar 2024
+ */
+
+const { which } = require('./modules/collide');
+const whichjs = require('./modules/collide.js').which;
+const whichpy = require('./modules/collide.py').which;
+
+if (which !== 'python')
+  throw new Error(`python module was not preferred, got ${which} instead`);
+
+if (whichpy !== 'python')
+  throw new Error(`python module was not explicitly loaded, got ${whichpy} instead`);
+
+if (whichjs !== 'javascript')
+  throw new Error(`javascript module was not explicitly loaded, got ${whichjs} instead`);

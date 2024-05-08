@@ -26,6 +26,22 @@
         "isDefault": true
       }
     },
+    {
+      "label": "Fast build",
+      "type": "process",
+      "command": "poetry",
+      "args": [
+        "run",
+        "python",
+        "./build.py",
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": {
+        "kind": "build",
+      }
+    },
     // 
     // Test
     // 

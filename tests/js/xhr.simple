@@ -56,71 +56,87 @@ const expectedBody = `<!doctype html>
 </html>
 `;
 
-new Promise(function (resolve, reject) {
+new Promise(function (resolve, reject) 
+{
   let xhr = new XMLHttpRequest();
   xhr.open('GET', 'http://www.example.org/');
 
-  xhr.onload = function () {
-    if (this.status >= 200 && this.status < 300) {
+  xhr.onload = function () 
+  {
+    if (this.status >= 200 && this.status < 300) 
+    {
       resolve(this.response);
     }
-    else {
-      reject({
-      status: this.status,
-      statusText:  this.statusText
-      });
+    else 
+    {
+      reject(new Error({
+        status: this.status,
+        statusText:  this.statusText
+      }));
     }
   };
 
-  xhr.onerror = function () {
-    reject({
+  xhr.onerror = function () 
+  {
+    reject(new Error({
       status: this.status,
       statusText: this.statusText
-    });
+    }));
   };
 
   xhr.send();
-}).then((value) => {
-  if (value != expectedBody) {
+}).then((value) => 
+{
+  if (value !== expectedBody) 
+  {
     console.error('expected ', expectedBody, ' but got ', value);
     throw new Error('Test failed');
   }
   console.log('Test passed');
-}).catch((error) => {
-    throw error;
-})
+}).catch((error) => 
+{
+  throw error;
+});
 
 
-new Promise(function (resolve, reject) {
+new Promise(function (resolve, reject) 
+{
   let xhr = new XMLHttpRequest();
   xhr.open('POST', 'http://httpbin.org/post');
 
-  xhr.onload = function () {
-    if (this.status >= 200 && this.status < 300) {
+  xhr.onload = function () 
+  {
+    if (this.status >= 200 && this.status < 300) 
+    {
       resolve(this.response);
     }
-    else {
-      reject({
-      status: this.status,
-      statusText:  this.statusText
-      });
+    else 
+    {
+      reject(new Error({
+        status: this.status,
+        statusText:  this.statusText
+      }));
     }
   };
 
-  xhr.onerror = function () {
-    reject({
+  xhr.onerror = function () 
+  {
+    reject(new Error({
       status: this.status,
       statusText: this.statusText
-    });
+    }));
   };
 
   xhr.send();
-}).then((value) => {
-  value = JSON.parse(value)
-  if (!value["headers"]["User-Agent"].startsWith("Python/")) {
-    console.error("expected Python/* User-Agent, but got ", value.headers["User-Agent"])
+}).then((value) => 
+{
+  value = JSON.parse(value);
+  if (!value['headers']['User-Agent'].startsWith('Python/')) 
+  {
+    console.error('expected Python/* User-Agent, but got ', value.headers['User-Agent']);
   }
   console.log('Test passed');
-}).catch((error) => {
-    throw error;
-})
+}).catch((error) => 
+{
+  throw error;
+});

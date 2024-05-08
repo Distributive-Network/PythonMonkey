@@ -4,7 +4,11 @@
  * @see      https://dom.spec.whatwg.org/#eventtarget
  * @author   Tom Tang <xmader@distributive.network>
  * @date     August 2023
+ * 
+ * @copyright Copyright (c) 2023 Distributive Corp.
  */
+'use strict';
+const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.require')('debug');
 
 /**
  * The Event interface represents an event which takes place in the DOM.
@@ -22,53 +26,53 @@ class Event
    * Indicates whether the event is cancelable.
    * @type {Boolean}
    */
-   cancelable = true;
+  cancelable = true;
 
   /**
    * Indicates whether the event can bubble across the boundary between the shadow DOM and the regular DOM.
    * @type {Boolean}
    */
-   composed = false;
+  composed = false;
   
   /**
    * The element to which the event handler has been attached.
    * @type {EventTarget}
    */
-   currentTarget = null;
+  currentTarget = null;
 
   /**
    * Indicates whether the call to event.preventDefault() canceled the event.
    * @type {Boolean}
    */
-   devaultPrevented = false;
+  devaultPrevented = false;
 
   /**
    * Indicates which phase of the event flow is currently being evaluated.
    * @type {Number}
    */
-   eventPhase = Event.NONE;
-   static NONE = 0;             // The event is not being processed
-   static CAPTURING_PHASE = 1;  // The event is being propagated through the target's ancestor objects 
-   static AT_TARGET = 2;        // The event has arrived at the event's target
-   static BUBBLING_PHASE = 3;   // The event is propagating back up through the target's ancestors in reverse order, starting with the parent
+  eventPhase = Event.NONE;
+  static NONE = 0;             // The event is not being processed
+  static CAPTURING_PHASE = 1;  // The event is being propagated through the target's ancestor objects 
+  static AT_TARGET = 2;        // The event has arrived at the event's target
+  static BUBBLING_PHASE = 3;   // The event is propagating back up through the target's ancestors in reverse order, starting with the parent
   
   /**
    * Indicates whether the event was initiated by the browser or by a script.
    * @type {Boolean}
    */
-   isTrusted = false;
+  isTrusted = false;
   
   /**
    * A reference to the object to which the event was originally dispatched.
    * @type {EventTarget}
    */
-   target = null;
+  target = null;
   
   /**
    * The time at which the event was created (in milliseconds). By specification, this value is time since epoch.
    * @type {Number}
    */
-   timeStamp = null;
+  timeStamp = null;
 
   /**
    * The name identifying the type of the event.
@@ -84,7 +88,9 @@ class Event
     this.type = type;
   }
 
-  // TODO: to be implemented
+  // TODO: missing instance methods: Event.preventDefault(), Event.composedPath(), Event.stopImmediatePropagation(), Event.stopPropagation()
+  // See https://developer.mozilla.org/en-US/docs/Web/API/Event#instance_methods
+  // Also we need to figure out how we could handle event bubbling and capture in the PythonMonkey environment.
 }
 
 /**
@@ -134,6 +140,7 @@ class EventTarget
    */
   dispatchEvent(event)
   {
+    debug((event.debugTag || '') + 'events:dispatch')(event.constructor.name, event.type);
     // Set the Event.target property to the current EventTarget
     event.target = this;
 

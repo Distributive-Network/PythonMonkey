@@ -5,4 +5,4 @@
 
 import pythonmonkey as pm
 
-pm.require('./use-python-module');
+pm.require('./use-python-module')

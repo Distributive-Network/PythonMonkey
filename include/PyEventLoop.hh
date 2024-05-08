@@ -2,10 +2,9 @@
  * @file PyEventLoop.hh
  * @author Tom Tang (xmader@distributive.network)
  * @brief Send jobs to the Python event-loop
- * @version 0.1
  * @date 2023-04-05
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -13,6 +12,7 @@
 #define PythonMonkey_PyEventLoop_
 
 #include <Python.h>
+#include <jsapi.h>
 #include <vector>
 #include <utility>
 #include <atomic>
@@ -32,10 +32,11 @@ public:
    * @see https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle
    */
   struct AsyncHandle {
+    using id_t = uint32_t;
   public:
     explicit AsyncHandle(PyObject *handle) : _handle(handle) {};
     AsyncHandle(const AsyncHandle &old) = delete; // forbid copy-initialization
-    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)) {}; // clear the moved-from object
+    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)), _refed(old._refed.exchange(false)), _debugInfo(std::exchange(old._debugInfo, nullptr)) {}; // clear the moved-from object
     ~AsyncHandle() {
       if (Py_IsInitialized()) { // the Python runtime has already been finalized when `_timeoutIdMap` is cleared at exit
         Py_XDECREF(_handle);
@@ -43,21 +44,38 @@ public:
     }
 
     /**
+     * @brief Create a new `AsyncHandle` without an associated `asyncio.Handle` Python object
+     * @return the timeoutId
+     */
+    static inline id_t newEmpty() {
+      auto handle = AsyncHandle(Py_None);
+      return AsyncHandle::getUniqueId(std::move(handle));
+    }
+
+    /**
      * @brief Cancel the scheduled event-loop job.
      * If the job has already been canceled or executed, this method has no effect.
      */
     void cancel();
+    /**
+     * @return true if the job has been cancelled.
+     */
+    bool cancelled();
+    /**
+     * @return true if the job function has already been executed or cancelled.
+     */
+    bool _finishedOrCancelled();
 
     /**
      * @brief Get the unique `timeoutID` for JS `setTimeout`/`clearTimeout` methods
      * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#return_value
      */
-    static inline uint32_t getUniqueId(AsyncHandle &&handle) {
+    static inline id_t getUniqueId(AsyncHandle &&handle) {
       // TODO (Tom Tang): mutex lock
       _timeoutIdMap.push_back(std::move(handle));
       return _timeoutIdMap.size() - 1; // the index in `_timeoutIdMap`
     }
-    static inline AsyncHandle *fromId(uint32_t timeoutID) {
+    static inline AsyncHandle *fromId(id_t timeoutID) {
       try {
         return &_timeoutIdMap.at(timeoutID);
       } catch (...) { // std::out_of_range&
@@ -78,8 +96,64 @@ public:
       Py_INCREF(_handle); // otherwise the object would be GC-ed as the AsyncHandle destructor decreases the reference count
       return _handle;
     }
+
+    /**
+     * @brief Replace the underlying `asyncio.Handle` Python object with the provided value
+     * @return the old `asyncio.Handle` object
+     */
+    inline PyObject *swap(PyObject *newHandleObject) {
+      return std::exchange(_handle, newHandleObject);
+    }
+
+    /**
+     * @brief Getter for if the timer has been ref'ed
+     */
+    inline bool hasRef() {
+      return _refed;
+    }
+
+    /**
+     * @brief Ref the timer so that the event-loop won't exit as long as the timer is active
+     */
+    inline void addRef() {
+      if (!_refed) {
+        _refed = true;
+        if (!_finishedOrCancelled()) { // noop if the timer is finished or canceled
+          PyEventLoop::_locker->incCounter();
+        }
+      }
+    }
+
+    /**
+     * @brief Unref the timer so that the event-loop can exit
+     */
+    inline void removeRef() {
+      if (_refed) {
+        _refed = false;
+        PyEventLoop::_locker->decCounter();
+      }
+    }
+
+    /**
+     * @brief Set the debug info object for WTFPythonMonkey tool
+     */
+    inline void setDebugInfo(PyObject *obj) {
+      _debugInfo = obj;
+    }
+    inline PyObject *getDebugInfo() {
+      return _debugInfo;
+    }
+
+    /**
+     * @brief Get an iterator for the `AsyncHandle`s of all timers
+     */
+    static inline auto &getAllTimers() {
+      return _timeoutIdMap;
+    }
   protected:
     PyObject *_handle;
+    std::atomic_bool _refed = false;
+    PyObject *_debugInfo = nullptr;
   };
 
   /**
@@ -92,9 +166,10 @@ public:
    * @brief Schedule a job to the Python event-loop, with the given delay
    * @param jobFn - The JS event-loop job converted to a Python function
    * @param delaySeconds - The job function will be called after the given number of seconds
-   * @return a AsyncHandle, the value can be safely ignored
+   * @param repeat - If true, the job will be executed repeatedly on a fixed interval
+   * @return the timeoutId
    */
-  AsyncHandle enqueueWithDelay(PyObject *jobFn, double delaySeconds);
+  [[nodiscard]] AsyncHandle::id_t enqueueWithDelay(PyObject *jobFn, double delaySeconds, bool repeat);
 
   /**
    * @brief C++ wrapper for Python `asyncio.Future` class
@@ -222,7 +297,7 @@ public:
     }
 
     /**
-     * @brief An `asyncio.Event` instance to notify that there are no queueing asynchronous jobs
+     * @brief An `asyncio.Event` instance to notify that there are no queued asynchronous jobs
      * @see https://docs.python.org/3/library/asyncio-sync.html#asyncio.Event
      */
     PyObject *_queueIsEmpty = nullptr;

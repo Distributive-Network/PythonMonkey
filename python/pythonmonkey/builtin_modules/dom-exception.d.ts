@@ -2,11 +2,6 @@
  * @file     dom-exception.d.ts
  *           Type definitions for DOMException
  *
- * @author   Tom Tang <xmader@distributive.network>
- * @date     August 2023
- */
-
-/*!
  * Copied from https://www.npmjs.com/package/@types/web
  * Apache License 2.0
  */

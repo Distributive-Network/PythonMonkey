@@ -1,19 +1,15 @@
 /**
  * @file DateType.hh
- * @author Caleb Aikens (caleb@distributive.network)
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing python dates
- * @version 0.1
  * @date 2022-12-21
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2022,2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_DateType_
 #define PythonMonkey_DateType_
-
-#include "PyType.hh"
-#include "TypeEnum.hh"
 
 #include <jsapi.h>
 #include <js/Date.h>
@@ -21,24 +17,22 @@
 #include <Python.h>
 
 /**
- * @brief This struct represents the 'datetime' type in Python from the datetime module, which is represented as a 'Date' object in JS. It inherits from the PyType struct
+ * @brief This struct represents the 'datetime' type in Python from the datetime module, which is represented as a 'Date' object in JS
  */
-struct DateType : public PyType {
+struct DateType {
 public:
-  DateType(PyObject *object);
   /**
    * @brief Convert a JS Date object to Python datetime
    */
-  DateType(JSContext *cx, JS::HandleObject dateObj);
-
-  const TYPE returnType = TYPE::DATE;
+  static PyObject *getPyObject(JSContext *cx, JS::HandleObject dateObj);
 
   /**
    * @brief Convert a Python datetime object to JS Date
    *
    * @param cx - javascript context pointer
+   * @param pyObject - the python datetime object to be converted
    */
-  JSObject *toJsDate(JSContext *cx);
+  static JSObject *toJsDate(JSContext *cx, PyObject *pyObject);
 };
 
 #endif

@@ -4,7 +4,7 @@
  * @brief JSArrayIterProxy is a custom C-implemented python type that derives from list iterator
  * @date 2024-01-15
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 
@@ -34,6 +34,11 @@ int JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_traverse(JSArrayIterProx
   return 0;
 }
 
+int JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_clear(JSArrayIterProxy *self) {
+  Py_CLEAR(self->it.it_seq);
+  return 0;
+}
+
 PyObject *JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_iter(JSArrayIterProxy *self) {
   Py_INCREF(&self->it);
   return (PyObject *)&self->it;
@@ -47,16 +52,16 @@ PyObject *JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next(JSArrayIterPr
 
   if (self->it.reversed) {
     if (self->it.it_index >= 0) {
-      JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
-      JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)seq)->jsArray, self->it.it_index--, elementVal);
-      return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(((JSArrayProxy *)seq)->jsArray)), elementVal)->getPyObject();
+      JS::RootedValue elementVal(GLOBAL_CX);
+      JS_GetElement(GLOBAL_CX, *(((JSArrayProxy *)seq)->jsArray), self->it.it_index--, &elementVal);
+      return pyTypeFactory(GLOBAL_CX, elementVal);
     }
   }
   else {
     if (self->it.it_index < JSArrayProxyMethodDefinitions::JSArrayProxy_length((JSArrayProxy *)seq)) {
-      JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
-      JS_GetElement(GLOBAL_CX, ((JSArrayProxy *)seq)->jsArray, self->it.it_index++, elementVal);
-      return pyTypeFactory(GLOBAL_CX, new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(((JSArrayProxy *)seq)->jsArray)), elementVal)->getPyObject();
+      JS::RootedValue elementVal(GLOBAL_CX);
+      JS_GetElement(GLOBAL_CX, *(((JSArrayProxy *)seq)->jsArray), self->it.it_index++, &elementVal);
+      return pyTypeFactory(GLOBAL_CX, elementVal);
     }
   }
 
