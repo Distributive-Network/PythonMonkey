@@ -1,22 +1,25 @@
 # @file     pmdb - A gdb-like JavaScript debugger interface
 # @author   Tom Tang <xmader@distributive.network>
 # @date     July 2023
+# @copyright Copyright (c) 2023 Distributive Corp.
 
 import pythonmonkey as pm
 
+
 def debuggerInput(prompt: str):
   try:
-    return input(prompt) # blocking
+    return input(prompt)  # blocking
   except KeyboardInterrupt:
-    print("\b\bQuit") # to match the behaviour of gdb 
+    print("\b\bQuit")  # to match the behaviour of gdb
     return ""
   except Exception as e:
     print(e)
     return ""
 
-def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
+
+def enable(debuggerGlobalObject=pm.eval("debuggerGlobal")):
   if debuggerGlobalObject._pmdbEnabled:
-    return # already enabled, skipping
+    return  # already enabled, skipping
 
   debuggerGlobalObject._pmdbEnabled = True
   debuggerGlobalObject.eval("""(debuggerInput, _pythonPrint, _pythonExit) => {
@@ -39,19 +42,19 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
     const logger = makeDebuggeeValue(mainGlobal.console.log)
     logger.apply(logger, args.map(makeDebuggeeValue))
   }
-  
+
   function printErr (...args) {
     const logger = makeDebuggeeValue(mainGlobal.console.error)
     logger.apply(logger, args.map(makeDebuggeeValue))
   }
-  
+
   function printSource (frame, location) {
     const src = frame.script.source.text
     const line = src.split('\\n').slice(location.lineNumber-1, location.lineNumber).join('\\n')
     print(line)
     print(" ".repeat(location.columnNumber) + "^") // indicate column position
   }
-  
+
   function getCommandInputs () {
     const input = debuggerInput("(pmdb) > ") // blocking
     const [_, command, rest] = input.match(/\\s*(\\w+)?(?:\\s+(.*))?/)
@@ -64,7 +67,7 @@ def enable(debuggerGlobalObject = pm.eval("debuggerGlobal")):
       // This bytecode offset does not qualify as a breakpoint, skipping
       return
     }
-    
+
     blockingLoop: while (true) {
       const { command, rest } = getCommandInputs() // blocking
       switch (command) {

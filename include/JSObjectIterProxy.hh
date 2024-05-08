@@ -2,10 +2,9 @@
  * @file JSObjectIterProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectIterProxy is a custom C-implemented python type that derives from PyDictIterKey
- * @version 0.1
  * @date 2024-01-17
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 
@@ -29,7 +28,7 @@
 
 typedef struct {
   PyObject_HEAD
-  JS::RootedIdVector *props; // not conceptually the best use of the Rooted type but it works. There is no easy inter-operation with a JS::Heap type
+  JS::PersistentRootedIdVector *props;
   int it_index;
   bool reversed;
   int kind;
@@ -58,11 +57,19 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSObjectIterProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSObjectIterProxy_traverse(JSObjectIterProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSObjectIterProxy
+   * @return 0 on success
+   */
+  static int JSObjectIterProxy_clear(JSObjectIterProxy *self);
 
   /**
    * @brief .tp_iter method

@@ -18,7 +18,8 @@ const NODE = false;
 
 const { hasOwnProperty } = Object.prototype;
 
-QUnit.test('URL constructor', assert => {
+QUnit.test('URL constructor', assert => 
+{
   assert.isFunction(URL);
   if (!NODE) assert.arity(URL, 1);
   assert.name(URL, 'URL');
@@ -67,10 +68,12 @@ QUnit.test('URL constructor', assert => {
   assert.throws(() => new URL('1http://zloirock.ru'), 'TypeError: Invalid scheme');
 });
 
-QUnit.test('URL#href', assert => {
+QUnit.test('URL#href', assert => 
+{
   let url = new URL('http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'href'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'href');
     assert.true(descriptor.enumerable);
@@ -81,7 +84,8 @@ QUnit.test('URL#href', assert => {
 
   assert.same(url.href, 'http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url.searchParams.append('foo', 'bar');
     assert.same(url.href, 'http://zloirock.ru/?foo=bar');
 
@@ -143,10 +147,12 @@ QUnit.test('URL#href', assert => {
   }
 });
 
-QUnit.test('URL#origin', assert => {
+QUnit.test('URL#origin', assert => 
+{
   const url = new URL('http://es6.zloirock.ru/tests.html');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'origin'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'origin');
     assert.true(descriptor.enumerable);
@@ -159,10 +165,12 @@ QUnit.test('URL#origin', assert => {
   assert.same(new URL('https://測試/tests').origin, 'https://xn--g6w251d');
 });
 
-QUnit.test('URL#protocol', assert => {
+QUnit.test('URL#protocol', assert => 
+{
   let url = new URL('http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'protocol'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'protocol');
     assert.true(descriptor.enumerable);
@@ -173,7 +181,8 @@ QUnit.test('URL#protocol', assert => {
 
   assert.same(url.protocol, 'http:');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/');
     url.protocol = 'https';
     assert.same(url.protocol, 'https:');
@@ -194,10 +203,12 @@ QUnit.test('URL#protocol', assert => {
   }
 });
 
-QUnit.test('URL#username', assert => {
+QUnit.test('URL#username', assert => 
+{
   let url = new URL('http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'username'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'username');
     assert.true(descriptor.enumerable);
@@ -211,7 +222,8 @@ QUnit.test('URL#username', assert => {
   url = new URL('http://username@zloirock.ru/');
   assert.same(url.username, 'username');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/');
     url.username = 'username';
     assert.same(url.username, 'username');
@@ -219,10 +231,12 @@ QUnit.test('URL#username', assert => {
   }
 });
 
-QUnit.test('URL#password', assert => {
+QUnit.test('URL#password', assert => 
+{
   let url = new URL('http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'password'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'password');
     assert.true(descriptor.enumerable);
@@ -239,7 +253,8 @@ QUnit.test('URL#password', assert => {
   // url = new URL('http://:password@zloirock.ru/'); // TypeError in FF
   // assert.same(url.password, 'password');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/');
     url.username = 'username';
     url.password = 'password';
@@ -253,10 +268,12 @@ QUnit.test('URL#password', assert => {
   }
 });
 
-QUnit.test('URL#host', assert => {
+QUnit.test('URL#host', assert => 
+{
   let url = new URL('http://zloirock.ru:81/path');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'host'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'host');
     assert.true(descriptor.enumerable);
@@ -267,7 +284,8 @@ QUnit.test('URL#host', assert => {
 
   assert.same(url.host, 'zloirock.ru:81');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru:81/path');
     url.host = 'example.com:82';
     assert.same(url.host, 'example.com:82');
@@ -332,10 +350,12 @@ QUnit.test('URL#host', assert => {
   }
 });
 
-QUnit.test('URL#hostname', assert => {
+QUnit.test('URL#hostname', assert => 
+{
   let url = new URL('http://zloirock.ru:81/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'hostname'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'hostname');
     assert.true(descriptor.enumerable);
@@ -346,7 +366,8 @@ QUnit.test('URL#hostname', assert => {
 
   assert.same(url.hostname, 'zloirock.ru');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru:81/');
     url.hostname = 'example.com';
     assert.same(url.hostname, 'example.com');
@@ -404,10 +425,12 @@ QUnit.test('URL#hostname', assert => {
   }
 });
 
-QUnit.test('URL#port', assert => {
+QUnit.test('URL#port', assert => 
+{
   let url = new URL('http://zloirock.ru:1337/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'port'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'port');
     assert.true(descriptor.enumerable);
@@ -418,7 +441,8 @@ QUnit.test('URL#port', assert => {
 
   assert.same(url.port, '1337');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/');
     url.port = 80;
     assert.same(url.port, '');
@@ -441,10 +465,12 @@ QUnit.test('URL#port', assert => {
   }
 });
 
-QUnit.test('URL#pathname', assert => {
+QUnit.test('URL#pathname', assert => 
+{
   let url = new URL('http://zloirock.ru/foo/bar');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'pathname'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'pathname');
     assert.true(descriptor.enumerable);
@@ -455,7 +481,8 @@ QUnit.test('URL#pathname', assert => {
 
   assert.same(url.pathname, '/foo/bar');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/');
     url.pathname = 'bar/baz';
     assert.same(url.pathname, '/bar/baz');
@@ -463,10 +490,12 @@ QUnit.test('URL#pathname', assert => {
   }
 });
 
-QUnit.test('URL#search', assert => {
+QUnit.test('URL#search', assert => 
+{
   let url = new URL('http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'search'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'search');
     assert.true(descriptor.enumerable);
@@ -480,7 +509,8 @@ QUnit.test('URL#search', assert => {
   url = new URL('http://zloirock.ru/?foo=bar');
   assert.same(url.search, '?foo=bar');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/?');
     assert.same(url.search, '');
     assert.same(String(url), 'http://zloirock.ru/?');
@@ -496,10 +526,12 @@ QUnit.test('URL#search', assert => {
   }
 });
 
-QUnit.test('URL#searchParams', assert => {
+QUnit.test('URL#searchParams', assert => 
+{
   let url = new URL('http://zloirock.ru/?foo=bar&bar=baz');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'searchParams'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'searchParams');
     assert.true(descriptor.enumerable);
@@ -511,7 +543,8 @@ QUnit.test('URL#searchParams', assert => {
   assert.same(url.searchParams.get('foo'), 'bar');
   assert.same(url.searchParams.get('bar'), 'baz');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/');
     url.searchParams.append('foo', 'bar');
     assert.same(String(url), 'http://zloirock.ru/?foo=bar');
@@ -526,10 +559,12 @@ QUnit.test('URL#searchParams', assert => {
   }
 });
 
-QUnit.test('URL#hash', assert => {
+QUnit.test('URL#hash', assert => 
+{
   let url = new URL('http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     assert.false(hasOwnProperty.call(url, 'hash'));
     const descriptor = Object.getOwnPropertyDescriptor(URL.prototype, 'hash');
     assert.true(descriptor.enumerable);
@@ -547,7 +582,8 @@ QUnit.test('URL#hash', assert => {
   assert.same(url.hash, '');
   assert.same(String(url), 'http://zloirock.ru/#');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url = new URL('http://zloirock.ru/#');
     url.hash = 'foo';
     assert.same(url.hash, '#foo');
@@ -575,7 +611,8 @@ QUnit.test('URL#hash', assert => {
   }
 });
 
-QUnit.test('URL#toJSON', assert => {
+QUnit.test('URL#toJSON', assert => 
+{
   const { toJSON } = URL.prototype;
   assert.isFunction(toJSON);
   assert.arity(toJSON, 0);
@@ -586,13 +623,15 @@ QUnit.test('URL#toJSON', assert => {
   const url = new URL('http://zloirock.ru/');
   assert.same(url.toJSON(), 'http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url.searchParams.append('foo', 'bar');
     assert.same(url.toJSON(), 'http://zloirock.ru/?foo=bar');
   }
 });
 
-QUnit.test('URL#toString', assert => {
+QUnit.test('URL#toString', assert => 
+{
   const { toString } = URL.prototype;
   assert.isFunction(toString);
   assert.arity(toString, 0);
@@ -603,18 +642,21 @@ QUnit.test('URL#toString', assert => {
   const url = new URL('http://zloirock.ru/');
   assert.same(url.toString(), 'http://zloirock.ru/');
 
-  if (DESCRIPTORS) {
+  if (DESCRIPTORS) 
+  {
     url.searchParams.append('foo', 'bar');
     assert.same(url.toString(), 'http://zloirock.ru/?foo=bar');
   }
 });
 
-QUnit.test('URL#@@toStringTag', assert => {
+QUnit.test('URL#@@toStringTag', assert => 
+{
   const url = new URL('http://zloirock.ru/');
   assert.same(({}).toString.call(url), '[object URL]');
 });
 
-QUnit.test('URL.sham', assert => {
+QUnit.test('URL.sham', assert => 
+{
   assert.same(URL.sham, DESCRIPTORS ? undefined : true);
 });
 
@@ -624,7 +666,8 @@ QUnit.test('URL.sham', assert => {
  * MIT License
  */
 
-QUnit.test('URL.canParse', assert => {
+QUnit.test('URL.canParse', assert => 
+{
   const { canParse } = URL;
 
   assert.isFunction(canParse);
@@ -646,6 +689,12 @@ QUnit.test('URL.canParse', assert => {
   assert.true(canParse('x', 'https://login:password@example.com:8080/?a=1&b=2&a=3&c=4#fragment'), 'x, https://login:password@example.com:8080/?a=1&b=2&a=3&c=4#fragment');
 
   assert.throws(() => canParse(), 'TypeError: Not enough arguments');
-  assert.throws(() => canParse({ toString() { throw Error('conversion thrower #1'); } }), 'conversion thrower #1');
-  assert.throws(() => canParse('q:w', { toString() { throw Error('conversion thrower #2'); } }), 'conversion thrower #2');
+  assert.throws(() => canParse({ toString() 
+  {
+    throw Error('conversion thrower #1'); 
+  } }), 'conversion thrower #1');
+  assert.throws(() => canParse('q:w', { toString() 
+  {
+    throw Error('conversion thrower #2'); 
+  } }), 'conversion thrower #2');
 });

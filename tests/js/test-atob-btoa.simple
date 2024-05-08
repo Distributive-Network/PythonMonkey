@@ -5,15 +5,17 @@
  * @date        July 2023
  */
 
-function expect(a) {
+function expect(a) 
+{
   return {
-    toBe(b) {
+    toBe(b) 
+    {
       if (a !== b) throw new Error(`'${a}' does not equal to '${b}'`);
     }
-  }
+  };
 }
 
-/*!
+/* !
  * Modified from https://github.com/oven-sh/bun/blob/bun-v0.6.12/test/js/web/util/atob.test.js
  * Bun
  * MIT License
@@ -22,37 +24,37 @@ function expect(a) {
 // 
 // atob
 // 
-expect(atob("YQ==")).toBe("a");
-expect(atob("YWI=")).toBe("ab");
-expect(atob("YWJj")).toBe("abc");
-expect(atob("YWJjZA==")).toBe("abcd");
-expect(atob("YWJjZGU=")).toBe("abcde");
-expect(atob("YWJjZGVm")).toBe("abcdef");
-expect(atob("zzzz")).toBe("Ï<ó");
-expect(atob("")).toBe("");
-expect(atob("null")).toBe("ée");
-expect(atob("6ek=")).toBe("éé");
+expect(atob('YQ==')).toBe('a');
+expect(atob('YWI=')).toBe('ab');
+expect(atob('YWJj')).toBe('abc');
+expect(atob('YWJjZA==')).toBe('abcd');
+expect(atob('YWJjZGU=')).toBe('abcde');
+expect(atob('YWJjZGVm')).toBe('abcdef');
+expect(atob('zzzz')).toBe('Ï<ó');
+expect(atob('')).toBe('');
+expect(atob('null')).toBe('ée');
+expect(atob('6ek=')).toBe('éé');
 // expect(atob("6ek")).toBe("éé"); // FIXME (Tom Tang): binascii.Error: Incorrect padding
-expect(atob("gIE=")).toBe("");
+expect(atob('gIE=')).toBe('');
 // expect(atob("zz")).toBe("Ï"); // FIXME (Tom Tang): same here
 // expect(atob("zzz")).toBe("Ï<");
-expect(atob("zzz=")).toBe("Ï<");
-expect(atob(" YQ==")).toBe("a");
-expect(atob("YQ==\u000a")).toBe("a");
+expect(atob('zzz=')).toBe('Ï<');
+expect(atob(' YQ==')).toBe('a');
+expect(atob('YQ==\u000a')).toBe('a');
 
 // 
 // btoa
 // 
-expect(btoa("a")).toBe("YQ==");
-expect(btoa("ab")).toBe("YWI=");
-expect(btoa("abc")).toBe("YWJj");
-expect(btoa("abcd")).toBe("YWJjZA==");
-expect(btoa("abcde")).toBe("YWJjZGU=");
-expect(btoa("abcdef")).toBe("YWJjZGVm");
-expect(typeof btoa).toBe("function");
-expect(btoa("")).toBe("");
-expect(btoa("null")).toBe("bnVsbA==");
-expect(btoa("undefined")).toBe("dW5kZWZpbmVk");
-expect(btoa("[object Window]")).toBe("W29iamVjdCBXaW5kb3dd");
-expect(btoa("éé")).toBe("6ek=");
-expect(btoa("\u0080\u0081")).toBe("gIE=");
+expect(btoa('a')).toBe('YQ==');
+expect(btoa('ab')).toBe('YWI=');
+expect(btoa('abc')).toBe('YWJj');
+expect(btoa('abcd')).toBe('YWJjZA==');
+expect(btoa('abcde')).toBe('YWJjZGU=');
+expect(btoa('abcdef')).toBe('YWJjZGVm');
+expect(typeof btoa).toBe('function');
+expect(btoa('')).toBe('');
+expect(btoa('null')).toBe('bnVsbA==');
+expect(btoa('undefined')).toBe('dW5kZWZpbmVk');
+expect(btoa('[object Window]')).toBe('W29iamVjdCBXaW5kb3dd');
+expect(btoa('éé')).toBe('6ek=');
+expect(btoa('\u0080\u0081')).toBe('gIE=');

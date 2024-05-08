@@ -2,10 +2,9 @@
  * @file JSObjectItemsProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectItemsProxy is a custom C-implemented python type that derives from dict items
- * @version 0.1
  * @date 2024-01-19
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 
@@ -42,11 +41,19 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSObjectItemsProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSObjectItemsProxy_traverse(JSObjectItemsProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSObjectItemsProxy
+   * @return 0 on success
+   */
+  static int JSObjectItemsProxy_clear(JSObjectItemsProxy *self);
 
   /**
    * @brief Length method (.sq_length), returns the number of key-value pairs in the JSObject, used by the python len() method
@@ -84,6 +91,7 @@ public:
    * @brief mapping method
    *
    * @param self - The JSObjectItemsProxy
+   * @param Py_UNUSED
    * @return PyObject* The resulting new dict
    */
   static PyObject *JSObjectItemsProxy_mapping(PyObject *self, void *Py_UNUSED(ignored));

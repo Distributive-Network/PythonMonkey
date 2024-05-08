@@ -2,10 +2,9 @@
  * @file JSObjectProxy.cc
  * @author Caleb Aikens (caleb@distributive.network), Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectProxy is a custom C-implemented python type that derives from dict. It acts as a proxy for JSObjects from Spidermonkey, and behaves like a dict would.
- * @version 0.1
  * @date 2023-06-26
  *
- * Copyright (c) 2023-2024 Distributive Corp.
+ * @copyright Copyright (c) 2023-2024 Distributive Corp.
  *
  */
 
@@ -21,6 +20,8 @@
 #include "include/jsTypeFactory.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/PyBaseProxyHandler.hh"
+
+#include "include/JSFunctionProxy.hh"
 
 #include <jsapi.h>
 #include <jsfriendapi.h>
@@ -39,7 +40,7 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
     idString.set(JS_NewStringCopyUTF8Z(GLOBAL_CX, utf8Chars));
     return JS_StringToId(GLOBAL_CX, idString, idp);
   } else if (PyLong_Check(key)) { // key is int type
-    uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // raise OverflowError if the value of pylong is out of range for a unsigned long
+    uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // TODO raise OverflowError if the value of pylong is out of range for a unsigned long
     return JS_IndexToId(GLOBAL_CX, keyAsInt, idp);
   } else {
     return false; // fail
@@ -48,88 +49,150 @@ bool keyToId(PyObject *key, JS::MutableHandleId idp) {
 
 void JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc(JSObjectProxy *self)
 {
-  // TODO (Caleb Aikens): intentional override of PyDict_Type's tp_dealloc. Probably results in leaking dict memory
-  self->jsObject.set(nullptr);
+  self->jsObject->set(nullptr);
+  delete self->jsObject;
   PyObject_GC_UnTrack(self);
-  Py_TYPE(self)->tp_free((PyObject *)self);
+  PyObject_GC_Del(self);
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_new(PyTypeObject *subtype, PyObject *args, PyObject *kwds)
+int JSObjectProxyMethodDefinitions::JSObjectProxy_traverse(JSObjectProxy *self, visitproc visit, void *arg)
 {
-  return PyDict_Type.tp_new(subtype, args, kwds);
+  // Nothing to be done
+  return 0;
 }
 
-int JSObjectProxyMethodDefinitions::JSObjectProxy_init(JSObjectProxy *self, PyObject *args, PyObject *kwds)
+int JSObjectProxyMethodDefinitions::JSObjectProxy_clear(JSObjectProxy *self)
 {
-  if (PyDict_Type.tp_init((PyObject *)self, args, kwds) < 0) {
-    return -1;
-  }
+  // Nothing to be done
   return 0;
 }
 
 Py_ssize_t JSObjectProxyMethodDefinitions::JSObjectProxy_length(JSObjectProxy *self)
 {
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return -1;
   }
   return props.length();
 }
 
-PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
-{
-  JS::RootedId id(GLOBAL_CX);
-  if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here
-    return NULL; // key is not a str or int
-  }
-
+static inline PyObject *getKey(JSObjectProxy *self, PyObject *key, JS::HandleId id, bool checkPropertyShadowsMethod) {
   // look through the methods for dispatch
   for (size_t index = 0;; index++) {
     const char *methodName = JSObjectProxyType.tp_methods[index].ml_name;
     if (methodName == NULL || !PyUnicode_Check(key)) {
-      JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-      JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-      JS::RootedObject *thisObj = new JS::RootedObject(GLOBAL_CX, self->jsObject);
-      return pyTypeFactory(GLOBAL_CX, thisObj, value)->getPyObject();
+      JS::RootedValue value(GLOBAL_CX);
+      JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+      // if value is a JSFunction, bind `this` to self
+      /* (Caleb Aikens) its potentially problematic to bind it like this since if the function
+       * ever gets assigned to another object like so:
+       *
+       * jsObjA.func = jsObjB.func
+       * jsObjA.func() # `this` will be jsObjB not jsObjA
+       *
+       * It will be bound to the wrong object, however I can't find a better way to do this,
+       * and even pyodide works this way weirdly enough:
+       * https://github.com/pyodide/pyodide/blob/ee863a7f7907dfb6ee4948bde6908453c9d7ac43/src/core/jsproxy.c#L388
+       *
+       * if the user wants to get an unbound JS function to bind later, they will have to get it without accessing it through
+       * a JSObjectProxy (such as via pythonmonkey.eval or as the result of some other function)
+       */
+      if (value.isObject()) {
+        JS::RootedObject valueObject(GLOBAL_CX);
+        JS_ValueToObject(GLOBAL_CX, value, &valueObject);
+        js::ESClass cls;
+        JS::GetBuiltinClass(GLOBAL_CX, valueObject, &cls);
+        if (cls == js::ESClass::Function) {
+          JS::Rooted<JS::ValueArray<1>> args(GLOBAL_CX);
+          args[0].setObject(*((*(self->jsObject)).get()));
+          JS::RootedValue boundFunction(GLOBAL_CX);
+          if (!JS_CallFunctionName(GLOBAL_CX, valueObject, "bind", args, &boundFunction)) {
+            PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
+            return NULL;
+          }
+          value.set(boundFunction);
+        }
+      }
+      else if (value.isUndefined() && PyUnicode_Check(key)) {
+        if (strcmp("__class__", PyUnicode_AsUTF8(key)) == 0) {
+          return PyObject_GenericGetAttr((PyObject *)self, key);
+        }
+      }
+
+      return pyTypeFactory(GLOBAL_CX, value);
     }
     else {
       if (strcmp(methodName, PyUnicode_AsUTF8(key)) == 0) {
+        if (checkPropertyShadowsMethod) {
+          // just make sure no property is shadowing a method by name
+          JS::RootedValue value(GLOBAL_CX);
+          JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+          if (!value.isUndefined()) {
+            return pyTypeFactory(GLOBAL_CX, value);
+          }
+        }
+
         return PyObject_GenericGetAttr((PyObject *)self, key);
       }
     }
   }
 }
 
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get(JSObjectProxy *self, PyObject *key)
+{
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
+    return NULL;
+  }
+
+  return getKey(self, key, id, false);
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get_subscript(JSObjectProxy *self, PyObject *key)
+{
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
+    return NULL;
+  }
+
+  return getKey(self, key, id, true);
+}
+
 int JSObjectProxyMethodDefinitions::JSObjectProxy_contains(JSObjectProxy *self, PyObject *key)
 {
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here
-    return -1; // key is not a str or int
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
+    return -1;
   }
-  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-  return value->isUndefined() ? 0 : 1;
+  JS::RootedValue value(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+  return value.isUndefined() ? 0 : 1;
+}
+
+static inline void assignKeyValue(JSObjectProxy *self, PyObject *key, JS::HandleId id, PyObject *value) {
+  if (value) { // we are setting a value
+    JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
+    JS_SetPropertyById(GLOBAL_CX, *(self->jsObject), id, jValue);
+  } else { // we are deleting a value
+    JS::ObjectOpResult ignoredResult;
+    JS_DeletePropertyById(GLOBAL_CX, *(self->jsObject), id, ignoredResult);
+  }
 }
 
 int JSObjectProxyMethodDefinitions::JSObjectProxy_assign(JSObjectProxy *self, PyObject *key, PyObject *value)
 {
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) { // invalid key
-    // TODO (Caleb Aikens): raise exception here
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
     return -1;
   }
 
-  if (value) { // we are setting a value
-    JS::RootedValue jValue(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, value));
-    JS_SetPropertyById(GLOBAL_CX, self->jsObject, id, jValue);
-  } else { // we are deleting a value
-    JS::ObjectOpResult ignoredResult;
-    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
-  }
+  assignKeyValue(self, key, id, value);
 
   return 0;
 }
@@ -170,8 +233,8 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   visited.insert({{(PyObject *)self, other}});
 
   if (Py_TYPE((PyObject *)self) == Py_TYPE(other)) {
-    JS::RootedValue selfVal(GLOBAL_CX, JS::ObjectValue(*self->jsObject));
-    JS::RootedValue otherVal(GLOBAL_CX, JS::ObjectValue(*(*(JSObjectProxy *)other).jsObject));
+    JS::RootedValue selfVal(GLOBAL_CX, JS::ObjectValue(**(self->jsObject)));
+    JS::RootedValue otherVal(GLOBAL_CX, JS::ObjectValue(**(*(JSObjectProxy *)other).jsObject));
     if (selfVal.asRawBits() == otherVal.asRawBits()) {
       return true;
     }
@@ -179,9 +242,9 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   }
 
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
 
@@ -190,13 +253,13 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   for (size_t i = 0; i < length; i++)
   {
     JS::HandleId id = props[i];
-    JS::RootedValue *key = new JS::RootedValue(GLOBAL_CX);
-    key->setString(id.toString());
+    JS::RootedValue key(GLOBAL_CX);
+    key.setString(id.toString());
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, global, key)->getPyObject();
+    PyObject *pyKey = pyTypeFactory(GLOBAL_CX, key);
     PyObject *pyVal1 = PyObject_GetItem((PyObject *)self, pyKey);
     PyObject *pyVal2 = PyObject_GetItem((PyObject *)other, pyKey);
+    Py_DECREF(pyKey);
     if (!pyVal2) { // if other.key is NULL then not equal
       return false;
     }
@@ -231,13 +294,47 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self
   iterator->it.kind = KIND_KEYS;
   Py_INCREF(self);
   iterator->it.di_dict = (PyDictObject *)self;
-  iterator->it.props = new JS::RootedIdVector(GLOBAL_CX);
+  iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
   // Get **enumerable** own properties
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, iterator->it.props)) {
+  if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, iterator->it.props)) {
     return NULL;
   }
   PyObject_GC_Track(iterator);
   return (PyObject *)iterator;
+}
+
+PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy *self) {
+  PyObject *key = PyUnicode_FromString("next");
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) {
+    PyErr_SetString(PyExc_SystemError, "JSObjectProxy failed type conversion");
+    return NULL;
+  }
+
+  PyObject *nextFunction = getKey(self, key, id, false);
+  Py_DECREF(key);
+  if (nextFunction == NULL) {
+    PyErr_SetString(PyExc_SystemError, "JSObjectProxy could not retrieve key");
+    return NULL;
+  }
+
+  PyObject *retVal = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(nextFunction, PyTuple_New(0), NULL);
+  Py_DECREF(nextFunction);
+
+  // check if end of iteration
+  key = PyUnicode_FromString("done");
+  PyObject *done = JSObjectProxy_get((JSObjectProxy *)retVal, key);
+  Py_DECREF(key);
+  if (done == Py_True) {
+    PyErr_SetNone(PyExc_StopIteration);
+    return NULL;
+  }
+
+  key = PyUnicode_FromString("value");
+  PyObject *value = JSObjectProxy_get((JSObjectProxy *)retVal, key);
+  Py_DECREF(key);
+
+  return value;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
@@ -263,8 +360,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
 
   PyObject *key = NULL, *value = NULL;
 
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-
   JS::RootedIdVector props(GLOBAL_CX);
 
   if (_PyUnicodeWriter_WriteChar(&writer, '{') < 0) {
@@ -274,7 +369,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   /* Do repr() on each key+value pair, and insert ": " between them. Note that repr may mutate the dict. */
 
   // Get **enumerable** own properties
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props)) {
+  if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, &props)) {
     return NULL;
   }
 
@@ -288,17 +383,21 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     JS::HandleId id = props[index];
     key = idToKey(GLOBAL_CX, id);
 
+    // escape infinite recur on superclass reference
+    if (strcmp(PyUnicode_AsUTF8(key), "$super") == 0) {
+      continue;
+    }
+
     // Prevent repr from deleting key or value during key format.
     Py_INCREF(key);
 
     PyObject *s = PyObject_Repr(key);
-
     if (s == NULL) {
-      Py_DECREF(s);
       goto error;
     }
 
     int res = _PyUnicodeWriter_WriteStr(&writer, s);
+    Py_DECREF(s);
 
     if (res < 0) {
       goto error;
@@ -308,20 +407,18 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
       goto error;
     }
 
-    JS::RootedValue *elementVal = new JS::RootedValue(GLOBAL_CX);
-    JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, elementVal);
+    JS::RootedValue elementVal(GLOBAL_CX);
+    JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &elementVal);
 
-    if (&elementVal->toObject() == self->jsObject.get()) {
+    if (&elementVal.toObject() == (*(self->jsObject)).get()) {
       value = (PyObject *)self;
+      Py_INCREF(value);
     } else {
-      value = pyTypeFactory(GLOBAL_CX, global, elementVal)->getPyObject();
+      value = pyTypeFactory(GLOBAL_CX, elementVal);
     }
 
-    Py_INCREF(value);
     s = PyObject_Repr(value);
-
     if (s == NULL) {
-      Py_DECREF(s);
       goto error;
     }
 
@@ -440,42 +537,42 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_or(JSObjectProxy *self, 
   else {
     JS::Rooted<JS::ValueArray<3>> args(GLOBAL_CX);
     args[0].setObjectOrNull(JS_NewPlainObject(GLOBAL_CX));
-    args[1].setObjectOrNull(self->jsObject);  // this is null is left operand is real dict
+    args[1].setObjectOrNull(*(self->jsObject));  // this is null is left operand is real dict
     JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
     args[2].setObject(jValueOther.toObject());
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+    JS::RootedObject global(GLOBAL_CX, JS::GetNonCCWObjectGlobal(*(self->jsObject)));
 
     // call Object.assign
     JS::RootedValue Object(GLOBAL_CX);
-    if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
+    if (!JS_GetProperty(GLOBAL_CX, global, "Object", &Object)) {
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
 
     JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
-    JS::RootedValue *ret = new JS::RootedValue(GLOBAL_CX);
+    JS::RootedValue ret(GLOBAL_CX);
 
-    if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, ret)) {
+    if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) {
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
-    return pyTypeFactory(GLOBAL_CX, global, ret)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, ret);
   }
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_ior(JSObjectProxy *self, PyObject *other) {
   if (PyDict_Check(other)) {
     JS::Rooted<JS::ValueArray<2>> args(GLOBAL_CX);
-    args[0].setObjectOrNull(self->jsObject);
+    args[0].setObjectOrNull(*(self->jsObject));
     JS::RootedValue jValueOther(GLOBAL_CX, jsTypeFactory(GLOBAL_CX, other));
     args[1].setObject(jValueOther.toObject());
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+    JS::RootedObject global(GLOBAL_CX, JS::GetNonCCWObjectGlobal(*(self->jsObject)));
 
     // call Object.assign
     JS::RootedValue Object(GLOBAL_CX);
-    if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
+    if (!JS_GetProperty(GLOBAL_CX, global, "Object", &Object)) {
       PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
       return NULL;
     }
@@ -517,7 +614,7 @@ skip_optional:
   if (value == Py_None) {
     value = default_value;
   }
-  Py_XINCREF(value);
+
   return value;
 }
 
@@ -537,14 +634,19 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method(JSObje
 
 skip_optional:
 
-  PyObject* value = JSObjectProxy_get(self, key);
+  JS::RootedId id(GLOBAL_CX);
+  if (!keyToId(key, &id)) { // invalid key
+    // TODO (Caleb Aikens): raise exception here
+    return NULL;
+  }
+
+  PyObject *value = getKey(self, key, id, true);
   if (value == Py_None) {
-    JSObjectProxy_assign(self, key, default_value);
+    assignKeyValue(self, key, id, default_value);
     Py_XINCREF(default_value);
     return default_value;
   }
 
-  Py_XINCREF(value);
   return value;
 }
 
@@ -564,13 +666,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method(JSObjectProxy
 skip_optional:
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {
-    // TODO (Caleb Aikens): raise exception here  PyObject *seq = PyTuple_New(length);
+    PyErr_SetString(PyExc_AttributeError, "JSObjectProxy property name must be of type str or int");
     return NULL;
   }
 
-  JS::RootedValue *value = new JS::RootedValue(GLOBAL_CX);
-  JS_GetPropertyById(GLOBAL_CX, self->jsObject, id, value);
-  if (value->isUndefined()) {
+  JS::RootedValue value(GLOBAL_CX);
+  JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &value);
+  if (value.isUndefined()) {
     if (default_value != NULL) {
       Py_INCREF(default_value);
       return default_value;
@@ -580,25 +682,24 @@ skip_optional:
   }
   else {
     JS::ObjectOpResult ignoredResult;
-    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, id, ignoredResult);
+    JS_DeletePropertyById(GLOBAL_CX, *(self->jsObject), id, ignoredResult);
 
-    JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
-    return pyTypeFactory(GLOBAL_CX, global, value)->getPyObject();
+    return pyTypeFactory(GLOBAL_CX, value);
   }
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(JSObjectProxy *self) {
   JS::RootedIdVector props(GLOBAL_CX);
-  if (!js::GetPropertyKeys(GLOBAL_CX, self->jsObject, JSITER_OWNONLY, &props))
+  if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, &props))
   {
-    // @TODO (Caleb Aikens) raise exception here
+    PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
 
   JS::ObjectOpResult ignoredResult;
   size_t length = props.length();
   for (size_t index = 0; index < length; index++) {
-    JS_DeletePropertyById(GLOBAL_CX, self->jsObject, props[index], ignoredResult);
+    JS_DeletePropertyById(GLOBAL_CX, *(self->jsObject), props[index], ignoredResult);
   }
 
   Py_RETURN_NONE;
@@ -607,24 +708,24 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_clear_method(JSObjectPro
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_copy_method(JSObjectProxy *self) {
   JS::Rooted<JS::ValueArray<2>> args(GLOBAL_CX);
   args[0].setObjectOrNull(JS_NewPlainObject(GLOBAL_CX));
-  args[1].setObjectOrNull(self->jsObject);
+  args[1].setObjectOrNull(*(self->jsObject));
 
-  JS::RootedObject *global = new JS::RootedObject(GLOBAL_CX, JS::GetNonCCWObjectGlobal(self->jsObject));
+  JS::RootedObject global(GLOBAL_CX, JS::GetNonCCWObjectGlobal(*(self->jsObject)));
 
   // call Object.assign
   JS::RootedValue Object(GLOBAL_CX);
-  if (!JS_GetProperty(GLOBAL_CX, *global, "Object", &Object)) {
+  if (!JS_GetProperty(GLOBAL_CX, global, "Object", &Object)) {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
 
   JS::RootedObject rootedObject(GLOBAL_CX, Object.toObjectOrNull());
-  JS::RootedValue *ret = new JS::RootedValue(GLOBAL_CX);
-  if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, ret)) {
+  JS::RootedValue ret(GLOBAL_CX);
+  if (!JS_CallFunctionName(GLOBAL_CX, rootedObject, "assign", args, &ret)) {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
     return NULL;
   }
-  return pyTypeFactory(GLOBAL_CX, global, ret)->getPyObject();
+  return pyTypeFactory(GLOBAL_CX, ret);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectProxy *self, PyObject *args, PyObject *kwds) {

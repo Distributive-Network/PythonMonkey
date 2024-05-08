@@ -1,17 +1,21 @@
-#include "include/DateType.hh"
+/**
+ * @file DateType.cc
+ * @author Caleb Aikens (caleb@distributive.network) and Philippe Laporte (philippe@distributive.network)
+ * @brief Struct for representing python dates
+ * @date 2022-12-21
+ *
+ * @copyright Copyright (c) 2022,2024 Distributive Corp.
+ *
+ */
 
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
+#include "include/DateType.hh"
 
 #include <jsapi.h>
 #include <js/Date.h>
 
-#include <Python.h>
 #include <datetime.h>
 
-DateType::DateType(PyObject *object) : PyType(object) {}
-
-DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
+PyObject *DateType::getPyObject(JSContext *cx, JS::HandleObject dateObj) {
   if (!PyDateTimeAPI) { PyDateTime_IMPORT; } // for PyDateTime_FromTimestamp
 
   JS::Rooted<JS::ValueArray<0>> args(cx);
@@ -30,7 +34,7 @@ DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
   JS_CallFunctionName(cx, dateObj, "getUTCSeconds", args, &second);
   JS_CallFunctionName(cx, dateObj, "getUTCMilliseconds", args, &usecond);
 
-  pyObject = PyDateTimeAPI->DateTime_FromDateAndTime(
+  PyObject *pyObject = PyDateTimeAPI->DateTime_FromDateAndTime(
     year.toNumber(), month.toNumber() + 1, day.toNumber(),
     hour.toNumber(), minute.toNumber(), second.toNumber(),
     usecond.toNumber() * 1000,
@@ -39,9 +43,11 @@ DateType::DateType(JSContext *cx, JS::HandleObject dateObj) {
     PyDateTimeAPI->DateTimeType
   );
   Py_INCREF(PyDateTime_TimeZone_UTC);
+
+  return pyObject;
 }
 
-JSObject *DateType::toJsDate(JSContext *cx) {
+JSObject *DateType::toJsDate(JSContext *cx, PyObject *pyObject) {
   // See https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp
   PyObject *timestamp = PyObject_CallMethod(pyObject, "timestamp", NULL); // the result is in seconds
   double milliseconds = PyFloat_AsDouble(timestamp) * 1000;

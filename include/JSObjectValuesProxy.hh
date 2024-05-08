@@ -2,10 +2,9 @@
  * @file JSObjectValuesProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectValuesProxy is a custom C-implemented python type that derives from dict values
- * @version 0.1
- * @date 2023-06-26
+ * @date 2024-01-17
  *
- * Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023 Distributive Corp.
  *
  */
 
@@ -42,11 +41,19 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSObjectValuesProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSObjectValuesProxy_traverse(JSObjectValuesProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSObjectValuesProxy
+   * @return 0 on success
+   */
+  static int JSObjectValuesProxy_clear(JSObjectValuesProxy *self);
 
   /**
    * @brief Length method (.sq_length), returns the number of key-value pairs in the JSObject, used by the python len() method
@@ -93,6 +100,7 @@ public:
    * @brief mapping method
    *
    * @param self - The JSObjectValuesProxy
+   * @param Py_UNUSED
    * @return PyObject* The resulting new dict
    */
   static PyObject *JSObjectValuesProxy_mapping(PyObject *self, void *Py_UNUSED(ignored));

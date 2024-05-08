@@ -11,30 +11,35 @@
 const throughJS = x => x; 
 let errorFlag = false;
 
-function tester(exceptionpy, exceptionjs) {
+function tester(exceptionpy, exceptionjs) 
+{
   if (!exceptionpy.toString() === exceptionjs.toString())
   {
     console.error('Expected\n', exceptionpy.toString(), '\nbut got\n', exceptionjs.toString());
     errorFlag = true;
-  } else {
+  }
+  else 
+  {
     console.log('pass -', exceptionpy.toString());
   }
 }
 
-function inbuiltError() {
-  const exceptionpy = python.eval(`Exception('I know Python!')`);
+function inbuiltError() 
+{
+  const exceptionpy = python.eval('Exception(\'I know Python!\')');
   const exceptionjs = throughJS(exceptionpy);
   tester(exceptionpy, exceptionjs);
 }
 
-function customError() {
+function customError() 
+{
   python.exec(
     `class IAmAnError(Exception):
       def __init__(self, message):            
         super().__init__(message)
     `
     );
-  const exceptionpy = python.eval(`IAmAnError('I know Python!')`);
+  const exceptionpy = python.eval('IAmAnError(\'I know Python!\')');
   const exceptionjs = throughJS(exceptionpy);
   tester(exceptionpy, exceptionjs);
 }
@@ -42,7 +47,8 @@ function customError() {
 inbuiltError();
 customError();
 
-if (errorFlag) {
+if (errorFlag) 
+{
   throw new Error('test failed');
 }
 

@@ -10,12 +10,9 @@
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 
-
-#include "include/BoolType.hh"
 #include "include/setSpiderMonkeyException.hh"
-#include "include/DateType.hh"
-#include "include/FloatType.hh"
-#include "include/FuncType.hh"
+#include "include/JSFunctionProxy.hh"
+#include "include/JSMethodProxy.hh"
 #include "include/JSArrayIterProxy.hh"
 #include "include/JSArrayProxy.hh"
 #include "include/JSObjectIterProxy.hh"
@@ -23,9 +20,8 @@
 #include "include/JSObjectValuesProxy.hh"
 #include "include/JSObjectItemsProxy.hh"
 #include "include/JSObjectProxy.hh"
-#include "include/PyType.hh"
+#include "include/JSStringProxy.hh"
 #include "include/pyTypeFactory.hh"
-#include "include/StrType.hh"
 #include "include/PyEventLoop.hh"
 #include "include/internalBinding.hh"
 
@@ -48,34 +44,67 @@
 
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 
-typedef std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>>::iterator PyToGCIterator;
+JS::PersistentRootedObject jsFunctionRegistry;
+
+void finalizationRegistryGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
+  if (status == JSGCStatus::JSGC_END) {
+    JS::ClearKeptObjects(GLOBAL_CX);
+    while (JOB_QUEUE->runFinalizationRegistryCallbacks(GLOBAL_CX));
+  }
+}
+
+bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
+  JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
+  Py_DECREF((PyObject *)callargs[0].toPrivate());
+  return true;
+}
+
+static void cleanupFinalizationRegistry(JSFunction *callback, JSObject *global [[maybe_unused]], void *user_data [[maybe_unused]]) {
+  JOB_QUEUE->queueFinalizationRegistryCallback(callback);
+}
+
+static PyObject *PythonMonkey_Null;
+static PyObject *PythonMonkey_BigInt;
+
+PyObject *getPythonMonkeyNull() {
+  if (!PythonMonkey_Null) {
+    PythonMonkey_Null = PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "null");
+  }
+  return PythonMonkey_Null;
+}
+
+PyObject *getPythonMonkeyBigInt() {
+  if (!PythonMonkey_BigInt) {
+    PythonMonkey_BigInt = PyObject_GetAttrString(PyState_FindModule(&pythonmonkey), "bigint");
+  }
+  return PythonMonkey_BigInt;
+}
+
+
 typedef struct {
   PyObject_HEAD
 } NullObject;
-
-std::unordered_map<PyType *, std::vector<JS::PersistentRooted<JS::Value> *>> PyTypeToGCThing; /**< data structure to hold memoized PyObject & GCThing data for handling GC*/
 
 static PyTypeObject NullType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
   .tp_name = "pythonmonkey.null",
   .tp_basicsize = sizeof(NullObject),
   .tp_flags = Py_TPFLAGS_DEFAULT,
-  .tp_doc = PyDoc_STR("Javascript null object"),
+  .tp_doc = PyDoc_STR("Javascript null object")
 };
 
 static PyTypeObject BigIntType = {
-  .tp_name = "pythonmonkey.bigint",
-  .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_LONG_SUBCLASS
-  | Py_TPFLAGS_BASETYPE,     // can be subclassed
+  .tp_name = PyLong_Type.tp_name,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LONG_SUBCLASS,
   .tp_doc = PyDoc_STR("Javascript BigInt object"),
-  .tp_base = &PyLong_Type,   // extending the builtin int type
+  .tp_base = &PyLong_Type
 };
 
 PyTypeObject JSObjectProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectProxy",
+  .tp_name = PyDict_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectProxyMethodDefinitions::JSObjectProxy_dealloc,
@@ -83,23 +112,52 @@ PyTypeObject JSObjectProxyType = {
   .tp_as_number = &JSObjectProxy_number_methods,
   .tp_as_sequence = &JSObjectProxy_sequence_methods,
   .tp_as_mapping = &JSObjectProxy_mapping_methods,
-  .tp_hash = PyObject_HashNotImplemented,
   .tp_getattro = (getattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_get,
   .tp_setattro = (setattrofunc)JSObjectProxyMethodDefinitions::JSObjectProxy_assign,
-  .tp_flags = Py_TPFLAGS_DEFAULT
-  | Py_TPFLAGS_DICT_SUBCLASS,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_DICT_SUBCLASS | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Object proxy dict"),
+  .tp_traverse = (traverseproc)JSObjectProxyMethodDefinitions::JSObjectProxy_traverse,
+  .tp_clear = (inquiry)JSObjectProxyMethodDefinitions::JSObjectProxy_clear,
   .tp_richcompare = (richcmpfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare,
   .tp_iter = (getiterfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter,
+  .tp_iternext = (iternextfunc)JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next,
   .tp_methods = JSObjectProxy_methods,
-  .tp_base = &PyDict_Type,
-  .tp_init = (initproc)JSObjectProxyMethodDefinitions::JSObjectProxy_init,
-  .tp_new = JSObjectProxyMethodDefinitions::JSObjectProxy_new,
+  .tp_base = &PyDict_Type
+};
+
+PyTypeObject JSStringProxyType = {
+  .tp_name = PyUnicode_Type.tp_name,
+  .tp_basicsize = sizeof(JSStringProxy),
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_UNICODE_SUBCLASS,
+  .tp_doc = PyDoc_STR("Javascript String value"),
+  .tp_base = &PyUnicode_Type
+};
+
+PyTypeObject JSFunctionProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSFunctionProxy",
+  .tp_basicsize = sizeof(JSFunctionProxy),
+  .tp_dealloc = (destructor)JSFunctionProxyMethodDefinitions::JSFunctionProxy_dealloc,
+  .tp_call = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = PyDoc_STR("Javascript Function proxy object"),
+  .tp_new = JSFunctionProxyMethodDefinitions::JSFunctionProxy_new
+};
+
+PyTypeObject JSMethodProxyType = {
+  .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+  .tp_name = "pythonmonkey.JSMethodProxy",
+  .tp_basicsize = sizeof(JSMethodProxy),
+  .tp_dealloc = (destructor)JSMethodProxyMethodDefinitions::JSMethodProxy_dealloc,
+  .tp_call = JSMethodProxyMethodDefinitions::JSMethodProxy_call,
+  .tp_flags = Py_TPFLAGS_DEFAULT,
+  .tp_doc = PyDoc_STR("Javascript Method proxy object"),
+  .tp_new = JSMethodProxyMethodDefinitions::JSMethodProxy_new
 };
 
 PyTypeObject JSArrayProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSArrayProxy",
+  .tp_name = PyList_Type.tp_name,
   .tp_basicsize = sizeof(JSArrayProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc,
@@ -107,21 +165,19 @@ PyTypeObject JSArrayProxyType = {
   .tp_as_sequence = &JSArrayProxy_sequence_methods,
   .tp_as_mapping = &JSArrayProxy_mapping_methods,
   .tp_getattro = (getattrofunc)JSArrayProxyMethodDefinitions::JSArrayProxy_get,
-  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS,
+  .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_LIST_SUBCLASS | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Array proxy list"),
   .tp_traverse = (traverseproc)JSArrayProxyMethodDefinitions::JSArrayProxy_traverse,
-  .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear_slot,
+  .tp_clear = (inquiry)JSArrayProxyMethodDefinitions::JSArrayProxy_clear,
   .tp_richcompare = (richcmpfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare,
   .tp_iter = (getiterfunc)JSArrayProxyMethodDefinitions::JSArrayProxy_iter,
   .tp_methods = JSArrayProxy_methods,
-  .tp_base = &PyList_Type,
-  .tp_init = (initproc)JSArrayProxyMethodDefinitions::JSArrayProxy_init,
-  .tp_new = JSArrayProxyMethodDefinitions::JSArrayProxy_new,
+  .tp_base = &PyList_Type
 };
 
 PyTypeObject JSArrayIterProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSArrayIterProxy",
+  .tp_name = PyListIter_Type.tp_name,
   .tp_basicsize = sizeof(JSArrayIterProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_dealloc,
@@ -129,6 +185,7 @@ PyTypeObject JSArrayIterProxyType = {
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Array proxy iterator"),
   .tp_traverse =  (traverseproc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_traverse,
+  .tp_clear = (inquiry)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_clear,
   .tp_iter = (getiterfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_iter,
   .tp_iternext = (iternextfunc)JSArrayIterProxyMethodDefinitions::JSArrayIterProxy_next,
   .tp_methods = JSArrayIterProxy_methods,
@@ -137,7 +194,7 @@ PyTypeObject JSArrayIterProxyType = {
 
 PyTypeObject JSObjectIterProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectIterProxy",
+  .tp_name = PyDictIterKey_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectIterProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_dealloc,
@@ -145,6 +202,7 @@ PyTypeObject JSObjectIterProxyType = {
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Object proxy key iterator"),
   .tp_traverse =  (traverseproc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_traverse,
+  .tp_clear = (inquiry)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_clear,
   .tp_iter = (getiterfunc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_iter,
   .tp_iternext = (iternextfunc)JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey,
   .tp_methods = JSObjectIterProxy_methods,
@@ -153,7 +211,7 @@ PyTypeObject JSObjectIterProxyType = {
 
 PyTypeObject JSObjectKeysProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectKeysProxy",
+  .tp_name = PyDictKeys_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectKeysProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_dealloc,
@@ -164,6 +222,7 @@ PyTypeObject JSObjectKeysProxyType = {
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Object Keys proxy"),
   .tp_traverse =  (traverseproc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_traverse,
+  .tp_clear = (inquiry)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_clear,
   .tp_richcompare = (richcmpfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_richcompare,
   .tp_iter = (getiterfunc)JSObjectKeysProxyMethodDefinitions::JSObjectKeysProxy_iter,
   .tp_methods = JSObjectKeysProxy_methods,
@@ -173,7 +232,7 @@ PyTypeObject JSObjectKeysProxyType = {
 
 PyTypeObject JSObjectValuesProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectValuesProxy",
+  .tp_name = PyDictValues_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectValuesProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_dealloc,
@@ -183,6 +242,7 @@ PyTypeObject JSObjectValuesProxyType = {
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Object Values proxy"),
   .tp_traverse =  (traverseproc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_traverse,
+  .tp_clear = (inquiry)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_clear,
   .tp_iter = (getiterfunc)JSObjectValuesProxyMethodDefinitions::JSObjectValuesProxy_iter,
   .tp_methods = JSObjectValuesProxy_methods,
   .tp_getset = JSObjectValuesProxy_getset,
@@ -191,7 +251,7 @@ PyTypeObject JSObjectValuesProxyType = {
 
 PyTypeObject JSObjectItemsProxyType = {
   .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-  .tp_name = "pythonmonkey.JSObjectItemsProxy",
+  .tp_name = PyDictKeys_Type.tp_name,
   .tp_basicsize = sizeof(JSObjectItemsProxy),
   .tp_itemsize = 0,
   .tp_dealloc = (destructor)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_dealloc,
@@ -202,6 +262,7 @@ PyTypeObject JSObjectItemsProxyType = {
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
   .tp_doc = PyDoc_STR("Javascript Object Items proxy"),
   .tp_traverse =  (traverseproc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_traverse,
+  .tp_clear = (inquiry)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_clear,
   // .tp_richcompare = TODO tuple support
   .tp_iter = (getiterfunc)JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_iter,
   .tp_methods = JSObjectItemsProxy_methods,
@@ -210,56 +271,14 @@ PyTypeObject JSObjectItemsProxyType = {
 };
 
 static void cleanup() {
+  Py_XDECREF(PythonMonkey_Null);
+  Py_XDECREF(PythonMonkey_BigInt);
   delete autoRealm;
   delete global;
-  delete JOB_QUEUE;
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
+  delete JOB_QUEUE;
   JS_ShutDown();
 }
-
-void memoizePyTypeAndGCThing(PyType *pyType, JS::Handle<JS::Value> GCThing) {
-  JS::PersistentRooted<JS::Value> *RootedGCThing = new JS::PersistentRooted<JS::Value>(GLOBAL_CX, GCThing);
-  PyToGCIterator pyIt = PyTypeToGCThing.find(pyType);
-
-  if (pyIt == PyTypeToGCThing.end()) { // if the PythonObject is not memoized
-    std::vector<JS::PersistentRooted<JS::Value> *> gcVector(
-      {{RootedGCThing}});
-    PyTypeToGCThing.insert({{pyType, gcVector}});
-  }
-  else {
-    pyIt->second.push_back(RootedGCThing);
-  }
-}
-
-void handleSharedPythonMonkeyMemory(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
-  if (status == JSGCStatus::JSGC_BEGIN) {
-    PyToGCIterator pyIt = PyTypeToGCThing.begin();
-    while (pyIt != PyTypeToGCThing.end()) {
-      PyObject *pyObj = pyIt->first->getPyObject();
-      // If the PyObject reference count is exactly 1, then the only reference to the object is the one
-      // we are holding, which means the object is ready to be free'd.
-      if (_PyGC_FINALIZED(pyObj) || pyObj->ob_refcnt == 1) { // PyObject_GC_IsFinalized is only available in Python 3.9+
-        for (JS::PersistentRooted<JS::Value> *rval: pyIt->second) { // for each related GCThing
-          bool found = false;
-          for (PyToGCIterator innerPyIt = PyTypeToGCThing.begin(); innerPyIt != PyTypeToGCThing.end(); innerPyIt++) { // for each other PyType pointer
-            if (innerPyIt != pyIt && std::find(innerPyIt->second.begin(), innerPyIt->second.end(), rval) != innerPyIt->second.end()) { // if the PyType is also related to the GCThing
-              found = true;
-              break;
-            }
-          }
-          // if this PyObject is the last PyObject that references this GCThing, then the GCThing can also be free'd
-          if (!found) {
-            delete rval;
-          }
-        }
-        pyIt = PyTypeToGCThing.erase(pyIt);
-      }
-      else {
-        pyIt++;
-      }
-    }
-  }
-};
 
 static PyObject *collect(PyObject *self, PyObject *args) {
   JS_GC(GLOBAL_CX);
@@ -268,46 +287,93 @@ static PyObject *collect(PyObject *self, PyObject *args) {
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, const char **s_p) {
   PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
-  if (value)
+  if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
+    value = PyMapping_GetItemString(evalOptions, optionName);
+  } else {
+    value = PyDict_GetItemString(evalOptions, optionName);
+  }
+  if (value && value != Py_None) {
     *s_p = PyUnicode_AsUTF8(value);
-  return value != NULL;
+  }
+  return value != NULL && value != Py_None;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, unsigned long *l_p) {
   PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
-  if (value)
-    *l_p = PyLong_AsUnsignedLong(value);
-  return value != NULL;
+  if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
+    value = PyMapping_GetItemString(evalOptions, optionName);
+    if (value && value != Py_None) {
+      *l_p = (unsigned long)PyFloat_AsDouble(value);
+    }
+  } else {
+    value = PyDict_GetItemString(evalOptions, optionName);
+    if (value && value != Py_None) {
+      *l_p = PyLong_AsUnsignedLong(value);
+    }
+  }
+  return value != NULL && value != Py_None;
 }
 
 static bool getEvalOption(PyObject *evalOptions, const char *optionName, bool *b_p) {
   PyObject *value;
-
-  value = PyDict_GetItemString(evalOptions, optionName);
-  if (value)
+  if (PyObject_TypeCheck(evalOptions, &JSObjectProxyType)) {
+    value = PyMapping_GetItemString(evalOptions, optionName);
+  } else {
+    value = PyDict_GetItemString(evalOptions, optionName);
+  }
+  if (value && value != Py_None) {
     *b_p = PyObject_IsTrue(value) == 1 ? true : false;
-  return value != NULL;
+  }
+  return value != NULL && value != Py_None;
 }
 
+/**
+ * Implement the pythonmonkey.eval function. From Python-land, that function has the following API:
+ * argument 0 - unicode string of JS code or open file containing JS code in UTF-8
+ * argument 1 - a Dict of options which roughly correspond to the jsapi CompileOptions. A novel option,
+ *              fromPythonFrame, sets the filename and line offset according to the pm.eval call in the
+ *              Python source code. This allows us to embed non-trivial JS inside Python source files
+ *              and still get stack dumps which point to the source code.
+ */
 static PyObject *eval(PyObject *self, PyObject *args) {
   size_t argc = PyTuple_GET_SIZE(args);
-  StrType *code = new StrType(PyTuple_GetItem(args, 0));
-  PyObject *evalOptions = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
-
-  if (argc == 0 || !PyUnicode_Check(code->getPyObject())) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
+  if (argc > 2 || argc == 0) {
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval accepts one or two arguments");
     return NULL;
   }
 
+  PyObject *code = NULL;
+  FILE *file = NULL;
+  PyObject *arg0 = PyTuple_GetItem(args, 0);
+  PyObject *arg1 = argc == 2 ? PyTuple_GetItem(args, 1) : NULL;
+
+  if (PyUnicode_Check(arg0)) {
+    code = arg0;
+  } else if (1 /*PyFile_Check(arg0)*/) {
+    /* First argument is an open file. Open a stream with a dup of the underlying fd (so we can fclose
+     * the stream later). Future: seek to current Python file position IFF the fd is for a real file.
+     */
+    int fd = PyObject_AsFileDescriptor(arg0);
+    int fd2 = fd == -1 ? -1 : dup(fd);
+    file = fd2 == -1 ? NULL : fdopen(fd, "rb");
+    if (!file) {
+      PyErr_SetString(PyExc_TypeError, "error opening file stream");
+      return NULL;
+    }
+  } else {
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects either a string or an open file as its first argument");
+    return NULL;
+  }
+
+  PyObject *evalOptions = argc == 2 ? arg1 : NULL;
   if (evalOptions && !PyDict_Check(evalOptions)) {
-    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its (optional) second argument");
+    PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a dict as its second argument");
+    if (file)
+      fclose(file);
     return NULL;
   }
 
+  // initialize JS context
   JSAutoRealm ar(GLOBAL_CX, *global);
   JS::CompileOptions options (GLOBAL_CX);
   options.setFileAndLine("evaluate", 1)
@@ -350,43 +416,53 @@ static PyObject *eval(PyObject *self, PyObject *args) {
       } /* filename */
     } /* fromPythonFrame */
   } /* eval options */
-    // initialize JS context
-  JS::SourceText<mozilla::Utf8Unit> source;
-  if (!source.init(GLOBAL_CX, code->getValue(), strlen(code->getValue()), JS::SourceOwnership::Borrowed)) {
+
+  // compile the code to execute
+  JS::RootedScript script(GLOBAL_CX);
+  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  if (code) {
+    JS::SourceText<mozilla::Utf8Unit> source;
+    const char *codeChars = PyUnicode_AsUTF8(code);
+    if (!source.init(GLOBAL_CX, codeChars, strlen(codeChars), JS::SourceOwnership::Borrowed)) {
+      setSpiderMonkeyException(GLOBAL_CX);
+      return NULL;
+    }
+    script = JS::Compile(GLOBAL_CX, options, source);
+  } else {
+    assert(file);
+    script = JS::CompileUtf8File(GLOBAL_CX, options, file);
+    fclose(file);
+  }
+
+  if (!script) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
-  delete code;
 
-  // evaluate source code
-  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
-  if (!JS::Evaluate(GLOBAL_CX, options, source, rval)) {
+  // execute the compiled code; last expr goes to rval
+  if (!JS_ExecuteScript(GLOBAL_CX, script, rval)) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
 
   // translate to the proper python type
-  PyType *returnValue = pyTypeFactory(GLOBAL_CX, global, rval);
+  PyObject *returnValue = pyTypeFactory(GLOBAL_CX, *rval);
   if (PyErr_Occurred()) {
     return NULL;
   }
 
-  // TODO: Find a better way to destroy the root when necessary (when the returned Python object is GCed).
+  // TODO: Find a way to root strings for the lifetime of a proxying python string
   js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
   if (rval->isObject()) {
     JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
-    if (JS_ObjectIsBoundFunction(&rval->toObject())) {
-      cls = js::ESClass::Function; // In SpiderMonkey 115 ESR, bound function is no longer a JSFunction but a js::BoundFunctionObject.
-    }
   }
-  bool rvalIsFunction = cls == js::ESClass::Function;   // function object
-  bool rvalIsString = rval->isString() || cls == js::ESClass::String;   // string primitive or boxed String object
-  if (!(rvalIsFunction || rvalIsString)) {   // rval may be a JS function or string which must be kept alive.
+
+  if (!(rval->isString() || cls == js::ESClass::String)) {   // rval may be a string which must be kept alive.
     delete rval;
   }
 
   if (returnValue) {
-    return returnValue->getPyObject();
+    return returnValue;
   }
   else {
     Py_RETURN_NONE;
@@ -405,19 +481,15 @@ static PyObject *waitForEventLoop(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED
 }
 
 static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
-  StrType *buffer = new StrType(PyTuple_GetItem(args, 0));
-  const char *bufferUtf8;
-  bool compilable;
-
-  if (!PyUnicode_Check(buffer->getPyObject())) {
+  PyObject *item = PyTuple_GetItem(args, 0);
+  if (!PyUnicode_Check(item)) {
     PyErr_SetString(PyExc_TypeError, "pythonmonkey.eval expects a string as its first argument");
     return NULL;
   }
 
-  bufferUtf8 = buffer->getValue();
-  compilable = JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8));
+  const char *bufferUtf8 = PyUnicode_AsUTF8(item);
 
-  if (compilable)
+  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8)))
     Py_RETURN_TRUE;
   else
     Py_RETURN_FALSE;
@@ -427,7 +499,7 @@ PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"wait", waitForEventLoop, METH_NOARGS, "The event-loop shield. Blocks until all asynchronous jobs finish."},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
-  {"collect", collect, METH_VARARGS, "Calls the spidermonkey garbage collector"},
+  {"collect", collect, METH_VARARGS, "Calls the Spidermonkey garbage collector"},
   {NULL, NULL, 0, NULL}
 };
 
@@ -465,7 +537,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   .setAsyncStack(true)
   .setSourcePragmas(true);
 
-  JOB_QUEUE = new JobQueue();
+  JOB_QUEUE = new JobQueue(GLOBAL_CX);
   if (!JOB_QUEUE->init(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
@@ -476,8 +548,11 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  JS_SetGCCallback(GLOBAL_CX, finalizationRegistryGCCallback, NULL);
+
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
+  creationOptions.setWeakRefsEnabled(JS::WeakRefSpecifier::EnabledWithoutCleanupSome); // enable FinalizationRegistry
   creationOptions.setIteratorHelpersEnabled(true);
   JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
@@ -496,7 +571,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
 
   autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
 
-  JS_SetGCCallback(GLOBAL_CX, handleSharedPythonMonkeyMemory, NULL);
   JS_DefineProperty(GLOBAL_CX, *global, "debuggerGlobal", debuggerGlobal, JSPROP_READONLY);
 
   // XXX: SpiderMonkey bug???
@@ -507,12 +581,17 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
       return JS::DOMProxyShadowsResult::ShadowCheckFailed;
     }, nullptr);
 
-  PyObject *pyModule;
   if (PyType_Ready(&NullType) < 0)
     return NULL;
   if (PyType_Ready(&BigIntType) < 0)
     return NULL;
   if (PyType_Ready(&JSObjectProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSStringProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSFunctionProxyType) < 0)
+    return NULL;
+  if (PyType_Ready(&JSMethodProxyType) < 0)
     return NULL;
   if (PyType_Ready(&JSArrayProxyType) < 0)
     return NULL;
@@ -527,7 +606,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   if (PyType_Ready(&JSObjectItemsProxyType) < 0)
     return NULL;
 
-  pyModule = PyModule_Create(&pythonmonkey);
+  PyObject *pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
     return NULL;
 
@@ -537,6 +616,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     Py_DECREF(pyModule);
     return NULL;
   }
+
   Py_INCREF(&BigIntType);
   if (PyModule_AddObject(pyModule, "bigint", (PyObject *)&BigIntType) < 0) {
     Py_DECREF(&BigIntType);
@@ -551,6 +631,13 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  Py_INCREF(&JSStringProxyType);
+  if (PyModule_AddObject(pyModule, "JSStringProxy", (PyObject *)&JSStringProxyType) < 0) {
+    Py_DECREF(&JSStringProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
   Py_INCREF(&JSArrayProxyType);
   if (PyModule_AddObject(pyModule, "JSArrayProxy", (PyObject *)&JSArrayProxyType) < 0) {
     Py_DECREF(&JSArrayProxyType);
@@ -558,9 +645,23 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  Py_INCREF(&JSFunctionProxyType);
+  if (PyModule_AddObject(pyModule, "JSFunctionProxy", (PyObject *)&JSFunctionProxyType) < 0) {
+    Py_DECREF(&JSFunctionProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
   Py_INCREF(&JSArrayIterProxyType);
   if (PyModule_AddObject(pyModule, "JSArrayIterProxy", (PyObject *)&JSArrayIterProxyType) < 0) {
     Py_DECREF(&JSArrayIterProxyType);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
+
+  Py_INCREF(&JSMethodProxyType);
+  if (PyModule_AddObject(pyModule, "JSMethodProxy", (PyObject *)&JSMethodProxyType) < 0) {
+    Py_DECREF(&JSMethodProxyType);
     Py_DECREF(pyModule);
     return NULL;
   }
@@ -593,7 +694,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError)) {
+  if (PyModule_AddObject(pyModule, "SpiderMonkeyError", SpiderMonkeyError) < 0) {
     Py_DECREF(pyModule);
     return NULL;
   }
@@ -607,6 +708,24 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     Py_DECREF(pyModule);
     return NULL;
   }
+
+  // initialize FinalizationRegistry of JSFunctions to Python Functions
+  JS::RootedValue FinalizationRegistry(GLOBAL_CX);
+  JS::RootedObject registryObject(GLOBAL_CX);
+
+  JS_GetProperty(GLOBAL_CX, *global, "FinalizationRegistry", &FinalizationRegistry);
+  JS::Rooted<JS::ValueArray<1>> args(GLOBAL_CX);
+  JSFunction *registryCallback = JS_NewFunction(GLOBAL_CX, functionRegistryCallback, 1, 0, NULL);
+  JS::RootedObject registryCallbackObject(GLOBAL_CX, JS_GetFunctionObject(registryCallback));
+  args[0].setObject(*registryCallbackObject);
+  if (!JS::Construct(GLOBAL_CX, FinalizationRegistry, args, &registryObject)) {
+    setSpiderMonkeyException(GLOBAL_CX);
+    return NULL;
+  }
+  jsFunctionRegistry.init(GLOBAL_CX);
+  jsFunctionRegistry.set(registryObject);
+
+  JS::SetHostCleanupFinalizationRegistryCallback(GLOBAL_CX, cleanupFinalizationRegistry, NULL);
 
   return pyModule;
 }

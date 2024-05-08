@@ -1,46 +1,41 @@
 /**
  * @file BufferType.hh
- * @author Tom Tang (xmader@distributive.network)
+ * @author Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing ArrayBuffers
- * @version 0.1
  * @date 2023-04-27
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #ifndef PythonMonkey_BufferType_
 #define PythonMonkey_BufferType_
 
-#include "PyType.hh"
-#include "TypeEnum.hh"
-
 #include <jsapi.h>
 #include <js/ScalarType.h>
 
 #include <Python.h>
 
-struct BufferType : public PyType {
+struct BufferType {
 public:
-  BufferType(PyObject *object);
-
   /**
    * @brief Construct a new BufferType object from a JS TypedArray or ArrayBuffer, as a Python [memoryview](https://docs.python.org/3.9/c-api/memoryview.html) object
    *
    * @param cx - javascript context pointer
    * @param bufObj - JS object to be coerced
+   *
+   * @returns PyObject* pointer to the resulting PyObject
    */
-  BufferType(JSContext *cx, JS::HandleObject bufObj);
-
-  const TYPE returnType = TYPE::BUFFER;
+  static PyObject *getPyObject(JSContext *cx, JS::HandleObject bufObj);
 
   /**
    * @brief Convert a Python object that [provides the buffer interface](https://docs.python.org/3.9/c-api/typeobj.html#buffer-object-structures) to JS TypedArray.
    * The subtype (Uint8Array, Float64Array, ...) is automatically determined by the Python buffer's [format](https://docs.python.org/3.9/c-api/buffer.html#c.Py_buffer.format)
    *
    * @param cx - javascript context pointer
+   * @param pyObject - the object to be converted
    */
-  JSObject *toJsTypedArray(JSContext *cx);
+  static JSObject *toJsTypedArray(JSContext *cx, PyObject *pyObject);
 
   /**
    * @returns Is the given JS object either a TypedArray or an ArrayBuffer?

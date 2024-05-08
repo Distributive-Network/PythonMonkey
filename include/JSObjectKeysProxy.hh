@@ -2,10 +2,9 @@
  * @file JSObjectKeysProxy.hh
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectKeysProxy is a custom C-implemented python type that derives from dict keys
- * @version 0.1
  * @date 2024-01-16
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 
@@ -42,11 +41,19 @@ public:
    * @brief .tp_traverse method
    *
    * @param self - The JSObjectKeysProxy
-   * @param visitproc - The function to be applied on each element of the list
+   * @param visit - The function to be applied on each element of the list
    * @param arg - The argument to the visit function
    * @return 0 on success
    */
   static int JSObjectKeysProxy_traverse(JSObjectKeysProxy *self, visitproc visit, void *arg);
+
+  /**
+   * @brief .tp_clear method
+   *
+   * @param self - The JSObjectKeysProxy
+   * @return 0 on success
+   */
+  static int JSObjectKeysProxy_clear(JSObjectKeysProxy *self);
 
   /**
    * @brief Length method (.sq_length), returns the number of key-value pairs in the JSObject, used by the python len() method
@@ -113,7 +120,6 @@ public:
    * @brief reverse iterator method
    *
    * @param self - The JSObjectKeysProxy
-   * @param other - The other PyObject to be and'd, expected to be dict or JSObjectKeysProxy
    * @return PyObject* The resulting new dict
    */
   static PyObject *JSObjectKeysProxy_iter_reverse(JSObjectKeysProxy *self);
@@ -122,6 +128,7 @@ public:
    * @brief mapping method
    *
    * @param self - The JSObjectKeysProxy
+   * @param Py_UNUSED
    * @return PyObject* The resulting new dict
    */
   static PyObject *JSObjectKeysProxy_mapping(PyObject *self, void *Py_UNUSED(ignored));

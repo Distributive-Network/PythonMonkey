@@ -1,29 +1,24 @@
 /**
- * @file BufferType.hh
- * @author Tom Tang (xmader@distributive.network)
+ * @file BufferType.cc
+ * @author Tom Tang (xmader@distributive.network) and Philippe Laporte (philippe@distributive.network)
  * @brief Struct for representing ArrayBuffers
- * @version 0.1
  * @date 2023-04-27
  *
- * @copyright Copyright (c) 2023 Distributive Corp.
+ * @copyright Copyright (c) 2023,2024 Distributive Corp.
  *
  */
 
 #include "include/BufferType.hh"
 
-#include "include/PyType.hh"
-#include "include/TypeEnum.hh"
 
 #include <jsapi.h>
 #include <js/ArrayBuffer.h>
 #include <js/experimental/TypedData.h>
 #include <js/ScalarType.h>
 
-#include <Python.h>
 
-BufferType::BufferType(PyObject *object) : PyType(object) {}
-
-BufferType::BufferType(JSContext *cx, JS::HandleObject bufObj) {
+PyObject *BufferType::getPyObject(JSContext *cx, JS::HandleObject bufObj) {
+  PyObject *pyObject;
   if (JS_IsTypedArrayObject(bufObj)) {
     pyObject = fromJsTypedArray(cx, bufObj);
   } else if (JS::IsArrayBufferObject(bufObj)) {
@@ -33,6 +28,8 @@ BufferType::BufferType(JSContext *cx, JS::HandleObject bufObj) {
     PyErr_SetString(PyExc_TypeError, "`bufObj` is neither a TypedArray object nor an ArraryBuffer object.");
     pyObject = nullptr;
   }
+
+  return pyObject;
 }
 
 /* static */
@@ -93,7 +90,9 @@ PyObject *BufferType::fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuf
   return PyMemoryView_FromBuffer(&bufInfo);
 }
 
-JSObject *BufferType::toJsTypedArray(JSContext *cx) {
+JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
+  Py_INCREF(pyObject);
+
   // Get the pyObject's underlying buffer pointer and size
   Py_buffer *view = new Py_buffer{};
   if (PyObject_GetBuffer(pyObject, view, PyBUF_ND | PyBUF_WRITABLE /* C-contiguous and writable */ | PyBUF_FORMAT) < 0) {
@@ -211,10 +210,10 @@ const char *BufferType::_toPyBufferFormatCode(JS::Scalar::Type subtype) {
 JSObject *BufferType::_newTypedArrayWithBuffer(JSContext *cx, JS::Scalar::Type subtype, JS::HandleObject arrayBuffer) {
   switch (subtype) {
 #define NEW_TYPED_ARRAY_WITH_BUFFER(ExternalType, NativeType, Name) \
-case JS::Scalar::Name: \
-  return JS_New ## Name ## ArrayWithBuffer(cx, arrayBuffer, 0 /* byteOffset */, -1 /* use up the ArrayBuffer */);
+        case JS::Scalar::Name: \
+          return JS_New ## Name ## ArrayWithBuffer(cx, arrayBuffer, 0 /* byteOffset */, -1 /* use up the ArrayBuffer */);
 
-    JS_FOR_EACH_TYPED_ARRAY(NEW_TYPED_ARRAY_WITH_BUFFER)
+  JS_FOR_EACH_TYPED_ARRAY(NEW_TYPED_ARRAY_WITH_BUFFER)
 #undef NEW_TYPED_ARRAY_WITH_BUFFER
   default: // invalid
     PyErr_SetString(PyExc_TypeError, "Invalid Python buffer type.");

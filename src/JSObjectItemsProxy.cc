@@ -2,10 +2,9 @@
  * @file JSObjectItemsProxy.cc
  * @author Philippe Laporte (philippe@distributive.network)
  * @brief JSObjectItemsProxy is a custom C-implemented python type that derives from dict keys
- * @version 0.1
  * @date 2024-01-19
  *
- * Copyright (c) 2024 Distributive Corp.
+ * @copyright Copyright (c) 2024 Distributive Corp.
  *
  */
 
@@ -17,7 +16,6 @@
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/jsTypeFactory.hh"
-#include "include/pyTypeFactory.hh"
 #include "include/PyBaseProxyHandler.hh"
 
 #include <jsapi.h>
@@ -25,7 +23,6 @@
 
 #include <Python.h>
 
-#include <object.h>
 
 
 void JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_dealloc(JSObjectItemsProxy *self)
@@ -48,6 +45,11 @@ int JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_traverse(JSObjectIte
   return 0;
 }
 
+int JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_clear(JSObjectItemsProxy *self) {
+  Py_CLEAR(self->dv.dv_dict);
+  return 0;
+}
+
 PyObject *JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_iter(JSObjectItemsProxy *self) {
   JSObjectIterProxy *iterator = PyObject_GC_New(JSObjectIterProxy, &JSObjectIterProxyType);
   if (iterator == NULL) {
@@ -58,9 +60,9 @@ PyObject *JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_iter(JSObjectI
   iterator->it.kind = KIND_ITEMS;
   Py_INCREF(self->dv.dv_dict);
   iterator->it.di_dict = self->dv.dv_dict;
-  iterator->it.props = new JS::RootedIdVector(GLOBAL_CX);
+  iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
   // Get **enumerable** own properties
-  if (!js::GetPropertyKeys(GLOBAL_CX, ((JSObjectProxy *)(self->dv.dv_dict))->jsObject, JSITER_OWNONLY, iterator->it.props)) {
+  if (!js::GetPropertyKeys(GLOBAL_CX, *(((JSObjectProxy *)(self->dv.dv_dict))->jsObject), JSITER_OWNONLY, iterator->it.props)) {
     return NULL;
   }
   PyObject_GC_Track(iterator);
@@ -77,9 +79,9 @@ PyObject *JSObjectItemsProxyMethodDefinitions::JSObjectItemsProxy_iter_reverse(J
   iterator->it.kind = KIND_ITEMS;
   Py_INCREF(self->dv.dv_dict);
   iterator->it.di_dict = self->dv.dv_dict;
-  iterator->it.props = new JS::RootedIdVector(GLOBAL_CX);
+  iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
   // Get **enumerable** own properties
-  if (!js::GetPropertyKeys(GLOBAL_CX, ((JSObjectProxy *)(self->dv.dv_dict))->jsObject, JSITER_OWNONLY, iterator->it.props)) {
+  if (!js::GetPropertyKeys(GLOBAL_CX, *(((JSObjectProxy *)(self->dv.dv_dict))->jsObject), JSITER_OWNONLY, iterator->it.props)) {
     return NULL;
   }
   PyObject_GC_Track(iterator);

@@ -11,6 +11,10 @@ firefox-*/
 __pycache__
 Testing/Temporary
 _spidermonkey_install
+uncrustify-*.tar.gz
+uncrustify-*/
+uncrustify
+*.uncrustify
 __pycache__/*
 dist
 *.so

@@ -1,0 +1,18 @@
+/**
+ * @file         eval-test.simple
+ *               A test that makes sure we can correctly evaluate a JS file
+ * @copyright    Copyright (c) 2024, Distributve Corp
+ * @author       Wes Garland, wes@distributive.network
+ * @date         March 2024
+ */ 
+'use strict';
+
+python.exec(`
+import os
+
+globalThis = pm.eval('globalThis')
+globalThis.result = pm.eval(open(os.path.join(os.getcwd(), "tests", "js", "resources", "eval-test.js"), "rb"))
+`);
+
+if (globalThis.result !== 18436572)
+  throw new Error('incorrect result from eval-test.js');
