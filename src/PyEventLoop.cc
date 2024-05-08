@@ -44,7 +44,10 @@ static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
 
   PyObject *errType, *errValue, *traceback; // we can't call any Python code unless the error indicator is clear
   PyErr_Fetch(&errType, &errValue, &traceback);
-  auto handle = PyEventLoop::AsyncHandle::fromId(handleId); // Making sure a `AsyncHandle::fromId` call is close to its `handle`'s use. We need to ensure the memory block doesn't move for reallocation before we can use the pointer, as we could have multiple new `setTimeout` calls to expand the `_timeoutIdMap` vector while running the job function in parallel.
+  // Making sure a `AsyncHandle::fromId` call is close to its `handle`'s use.
+  // We need to ensure the memory block doesn't move for reallocation before we can use the pointer,
+  //    as we could have multiple new `setTimeout` calls to expand the `_timeoutIdMap` vector while running the job function in parallel.
+  auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
   if (repeat && !handle->cancelled()) {
     _enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat);
   } else {
