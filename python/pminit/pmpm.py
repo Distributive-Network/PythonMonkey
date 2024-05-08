@@ -13,11 +13,6 @@ from dataclasses import dataclass
 import urllib.request
 from typing import List, Union
 
-WORK_DIR = os.path.join(
-    os.path.realpath(os.path.dirname(__file__)),
-    "pythonmonkey"
-)
-
 @dataclass
 class PackageItem:
     installation_path: str
@@ -47,8 +42,8 @@ def download_package(tarball_url: str) -> bytes:
         tarball_data: bytes = response.read()
         return tarball_data
 
-def unpack_package(installation_path: str, tarball_data: bytes):
-    installation_path = os.path.join(WORK_DIR, installation_path)
+def unpack_package(work_dir:str, installation_path: str, tarball_data: bytes):
+    installation_path = os.path.join(work_dir, installation_path)
     shutil.rmtree(installation_path, ignore_errors=True)
 
     with tempfile.TemporaryDirectory(prefix="pmpm_cache-") as tmpdir:
@@ -60,13 +55,13 @@ def unpack_package(installation_path: str, tarball_data: bytes):
             installation_path
         )
 
-def main():
-    with open(os.path.join(WORK_DIR, "package-lock.json"), encoding="utf-8") as f:
+def main(work_dir: str):
+    with open(os.path.join(work_dir, "package-lock.json"), encoding="utf-8") as f:
         items = parse_package_lock_json(f.read())
         for i in items:
             print("Installing " + i.installation_path)
             tarball_data = download_package(i.tarball_url)
-            unpack_package(i.installation_path, tarball_data)
+            unpack_package(work_dir, i.installation_path, tarball_data)
 
 if __name__ == "__main__":
-    main()
+    main(os.getcwd())
