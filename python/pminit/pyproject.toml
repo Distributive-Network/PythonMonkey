@@ -9,6 +9,7 @@ authors = [
   "Hamada Gasmallah <hamada@distributive.network>"
 ]
 include = [
+  "pmpm.py",
   # Install extra files into the pythonmonkey package
   "pythonmonkey/package*.json",
   { path = "pythonmonkey/node_modules/**/*", format = "wheel" },
