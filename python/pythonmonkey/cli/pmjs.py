@@ -380,9 +380,9 @@ def main():
     async def runJS():
       hasUncaughtException = False
       loop = asyncio.get_running_loop()
-      # See https://docs.python.org/3.11/library/asyncio-eventloop.html#error-handling-api
 
       def exceptionHandler(loop, context):
+        "See https://docs.python.org/3.11/library/asyncio-eventloop.html#error-handling-api"
         error = context["exception"]
         try:
           globalInitModule.uncaughtExceptionHandler(error)
