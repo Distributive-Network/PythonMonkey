@@ -46,7 +46,7 @@ static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
   PyErr_Fetch(&errType, &errValue, &traceback);
   // Making sure a `AsyncHandle::fromId` call is close to its `handle`'s use.
   // We need to ensure the memory block doesn't move for reallocation before we can use the pointer,
-  //    as we could have multiple new `setTimeout` calls to expand the `_timeoutIdMap` vector while running the job function in parallel.
+  // as we could have multiple new `setTimeout` calls to expand the `_timeoutIdMap` vector while running the job function in parallel.
   auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
   if (repeat && !handle->cancelled()) {
     _enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat);
