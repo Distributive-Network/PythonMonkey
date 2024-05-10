@@ -17,6 +17,9 @@ BUILD_DIR = os.path.join(TOP_DIR, "build")
 # Get number of CPU cores
 CPUS = os.getenv('CPUS') or os.cpu_count() or 1
 
+BUILD_TYPE = os.environ["BUILD_TYPE"].title() if "BUILD_TYPE" in os.environ else "Release"
+BUILD_DOCS = "ON" if "BUILD_DOCS" in os.environ and os.environ["BUILD_DOCS"] in ("1", "ON", "on") else "OFF"
+
 
 def execute(cmd: str, cwd: Optional[str] = None):
   popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -41,26 +44,18 @@ def ensure_spidermonkey():
   execute("bash ./setup.sh", cwd=TOP_DIR)
 
 
-def ensure_githooks():
-  execute("ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit", cwd=TOP_DIR)
-
-
 def run_cmake_build():
   os.makedirs(BUILD_DIR, exist_ok=True)  # mkdir -p
-  build_type = os.environ["BUILD_TYPE"].title() if "BUILD_TYPE" in os.environ else "Release"
-  build_docs = "ON" if "BUILD_DOCS" in os.environ and os.environ["BUILD_DOCS"] in ("1", "ON", "on") else "OFF"
 
   if platform.system() == "Windows":
     # use Clang/LLVM toolset for Visual Studio
-    execute(f"cmake -DBUILD_DOCS={build_docs} -DPM_BUILD_TYPE={build_type} .. -T ClangCL", cwd=BUILD_DIR)
+    execute(f"cmake -DBUILD_DOCS={BUILD_DOCS} -DPM_BUILD_TYPE={BUILD_TYPE} .. -T ClangCL", cwd=BUILD_DIR)
   else:
-    execute(f"cmake -DBUILD_DOCS={build_docs} -DPM_BUILD_TYPE={build_type} ..", cwd=BUILD_DIR)
+    execute(f"cmake -DBUILD_DOCS={BUILD_DOCS} -DPM_BUILD_TYPE={BUILD_TYPE} ..", cwd=BUILD_DIR)
   execute(f"cmake --build . -j{CPUS} --config Release", cwd=BUILD_DIR)
 
 
 def copy_artifacts():
-  if "BUILD_TYPE" in os.environ and os.environ["BUILD_TYPE"].title() == "None":
-    return  # do not copy artifacts if we did not build them
 
   if platform.system() == "Windows":
     execute("cp ./build/src/*/pythonmonkey.pyd ./python/pythonmonkey/", cwd=TOP_DIR)  # Release or Debug build
@@ -71,10 +66,11 @@ def copy_artifacts():
 
 
 def build():
-  ensure_spidermonkey()
-  ensure_githooks()
+  if BUILD_TYPE != "None":  # do not build SpiderMonkey if we are not compiling
+    ensure_spidermonkey()
   run_cmake_build()
-  copy_artifacts()
+  if BUILD_TYPE != "None":  # do not copy artifacts if we did not build them
+    copy_artifacts()
 
 
 if __name__ == "__main__":
