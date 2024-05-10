@@ -155,7 +155,7 @@ jobs:
           echo "Installing Dependencies"
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
             sudo apt-get update -y
-            sudo apt-get install -y cmake graphviz llvm
+            sudo apt-get install -y cmake llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
             brew install cmake pkg-config wget coreutils # `coreutils` installs the `realpath` command
@@ -165,6 +165,22 @@ jobs:
           poetry env use python3 # use the correct Python version we've set up
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
+      - name: Build Docs # only build docs once
+        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        run: |
+            sudo apt-get install -y graphviz 
+            # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
+            wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
+            tar xf doxygen-1.9.7.linux.bin.tar.gz
+            cd doxygen-1.9.7 && sudo make install && cd -
+            rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
+            BUILD_DOCS=1 BUILD_TYPE=None poetry install
+      - name: Upload Doxygen-generated docs as CI artifacts
+        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs-${{ github.run_id }}-${{ github.sha }}
+          path: ./build/docs/html/
       - name: Use cached spidermonkey build
         uses: actions/cache@v4
         with:
@@ -246,14 +262,7 @@ jobs:
           version: 1.5.1
       - name: Build source distribution (sdist) file
         run: |
-          # Install Doxygen
-            # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
-            wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
-            tar xf doxygen-1.9.7.linux.bin.tar.gz
-            cd doxygen-1.9.7 && sudo make install && cd -
-            rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
           poetry self add "poetry-dynamic-versioning[plugin]"
-          BUILD_DOCS=1 BUILD_TYPE=None poetry install
           poetry build --format=sdist
           ls -lah ./dist/
       - name: Upload sdist as CI artifacts
@@ -261,11 +270,6 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
-      - name: Upload Doxygen-generated docs as CI artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: docs-${{ github.run_id }}-${{ github.sha }}
-          path: ./build/docs/html/
   publish:
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04
