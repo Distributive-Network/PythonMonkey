@@ -68,8 +68,8 @@ Read this if you want to build a local version.
 1. You will need the following installed (which can be done automatically by running `./setup.sh`):
     - bash
     - cmake
-    - Doxygen 1.9 series
-    - graphviz
+    - Doxygen 1.9 series (if you want to build the docs)
+    - graphviz  (if you want to build the docs)
     - llvm
     - rust
     - python3.8 or later with header files (python3-dev)
