@@ -40,7 +40,7 @@ else
   POETRY_BIN=`echo ~/.local/bin/poetry` # expand tilde
 fi
 $POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
-poetry run pip install autopep8
+$POETRY_BIN run pip install autopep8
 echo "Done installing dependencies"
 
 echo "Downloading uncrustify source code"
