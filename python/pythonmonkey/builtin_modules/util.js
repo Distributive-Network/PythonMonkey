@@ -629,9 +629,9 @@ function formatValue(ctx, value, recurseTimes, ln)
     else if (isError(value)) 
     {
       // Make error with message first say the error
-      if (keyLength === 0 || keys.every(k => k === 'stack')) // There's only a 'stack' property
+      if (keyLength === 0 || keys.every(k => k === 'stack' || k === 'name')) // There's only a 'stack' or 'name' property
         return formatError(ctx, value);
-      keys = keys.filter(k => k !== 'stack'); // When changing the 'stack' property in SpiderMonkey, it becomes enumerable.
+      keys = keys.filter(k => k !== 'stack' && k !== 'name'); // When changing the 'stack' or the 'name' property in SpiderMonkey, it becomes enumerable.
       base = ` ${formatError(ctx, value)}\n`;
       braces.length=0;
     }
