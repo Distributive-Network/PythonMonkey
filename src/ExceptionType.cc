@@ -36,9 +36,9 @@ PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   #endif
   Py_XDECREF(errStr);
 
-  // Preserve the original JS Error object as the Python Exception's `__cause__` attribute for lossless two-way conversion
+  // Preserve the original JS Error object as the Python Exception's `jsError` attribute for lossless two-way conversion
   PyObject *originalJsErrWrapper = DictType::getPyObject(cx, errValue);
-  PyException_SetCause(pyObject, originalJsErrWrapper); // https://docs.python.org/3/c-api/exceptions.html#c.PyException_SetCause
+  PyObject_SetAttrString(pyObject, "jsError", originalJsErrWrapper);
 
   return pyObject;
 }
@@ -83,9 +83,11 @@ tb_print_line_repeated(_PyUnicodeWriter *writer, long cnt)
 JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyObject *traceBack) {
   assert(exceptionValue != NULL);
 
-  PyObject *originalJsErrWrapper = PyException_GetCause(exceptionValue);
-  if (originalJsErrWrapper && PyObject_TypeCheck(originalJsErrWrapper, &JSObjectProxyType)) {
-    return *((JSObjectProxy *)originalJsErrWrapper)->jsObject;
+  if (PyObject_HasAttrString(exceptionValue, "jsError")) {
+    PyObject *originalJsErrWrapper = PyObject_GetAttrString(exceptionValue, "jsError");
+    if (originalJsErrWrapper && PyObject_TypeCheck(originalJsErrWrapper, &JSObjectProxyType)) {
+      return *((JSObjectProxy *)originalJsErrWrapper)->jsObject;
+    }
   }
 
   // Gather JS context
