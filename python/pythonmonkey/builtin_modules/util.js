@@ -773,10 +773,12 @@ function formatError(ctx, error)
     .split('\n')
     .filter(a => a.length > 0)
     .map(a => `    ${a}`);
-  const retstr
-        = `${error.name}: ${error.message}\n`
-        + stackEls[0] + '\n'
-        + style(stackEls.slice(1).join('\n'));
+  let retstr = `${error.name}: ${error.message}\n`;
+  if (stackEls.length)
+  {
+    retstr += stackEls[0] + '\n';
+    if (stackEls.length > 1) retstr += style(stackEls.slice(1).join('\n'));
+  }
   return retstr;
 }
 
