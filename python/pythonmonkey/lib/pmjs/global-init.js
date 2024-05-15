@@ -69,7 +69,7 @@ exports.initReplLibs = function pmjs$$initReplLibs()
 };
 
 /**
- * Temporary API until we get EventEmitters working. Replace this export for a custom handler.
+ * Temporary API until we get EventEmitters working. Replace this export with a custom handler.
  */
 exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler(error)
 {
