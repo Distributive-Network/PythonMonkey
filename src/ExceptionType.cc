@@ -15,14 +15,23 @@
 #include "include/StrType.hh"
 #include "include/DictType.hh"
 #include "include/JSObjectProxy.hh"
+#include "include/PyBaseProxyHandler.hh" // PyObjectSlots
 
 #include <jsapi.h>
 #include <js/Exception.h>
+#include <js/Object.h>
 
 #include <frameobject.h>
 
 
 PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
+  // Try to retrieve the original Python exception object from the JS Error object's reserved slot, if the JS Error object was coerced from a Python Exception
+  PyObject *pyErr = JS::GetMaybePtrFromReservedSlot<PyObject>(error, PyObjectSlot);
+  if (pyErr && PyExceptionInstance_Check(pyErr)) {
+    Py_INCREF(pyErr);
+    return pyErr;
+  }
+
   // Convert the JS Error object to a Python string
   JS::RootedValue errValue(cx, JS::ObjectValue(*error)); // err
   JS::RootedObject errStack(cx, JS::ExceptionStackOrNull(error)); // err.stack
@@ -311,6 +320,10 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
 
   Py_DECREF(pyErrType);
   Py_DECREF(pyErrMsg);
+
+  // Preserve the original Python object in JS Error's reserved slot for lossless two-way conversion
+  JS::SetReservedSlot(rval.toObjectOrNull(), PyObjectSlot, JS::PrivateValue(exceptionValue));
+  Py_INCREF(exceptionValue);
 
   return rval.toObjectOrNull();
 }
