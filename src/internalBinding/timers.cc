@@ -59,6 +59,7 @@ static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Cancel this job on the Python event-loop
   handle->cancel();
+  handle->removeRef();
 
   return true;
 }
