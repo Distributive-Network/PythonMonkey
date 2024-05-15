@@ -73,12 +73,11 @@ exports.initReplLibs = function pmjs$$initReplLibs()
  */
 exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler(error)
 {
-  error.name = 'Uncaught ' + error.name;
   if (python._events && python._events['uncaughtException'])
     python.emit('uncaughtException', error);
   else
   {
-    console.error(error);
+    console.error('Uncaught', error);
     python.exit(1);
   }
 };
