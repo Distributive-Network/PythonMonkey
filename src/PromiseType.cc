@@ -10,6 +10,7 @@
 
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/PromiseType.hh"
+#include "include/DictType.hh"
 #include "include/PyEventLoop.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/jsTypeFactory.hh"
@@ -42,6 +43,9 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
     #else
     PyObject *wrapped = PyObject_CallFunction(SpiderMonkeyError, "O", result); // PyObject_CallOneArg is not available in Python < 3.9
     #endif
+    // Preserve the original JS value as the `jsError` attribute for lossless conversion back
+    PyObject *originalJsErrCapsule = DictType::getPyObject(cx, resultArg);
+    PyObject_SetAttrString(wrapped, "jsError", originalJsErrCapsule);
     Py_DECREF(result);
     result = wrapped;
   }

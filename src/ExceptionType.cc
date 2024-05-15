@@ -37,8 +37,8 @@ PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   Py_XDECREF(errStr);
 
   // Preserve the original JS Error object as the Python Exception's `jsError` attribute for lossless two-way conversion
-  PyObject *originalJsErrWrapper = DictType::getPyObject(cx, errValue);
-  PyObject_SetAttrString(pyObject, "jsError", originalJsErrWrapper);
+  PyObject *originalJsErrCapsule = DictType::getPyObject(cx, errValue);
+  PyObject_SetAttrString(pyObject, "jsError", originalJsErrCapsule);
 
   return pyObject;
 }
@@ -84,9 +84,9 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   assert(exceptionValue != NULL);
 
   if (PyObject_HasAttrString(exceptionValue, "jsError")) {
-    PyObject *originalJsErrWrapper = PyObject_GetAttrString(exceptionValue, "jsError");
-    if (originalJsErrWrapper && PyObject_TypeCheck(originalJsErrWrapper, &JSObjectProxyType)) {
-      return *((JSObjectProxy *)originalJsErrWrapper)->jsObject;
+    PyObject *originalJsErrCapsule = PyObject_GetAttrString(exceptionValue, "jsError");
+    if (originalJsErrCapsule && PyObject_TypeCheck(originalJsErrCapsule, &JSObjectProxyType)) {
+      return *((JSObjectProxy *)originalJsErrCapsule)->jsObject;
     }
   }
 
