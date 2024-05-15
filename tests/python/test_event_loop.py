@@ -37,10 +37,10 @@ def test_clearInterval():
     obj = {'val': 0}
     pm.eval("""(obj) => {
             const interval = setInterval(()=>{ obj.val++ }, 200)
-            setTimeout(()=>{ clearInterval(interval) }, 400)
+            setTimeout(()=>{ clearInterval(interval) }, 500)
         }""")(obj)
-    await pm.wait()  # It should stop after 400ms on the clearInterval
-    assert obj['val'] == 2  # The setInterval timer should only run twice (400 // 200 == 2)
+    await pm.wait()  # It should stop after 500ms on the clearInterval
+    assert obj['val'] == 2  # The setInterval timer should only run twice (500 // 200 == 2)
     return True
   assert asyncio.run(async_fn())
 
