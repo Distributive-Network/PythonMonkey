@@ -17,6 +17,9 @@ const {
 
 const { DOMException } = require('dom-exception');
 
+const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.require')('debug');
+
+
 /**
  * Implement Node.js-style `timeoutId` class returned from setTimeout() and setInterval()
  * @see https://nodejs.org/api/timers.html#class-timeout
@@ -150,7 +153,9 @@ function _normalizeTimerArgs(handler, delayMs, additionalArgs)
 function setTimeout(handler, delayMs = 0, ...args) 
 {
   const { boundHandler, delaySeconds, debugInfo } = _normalizeTimerArgs(handler, delayMs, args);
-  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, false, debugInfo));
+  let timeoutId = new Timeout(enqueueWithDelay(boundHandler, delaySeconds, false, debugInfo));
+  debug('timers:set')(`new timeout ${timeoutId}, fires in ${delayMs}ms`);
+  return timeoutId;
 }
 
 /**
@@ -166,6 +171,8 @@ function clearTimeout(timeoutId)
   if (!(timeoutId instanceof Timeout) && !Number.isInteger(timeoutId))
     return;
 
+  debug('timers:clear')(`clear timeout ${timeoutId}`);  
+  
   return cancelByTimeoutId(Number(timeoutId));
 }
 
@@ -204,7 +211,9 @@ const clearImmediate = clearTimeout;
 function setInterval(handler, delayMs = 0, ...args) 
 {
   const { boundHandler, delaySeconds, debugInfo } = _normalizeTimerArgs(handler, delayMs, args);
-  return new Timeout(enqueueWithDelay(boundHandler, delaySeconds, true, debugInfo));
+  let timeoutId = new Timeout(enqueueWithDelay(boundHandler, delaySeconds, true, debugInfo));
+  debug('timers:set')(`new interval ${timeoutId}, fires every ${delayMs}ms`);
+  return timeoutId;
 }
 
 /**
