@@ -126,9 +126,6 @@ jobs:
         os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2019' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
-          # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
-          - os: 'macos-12'
-            python_version: '3.8'
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
           # see https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
           - os: 'macos-14'
