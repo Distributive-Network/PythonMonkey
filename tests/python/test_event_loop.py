@@ -32,6 +32,19 @@ def test_setInterval_unref():
   assert asyncio.run(async_fn())
 
 
+def test_clearInterval():
+  async def async_fn():
+    obj = {'val': 0}
+    pm.eval("""(obj) => {
+            const interval = setInterval(()=>{ obj.val++ }, 200)
+            setTimeout(()=>{ clearInterval(interval) }, 500)
+        }""")(obj)
+    await pm.wait()  # It should stop after 500ms on the clearInterval
+    assert obj['val'] == 2  # The setInterval timer should only run twice (500 // 200 == 2)
+    return True
+  assert asyncio.run(async_fn())
+
+
 def test_finished_timer_ref():
   async def async_fn():
     # Making sure the event-loop won't be activated again when a finished timer gets re-refed.
