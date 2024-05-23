@@ -112,7 +112,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNumber(PyFloat_AsDouble(object));
   }
   else if (PyObject_TypeCheck(object, &JSStringProxyType)) {
-    returnType.setString(((JSStringProxy *)object)->jsString.toString());
+    returnType.setString(((JSStringProxy *)object)->jsString->toString());
   }
   else if (PyUnicode_Check(object)) {
     switch (PyUnicode_KIND(object)) {

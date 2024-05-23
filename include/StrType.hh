@@ -34,9 +34,9 @@ public:
    *
    * @returns PyObject* pointer to the resulting PyObject
    */
-  static PyObject *getPyObject(JSContext *cx, JSString *str);
+  static PyObject *getPyObject(JSContext *cx, JS::HandleValue str);
 
-  static const char *getValue(JSContext *cx, JSString *str);
+  static const char *getValue(JSContext *cx, JS::HandleValue str);
 };
 
 #endif

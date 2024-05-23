@@ -21,8 +21,22 @@
  */
 typedef struct {
   PyUnicodeObject str;
-  JS::PersistentRootedValue jsString;
+  JS::PersistentRootedValue *jsString;
 } JSStringProxy;
+
+/**
+ * @brief This struct is a bundle of methods used by the JSStringProxy type
+ *
+ */
+struct JSStringProxyMethodDefinitions {
+public:
+  /**
+   * @brief Deallocation method (.tp_dealloc), removes the reference to the underlying JSString before freeing the JSStringProxy
+   *
+   * @param self - The JSStringProxy to be free'd
+   */
+  static void JSStringProxy_dealloc(JSStringProxy *self);
+};
 
 /**
  * @brief Struct for the JSStringProxyType, used by all JSStringProxy objects

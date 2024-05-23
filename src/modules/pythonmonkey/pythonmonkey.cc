@@ -128,6 +128,7 @@ PyTypeObject JSObjectProxyType = {
 PyTypeObject JSStringProxyType = {
   .tp_name = PyUnicode_Type.tp_name,
   .tp_basicsize = sizeof(JSStringProxy),
+  .tp_dealloc = (destructor)JSStringProxyMethodDefinitions::JSStringProxy_dealloc,
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_UNICODE_SUBCLASS,
   .tp_doc = PyDoc_STR("Javascript String value"),
   .tp_base = &PyUnicode_Type
@@ -419,7 +420,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
   // compile the code to execute
   JS::RootedScript script(GLOBAL_CX);
-  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  JS::Rooted<JS::Value> rval(GLOBAL_CX);
   if (code) {
     JS::SourceText<mozilla::Utf8Unit> source;
     const char *codeChars = PyUnicode_AsUTF8(code);
@@ -440,25 +441,15 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // execute the compiled code; last expr goes to rval
-  if (!JS_ExecuteScript(GLOBAL_CX, script, rval)) {
+  if (!JS_ExecuteScript(GLOBAL_CX, script, &rval)) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
 
   // translate to the proper python type
-  PyObject *returnValue = pyTypeFactory(GLOBAL_CX, *rval);
+  PyObject *returnValue = pyTypeFactory(GLOBAL_CX, rval);
   if (PyErr_Occurred()) {
     return NULL;
-  }
-
-  // TODO: Find a way to root strings for the lifetime of a proxying python string
-  js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
-  if (rval->isObject()) {
-    JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
-  }
-
-  if (!(rval->isString() || cls == js::ESClass::String)) {   // rval may be a string which must be kept alive.
-    delete rval;
   }
 
   if (returnValue) {
