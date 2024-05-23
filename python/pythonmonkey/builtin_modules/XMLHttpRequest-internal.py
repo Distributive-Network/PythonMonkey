@@ -12,6 +12,8 @@ import platform
 import pythonmonkey as pm
 from typing import Union, ByteString, Callable, TypedDict
 
+keepAliveConnector = aiohttp.TCPConnector(keepalive_timeout=15)  # seconds before closing Keep-Alive connection
+
 
 class XHRResponse(TypedDict, total=True):
   """
@@ -80,6 +82,7 @@ async def request(
                                headers=headers,
                                data=BytesPayloadWithProgress(body) if body else None,
                                timeout=timeoutOptions,
+                               connector=keepAliveConnector,
                                ) as res:
       debug('xhr:aiohttp')('got', res.content_type, 'result')
 
