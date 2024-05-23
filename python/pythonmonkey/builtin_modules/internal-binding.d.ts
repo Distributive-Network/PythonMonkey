@@ -32,6 +32,8 @@ declare function internalBinding(namespace: "utils"): {
   getProxyDetails<T extends object>(proxy: T): undefined | [target: T, handler: ProxyHandler<T>];
 };
 
+declare type TimerDebugInfo = object;
+
 declare function internalBinding(namespace: "timers"): {
   /**
    * internal binding helper for the `setTimeout`/`setInterval` global functions
@@ -41,7 +43,7 @@ declare function internalBinding(namespace: "timers"): {
    * @param repeat The call is to `setInterval` if true
    * @return timeoutId
    */
-  enqueueWithDelay(handler: Function, delaySeconds: number, repeat: boolean): number;
+  enqueueWithDelay(handler: Function, delaySeconds: number, repeat: boolean, debugInfo?: TimerDebugInfo): number;
 
   /**
    * internal binding helper for the `clearTimeout` global function
@@ -62,6 +64,16 @@ declare function internalBinding(namespace: "timers"): {
    * internal binding helper for unref'ing the timer
    */
   timerRemoveRef(timeoutId: number): void;
+
+  /**
+   * Retrieve debug info inside the timer for the WTFPythonMonkey tool
+   */
+  getDebugInfo(timeoutId: number): TimerDebugInfo;
+
+  /**
+   * Retrieve the debug info for all timers that are still ref'ed
+   */
+  getAllRefedTimersDebugInfo(): TimerDebugInfo[];
 };
 
 export = internalBinding;

@@ -38,13 +38,16 @@ static PyObject *timerJobWrapper(PyObject *jobFn, PyObject *args) {
   PyEventLoop::AsyncHandle::id_t handleId = PyLong_AsLong(PyTuple_GetItem(args, 1));
   double delaySeconds = PyFloat_AsDouble(PyTuple_GetItem(args, 2));
   bool repeat = (bool)PyLong_AsLong(PyTuple_GetItem(args, 3));
-  auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
 
   PyObject *ret = PyObject_CallObject(jobFn, NULL); // jobFn()
   Py_XDECREF(ret); // don't care about its return value
 
   PyObject *errType, *errValue, *traceback; // we can't call any Python code unless the error indicator is clear
   PyErr_Fetch(&errType, &errValue, &traceback);
+  // Making sure a `AsyncHandle::fromId` call is close to its `handle`'s use.
+  // We need to ensure the memory block doesn't move for reallocation before we can use the pointer,
+  // as we could have multiple new `setTimeout` calls to expand the `_timeoutIdMap` vector while running the job function in parallel.
+  auto handle = PyEventLoop::AsyncHandle::fromId(handleId);
   if (repeat && !handle->cancelled()) {
     _enqueueWithDelay(_loop, handleId, jobFn, delaySeconds, repeat);
   } else {
@@ -119,6 +122,7 @@ PyEventLoop::Future PyEventLoop::ensureFuture(PyObject *awaitable) {
   Py_DECREF(args);
   Py_DECREF(kwargs);
 
+  Py_INCREF(futureObj); // needs to be kept alive as `PyEventLoop::Future` will decrease the reference count in its destructor
   return PyEventLoop::Future(futureObj);
 }
 

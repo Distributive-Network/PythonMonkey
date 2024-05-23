@@ -12,6 +12,7 @@
 #define PythonMonkey_PyEventLoop_
 
 #include <Python.h>
+#include <jsapi.h>
 #include <vector>
 #include <utility>
 #include <atomic>
@@ -35,7 +36,7 @@ public:
   public:
     explicit AsyncHandle(PyObject *handle) : _handle(handle) {};
     AsyncHandle(const AsyncHandle &old) = delete; // forbid copy-initialization
-    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)), _refed(old._refed.exchange(false)) {}; // clear the moved-from object
+    AsyncHandle(AsyncHandle &&old) : _handle(std::exchange(old._handle, nullptr)), _refed(old._refed.exchange(false)), _debugInfo(std::exchange(old._debugInfo, nullptr)) {}; // clear the moved-from object
     ~AsyncHandle() {
       if (Py_IsInitialized()) { // the Python runtime has already been finalized when `_timeoutIdMap` is cleared at exit
         Py_XDECREF(_handle);
@@ -126,9 +127,27 @@ public:
         PyEventLoop::_locker->decCounter();
       }
     }
+
+    /**
+     * @brief Set the debug info object for WTFPythonMonkey tool
+     */
+    inline void setDebugInfo(PyObject *obj) {
+      _debugInfo = obj;
+    }
+    inline PyObject *getDebugInfo() {
+      return _debugInfo;
+    }
+
+    /**
+     * @brief Get an iterator for the `AsyncHandle`s of all timers
+     */
+    static inline auto &getAllTimers() {
+      return _timeoutIdMap;
+    }
   protected:
     PyObject *_handle;
     std::atomic_bool _refed = false;
+    PyObject *_debugInfo = nullptr;
   };
 
   /**
