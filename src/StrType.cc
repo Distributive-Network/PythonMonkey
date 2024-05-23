@@ -10,6 +10,7 @@
 
 #include "include/StrType.hh"
 #include "include/JSStringProxy.hh"
+#include "include/jsTypeFactory.hh"
 
 #include <jsapi.h>
 #include <js/String.h>
@@ -174,6 +175,19 @@ static PyObject *processString(JSContext *cx, JS::HandleValue strVal) {
 }
 
 PyObject *StrType::getPyObject(JSContext *cx, JS::HandleValue str) {
+  const PythonExternalString *callbacks;
+  const char16_t *chars;
+
+  if (JS::IsExternalString(str.toString(), (const JSExternalStringCallbacks **)&callbacks, &chars)) {
+    if (callbacks == &PythonExternalStringCallbacks) {
+      PyObject *pyString = callbacks->getPyString(chars);
+      Py_INCREF(pyString);
+      return pyString;
+    }
+
+  }
+
+
   return processString(cx, str);
 }
 
