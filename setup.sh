@@ -13,7 +13,8 @@ CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/
 echo "Installing dependencies"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   SUDO=''
-  if [[ $EUID != 0 ]]; then
+  if command -v sudo >/dev/null; then
+    # sudo is present on the system, so use it
     SUDO='sudo'
   fi
   $SUDO apt-get update --yes
