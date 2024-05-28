@@ -133,7 +133,7 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
   PyObject *pyFuture = PromiseType::getPyObject(cx, promise);
   // Unhandled Future object calls the event-loop exception handler in its destructor (the `__del__` magic method)
   // See https://github.com/python/cpython/blob/v3.9.16/Lib/asyncio/futures.py#L108
-  Py_SET_REFCNT(pyFuture, 0);
+  pyFuture->ob_refcnt = 0; // Py_SET_REFCNT does not exist in Python 3.8
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
