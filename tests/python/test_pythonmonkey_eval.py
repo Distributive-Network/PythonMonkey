@@ -164,6 +164,17 @@ def test_eval_exceptions_nested_js_py_js():
   assert ("Caught in Py Error in" in ret) and ("TypeError: this is an exception" in ret)
 
 
+def test_eval_exceptions_preserve_js_py_js():
+  # Tests for https://github.com/Distributive-Network/PythonMonkey/blob/d9a8ebe/src/ExceptionType.cc#L39-L41
+  #       and https://github.com/Distributive-Network/PythonMonkey/blob/d9a8ebe/src/ExceptionType.cc#L86-L91
+  obj = pm.eval("({ err: new TypeError('JS Error') })")
+  py_err = obj.err
+  assert type(py_err) is pm.SpiderMonkeyError
+  assert pm.eval("(e) => e instanceof TypeError")(py_err)
+  assert pm.eval("(e) => e.message == 'JS Error'")(py_err)
+  assert pm.eval("(e, obj) => Object.is(e, obj.err)")(py_err, obj)
+
+
 def test_eval_undefined():
   x = pm.eval("undefined")
   assert x is None
