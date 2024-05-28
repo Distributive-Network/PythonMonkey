@@ -120,6 +120,19 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> saveJobQueue(JSContext *) override;
  */
 static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
 
+/**
+ * @brief The callback that gets invoked whenever a Promise is rejected without a rejection handler (uncaught/unhandled exception)
+ *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l268
+ *              https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/Runtime.cpp#l600
+ * @param promise - The Promise object
+ * @param state - Is the Promise unhandled?
+ * @param mutedErrors - unused
+ * @param privateData - unused
+ */
+static void promiseRejectionTracker(JSContext *cx, bool mutedErrors,
+  JS::HandleObject promise, JS::PromiseRejectionHandlingState state,
+  void *privateData);
+
 }; // class
 
 /**

@@ -12,6 +12,7 @@
 
 #include "include/PyEventLoop.hh"
 #include "include/pyTypeFactory.hh"
+#include "include/PromiseType.hh"
 
 #include <Python.h>
 
@@ -72,6 +73,7 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
   JS::InitDispatchToEventLoop(cx, dispatchToEventLoop, cx);
+  JS::SetPromiseRejectionTrackerCallback(cx, promiseRejectionTracker);
   return true;
 }
 
@@ -115,6 +117,23 @@ bool sendJobToMainLoop(PyObject *pyFunc) {
 
   PyGILState_Release(gstate);
   return true;
+}
+
+void JobQueue::promiseRejectionTracker(JSContext *cx,
+  [[maybe_unused]] bool mutedErrors,
+  JS::HandleObject promise,
+  JS::PromiseRejectionHandlingState state,
+  [[maybe_unused]] void *privateData) {
+
+  // We only care about unhandled Promises
+  if (state != JS::PromiseRejectionHandlingState::Unhandled) {
+    return;
+  }
+
+  PyObject *pyFuture = PromiseType::getPyObject(cx, promise);
+  // Unhandled Future object calls the event-loop exception handler in its destructor (the `__del__` magic method)
+  // See https://github.com/python/cpython/blob/v3.9.16/Lib/asyncio/futures.py#L108
+  Py_SET_REFCNT(pyFuture, 0);
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
