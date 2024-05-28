@@ -130,10 +130,11 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
     return;
   }
 
-  PyObject *pyFuture = PromiseType::getPyObject(cx, promise);
+  PyObject *pyFuture = PromiseType::getPyObject(cx, promise); // ref count == 2
   // Unhandled Future object calls the event-loop exception handler in its destructor (the `__del__` magic method)
   // See https://github.com/python/cpython/blob/v3.9.16/Lib/asyncio/futures.py#L108
-  pyFuture->ob_refcnt = 0; // Py_SET_REFCNT does not exist in Python 3.8
+  //  or https://github.com/python/cpython/blob/v3.9.16/Modules/_asynciomodule.c#L1457-L1467 (It will actually use the C module by default, see futures.py#L417-L423)
+  Py_DECREF(pyFuture); // decreasing the reference count from 2 to 1, leaving one for the `onResolved` callback in `PromiseType::getPyObject`, which will be called very soon and clean up the reference
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {

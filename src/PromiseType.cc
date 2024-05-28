@@ -55,7 +55,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   PyObject *futureObj = (PyObject *)(futureObjVal.toPrivate());
 
   // Settle the Python asyncio.Future by the Promise's result
-  PyEventLoop::Future future = PyEventLoop::Future(futureObj);
+  PyEventLoop::Future future = PyEventLoop::Future(futureObj); // will decrease the reference count of `futureObj` in its destructor when the `onResolvedCb` function ends
   if (state == JS::PromiseState::Fulfilled) {
     future.setResult(result);
   } else { // state == JS::PromiseState::Rejected
@@ -63,6 +63,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   }
 
   Py_DECREF(result);
+  // Py_DECREF(futureObj) // the destructor for the `PyEventLoop::Future` above already does this
   return true;
 }
 
@@ -70,15 +71,17 @@ PyObject *PromiseType::getPyObject(JSContext *cx, JS::HandleObject promise) {
   // Create a python asyncio.Future on the running python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return NULL;
-  PyEventLoop::Future future = loop.createFuture();
+  PyEventLoop::Future future = loop.createFuture(); // ref count == 1
 
   // Callbacks to settle the Python asyncio.Future once the JS Promise is resolved
   JS::RootedObject onResolved = JS::RootedObject(cx, (JSObject *)js::NewFunctionWithReserved(cx, onResolvedCb, 1, 0, NULL));
-  js::SetFunctionNativeReserved(onResolved, PY_FUTURE_OBJ_SLOT, JS::PrivateValue(future.getFutureObject()));
+  js::SetFunctionNativeReserved(onResolved, PY_FUTURE_OBJ_SLOT, JS::PrivateValue(future.getFutureObject())); // ref count == 2
   js::SetFunctionNativeReserved(onResolved, PROMISE_OBJ_SLOT, JS::ObjectValue(*promise));
   AddPromiseReactions(cx, promise, onResolved, onResolved);
 
-  return future.getFutureObject(); // must be a new reference
+  return future.getFutureObject(); // must be a new reference, ref count == 3
+  // Here the ref count for the `future` object is 3, but will immediately decrease to 2 in `PyEventLoop::Future`'s destructor when the `PromiseType::getPyObject` function ends
+  // Leaving one reference for the returned Python object, and another one for the `onResolved` callback function
 }
 
 // Callback to resolve or reject the JS Promise when the Future is done
