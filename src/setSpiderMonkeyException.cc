@@ -11,6 +11,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
+#include "include/DictType.hh"
 
 #include <jsapi.h>
 #include <Python.h>
@@ -102,6 +103,14 @@ void setSpiderMonkeyException(JSContext *cx) {
   // `PyErr_SetString` uses `PyErr_SetObject` with `PyUnicode_FromString` under the hood
   //    see https://github.com/python/cpython/blob/3.9/Python/errors.c#L234-L236
   PyObject *errStr = getExceptionString(cx, exceptionStack, printStack);
-  PyErr_SetObject(SpiderMonkeyError, errStr);
+  PyObject *errObj = PyObject_CallFunction(SpiderMonkeyError, "O", errStr); // errObj = SpiderMonkeyError(errStr)
   Py_XDECREF(errStr);
+  // Preserve the original JS value as the `jsError` attribute for lossless conversion back
+  PyObject *originalJsErrCapsule = DictType::getPyObject(cx, exn);
+  PyObject_SetAttrString(errObj, "jsError", originalJsErrCapsule);
+  Py_XDECREF(originalJsErrCapsule);
+  // `PyErr_SetObject` can accept either an already created Exception instance or the containing exception value as the second argument
+  //    see https://github.com/python/cpython/blob/v3.9.16/Python/errors.c#L134-L150
+  PyErr_SetObject(SpiderMonkeyError, errObj);
+  Py_XDECREF(errObj);
 }
