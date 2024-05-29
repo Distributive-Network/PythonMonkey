@@ -199,6 +199,23 @@ def test_eval_exceptions_preserve_promise_rejection():
   assert asyncio.run(async_fn())
 
 
+def test_eval_exceptions_preserve_original_js_error_object():
+  # Test for https://github.com/Distributive-Network/PythonMonkey/blob/dc753a0/src/setSpiderMonkeyException.cc#L108-L111
+  obj = pm.eval("({ err: new TypeError('JS Error') })")
+  c = pm.eval("(obj) => { throw obj.err; }")
+
+  def b(fn):
+    try:
+      fn(obj)
+    except Exception as e:
+      return e
+
+  py_err = b(c)
+  assert pm.eval("(err) => err instanceof TypeError")(py_err)
+  assert pm.eval("(e) => e.message == 'JS Error'")(py_err)
+  assert pm.eval("(e, obj) => Object.is(e, obj.err)")(py_err, obj)
+
+
 def test_eval_undefined():
   x = pm.eval("undefined")
   assert x is None
