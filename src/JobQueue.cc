@@ -120,13 +120,17 @@ bool sendJobToMainLoop(PyObject *pyFunc) {
 }
 
 void JobQueue::promiseRejectionTracker(JSContext *cx,
-  [[maybe_unused]] bool mutedErrors,
+  bool mutedErrors,
   JS::HandleObject promise,
   JS::PromiseRejectionHandlingState state,
   [[maybe_unused]] void *privateData) {
 
   // We only care about unhandled Promises
   if (state != JS::PromiseRejectionHandlingState::Unhandled) {
+    return;
+  }
+  // The `mutedErrors` option is set to True in `pm.eval`, eval errors or unhandled rejections should be ignored.
+  if (mutedErrors) {
     return;
   }
 

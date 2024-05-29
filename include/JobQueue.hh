@@ -126,7 +126,8 @@ static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
  *              https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/Runtime.cpp#l600
  * @param promise - The Promise object
  * @param state - Is the Promise unhandled?
- * @param mutedErrors - unused
+ * @param mutedErrors - When the `mutedErrors` option in `pm.eval` is set to true, unhandled rejections are ignored ("muted").
+ *                      See also https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/CompileOptions.h#l129
  * @param privateData - unused
  */
 static void promiseRejectionTracker(JSContext *cx, bool mutedErrors,

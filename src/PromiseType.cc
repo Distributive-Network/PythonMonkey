@@ -77,7 +77,7 @@ PyObject *PromiseType::getPyObject(JSContext *cx, JS::HandleObject promise) {
   JS::RootedObject onResolved = JS::RootedObject(cx, (JSObject *)js::NewFunctionWithReserved(cx, onResolvedCb, 1, 0, NULL));
   js::SetFunctionNativeReserved(onResolved, PY_FUTURE_OBJ_SLOT, JS::PrivateValue(future.getFutureObject())); // ref count == 2
   js::SetFunctionNativeReserved(onResolved, PROMISE_OBJ_SLOT, JS::ObjectValue(*promise));
-  AddPromiseReactions(cx, promise, onResolved, onResolved);
+  JS::AddPromiseReactions(cx, promise, onResolved, onResolved);
 
   return future.getFutureObject(); // must be a new reference, ref count == 3
   // Here the ref count for the `future` object is 3, but will immediately decrease to 2 in `PyEventLoop::Future`'s destructor when the `PromiseType::getPyObject` function ends
