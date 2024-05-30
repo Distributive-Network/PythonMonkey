@@ -12,7 +12,7 @@ import platform
 import pythonmonkey as pm
 from typing import Union, ByteString, Callable, TypedDict
 
-keepAliveConnector = aiohttp.TCPConnector(keepalive_timeout=15)  # seconds before closing Keep-Alive connection
+keepAliveConnector: Union[aiohttp.TCPConnector, None] = None
 
 
 class XHRResponse(TypedDict, total=True):
@@ -47,6 +47,11 @@ async def request(
     /
 ):
   debug = pm.bootstrap.require("debug")
+
+  # to support HTTP-Keep-Alive
+  global keepAliveConnector
+  if (not keepAliveConnector):
+    keepAliveConnector = aiohttp.TCPConnector(keepalive_timeout=15)  # seconds before closing Keep-Alive connection
 
   class BytesPayloadWithProgress(aiohttp.BytesPayload):
     _chunkMaxLength = 2**16  # aiohttp default
