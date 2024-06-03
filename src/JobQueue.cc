@@ -129,7 +129,7 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
   if (state != JS::PromiseRejectionHandlingState::Unhandled) {
     return;
   }
-  // The `mutedErrors` option is set to True in `pm.eval`, eval errors or unhandled rejections should be ignored.
+  // If the `mutedErrors` option is set to True in `pm.eval`, eval errors or unhandled rejections should be ignored.
   if (mutedErrors) {
     return;
   }
