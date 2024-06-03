@@ -110,7 +110,7 @@ void setSpiderMonkeyException(JSContext *cx) {
   PyObject_SetAttrString(errObj, "jsError", originalJsErrCapsule);
   Py_XDECREF(originalJsErrCapsule);
   // `PyErr_SetObject` can accept either an already created Exception instance or the containing exception value as the second argument
-  //    see https://github.com/python/cpython/blob/v3.9.16/Python/errors.c#L134-L150
+  //  see https://github.com/python/cpython/blob/v3.9.16/Python/errors.c#L134-L150
   PyErr_SetObject(SpiderMonkeyError, errObj);
   Py_XDECREF(errObj);
 }
