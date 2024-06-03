@@ -105,7 +105,7 @@ void setSpiderMonkeyException(JSContext *cx) {
   PyObject *errStr = getExceptionString(cx, exceptionStack, printStack);
   PyObject *errObj = PyObject_CallFunction(SpiderMonkeyError, "O", errStr); // errObj = SpiderMonkeyError(errStr)
   Py_XDECREF(errStr);
-  // Preserve the original JS value as the `jsError` attribute for lossless conversion back
+  // Preserve the original JS value as the `jsError` attribute for lossless back conversion 
   PyObject *originalJsErrCapsule = DictType::getPyObject(cx, exn);
   PyObject_SetAttrString(errObj, "jsError", originalJsErrCapsule);
   Py_XDECREF(originalJsErrCapsule);
