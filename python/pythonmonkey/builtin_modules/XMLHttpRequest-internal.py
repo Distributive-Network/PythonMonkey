@@ -51,7 +51,8 @@ async def request(
   # to support HTTP-Keep-Alive
   global keepAliveConnector
   if (not keepAliveConnector):
-    keepAliveConnector = aiohttp.TCPConnector(keepalive_timeout=15)  # seconds before closing Keep-Alive connection
+    # seconds before closing Keep-Alive connection.
+    keepAliveConnector = aiohttp.TCPConnector(keepalive_timeout=5)  # 5s is the default for Node.js's `http.globalAgent`
 
   class BytesPayloadWithProgress(aiohttp.BytesPayload):
     _chunkMaxLength = 2**16  # aiohttp default
