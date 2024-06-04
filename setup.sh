@@ -12,14 +12,19 @@ CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/
 
 echo "Installing dependencies"
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
-  sudo apt-get update --yes
-  sudo apt-get install --yes cmake graphviz llvm clang pkg-config m4 \
+  SUDO=''
+  if command -v sudo >/dev/null; then
+    # sudo is present on the system, so use it
+    SUDO='sudo'
+  fi
+  $SUDO apt-get update --yes
+  $SUDO apt-get install --yes cmake graphviz llvm clang pkg-config m4 \
     wget curl python3-distutils python3-dev
   # Install Doxygen
   # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
   wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
   tar xf doxygen-1.9.7.linux.bin.tar.gz
-  cd doxygen-1.9.7 && sudo make install && cd -
+  cd doxygen-1.9.7 && $SUDO make install && cd -
   rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
