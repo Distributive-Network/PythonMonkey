@@ -17,6 +17,21 @@
 for (let mid in require.cache)
   delete require.cache[mid];
 
+/* Recreate the python object as an EventEmitter */
+const { EventEmitter } = require('events');
+const originalPython = globalThis.python;
+const python = globalThis.python = new EventEmitter('python');
+Object.assign(python, originalPython);
+
+/* Emulate node's process.on('error') behaviour with python.on('error'). */
+python.on('error', function unhandledError(error) 
+{
+  if (python.listenerCount('error') > 1)
+    return;
+  if (python.listenerCount('error') === 0 || python.listeners('error')[0] === unhandledError)
+    python.emit('unhandledException', error);
+});
+
 /**
  * runProgramModule wants to include the require.cache from the pre-program loads (e.g. via -r or -e), but
  * due to current bugs in PythonMonkey, we can't access the cache property of require because it is a JS
@@ -34,4 +49,33 @@ exports.patchGlobalRequire = function pmjs$$patchGlobalRequire()
 exports.initReplLibs = function pmjs$$initReplLibs()
 {
   globalThis.util = require('util');
+  globalThis.events = require('events');
+};
+
+/**
+ * Temporary API until we get EventEmitters working. Replace this export with a custom handler.
+ */
+exports.uncaughtExceptionHandler = function globalInit$$uncaughtExceptionHandler(error)
+{
+  if (python._events && python._events['uncaughtException'])
+    python.emit('uncaughtException', error);
+  else
+  {
+    console.error('Uncaught', error);
+    python.exit(1);
+  }
+};
+
+/**
+ * Temporary API until we get EventEmitters working. Replace this export with a custom handler.
+ */
+exports.unhandledRejectionHandler = function globalInit$$unhandledRejectionHandler(error)
+{
+  if (python._events && python._events['uncaughtRejection'])
+    python.emit('unhandledRejection', error);
+  else
+  {
+    console.error(error);
+    python.exit(1);
+  }
 };

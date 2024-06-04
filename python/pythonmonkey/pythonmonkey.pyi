@@ -37,6 +37,12 @@ def wait() -> _typing.Awaitable[None]:
   """
 
 
+def stop() -> None:
+  """
+  Stop all pending asynchronous jobs, and unblock `await pm.wait()`
+  """
+
+
 def isCompilableUnit(code: str) -> bool:
   """
   Hint if a string might be compilable Javascript without actual evaluation

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import math
 from io import StringIO
 import sys
+import asyncio
 
 
 def test_passes():
@@ -138,6 +139,7 @@ def test_eval_exceptions():
 def test_eval_exceptions_nested_py_js_py():
   def c():
     raise Exception('this is an exception')
+  err_line_number = sys._getframe().f_lineno - 1
   b = pm.eval('''(x) => {
         try {
             x()
@@ -145,10 +147,11 @@ def test_eval_exceptions_nested_py_js_py():
             return "Caught in JS " + e;
         }
     }''')
-  assert str(b(c)).__contains__("Caught in JS Error: Python Exception: this is an exception")
-  assert str(b(c)).__contains__("test_pythonmonkey_eval.py")
-  assert str(b(c)).__contains__("line 140")
-  assert str(b(c)).__contains__("in c")
+  err = b(c)
+  assert "Caught in JS Error: Python Exception: this is an exception" in str(err)
+  assert "test_pythonmonkey_eval.py" in str(err)
+  assert "line {}".format(err_line_number) in str(err)
+  assert "in c" in str(err)
 
 
 def test_eval_exceptions_nested_js_py_js():
@@ -162,6 +165,55 @@ def test_eval_exceptions_nested_js_py_js():
       return "Caught in Py " + str(e)
   ret = b(c)
   assert ("Caught in Py Error in" in ret) and ("TypeError: this is an exception" in ret)
+
+
+def test_eval_exceptions_preserve_js_py_js():
+  # Tests for https://github.com/Distributive-Network/PythonMonkey/blob/d9a8ebe/src/ExceptionType.cc#L39-L41
+  #       and https://github.com/Distributive-Network/PythonMonkey/blob/d9a8ebe/src/ExceptionType.cc#L86-L91
+  obj = pm.eval("({ err: new TypeError('JS Error') })")
+  py_err = obj.err
+  assert type(py_err) is pm.SpiderMonkeyError
+  assert pm.eval("(e) => e instanceof TypeError")(py_err)
+  assert pm.eval("(e) => e.message == 'JS Error'")(py_err)
+  assert pm.eval("(e, obj) => Object.is(e, obj.err)")(py_err, obj)
+
+
+def test_eval_exceptions_preserve_promise_rejection():
+  # Tests for https://github.com/Distributive-Network/PythonMonkey/blob/d9a8ebe/src/PromiseType.cc#L46-L48
+  async def async_fn():
+    try:
+      await pm.eval("Promise.reject(Number(123))", {'mutedErrors': True})
+      # The mutedErrors option is required to avoid sending this to uncaughtExceptionHandler prematurely
+    except Exception as py_err:
+      assert type(py_err) is pm.SpiderMonkeyError
+      assert repr(py_err) == "SpiderMonkeyError(123.0)"
+      assert pm.eval("(e) => e instanceof Number")(py_err)
+      assert pm.eval("(e) => e == 123")(py_err)
+    try:
+      await pm.eval("Promise.reject(new TypeError('Promise rejection'))", {'mutedErrors': True})
+    except Exception as py_err:
+      assert type(py_err) is pm.SpiderMonkeyError
+      assert pm.eval("(e) => e instanceof TypeError")(py_err)
+      assert pm.eval("(e) => e.message == 'Promise rejection'")(py_err)
+    return True
+  assert asyncio.run(async_fn())
+
+
+def test_eval_exceptions_preserve_original_js_error_object():
+  # Test for https://github.com/Distributive-Network/PythonMonkey/blob/dc753a0/src/setSpiderMonkeyException.cc#L108-L111
+  obj = pm.eval("({ err: new TypeError('JS Error') })")
+  c = pm.eval("(obj) => { throw obj.err; }")
+
+  def b(fn):
+    try:
+      fn(obj)
+    except Exception as e:
+      return e
+
+  py_err = b(c)
+  assert pm.eval("(err) => err instanceof TypeError")(py_err)
+  assert pm.eval("(e) => e.message == 'JS Error'")(py_err)
+  assert pm.eval("(e, obj) => Object.is(e, obj.err)")(py_err, obj)
 
 
 def test_eval_undefined():
