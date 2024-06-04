@@ -12,6 +12,7 @@
 
 #include "include/PyEventLoop.hh"
 #include "include/pyTypeFactory.hh"
+#include "include/PromiseType.hh"
 
 #include <Python.h>
 
@@ -72,6 +73,7 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
   JS::InitDispatchToEventLoop(cx, dispatchToEventLoop, cx);
+  JS::SetPromiseRejectionTrackerCallback(cx, promiseRejectionTracker);
   return true;
 }
 
@@ -115,6 +117,28 @@ bool sendJobToMainLoop(PyObject *pyFunc) {
 
   PyGILState_Release(gstate);
   return true;
+}
+
+void JobQueue::promiseRejectionTracker(JSContext *cx,
+  bool mutedErrors,
+  JS::HandleObject promise,
+  JS::PromiseRejectionHandlingState state,
+  [[maybe_unused]] void *privateData) {
+
+  // We only care about unhandled Promises
+  if (state != JS::PromiseRejectionHandlingState::Unhandled) {
+    return;
+  }
+  // If the `mutedErrors` option is set to True in `pm.eval`, eval errors or unhandled rejections should be ignored.
+  if (mutedErrors) {
+    return;
+  }
+
+  PyObject *pyFuture = PromiseType::getPyObject(cx, promise); // ref count == 2
+  // Unhandled Future object calls the event-loop exception handler in its destructor (the `__del__` magic method)
+  // See https://github.com/python/cpython/blob/v3.9.16/Lib/asyncio/futures.py#L108
+  //  or https://github.com/python/cpython/blob/v3.9.16/Modules/_asynciomodule.c#L1457-L1467 (It will actually use the C module by default, see futures.py#L417-L423)
+  Py_DECREF(pyFuture); // decreasing the reference count from 2 to 1, leaving one for the `onResolved` callback in `PromiseType::getPyObject`, which will be called very soon and clean up the reference
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {

@@ -19,7 +19,12 @@
 static PyObject *eventLoopJobWrapper(PyObject *jobFn, PyObject *Py_UNUSED(_)) {
   PyObject *ret = PyObject_CallObject(jobFn, NULL);
   Py_XDECREF(ret); // don't care about its return value
+
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback); // Protects `decCounter()`. If the error indicator is set, Python cannot make further function calls.
   PyEventLoop::_locker->decCounter();
+  PyErr_Restore(type, value, traceback);
+
   if (PyErr_Occurred()) {
     return NULL;
   } else {
@@ -208,6 +213,14 @@ void PyEventLoop::AsyncHandle::cancel() {
   // https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Handle.cancel
   PyObject *ret = PyObject_CallMethod(_handle, "cancel", NULL); // returns None
   Py_XDECREF(ret);
+}
+
+/* static */
+bool PyEventLoop::AsyncHandle::cancelAll() {
+  for (AsyncHandle &handle: _timeoutIdMap) {
+    handle.cancel();
+  }
+  return true;
 }
 
 bool PyEventLoop::AsyncHandle::cancelled() {

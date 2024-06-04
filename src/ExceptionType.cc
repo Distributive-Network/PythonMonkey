@@ -13,14 +13,14 @@
 
 #include "include/ExceptionType.hh"
 #include "include/StrType.hh"
+#include "include/DictType.hh"
+#include "include/JSObjectProxy.hh"
 
 #include <jsapi.h>
 #include <js/Exception.h>
 
 #include <frameobject.h>
 
-
-// TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
 
 PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   // Convert the JS Error object to a Python string
@@ -35,6 +35,10 @@ PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   PyObject *pyObject = PyObject_CallFunction(SpiderMonkeyError, "O", errStr); // PyObject_CallOneArg is not available in Python < 3.9
   #endif
   Py_XDECREF(errStr);
+
+  // Preserve the original JS Error object as the Python Exception's `jsError` attribute for lossless two-way conversion
+  PyObject *originalJsErrCapsule = DictType::getPyObject(cx, errValue);
+  PyObject_SetAttrString(pyObject, "jsError", originalJsErrCapsule);
 
   return pyObject;
 }
@@ -78,6 +82,13 @@ tb_print_line_repeated(_PyUnicodeWriter *writer, long cnt)
 
 JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyObject *traceBack) {
   assert(exceptionValue != NULL);
+
+  if (PyObject_HasAttrString(exceptionValue, "jsError")) {
+    PyObject *originalJsErrCapsule = PyObject_GetAttrString(exceptionValue, "jsError");
+    if (originalJsErrCapsule && PyObject_TypeCheck(originalJsErrCapsule, &JSObjectProxyType)) {
+      return *((JSObjectProxy *)originalJsErrCapsule)->jsObject;
+    }
+  }
 
   // Gather JS context
   #pragma GCC diagnostic push

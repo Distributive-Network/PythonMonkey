@@ -12,6 +12,8 @@ import platform
 import pythonmonkey as pm
 from typing import Union, ByteString, Callable, TypedDict
 
+keepAliveConnector: Union[aiohttp.TCPConnector, None] = None
+
 
 class XHRResponse(TypedDict, total=True):
   """
@@ -45,6 +47,12 @@ async def request(
     /
 ):
   debug = pm.bootstrap.require("debug")
+
+  # to support HTTP-Keep-Alive
+  global keepAliveConnector
+  if (not keepAliveConnector):
+    # seconds before closing Keep-Alive connection.
+    keepAliveConnector = aiohttp.TCPConnector(keepalive_timeout=5)  # 5s is the default for Node.js's `http.globalAgent`
 
   class BytesPayloadWithProgress(aiohttp.BytesPayload):
     _chunkMaxLength = 2**16  # aiohttp default
@@ -80,6 +88,7 @@ async def request(
                                headers=headers,
                                data=BytesPayloadWithProgress(body) if body else None,
                                timeout=timeoutOptions,
+                               connector=keepAliveConnector,
                                ) as res:
       debug('xhr:aiohttp')('got', res.content_type, 'result')
 

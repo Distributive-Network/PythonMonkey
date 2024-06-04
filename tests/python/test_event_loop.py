@@ -350,10 +350,68 @@ def test_promises():
                      match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
     pm.eval("new Promise(() => { })")
 
-# off-thread promises
+
+def test_errors_thrown_in_promise():
+  async def async_fn():
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def exceptionHandler(loop, context):
+      future.set_exception(context["exception"])
+    loop.set_exception_handler(exceptionHandler)
+
+    pm.eval("""
+    new Promise(function (resolve, reject)
+    {
+      reject(new Error('in Promise'));
+    });
+
+    new Promise(function (resolve, reject)
+    {
+      console.log('ok');
+    });
+    """)
+    with pytest.raises(pm.SpiderMonkeyError, match="Error: in Promise"):
+      await asyncio.wait_for(future, timeout=0.1)
+
+    loop.set_exception_handler(None)
+    return True
+  assert asyncio.run(async_fn())
+
+
+def test_errors_thrown_in_async_function():
+  async def async_fn():
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def exceptionHandler(loop, context):
+      future.set_exception(context["exception"])
+    loop.set_exception_handler(exceptionHandler)
+
+    pm.eval("""
+    async function aba() {
+      throw new Error('in async function');
+    }
+
+    async function abb() {
+      console.log('ok');
+    }
+
+    aba();
+    abb();
+    """)
+    with pytest.raises(pm.SpiderMonkeyError, match="Error: in async function"):
+      await asyncio.wait_for(future, timeout=0.1)
+
+    loop.set_exception_handler(None)
+    return True
+  assert asyncio.run(async_fn())
 
 
 def test_webassembly():
+  """
+  Tests for off-thread promises
+  """
   async def async_fn():
     # off-thread promises can run
     assert 'instantiated' == await pm.eval("""
