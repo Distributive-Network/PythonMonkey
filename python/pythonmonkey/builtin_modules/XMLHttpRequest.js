@@ -49,7 +49,7 @@ class ProgressEvent extends Event
 {
   /**
    * @param {string} type
-   * @param {{ lengthComputable?: boolean; loaded?: number; total?: number; }} eventInitDict
+   * @param {{ lengthComputable?: boolean; loaded?: number; total?: number; error?: Error;  }} eventInitDict
    */
   constructor (type, eventInitDict = {})
   {
@@ -57,6 +57,7 @@ class ProgressEvent extends Event
     this.lengthComputable = eventInitDict.lengthComputable ?? false;
     this.loaded = eventInitDict.loaded ?? 0;
     this.total = eventInitDict.total ?? 0;
+    this.error = eventInitDict.error ?? null;
     this.debugTag = 'xhr:';
   }
 }
@@ -446,12 +447,12 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#uploadCompleteFlag = true;
       if (this.#uploadListenerFlag)
       {
-        this.#uploadObject.dispatchEvent(new ProgressEvent(event, { loaded:0, total:0 }));
+        this.#uploadObject.dispatchEvent(new ProgressEvent(event, { loaded:0, total:0, error: exception }));
         this.#uploadObject.dispatchEvent(new ProgressEvent('loadend', { loaded:0, total:0 }));
       }
     }
 
-    this.dispatchEvent(new ProgressEvent(event, { loaded:0, total:0 })); // step 7
+    this.dispatchEvent(new ProgressEvent(event, { loaded:0, total:0, error: exception })); // step 7
     this.dispatchEvent(new ProgressEvent('loadend', { loaded:0, total:0 })); // step 8
   }
 
