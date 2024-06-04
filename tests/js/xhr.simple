@@ -69,19 +69,16 @@ new Promise(function (resolve, reject)
     }
     else 
     {
-      reject(new Error({
+      reject(new Error(JSON.stringify({
         status: this.status,
-        statusText:  this.statusText
-      }));
+        statusText: this.statusText
+      })));
     }
   };
 
-  xhr.onerror = function () 
+  xhr.onerror = function (ev) 
   {
-    reject(new Error({
-      status: this.status,
-      statusText: this.statusText
-    }));
+    reject(ev.error);
   };
 
   xhr.send();
@@ -112,19 +109,16 @@ new Promise(function (resolve, reject)
     }
     else 
     {
-      reject(new Error({
+      reject(new Error(JSON.stringify({
         status: this.status,
-        statusText:  this.statusText
-      }));
+        statusText: this.statusText
+      })));
     }
   };
 
-  xhr.onerror = function () 
+  xhr.onerror = function (ev) 
   {
-    reject(new Error({
-      status: this.status,
-      statusText: this.statusText
-    }));
+    reject(ev.error);
   };
 
   xhr.send();
