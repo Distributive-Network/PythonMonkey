@@ -104,7 +104,6 @@ static PyObject *processString(JSContext *cx, JS::HandleValue strVal) {
   size_t length = JS::GetLinearStringLength(lstr);
 
   JSStringProxy *pyString = PyObject_New(JSStringProxy, &JSStringProxyType); // new reference
-  Py_INCREF(pyString);
 
   if (pyString == NULL) {
     return NULL;
@@ -184,9 +183,7 @@ PyObject *StrType::getPyObject(JSContext *cx, JS::HandleValue str) {
       Py_INCREF(pyString);
       return pyString;
     }
-
   }
-
 
   return processString(cx, str);
 }

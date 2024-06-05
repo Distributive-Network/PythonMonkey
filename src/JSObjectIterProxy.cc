@@ -78,11 +78,11 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
         ret = key;
       }
 
+      Py_INCREF(ret);
       if (self->it.kind != KIND_KEYS) {
         Py_DECREF(value);
       }
 
-      Py_INCREF(ret);
       return ret;
     }
   } else {
@@ -108,11 +108,11 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
         ret = key;
       }
 
+      Py_INCREF(ret);
       if (self->it.kind != KIND_KEYS) {
         Py_DECREF(value);
       }
 
-      Py_INCREF(ret);
       return ret;
     }
   }
