@@ -69,7 +69,7 @@ void PythonExternalString::finalize(char16_t *chars) const
 
 size_t PythonExternalString::sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const
 {
-  return 0;
+  return PyUnicode_GetLength(charToPyObjectMap[chars]);
 }
 
 PythonExternalString PythonExternalStringCallbacks = {};
