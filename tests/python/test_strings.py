@@ -3,6 +3,12 @@ import gc
 import random
 
 
+def test_identity():
+  py_string = "abc"
+  js_string = pm.eval("(str) => str")(py_string)
+  assert py_string is js_string
+
+
 def test_eval_ascii_string_matches_evaluated_string():
   py_ascii_string = "abc"
   js_ascii_string = pm.eval(repr(py_ascii_string))

@@ -27,7 +27,7 @@ else ifeq ($(BUILD),Debug)
 PYTHON_BUILD_ENV += BUILD_TYPE=Debug
 else ifeq ($(BUILD),DRelease)
 PYTHON_BUILD_ENV += BUILD_TYPE=DRelease
-else ifeq($(BUILD), None)
+else ifeq ($(BUILD), None)
 PYTHON_BUILD_ENV += BUILD_TYPE=None
 else # Release build
 PYTHON_BUILD_ENV += BUILD_TYPE=Release

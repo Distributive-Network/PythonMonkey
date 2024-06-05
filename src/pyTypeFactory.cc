@@ -50,7 +50,7 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
     return FloatType::getPyObject(rval.toNumber());
   }
   else if (rval.isString()) {
-    return StrType::getPyObject(cx, rval.toString());
+    return StrType::getPyObject(cx, rval);
   }
   else if (rval.isSymbol()) {
     printf("symbol type is not handled by PythonMonkey yet");

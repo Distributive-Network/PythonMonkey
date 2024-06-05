@@ -49,24 +49,30 @@ static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
 static PyIterableProxyHandler pyIterableProxyHandler;
 
-std::unordered_map<char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
+std::unordered_map<const char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
 
-struct PythonExternalString : public JSExternalStringCallbacks {
-  void finalize(char16_t *chars) const override {
-    // We cannot call Py_DECREF here when shutting down as the thread state is gone.
-    // Then, when shutting down, there is only on reference left, and we don't need
-    // to free the object since the entire process memory is being released.
-    PyObject *object = charToPyObjectMap[chars];
-    if (Py_REFCNT(object) > 1) {
-      Py_DECREF(object);
-    }
-  }
-  size_t sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const override {
-    return 0;
-  }
-};
+PyObject *PythonExternalString::getPyString(const char16_t *chars)
+{
+  return charToPyObjectMap[chars];
+}
 
-static constexpr PythonExternalString PythonExternalStringCallbacks;
+void PythonExternalString::finalize(char16_t *chars) const
+{
+  // We cannot call Py_DECREF here when shutting down as the thread state is gone.
+  // Then, when shutting down, there is only on reference left, and we don't need
+  // to free the object since the entire process memory is being released.
+  PyObject *object = charToPyObjectMap[chars];
+  if (Py_REFCNT(object) > 1) {
+    Py_DECREF(object);
+  }
+}
+
+size_t PythonExternalString::sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const
+{
+  return PyUnicode_GetLength(charToPyObjectMap[chars]);
+}
+
+PythonExternalString PythonExternalStringCallbacks = {};
 
 size_t UCS4ToUTF16(const uint32_t *chars, size_t length, uint16_t **outStr) {
   uint16_t *utf16String = (uint16_t *)malloc(sizeof(uint16_t) * length*2);
@@ -112,7 +118,7 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     returnType.setNumber(PyFloat_AsDouble(object));
   }
   else if (PyObject_TypeCheck(object, &JSStringProxyType)) {
-    returnType.setString(((JSStringProxy *)object)->jsString.toString());
+    returnType.setString(((JSStringProxy *)object)->jsString->toString());
   }
   else if (PyUnicode_Check(object)) {
     switch (PyUnicode_KIND(object)) {
