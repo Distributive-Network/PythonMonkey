@@ -99,7 +99,8 @@ class Console
         ? `Trace: ${format(...args)}\n`
         : 'Trace\n';
 
-      let stacks = new Error().stack.split('\n')
+      let stacks = new Error().stack
+            .split('\n')
       stacks.shift();              // skip the first line which is this.trace itself
       stacks = stacks
             .filter(s => s !== '') // filter out empty lines
