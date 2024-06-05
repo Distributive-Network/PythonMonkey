@@ -73,6 +73,7 @@ expectOutput('stderr', /^Assertion failed: abc undefined$/m, (console) => consol
 expectOutput('stdout', /^Trace\n/, (console) => console.trace());
 expectOutput('stdout', /^Trace: \x1b\[90mundefined\x1b\[39m\n/, (console) => console.trace(undefined));
 expectOutput('stdout', /^Trace: \x1b\[33m123\x1b\[39m\n/, (console) => console.trace(123));
+expectOutput('stdout', /^((?!console\.js)[\s\S])*$/, (console) => console.trace());  // implementation details should not show up in the trace
 
 // console.count()
 let keptConsole;
