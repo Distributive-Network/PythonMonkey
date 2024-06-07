@@ -294,11 +294,11 @@ JS::Value jsTypeFactorySafe(JSContext *cx, PyObject *object) {
   return v;
 }
 
-void setPyException(JSContext *cx) {
+bool setPyException(JSContext *cx) {
   // Python `exit` and `sys.exit` only raise a SystemExit exception to end the program
   // We definitely don't want to catch it in JS
   if (PyErr_ExceptionMatches(PyExc_SystemExit)) {
-    return;
+    return false;
   }
 
   PyObject *type, *value, *traceback;
@@ -314,52 +314,110 @@ void setPyException(JSContext *cx) {
     JS::RootedValue jsExceptionValue(cx, JS::ObjectValue(*jsException));
     JS_SetPendingException(cx, jsExceptionValue);
   }
+  return true;
 }
 
 bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   JS::CallArgs callargs = JS::CallArgsFromVp(argc, vp);
 
   // get the python function from the 0th reserved slot
-  JS::Value pyFuncVal = js::GetFunctionNativeReserved(&(callargs.callee()), 0);
-  PyObject *pyFunc = (PyObject *)(pyFuncVal.toPrivate());
+  PyObject *pyFunc = (PyObject *)js::GetFunctionNativeReserved(&(callargs.callee()), 0).toPrivate();
+  Py_INCREF(pyFunc);
+  PyObject *pyRval = NULL;
+  PyObject *pyArgs = NULL;
+  Py_ssize_t nNormalArgs = 0;   // number of positional non-default arguments
+  Py_ssize_t nDefaultArgs = 0;  // number of positional default arguments
+  bool varargs = false;
+  bool unknownNargs = false;
 
-  unsigned int callArgsLength = callargs.length();
-
-  if (!callArgsLength) {
-    #if PY_VERSION_HEX >= 0x03090000
-    PyObject *pyRval = PyObject_CallNoArgs(pyFunc);
-    #else
-    PyObject *pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
-    #endif
-    if (PyErr_Occurred()) { // Check if an exception has already been set in Python error stack
-      setPyException(cx);
-      return false;
+  if (PyCFunction_Check(pyFunc)) {
+    if (((PyCFunctionObject *)pyFunc)->m_ml->ml_flags & METH_NOARGS) { // 0 arguments
+      nNormalArgs = 0;
     }
-    callargs.rval().set(jsTypeFactory(cx, pyRval));
-    return true;
+    else if (((PyCFunctionObject *)pyFunc)->m_ml->ml_flags & METH_O) { // 1 argument
+      nNormalArgs = 1;
+    }
+    else { // unknown number of arguments
+      nNormalArgs = 0;
+      unknownNargs = true;
+      varargs = true;
+    }
+  }
+  else {
+    nNormalArgs = 1;
+    PyObject *f = pyFunc;
+    if (PyMethod_Check(pyFunc)) {
+      f = PyMethod_Function(pyFunc); // borrowed reference
+      nNormalArgs -= 1; // don't include the implicit `self` of the method as an argument
+    }
+    PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(f); // borrowed reference
+    PyObject *defaults = PyFunction_GetDefaults(f); // borrowed reference
+    nDefaultArgs = defaults ? PyTuple_Size(defaults) : 0;
+    nNormalArgs += bytecode->co_argcount - nDefaultArgs - 1;
+    if (bytecode->co_flags & CO_VARARGS) {
+      varargs = true;
+    }
+  }
+
+  // use faster calling if no arguments are needed
+  if (((nNormalArgs + nDefaultArgs) == 0 && !varargs)) {
+    #if PY_VERSION_HEX >= 0x03090000
+    pyRval = PyObject_CallNoArgs(pyFunc);
+    #else
+    pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
+    #endif
+    if (PyErr_Occurred() && setPyException(cx)) { // Check if an exception has already been set in Python error stack
+      goto failure;
+    }
+    goto success;
   }
 
   // populate python args tuple
-  PyObject *pyArgs = PyTuple_New(callArgsLength);
-  for (size_t i = 0; i < callArgsLength; i++) {
+  Py_ssize_t argTupleLength;
+  if (unknownNargs) { // pass all passed arguments
+    argTupleLength = callargs.length();
+  }
+  else if (varargs) { // if passed arguments is less than number of non-default positionals, rest will be set to `None`
+    argTupleLength = std::max((Py_ssize_t)callargs.length(), nNormalArgs);
+  }
+  else if (nNormalArgs > callargs.length()) { // if passed arguments is less than number of non-default positionals, rest will be set to `None`
+    argTupleLength = nNormalArgs;
+  }
+  else { // passed arguments greater than non-default positionals, so we may be replacing default positional arguments
+    argTupleLength = std::min((Py_ssize_t)callargs.length(), nNormalArgs+nDefaultArgs);
+  }
+  pyArgs = PyTuple_New(argTupleLength);
+
+  for (size_t i = 0; i < callargs.length() && i < argTupleLength; i++) {
     JS::RootedValue jsArg(cx, callargs[i]);
     PyObject *pyArgObj = pyTypeFactory(cx, jsArg);
     if (!pyArgObj) return false; // error occurred
     PyTuple_SetItem(pyArgs, i, pyArgObj);
   }
 
-  PyObject *pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
-  if (PyErr_Occurred()) {
-    setPyException(cx);
-    return false;
-  }
-  callargs.rval().set(jsTypeFactory(cx, pyRval));
-  if (PyErr_Occurred()) {
-    Py_DECREF(pyRval);
-    setPyException(cx);
-    return false;
+  // set unspecified args to None, to match JS behaviour of setting unspecified args to undefined
+  for (Py_ssize_t i = callargs.length(); i < argTupleLength; i++) {
+    PyTuple_SetItem(pyArgs, i, Py_None);
   }
 
-  Py_DECREF(pyRval);
+  pyRval = PyObject_Call(pyFunc, pyArgs, NULL);
+  if (PyErr_Occurred() && setPyException(cx)) {
+    goto failure;
+  }
+  goto success;
+
+success:
+  if (pyRval) { // can be NULL if SystemExit was raised
+    callargs.rval().set(jsTypeFactory(cx, pyRval));
+    Py_DECREF(pyRval);
+  }
+  Py_DECREF(pyFunc);
+  Py_XDECREF(pyArgs);
   return true;
+
+failure:
+  Py_XDECREF(pyRval);
+  Py_DECREF(pyFunc);
+  Py_XDECREF(pyArgs);
+  return false;
 }
