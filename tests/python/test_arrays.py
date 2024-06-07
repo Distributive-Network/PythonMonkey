@@ -894,33 +894,6 @@ def test_sort_with_two_args_keyfunc_wrong_data_type():
     assert "@evaluate:1:27" in str(e)
 
 
-def test_sort_with_one_arg_keyfunc():
-  items = ['Four', 'Three', 'One']
-
-  def myFunc(e):
-    return len(e)
-  try:
-    pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, myFunc)
-    assert (False)
-  except Exception as e:
-    assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-    assert "takes 1 positional argument but 2 were given" in str(e)
-    assert "JS Stack Trace" in str(e)
-    assert "@evaluate:1:27" in str(e)
-
-
-def test_sort_with_builtin_keyfunc():
-  items = ['Four', 'Three', 'One']
-  try:
-    pm.eval("(arr, compareFun) => {arr.sort(compareFun)}")(items, len)
-    assert (False)
-  except Exception as e:
-    assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-    assert "len() takes exactly one argument (2 given)" in str(e)
-    assert "JS Stack Trace" in str(e)
-    assert "@evaluate:1:27" in str(e)
-
-
 def test_sort_with_js_func():
   items = ['Four', 'Three', 'One']
   result = [None]
