@@ -11,8 +11,8 @@ def execute(cmd: str, cwd: str):
 
     popen.stdout.close()
     return_code = popen.wait()
-    if return_code:
-        raise subprocess.CalledProcessError(return_code, cmd)
+    if return_code != 0:
+        sys.exit(return_code)
 
 def commandType(value: str):
     if value != "npm":
@@ -34,7 +34,3 @@ def main():
     )
 
     execute(' '.join( args.executable + args.args ), pythonmonkey_path)
-
-    
-    
-    

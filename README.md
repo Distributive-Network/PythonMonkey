@@ -164,11 +164,11 @@ They are largely based on SpiderMonkey's `CompileOptions`. The supported option 
 - `filename`: set the filename of this code for the purposes of generating stack traces etc.
 - `lineno`: set the line number offset of this code for the purposes of generating stack traces etc.
 - `column`: set the column number offset of this code for the purposes of generating stack traces etc.
-- `mutedErrors`: experimental
-- `noScriptRval`: experimental
-- `selfHosting`: experimental
-- `strict`: experimental
-- `module`: experimental
+- `mutedErrors`: if set to `True`, eval errors or unhandled rejections are ignored ("muted"). Default `False`.
+- `noScriptRval`: if `False`, return the last expression value of the script as the result value to the caller. Default `False`.
+- `selfHosting`: *experimental*
+- `strict`: forcibly evaluate in strict mode (`"use strict"`). Default `False`.
+- `module`: indicate the file is an ECMAScript module (always strict mode code and disallow HTML comments). Default `False`.
 - `fromPythonFrame`: generate the equivalent of filename, lineno, and column based on the location of
   the Python call to eval. This makes it possible to evaluate Python multiline string literals and
   generate stack traces in JS pointing to the error in the Python source file.
