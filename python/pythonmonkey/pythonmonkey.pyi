@@ -26,6 +26,25 @@ def eval(code: str, evalOpts: EvalOptions = {}, /) -> _typing.Any:
   """
 
 
+def require(moduleIdentifier: str, /) -> JSObjectProxy:
+  """
+  Return the exports of a CommonJS module identified by `moduleIdentifier`, using standard CommonJS semantics
+  """
+
+
+def new(ctor: JSFunctionProxy) -> _typing.Callable[..., _typing.Any]:
+  """
+  Wrap the JS new operator, emitting a lambda which constructs a new
+  JS object upon invocation
+  """
+
+
+def typeof(jsval: _typing.Any, /):
+  """
+  This is the JS `typeof` operator, wrapped in a function so that it can be used easily from Python.
+  """
+
+
 def wait() -> _typing.Awaitable[None]:
   """
   Block until all asynchronous jobs (Promise/setTimeout/etc.) finish.
@@ -41,6 +60,12 @@ def wait() -> _typing.Awaitable[None]:
 def stop() -> None:
   """
   Stop all pending asynchronous jobs, and unblock `await pm.wait()`
+  """
+
+
+def runProgramModule(filename: str, argv: _typing.List[str], extraPaths: _typing.List[str] = []) -> None:
+  """
+  Load and evaluate a program (main) module. Program modules must be written in JavaScript.
   """
 
 
@@ -117,6 +142,12 @@ class SpiderMonkeyError(Exception):
 
 
 null = _typing.Annotated[
-    _typing.NewType("pythonmonkey.null", object),
-    "Representing the JS null type in Python using a singleton object",
+  _typing.NewType("pythonmonkey.null", object),
+  "Representing the JS null type in Python using a singleton object",
+]
+
+
+globalThis = _typing.Annotated[
+  JSObjectProxy,
+  "A Python Dict which is equivalent to the globalThis object in JavaScript",
 ]
