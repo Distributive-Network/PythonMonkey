@@ -1,4 +1,5 @@
 """
+stub file for type hints & documentations for the native module
 @see https://typing.readthedocs.io/en/latest/source/stubs.html
 """
 
@@ -55,6 +56,14 @@ def collect() -> None:
   """
 
 
+def internalBinding(namespace: str) -> JSObjectProxy:
+  """
+  INTERNAL USE ONLY
+
+  See function declarations in ./builtin_modules/internal-binding.d.ts
+  """
+
+
 class JSFunctionProxy():
   """
   JavaScript Function proxy
@@ -85,6 +94,26 @@ class JSMethodProxy(JSFunctionProxy, object):
     """
     PythonMonkey init function
     """
+
+
+class JSObjectProxy(dict):
+  """
+  JavaScript Object proxy dict
+  """
+
+  def __init__(self) -> None: ...
+
+
+class bigint(int):
+  """
+  Representing JavaScript BigInt in Python
+  """
+
+
+class SpiderMonkeyError(Exception):
+  """
+  Representing a corresponding JS Error in Python
+  """
 
 
 null = _typing.Annotated[
