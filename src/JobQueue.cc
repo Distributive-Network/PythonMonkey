@@ -134,6 +134,15 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
     return;
   }
 
+  // Test if there's no user-defined (or pmjs defined) exception handler on the Python event-loop
+  PyEventLoop loop = PyEventLoop::getRunningLoop();
+  if (!loop.initialized()) return;
+  PyObject *customHandler = PyObject_GetAttrString(loop._loop, "_exception_handler"); // see https://github.com/python/cpython/blob/v3.9.16/Lib/asyncio/base_events.py#L1782
+  if (customHandler == Py_None) { // we only have the default exception handler
+    return;
+  }
+
+  // Otherwise, go ahead and send this unhandled Promise rejection to the exception handler on the Python event-loop
   PyObject *pyFuture = PromiseType::getPyObject(cx, promise); // ref count == 2
   // Unhandled Future object calls the event-loop exception handler in its destructor (the `__del__` magic method)
   // See https://github.com/python/cpython/blob/v3.9.16/Lib/asyncio/futures.py#L108
