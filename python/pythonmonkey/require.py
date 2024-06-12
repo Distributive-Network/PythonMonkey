@@ -409,7 +409,8 @@ def runProgramModule(filename, argv, extraPaths=[]):
   globalThis.__filename = fullFilename
   globalThis.__dirname = os.path.dirname(fullFilename)
   with open(fullFilename, encoding="utf-8", mode="r") as mainModuleSource:
-    pm.eval(mainModuleSource.read(), {'filename': fullFilename})
+    pm.eval(mainModuleSource.read(), {'filename': fullFilename, 'noScriptRval': True})
+    # forcibly run in file mode. We shouldn't be getting the last statement of the script as the result value.
 
 # The pythonmonkey require export. Every time it is used, the stack is inspected so that the filename
 # passed to createRequire is correct. This is necessary so that relative requires work. If the filename
