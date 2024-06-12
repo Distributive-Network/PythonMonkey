@@ -43,8 +43,19 @@ function pmNewFactory(ctor)
   return (lambda *args: newCtor(list(args)))
 
 
+def simpleUncaughtExceptionHandler(loop, context):
+  """
+  A simple exception handler for uncaught JS Promise rejections sent to the Python event-loop
+
+  See https://docs.python.org/3.11/library/asyncio-eventloop.html#error-handling-api
+  """
+  error = context["exception"]
+  pm.eval("(err) => console.error('Uncaught', err)")(error)
+  pm.stop()  # unblock `await pm.wait()` to gracefully exit the program
+
+
 # List which symbols are exposed to the pythonmonkey module.
-__all__ = ["new", "typeof"]
+__all__ = ["new", "typeof", "simpleUncaughtExceptionHandler"]
 
 # Add the non-enumerable properties of globalThis which don't collide with pythonmonkey.so as exports:
 globalThis = pm.eval('globalThis')
