@@ -53,7 +53,7 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
     return StrType::getPyObject(cx, rval);
   }
   else if (rval.isSymbol()) {
-    printf("symbol type is not handled by PythonMonkey yet");
+    printf("symbol type is not handled by PythonMonkey yet\n");
   }
   else if (rval.isBigInt()) {
     return IntType::getPyObject(cx, rval.toBigInt());
@@ -121,8 +121,13 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
   }
 
   std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");
-  JS::RootedString str(cx, JS::ToString(cx, rval));
-  errorString += JS_EncodeStringToUTF8(cx, str).get();
+  JSString *valToStr = JS::ToString(cx, rval);
+  if (!valToStr) { // `JS::ToString` returns `nullptr` for JS symbols, see https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/vm/StringType.cpp#l2208
+    // TODO (Tom Tang): Revisit this once we have Symbol coercion support
+    valToStr = JS_ValueToSource(cx, rval);
+  }
+  JS::RootedString valToStrRooted(cx, valToStr);
+  errorString += JS_EncodeStringToUTF8(cx, valToStrRooted).get();
   PyErr_SetString(PyExc_TypeError, errorString.c_str());
   return NULL;
 }
