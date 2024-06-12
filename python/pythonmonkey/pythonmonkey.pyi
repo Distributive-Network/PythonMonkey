@@ -115,10 +115,7 @@ class JSMethodProxy(JSFunctionProxy, object):
   print(myObject.value) # 42.0
   """
 
-  def __init__(self) -> None:
-    """
-    PythonMonkey init function
-    """
+  def __init__(self) -> None: "deleted"
 
 
 class JSObjectProxy(dict):
@@ -126,7 +123,31 @@ class JSObjectProxy(dict):
   JavaScript Object proxy dict
   """
 
-  def __init__(self) -> None: ...
+  def __init__(self) -> None: "deleted"
+
+
+class JSArrayProxy(list):
+  """
+  JavaScript Array proxy
+  """
+
+  def __init__(self) -> None: "deleted"
+
+
+class JSArrayIterProxy(_typing.Iterator):
+  """
+  JavaScript Array Iterator proxy
+  """
+
+  def __init__(self) -> None: "deleted"
+
+
+class JSStringProxy(str):
+  """
+  JavaScript String proxy
+  """
+
+  def __init__(self) -> None: "deleted"
 
 
 class bigint(int):
