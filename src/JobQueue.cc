@@ -147,7 +147,8 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
     Py_DECREF(pmModule);
     Py_DECREF(exceptionHandler);
   }
-Py_DECREF(customHandler);
+  Py_DECREF(customHandler);
+
   // Go ahead and send this unhandled Promise rejection to the exception handler on the Python event-loop
   PyObject *pyFuture = PromiseType::getPyObject(cx, promise); // ref count == 2
   // Unhandled Future object calls the event-loop exception handler in its destructor (the `__del__` magic method)
