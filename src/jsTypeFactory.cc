@@ -331,10 +331,11 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   bool unknownNargs = false;
 
   if (PyCFunction_Check(pyFunc)) {
-    if (((PyCFunctionObject *)pyFunc)->m_ml->ml_flags & METH_NOARGS) { // 0 arguments
+    const int funcFlags = ((PyCFunctionObject *)pyFunc)->m_ml->ml_flags;
+    if (funcFlags & METH_NOARGS) { // 0 arguments
       nNormalArgs = 0;
     }
-    else if (((PyCFunctionObject *)pyFunc)->m_ml->ml_flags & METH_O) { // 1 argument
+    else if (funcFlags & METH_O) { // 1 argument
       nNormalArgs = 1;
     }
     else { // unknown number of arguments
