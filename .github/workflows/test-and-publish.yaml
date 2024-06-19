@@ -69,13 +69,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+      - name: Read the mozilla-central commit hash to be used
+        run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Cache spidermonkey build
         id: cache-spidermonkey
         uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Setup XCode
         if: ${{ (matrix.os == 'macos-13' || matrix.os == 'macos-14') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -89,13 +91,15 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
+      - name: Read the mozilla-central commit hash to be used
+        run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Cache spidermonkey build
         id: cache-spidermonkey
         uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -104,7 +108,7 @@ jobs:
           # Already installed in Github Actions runner
           # choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
           # choco install -y llvm gnuwin32-m4
-          choco install -y wget make
+          choco install -y wget make unzip
       - name: Install MozillaBuild
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
@@ -154,7 +158,7 @@ jobs:
             sudo apt-get install -y cmake llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
-            brew install cmake pkg-config wget coreutils # `coreutils` installs the `realpath` command
+            brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
@@ -177,12 +181,14 @@ jobs:
         with:
           name: docs-${{ github.run_id }}-${{ github.sha }}
           path: ./build/docs/html/
+      - name: Read the mozilla-central commit hash to be used
+        run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Use cached spidermonkey build
         uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build pminit
         run: |
