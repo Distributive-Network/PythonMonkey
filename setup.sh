@@ -36,7 +36,7 @@ else
   exit 1
 fi
 # Install rust compiler
-curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.69 # force to use Rust 1.69 because 1.70 has linking issues on Windows
+curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.76
 cargo install cbindgen
 # Setup Poetry
 curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
