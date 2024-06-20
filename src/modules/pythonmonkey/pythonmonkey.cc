@@ -389,7 +389,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
     if (getEvalOption(evalOptions, "filename", &s)) options.setFile(s);
     if (getEvalOption(evalOptions, "lineno", &l)) options.setLine(l);
-    if (getEvalOption(evalOptions, "column", &l)) options.setColumn(l);
+    if (getEvalOption(evalOptions, "column", &l)) options.setColumn(JS::ColumnNumberOneOrigin(l));
     if (getEvalOption(evalOptions, "mutedErrors", &b)) options.setMutedErrors(b);
     if (getEvalOption(evalOptions, "noScriptRval", &b)) options.setNoScriptRval(b);
     if (getEvalOption(evalOptions, "selfHosting", &b)) options.setSelfHostingMode(b);
