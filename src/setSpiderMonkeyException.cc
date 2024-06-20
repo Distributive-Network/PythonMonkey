@@ -43,7 +43,7 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
     std::string linebuf; // the offending JS line of code (can be empty)
 
     /* *INDENT-OFF* */
-    outStrStream << "Error in file " << errorReport->filename.get()
+    outStrStream << "Error in file " << errorReport->filename.c_str()
                  << ", on line " << errorReport->lineno
                  << ", column " << errorReport->column.oneOriginValue() << ":\n";
     /* *INDENT-ON* */
