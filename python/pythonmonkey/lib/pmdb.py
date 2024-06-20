@@ -17,7 +17,8 @@ def debuggerInput(prompt: str):
     return ""
 
 
-def enable(debuggerGlobalObject=pm.eval("debuggerGlobal")):
+def enable(debuggerGlobalObject=pm.eval("void 0")):
+  return
   if debuggerGlobalObject._pmdbEnabled:
     return  # already enabled, skipping
 
