@@ -62,6 +62,11 @@ bool JobQueue::empty() const {
   throw std::logic_error("JobQueue::empty is not implemented\n");
 }
 
+bool JobQueue::isDrainingStopped() const {
+  // TODO (Tom Tang): implement this by detecting if the Python event-loop is still running
+  return false;
+}
+
 js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx) {
   auto saved = js::MakeUnique<JS::JobQueue::SavedJobQueue>();
   if (!saved) {

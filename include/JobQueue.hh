@@ -79,6 +79,11 @@ void runJobs(JSContext *cx) override;
 bool empty() const override;
 
 /**
+ * @return true if the job queue stops draining, which results in `empty()` being false after `runJobs()`.
+ */
+bool isDrainingStopped() const override;
+
+/**
  * @brief Appends a callback to the queue of FinalizationRegistry callbacks
  *
  * @param callback - the callback to be queue'd
