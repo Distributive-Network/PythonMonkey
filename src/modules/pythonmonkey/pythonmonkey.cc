@@ -485,10 +485,12 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
 
   const char *bufferUtf8 = PyUnicode_AsUTF8(item);
 
-  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8)))
+  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8))) {
     Py_RETURN_TRUE;
-  else
+  } else {
+    JS_ClearPendingException(GLOBAL_CX); // JS_Utf8BufferIsCompilableUnit would still generate exception for invalid inputs
     Py_RETURN_FALSE;
+  }
 }
 
 PyMethodDef PythonMonkeyMethods[] = {
