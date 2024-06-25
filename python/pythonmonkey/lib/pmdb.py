@@ -17,13 +17,12 @@ def debuggerInput(prompt: str):
     return ""
 
 
-def enable(debuggerGlobalObject=pm.eval("void 0")):
-  return
+def enable(debuggerGlobalObject=pm.eval("debuggerGlobal")):
   if debuggerGlobalObject._pmdbEnabled:
     return  # already enabled, skipping
 
   debuggerGlobalObject._pmdbEnabled = True
-  debuggerGlobalObject.eval("""(debuggerInput, _pythonPrint, _pythonExit) => {
+  pm.eval("debuggerGlobal.eval")("""(mainGlobal, debuggerInput, _pythonPrint, _pythonExit) => {
   const dbg = new Debugger()
   const mainDebuggee = dbg.addDebuggee(mainGlobal)
   dbg.uncaughtExceptionHook = (e) => {
@@ -178,4 +177,4 @@ def enable(debuggerGlobalObject=pm.eval("void 0")):
   // Enter debugger on `debugger;` statement
   dbg.onDebuggerStatement = (frame) => enterDebuggerLoop(frame)
 
-  }""")(debuggerInput, print, lambda status: exit(int(status)))
+  }""")(pm.globalThis, debuggerInput, print, lambda status: exit(int(status)))
