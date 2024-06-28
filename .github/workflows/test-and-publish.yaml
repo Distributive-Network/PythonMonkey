@@ -88,7 +88,6 @@ jobs:
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
   build-spidermonkey-win:
-    if: false
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v4
@@ -123,12 +122,12 @@ jobs:
           USE_MINTTY: 0
         run: /c/mozilla-build/start-shell.bat -use-full-path -here ./setup.sh
   build-and-test:
-    needs: [build-spidermonkey-unix]
+    needs: [build-spidermonkey-unix, build-spidermonkey-win]
     strategy:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'macos-14' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2019' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
