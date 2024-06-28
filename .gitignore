@@ -16,6 +16,7 @@ _spidermonkey_install*
 uncrustify-*.tar.gz
 uncrustify-*/
 uncrustify
+uncrustify.exe
 *.uncrustify
 __pycache__/*
 dist
