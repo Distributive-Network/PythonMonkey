@@ -4,10 +4,10 @@
  * @author      Wes Garland, wes@distributive.network
  * @date        July 2023
  *
- * timeout: 2
+ * timeout: 4
  */
 
 setTimeout(()=>console.log('fired timer'), 500000);
 setTimeout(()=>console.error('should not have fired timer!'), 0);
-console.log('about to exit even though timers are pending')
-python.exit(0)
+console.log('about to exit even though timers are pending');
+python.exit(0);

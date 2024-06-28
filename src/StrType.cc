@@ -175,11 +175,15 @@ static PyObject *processString(JSContext *cx, JS::HandleValue strVal) {
 
 PyObject *StrType::getPyObject(JSContext *cx, JS::HandleValue str) {
   const PythonExternalString *callbacks;
-  const char16_t *chars;
+  const char16_t *ucs2Buffer{};
+  const JS::Latin1Char *latin1Buffer{};
 
-  if (JS::IsExternalString(str.toString(), (const JSExternalStringCallbacks **)&callbacks, &chars)) {
+  if (
+    JS::IsExternalUCString(str.toString(), (const JSExternalStringCallbacks **)&callbacks, &ucs2Buffer) ||
+    JS::IsExternalStringLatin1(str.toString(), (const JSExternalStringCallbacks **)&callbacks, &latin1Buffer)
+  ) {
     if (callbacks == &PythonExternalStringCallbacks) {
-      PyObject *pyString = callbacks->getPyString(chars);
+      PyObject *pyString = ucs2Buffer ? callbacks->getPyString(ucs2Buffer) : callbacks->getPyString(latin1Buffer);
       Py_INCREF(pyString);
       return pyString;
     }

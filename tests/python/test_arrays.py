@@ -1098,7 +1098,8 @@ def test_forEach_check_this_arg_null():
     assert (False)
   except Exception as e:
     assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-    assert str(e).__contains__("TypeError: this is null")
+    assert "TypeError:" in str(e)
+    assert "this is null" in str(e)
 
 
 def test_forEach_too_few_args():

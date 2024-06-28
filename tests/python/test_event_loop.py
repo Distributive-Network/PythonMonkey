@@ -312,7 +312,7 @@ def test_promises():
       #               <objects of this type are not handled by PythonMonkey yet>
       # await pm.eval("Promise.resolve().then(()=>{ throw {a:1,toString(){return'anything'}} })")
     # not going through the conversion
-    with pytest.raises(pm.SpiderMonkeyError, match="on line 1, column 31:\nTypeError: undefined has no properties"):
+    with pytest.raises(pm.SpiderMonkeyError, match="on line 1, column 31:\nTypeError: can\'t access property \"prop\" of undefined"):
       await pm.eval("Promise.resolve().then(()=>{ (undefined).prop })")
 
     # TODO (Tom Tang): Modify this testcase once we support ES2020-style dynamic import

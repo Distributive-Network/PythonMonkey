@@ -23,6 +23,7 @@ include = [
   { path = "tests", format = "sdist" },
   { path = "CMakeLists.txt", format = "sdist" },
   { path = "*.sh", format = "sdist" },
+  { path = "mozcentral.version", format = "sdist" },
 ]
 
 

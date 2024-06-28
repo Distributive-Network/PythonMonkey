@@ -59,7 +59,12 @@ void JobQueue::runJobs(JSContext *cx) {
 
 bool JobQueue::empty() const {
   // TODO (Tom Tang): implement using `get_running_loop` and getting job count on loop???
-  throw std::logic_error("JobQueue::empty is not implemented\n");
+  return true; // see https://hg.mozilla.org/releases/mozilla-esr128/file/tip/js/src/builtin/Promise.cpp#l6946
+}
+
+bool JobQueue::isDrainingStopped() const {
+  // TODO (Tom Tang): implement this by detecting if the Python event-loop is still running
+  return false;
 }
 
 js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx) {

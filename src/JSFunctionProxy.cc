@@ -36,7 +36,7 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
   JSContext *cx = GLOBAL_CX;
   JS::RootedValue jsFunc(GLOBAL_CX, JS::ObjectValue(**((JSFunctionProxy *)self)->jsFunc));
   JSObject *jsFuncObj = jsFunc.toObjectOrNull();
-  JS::RootedObject thisObj(GLOBAL_CX, JS::GetNonCCWObjectGlobal(jsFuncObj)); // if jsFunc is not bound, assume `this` is `globalThis`
+  JS::RootedObject thisObj(GLOBAL_CX, JS::CurrentGlobalOrNull(GLOBAL_CX)); // if jsFunc is not bound, assume `this` is `globalThis`
 
   JS::RootedVector<JS::Value> jsArgsVector(cx);
   Py_ssize_t nargs = PyTuple_Size(args);

@@ -25,6 +25,7 @@ public:
    * @return PyObject* - the PyObject string
    */
   static PyObject *getPyString(const char16_t *chars);
+  static PyObject *getPyString(const JS::Latin1Char *chars);
 
   /**
    * @brief decrefs the underlying PyObject string when the JSString is finalized
@@ -32,8 +33,10 @@ public:
    * @param chars - The char buffer of the string
    */
   void finalize(char16_t *chars) const override;
+  void finalize(JS::Latin1Char *chars) const override;
 
   size_t sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const override;
+  size_t sizeOfBuffer(const JS::Latin1Char *chars, mozilla::MallocSizeOf mallocSizeOf) const override;
 };
 extern PythonExternalString PythonExternalStringCallbacks;
 

@@ -24,8 +24,6 @@
 #  SPIDERMONKEY_FOUND		  - True if SpiderMonkey found.
 #  SPIDERMONKEY_THREADSAFE	 - True if SpiderMonkey is compiled with multi threading support.
 
-#Last Change: 2022-10-03 (Caleb Aikens)
-
 include(CheckIncludeFileCXX)
 include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
@@ -36,11 +34,26 @@ if(SPIDERMONKEY_FOUND)
 	set(SPIDERMONKEY_FIND_QUIETLY TRUE)
 endif()
 
+# Get the SpiderMonkey major version number
+# See https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/old-configure.in#l1081
+file(GLOB LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install")
+execute_process(COMMAND 
+	"sh" "-c" "./js*-config --version" # Run "_spidermonkey_install/bin/js*-config --version" to print the full version number 
+	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install/bin"
+ 	OUTPUT_VARIABLE MOZILLA_VERSION
+)
+string(STRIP ${MOZILLA_VERSION} MOZILLA_VERSION)
+string(REGEX REPLACE "^([0-9]+)(\\.[0-9]+)*([ab][0-9]|)?" # Only the MAJOR and the "a1" (indicator of nightly build) part is needed
+                     "\\1\\3"                             # see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/build/moz.configure/init.configure#l959
+	MOZILLA_SYMBOLVERSION
+	${MOZILLA_VERSION}
+)
+
 # SpiderMonkey search paths
 set(SPIDERMONKEY_PATHS
   "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install"
   "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install/lib"
-  "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install/include/mozjs-115"
+  "${CMAKE_CURRENT_SOURCE_DIR}/_spidermonkey_install/include/mozjs-${MOZILLA_SYMBOLVERSION}"
   ${SPIDERMONKEY_ROOT}
 	$ENV{SPIDERMONKEY_ROOT}
 	~/Library/Frameworks
@@ -60,7 +73,7 @@ set(SPIDERMONKEY_PATHS
 set(SPIDERMONKEY_HEADERS jsapi.h js/RequiredDefines.h)
 
 # SpiderMonkey include suffix paths
-set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS include/mozjs-115/)
+set(SPIDERMONKEY_INCLUDE_SUFFIX_PATHS include/mozjs-${MOZILLA_SYMBOLVERSION}/)
 
 # Find SpiderMonkey include path
 find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
@@ -71,7 +84,7 @@ find_path(SPIDERMONKEY_INCLUDE_DIR ${SPIDERMONKEY_HEADERS}
 )
 
 # SpiderMonkey libs
-set(SPIDERMONKEY_LIBRARY_NAMES libmozjs-115.so libmozjs-115.dylib mozjs-115.lib)
+set(SPIDERMONKEY_LIBRARY_NAMES libmozjs-${MOZILLA_SYMBOLVERSION}.so libmozjs-${MOZILLA_SYMBOLVERSION}.dylib mozjs-${MOZILLA_SYMBOLVERSION}.lib)
 
 set(SPIDERMONKEY_LIB_SUFFIX_PATHS js/src/build lib)
 
