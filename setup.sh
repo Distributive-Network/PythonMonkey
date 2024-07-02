@@ -60,7 +60,7 @@ cd uncrustify-source
 mkdir -p build
 cd build
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  cmake ../ -T ClangCL
+  cmake ../
   cmake --build . -j$CPUS --config Release
   cp Release/uncrustify.exe ../../uncrustify.exe
 else
