@@ -98,7 +98,7 @@ mkdir -p ../../../../_spidermonkey_install/
 ../configure \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
-  --without-system-zlib \
+  $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--without-system-zlib"; fi) \
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
