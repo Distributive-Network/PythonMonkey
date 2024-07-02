@@ -488,7 +488,6 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
   if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8))) {
     Py_RETURN_TRUE;
   } else {
-    JS_ClearPendingException(GLOBAL_CX); // JS_Utf8BufferIsCompilableUnit would still generate exception for invalid inputs
     Py_RETURN_FALSE;
   }
 }
