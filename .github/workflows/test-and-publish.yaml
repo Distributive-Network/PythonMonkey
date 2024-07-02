@@ -89,6 +89,8 @@ jobs:
         run: ./setup.sh
   build-spidermonkey-win:
     runs-on: windows-2022
+      # SpiderMonkey requires Visual Studio 2022 or newer.
+      # The Windows 2019 runner only has Visual Studio Enterprise 2019 installed.
     steps:
       - uses: actions/checkout@v4
       - name: Read the mozilla-central commit hash to be used
