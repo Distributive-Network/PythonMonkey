@@ -18,7 +18,7 @@ on:
         - 'ubuntu-20.04'
         - 'macos-12'
         - 'macos-14'
-        - 'windows-2019'
+        - 'windows-2022'
       debug_enabled_python:
         type: choice
         description: Choose a Python version to run the build with SSH debugging on
@@ -129,7 +129,7 @@ jobs:
       fail-fast: false
       matrix:
         # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2019' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2022' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
@@ -211,7 +211,7 @@ jobs:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
       - name: Set cores to get stored in /cores
-        if: ${{ matrix.os != 'windows-2019' }}
+        if: ${{ matrix.os != 'windows-2022' }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         run: |
           sudo mkdir -p /cores
@@ -246,7 +246,7 @@ jobs:
           credentials: "admin:admin"
       - name: Upload core dumps as CI artifacts
         uses: actions/upload-artifact@v3
-        if: ${{ matrix.os != 'windows-2019' && failure() }}
+        if: ${{ matrix.os != 'windows-2022' && failure() }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
