@@ -58,9 +58,15 @@ echo "Building uncrustify"
 cd uncrustify-source
 mkdir -p build
 cd build
-cmake ../
-make -j4
-cp uncrustify ../../uncrustify
+if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  cmake ../ -T ClangCL
+  cmake --build . -j$CPUS --config Release
+  cp Release/uncrustify.exe ../../uncrustify.exe
+else
+  cmake ../
+  make -j$CPUS
+  cp uncrustify ../../uncrustify
+fi
 cd ../..
 echo "Done building uncrustify"
 
