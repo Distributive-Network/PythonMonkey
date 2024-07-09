@@ -46,6 +46,9 @@ export declare function request(
   // callbacks for known exceptions
   onTimeoutError: (err: Error) => void,
   onNetworkError: (err: Error) => void,
+  // the debug logging function
+  /** See `pm.bootstrap.require("debug")` */
+  debug: (selector: string) => ((...args: string[]) => void),
 ): Promise<void>;
 
 /**
