@@ -267,7 +267,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   send(body = null)
   {
-    this.#debug('xhr:send')(`sending; body length=${body?.length}`);
+    this.#debug('xhr:send')(`sending; body length=${body?.length} «${body ? trunc(body, 100) : ''}»`);
     if (this.#state !== XMLHttpRequest.OPENED) // step 1
       throw new DOMException('connection must be opened before send() is called', 'InvalidStateError');
     if (this.#sendFlag) // step 2
@@ -369,7 +369,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
 
     const processBodyChunk = (/** @type {Uint8Array} */ bytes) =>
     {
-      this.#debug('xhr:response')(`recv chunk, ${bytes.length} bytes (${trunc(bytes, 100)})`);
+      this.#debug('xhr:response')(`recv chunk, ${bytes.length} bytes «${trunc(bytes, 100)}»`);
       this.#receivedBytes.push(bytes);
       if (this.#state === XMLHttpRequest.HEADERS_RECEIVED)
         this.#state = XMLHttpRequest.LOADING;
