@@ -19,7 +19,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   fi
   $SUDO apt-get update --yes
   $SUDO apt-get install --yes cmake graphviz llvm clang pkg-config m4 \
-    wget curl python3-distutils python3-dev
+    wget curl python3-dev
   # Install Doxygen
   # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
   wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
