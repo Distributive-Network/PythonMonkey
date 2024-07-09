@@ -119,6 +119,19 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     return (...args) => debug(selector)(`Conn<${this.#connectionId}>:`, ...args);
   }
 
+  /**
+   * Allowing others to inspect the internal properties 
+   */
+  get _requestMetadata()
+  {
+    return {
+      method: this.#requestMethod,
+      url: this.#requestURL.toString(),
+      headers: this.#requestHeaders,
+      body: this.#requestBody,
+    };
+  }
+
   // 
   // states
   // 
