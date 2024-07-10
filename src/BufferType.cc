@@ -113,9 +113,12 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
     // Create a new ExternalArrayBuffer object
     // Note: data will be copied instead of transferring the ownership when this external ArrayBuffer is "transferred" to a worker thread.
     //    see https://hg.mozilla.org/releases/mozilla-esr102/file/a03fde6/js/public/ArrayBuffer.h#l86
+    mozilla::UniquePtr<void, JS::BufferContentsDeleter> dataPtr(
+      view->buf /* data pointer */,
+      {BufferType::_releasePyBuffer, view /* the `bufView` argument to `_releasePyBuffer` */}
+    );
     arrayBuffer = JS::NewExternalArrayBuffer(cx,
-      view->len /* byteLength */, view->buf /* data pointer */,
-      BufferType::_releasePyBuffer, view /* the `bufView` argument to `_releasePyBuffer` */
+      view->len /* byteLength */, std::move(dataPtr)
     );
   } else { // empty buffer
     arrayBuffer = JS::NewArrayBuffer(cx, 0);

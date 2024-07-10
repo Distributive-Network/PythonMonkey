@@ -49,11 +49,17 @@ static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
 static PyIterableProxyHandler pyIterableProxyHandler;
 
-std::unordered_map<const char16_t *, PyObject *> charToPyObjectMap; // a map of char16_t buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
+std::unordered_map<const char16_t *, PyObject *> ucs2ToPyObjectMap; // a map of char16_t (UCS-2) buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
+std::unordered_map<const JS::Latin1Char *, PyObject *> latin1ToPyObjectMap; // a map of Latin-1 char buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
 
 PyObject *PythonExternalString::getPyString(const char16_t *chars)
 {
-  return charToPyObjectMap[chars];
+  return ucs2ToPyObjectMap[chars];
+}
+
+PyObject *PythonExternalString::getPyString(const JS::Latin1Char *chars)
+{
+  return latin1ToPyObjectMap[chars];
 }
 
 void PythonExternalString::finalize(char16_t *chars) const
@@ -61,7 +67,15 @@ void PythonExternalString::finalize(char16_t *chars) const
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  PyObject *object = charToPyObjectMap[chars];
+  PyObject *object = ucs2ToPyObjectMap[chars];
+  if (Py_REFCNT(object) > 1) {
+    Py_DECREF(object);
+  }
+}
+
+void PythonExternalString::finalize(JS::Latin1Char *chars) const
+{
+  PyObject *object = latin1ToPyObjectMap[chars];
   if (Py_REFCNT(object) > 1) {
     Py_DECREF(object);
   }
@@ -69,7 +83,12 @@ void PythonExternalString::finalize(char16_t *chars) const
 
 size_t PythonExternalString::sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const
 {
-  return PyUnicode_GetLength(charToPyObjectMap[chars]);
+  return PyUnicode_GetLength(ucs2ToPyObjectMap[chars]);
+}
+
+size_t PythonExternalString::sizeOfBuffer(const JS::Latin1Char *chars, mozilla::MallocSizeOf mallocSizeOf) const
+{
+  return PyUnicode_GetLength(latin1ToPyObjectMap[chars]);
 }
 
 PythonExternalString PythonExternalStringCallbacks = {};
@@ -132,22 +151,16 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     case (PyUnicode_2BYTE_KIND): {
-        charToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
-        JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_2BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
+        ucs2ToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
+        JSString *str = JS_NewExternalUCString(cx, (char16_t *)PyUnicode_2BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         returnType.setString(str);
         break;
       }
     case (PyUnicode_1BYTE_KIND): {
-        charToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
-        JSString *str = JS_NewExternalString(cx, (char16_t *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
-        /* TODO (Caleb Aikens): this is a hack to set the JSString::LATIN1_CHARS_BIT, because there isnt an API for latin1 JSExternalStrings.
-         * Ideally we submit a patch to Spidermonkey to make this part of their API with the following signature:
-         * JS_NewExternalString(JSContext *cx, const char *chars, size_t length, const JSExternalStringCallbacks *callbacks)
-         */
-        // FIXME: JSExternalString are all treated as two-byte strings when GCed
-        //    see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/StringType-inl.h#l514
-        //        https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/StringType.h#l1808
-        *(std::atomic<unsigned long> *)str |= 512;
+        latin1ToPyObjectMap[(JS::Latin1Char *)PyUnicode_1BYTE_DATA(object)] = object;
+        JSString *str = JS_NewExternalStringLatin1(cx, (JS::Latin1Char *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
+        // JSExternalString can now be properly treated as either one-byte or two-byte strings when GCed
+        // see https://hg.mozilla.org/releases/mozilla-esr128/file/tip/js/src/vm/StringType-inl.h#l785
         returnType.setString(str);
         break;
       }

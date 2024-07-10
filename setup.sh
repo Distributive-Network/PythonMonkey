@@ -18,7 +18,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
     SUDO='sudo'
   fi
   $SUDO apt-get update --yes
-  $SUDO apt-get install --yes cmake graphviz llvm clang pkg-config m4 \
+  $SUDO apt-get install --yes cmake graphviz llvm clang pkg-config m4 unzip \
     wget curl python3-distutils python3-dev
   # Install Doxygen
   # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
@@ -28,7 +28,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
-  brew install cmake doxygen pkg-config wget coreutils # `coreutils` installs the `realpath` command
+  brew install cmake doxygen pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
@@ -36,7 +36,8 @@ else
   exit 1
 fi
 # Install rust compiler
-curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.69 # force to use Rust 1.69 because 1.70 has linking issues on Windows
+curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.76
+cargo install cbindgen
 # Setup Poetry
 curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
@@ -51,7 +52,7 @@ echo "Done installing dependencies"
 echo "Downloading uncrustify source code"
 wget -c -q https://github.com/uncrustify/uncrustify/archive/refs/tags/uncrustify-0.78.1.tar.gz
 mkdir -p uncrustify-source
-tar -xzvf uncrustify-0.78.1.tar.gz -C uncrustify-source --strip-components=1 # strip the root folder
+tar -xzf uncrustify-0.78.1.tar.gz -C uncrustify-source --strip-components=1 # strip the root folder
 echo "Done downloading uncrustify source code"
 
 echo "Building uncrustify"
@@ -59,7 +60,7 @@ cd uncrustify-source
 mkdir -p build
 cd build
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  cmake ../ -T ClangCL
+  cmake ../
   cmake --build . -j$CPUS --config Release
   cp Release/uncrustify.exe ../../uncrustify.exe
 else
@@ -71,9 +72,10 @@ cd ../..
 echo "Done building uncrustify"
 
 echo "Downloading spidermonkey source code"
-wget -c -q https://ftp.mozilla.org/pub/firefox/releases/115.8.0esr/source/firefox-115.8.0esr.source.tar.xz
-mkdir -p firefox-source
-tar xf firefox-115.8.0esr.source.tar.xz -C firefox-source --strip-components=1 # strip the root folder
+# Read the commit hash for mozilla-central from the `mozcentral.version` file
+MOZCENTRAL_VERSION=$(cat mozcentral.version)
+wget -c -q -O firefox-source-${MOZCENTRAL_VERSION}.zip https://hg.mozilla.org/mozilla-central/archive/${MOZCENTRAL_VERSION}.zip
+unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv mozilla-central-${MOZCENTRAL_VERSION} firefox-source
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
@@ -85,6 +87,12 @@ sed -i'' -e '/"winheap.cpp"/d' ./memory/mozalloc/moz.build # https://bugzilla.mo
 sed -i'' -e 's/"install-name-tool"/"install_name_tool"/' ./moz.configure # `install-name-tool` does not exist, but we have `install_name_tool`
 sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
+sed -i'' -e 's/shared_lib = self._pretty_path(libdef.output_path, backend_file)/shared_lib = libdef.lib_name/' ./python/mozbuild/mozbuild/backend/recursivemake.py
+sed -i'' -e 's/if version < Version(mac_sdk_min_version())/if False/' ./build/moz.configure/toolchain.configure # do not verify the macOS SDK version as the required version is not available on Github Actions runner
+sed -i'' -e 's/return JS::GetWeakRefsEnabled() == JS::WeakRefSpecifier::Disabled/return false/' ./js/src/vm/GlobalObject.cpp # forcibly enable FinalizationRegistry
+sed -i'' -e 's/return !IsIteratorHelpersEnabled()/return false/' ./js/src/vm/GlobalObject.cpp # forcibly enable iterator helpers
+sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedList.h # would crash in Debug Build: in `~LinkedList()` it should have removed all this list's elements before the list's destruction
+sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
 cd js/src
 mkdir -p _build
 cd _build
@@ -92,7 +100,7 @@ mkdir -p ../../../../_spidermonkey_install/
 ../configure \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
-  --without-system-zlib \
+  $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--without-system-zlib"; fi) \
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
