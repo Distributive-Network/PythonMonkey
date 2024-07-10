@@ -276,7 +276,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
       JS::RootedString filename(cx, JS_NewStringCopyZ(cx, PyUnicode_AsUTF8(fileName)));
       JS::RootedString message(cx, JS_NewStringCopyZ(cx, msgStream.str().c_str()));
       // stack argument cannot be passed in as a string anymore (deprecated), and could not find a proper example using the new argument type
-      if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, lineno, 0, nullptr, message, JS::NothingHandleValue, &rval)) {
+      if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, lineno, JS::ColumnNumberOneOrigin(1), nullptr, message, JS::NothingHandleValue, &rval)) {
         return NULL;
       }
 
@@ -306,7 +306,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   JS::RootedString filename(cx, JS_NewStringCopyZ(cx, "")); // cannot be null or omitted, but is overriden by the errorReport
   JS::RootedString message(cx, JS_NewStringCopyZ(cx, msgStream.str().c_str()));
   // filename cannot be null
-  if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, 0, errorReport, message, JS::NothingHandleValue, &rval)) {
+  if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, JS::ColumnNumberOneOrigin(1), errorReport, message, JS::NothingHandleValue, &rval)) {
     return NULL;
   }
 

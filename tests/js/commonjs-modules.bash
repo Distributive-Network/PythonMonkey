@@ -5,6 +5,8 @@
 #               suite causes this test to fail.
 # @author       Wes Garland, wes@distributive.network
 # @date         June 2023
+# 
+# timeout: 40
 
 panic()
 {
