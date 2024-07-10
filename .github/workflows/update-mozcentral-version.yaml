@@ -25,7 +25,7 @@ jobs:
           )
           echo "MOZCENTRAL_VERSION=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Update `mozcentral.version` File
-        run: echo $MOZCENTRAL_VERSION > mozcentral.version
+        run: echo -n $MOZCENTRAL_VERSION > mozcentral.version
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
