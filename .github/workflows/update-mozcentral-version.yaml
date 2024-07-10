@@ -24,15 +24,16 @@ jobs:
             jq --join-output '(.lastpushid | tostring) as $pushid | empty, .pushes[$pushid].changesets[0]'
           )
           echo "MOZCENTRAL_VERSION=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "MOZCENTRAL_VERSION_SHORT=${COMMIT_HASH:0:7}" >> $GITHUB_ENV
       - name: Update `mozcentral.version` File
-        run: echo $MOZCENTRAL_VERSION > mozcentral.version
+        run: echo -n $MOZCENTRAL_VERSION > mozcentral.version
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
           add-paths: mozcentral.version
           commit-message: |
             chore(deps): upgrade SpiderMonkey to `${{ env.MOZCENTRAL_VERSION }}`
-          branch: chore/upgrade-spidermonkey-to-${{ env.MOZCENTRAL_VERSION }}
+          branch: chore/upgrade-spidermonkey-to-${{ env.MOZCENTRAL_VERSION_SHORT }}
           title: Upgrade SpiderMonkey to mozilla-central commit `${{ env.MOZCENTRAL_VERSION }}`
           body: |
             Changeset: https://hg.mozilla.org/mozilla-central/rev/${{ env.MOZCENTRAL_VERSION }}
