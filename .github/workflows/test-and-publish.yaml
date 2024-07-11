@@ -15,6 +15,7 @@ on:
         required: false
         options:
         - ''
+        - 'ubuntu-20.04'
         - 'ubuntu-24.04'
         - 'macos-12'
         - 'macos-14'
@@ -59,8 +60,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 24.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-24.04','macos-13', 'macos-14' ] # macOS 14 runner exclusively runs on M1 hardwares
+        # Use Ubuntu 20.04 and 24.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'ubuntu-24.04', 'macos-13', 'macos-14' ] # macOS 14 runner exclusively runs on M1 hardwares
                                                        # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
@@ -81,6 +82,7 @@ jobs:
           lookup-only: true # skip download
       - name: Setup XCode
         if: ${{ (matrix.os == 'macos-13' || matrix.os == 'macos-14') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        # SpiderMonkey requires XCode SDK version at least 13.3
         run: sudo xcode-select -switch /Applications/Xcode_14.3.app
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -126,7 +128,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'ubuntu-24.04', 'macos-12', 'macos-14', 'windows-2022' ]
+        os: [ 'ubuntu-20.04', 'ubuntu-24.04', 'macos-12', 'macos-14', 'windows-2022' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
@@ -165,16 +167,17 @@ jobs:
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
       - name: Build Docs # only build docs once
-        if: ${{ matrix.os == 'ubuntu-24.04' && matrix.python_version == '3.11' }}
+        if: ${{ (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-24.04') && matrix.python_version == '3.11' }}
         run: |
             sudo apt-get install -y graphviz 
+            # We need Doxygen 1.9 series
             wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
             tar xf doxygen-1.9.7.linux.bin.tar.gz
             cd doxygen-1.9.7 && sudo make install && cd -
             rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
             BUILD_DOCS=1 BUILD_TYPE=None poetry install
       - name: Upload Doxygen-generated docs as CI artifacts
-        if: ${{ matrix.os == 'ubuntu-24.04' && matrix.python_version == '3.11' }}
+        if: ${{ (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-24.04') && matrix.python_version == '3.11' }}
         uses: actions/upload-artifact@v3
         with:
           name: docs-${{ github.run_id }}-${{ github.sha }}
@@ -248,7 +251,7 @@ jobs:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
           path: /cores
   sdist:
-    runs-on: ubuntu-24.04
+    runs-on: [ubuntu-20.04,ubuntu-24.04]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -272,7 +275,7 @@ jobs:
           path: ./dist/
   publish:
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-24.04
+    runs-on: [ubuntu-20.04,ubuntu-24.04]
     if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     steps:
       # no need to checkout
@@ -295,7 +298,7 @@ jobs:
     # Implement a very basic Python package repository (https://peps.python.org/pep-0503/)
     # and deploy the static files to GitHub Pages
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-24.04
+    runs-on: [ubuntu-20.04,ubuntu-24.04]
     if: ${{ (success() || failure()) && github.ref_name == 'main' }} # publish nightly builds regardless of tests failure
     permissions: # grant GITHUB_TOKEN the permissions required to make a Pages deployment
       pages: write
