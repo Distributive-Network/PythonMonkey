@@ -251,7 +251,7 @@ jobs:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
           path: /cores
   sdist:
-    runs-on: [ubuntu-20.04,ubuntu-24.04]
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -275,7 +275,7 @@ jobs:
           path: ./dist/
   publish:
     needs: [build-and-test, sdist]
-    runs-on: [ubuntu-20.04,ubuntu-24.04]
+    runs-on: ubuntu-20.04
     if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     steps:
       # no need to checkout
@@ -298,7 +298,7 @@ jobs:
     # Implement a very basic Python package repository (https://peps.python.org/pep-0503/)
     # and deploy the static files to GitHub Pages
     needs: [build-and-test, sdist]
-    runs-on: [ubuntu-20.04,ubuntu-24.04]
+    runs-on: ubuntu-20.04
     if: ${{ (success() || failure()) && github.ref_name == 'main' }} # publish nightly builds regardless of tests failure
     permissions: # grant GITHUB_TOKEN the permissions required to make a Pages deployment
       pages: write
