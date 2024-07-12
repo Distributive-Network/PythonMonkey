@@ -95,7 +95,7 @@ static PyObject *asUCS4(PyObject *pyString) {
   return ret;
 }
 
-PyObject *StrType::processString(JSContext *cx, JS::HandleValue strVal) {
+PyObject *StrType::proxyfiString(JSContext *cx, JS::HandleValue strVal) {
   JS::RootedString str(cx, strVal.toString());
   JSLinearString *lstr = JS_EnsureLinearString(cx, str);
   JS::AutoCheckCannotGC nogc;
@@ -189,11 +189,11 @@ PyObject *StrType::getPyObject(JSContext *cx, JS::HandleValue str) {
     }
   }
 
-  return processString(cx, str);
+  return proxyfiString(cx, str);
 }
 
 const char *StrType::getValue(JSContext *cx, JS::HandleValue str) {
-  PyObject *pyString = processString(cx, str);
+  PyObject *pyString = proxyfiString(cx, str);
   const char *value = PyUnicode_AsUTF8(pyString);
   Py_DECREF(pyString);
   return value;

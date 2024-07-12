@@ -38,7 +38,7 @@ public:
 
   static const char *getValue(JSContext *cx, JS::HandleValue str);
 
-  static PyObject *processString(JSContext *cx, JS::HandleValue str);
+  static PyObject *proxyfiString(JSContext *cx, JS::HandleValue str);
 };
 
 #endif
