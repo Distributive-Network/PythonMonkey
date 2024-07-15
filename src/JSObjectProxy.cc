@@ -437,7 +437,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
         goto error;
       }
     } else {
-      // clear exception that was just set
+      // clear any exception that was just set
       PyErr_Clear();
 
       if (_PyUnicodeWriter_WriteASCIIString(&writer, "<cannot repr type>", 19)  < 0) {
