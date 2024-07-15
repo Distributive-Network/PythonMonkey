@@ -511,24 +511,15 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_richcompare(JSArrayProxy *
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
-  // Detect cyclic objects
-  PyObject *objPtr = PyLong_FromVoidPtr(self->jsArray->get());
-  // For `Py_ReprEnter`, we must get a same PyObject when visiting the same JSObject.
-  // We cannot simply use the object returned by `PyLong_FromVoidPtr` because it won't reuse the PyLongObjects for ints not between -5 and 256.
-  // Instead, we store this PyLongObject in a global dict, using itself as the hashable key, effectively interning the PyLongObject.
-  PyObject *tsDict = PyThreadState_GetDict();
-  PyObject *cyclicKey = PyDict_SetDefault(tsDict, /*key*/ objPtr, /*value*/ objPtr); // cyclicKey = (tsDict[objPtr] ??= objPtr)
-  int i = Py_ReprEnter(cyclicKey);
-  if (i != 0) {
-    return i > 0 ? PyUnicode_FromString("[...]") : NULL;
-  }
-
   Py_ssize_t selfLength = JSArrayProxy_length(self);
 
   if (selfLength == 0) {
-    Py_ReprLeave(cyclicKey);
-    PyDict_DelItem(tsDict, cyclicKey);
     return PyUnicode_FromString("[]");
+  }
+
+  Py_ssize_t i = Py_ReprEnter((PyObject *)self);
+  if (i != 0) {
+    return i > 0 ? PyUnicode_FromString("[...]") : NULL;
   }
 
   _PyUnicodeWriter writer;
@@ -578,14 +569,12 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_repr(JSArrayProxy *self) {
     goto error;
   }
 
-  Py_ReprLeave(cyclicKey);
-  PyDict_DelItem(tsDict, cyclicKey);
+  Py_ReprLeave((PyObject *)self);
   return _PyUnicodeWriter_Finish(&writer);
 
 error:
   _PyUnicodeWriter_Dealloc(&writer);
-  Py_ReprLeave(cyclicKey);
-  PyDict_DelItem(tsDict, cyclicKey);
+  Py_ReprLeave((PyObject *)self);
   return NULL;
 }
 
