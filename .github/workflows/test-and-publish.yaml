@@ -272,6 +272,19 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
+  check-install-from-sdist:
+    needs: [build-and-test, sdist]
+    runs-on: [ubuntu-24.04]
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Download wheels built
+        uses: actions/download-artifact@v3
+        with:
+          name: wheel-${{ github.run_id }}-${{ github.sha }}
+          path: ./dist/
+      - run: pip install ./dist/pythonmonkey-*.tar.gz
   publish:
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04
