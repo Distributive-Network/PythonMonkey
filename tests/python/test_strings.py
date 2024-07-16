@@ -1,6 +1,7 @@
 import pythonmonkey as pm
 import gc
 import random
+import copy
 
 
 def test_identity():
@@ -271,3 +272,21 @@ def test_eval_boxed_ucs4_string_fuzztest():
 
       string1 = string2
     assert INITIAL_STRING == string1  # strings should still match after a bunch of iterations through JS
+
+
+def test_string_proxy_copy():
+  world = pm.eval('(function() {return "World"})')
+  say = pm.eval('(function(who) { return `Hello ${who}`})')
+  who = world()
+  hello_world = say(copy.copy(who))
+  assert hello_world == "Hello World"
+  assert hello_world is not who
+
+def test_string_proxy_deepcopy():
+  world = pm.eval('(function() {return "World"})')
+  say = pm.eval('(function(who) { return `Hello ${who}`})')
+  who = world()
+  hello_world = say(copy.deepcopy(who))
+  assert hello_world == "Hello World"
+  assert hello_world is not who
+  

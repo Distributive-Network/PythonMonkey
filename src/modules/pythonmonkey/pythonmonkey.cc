@@ -130,7 +130,8 @@ PyTypeObject JSStringProxyType = {
   .tp_basicsize = sizeof(JSStringProxy),
   .tp_dealloc = (destructor)JSStringProxyMethodDefinitions::JSStringProxy_dealloc,
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_UNICODE_SUBCLASS,
-  .tp_doc = PyDoc_STR("Javascript String value"),
+  .tp_doc = PyDoc_STR("Javascript String proxy"),
+  .tp_methods = JSStringProxy_methods,
   .tp_base = &PyUnicode_Type
 };
 
