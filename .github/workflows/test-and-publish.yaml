@@ -273,7 +273,7 @@ jobs:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
   check-install-from-sdist:
-    needs: [build-and-test, sdist]
+    needs: sdist
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/setup-python@v5
