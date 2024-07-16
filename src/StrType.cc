@@ -95,7 +95,7 @@ static PyObject *asUCS4(PyObject *pyString) {
   return ret;
 }
 
-PyObject *StrType::proxyfiString(JSContext *cx, JS::HandleValue strVal) {
+PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
   JS::RootedString str(cx, strVal.toString());
   JSLinearString *lstr = JS_EnsureLinearString(cx, str);
   JS::AutoCheckCannotGC nogc;
