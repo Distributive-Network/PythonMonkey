@@ -166,7 +166,7 @@ jobs:
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
       - name: Build Docs # only build docs once
-        if: ${{ (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-24.04') && matrix.python_version == '3.11' }}
+        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
         run: |
             sudo apt-get install -y graphviz 
             # We need Doxygen 1.9 series
