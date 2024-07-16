@@ -2,11 +2,6 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# set git hooks
-ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit
-# set blame ignore file
-git config blame.ignorerevsfile .git-blame-ignore-revs
-
 # Get number of CPU cores
 CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
 
@@ -17,11 +12,12 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
     # sudo is present on the system, so use it
     SUDO='sudo'
   fi
-  $SUDO apt-get update --yes
+  echo "Installing apt packages"
   $SUDO apt-get install --yes cmake graphviz llvm clang pkg-config m4 unzip \
-    wget curl python3-distutils python3-dev
+    wget curl python3-dev
   # Install Doxygen
   # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
+  echo "Installing doxygen"
   wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
   tar xf doxygen-1.9.7.linux.bin.tar.gz
   cd doxygen-1.9.7 && $SUDO make install && cd -
@@ -36,9 +32,11 @@ else
   exit 1
 fi
 # Install rust compiler
+echo "Installing rust compiler"
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.76
 cargo install cbindgen
 # Setup Poetry
+echo "Installing poetry"
 curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
   POETRY_BIN="$APPDATA/Python/Scripts/poetry"
@@ -46,30 +44,7 @@ else
   POETRY_BIN=`echo ~/.local/bin/poetry` # expand tilde
 fi
 $POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
-$POETRY_BIN run pip install autopep8
 echo "Done installing dependencies"
-
-echo "Downloading uncrustify source code"
-wget -c -q https://github.com/uncrustify/uncrustify/archive/refs/tags/uncrustify-0.78.1.tar.gz
-mkdir -p uncrustify-source
-tar -xzf uncrustify-0.78.1.tar.gz -C uncrustify-source --strip-components=1 # strip the root folder
-echo "Done downloading uncrustify source code"
-
-echo "Building uncrustify"
-cd uncrustify-source
-mkdir -p build
-cd build
-if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  cmake ../
-  cmake --build . -j$CPUS --config Release
-  cp Release/uncrustify.exe ../../uncrustify.exe
-else
-  cmake ../
-  make -j$CPUS
-  cp uncrustify ../../uncrustify
-fi
-cd ../..
-echo "Done building uncrustify"
 
 echo "Downloading spidermonkey source code"
 # Read the commit hash for mozilla-central from the `mozcentral.version` file
@@ -118,3 +93,35 @@ if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   install_name_tool -id @rpath/$(basename ./libmozjs*) ./libmozjs* # making it work for whatever name the libmozjs dylib is called
 fi
 echo "Done installing spidermonkey"
+
+# if this is being ran in the root directory of the PythonMonkey repo, then include dev configurations
+if test -f .git/hooks/pre-commit; then
+  # set git hooks
+  ln -s -f ../../githooks/pre-commit .git/hooks/pre-commit 
+  # set blame ignore file 
+  git config blame.ignorerevsfile .git-blame-ignore-revs
+  # install autopep8
+  $POETRY_BIN run pip install autopep8
+  # install uncrustify
+  echo "Downloading uncrustify source code"
+  wget -c -q https://github.com/uncrustify/uncrustify/archive/refs/tags/uncrustify-0.78.1.tar.gz
+  mkdir -p uncrustify-source
+  tar -xzf uncrustify-0.78.1.tar.gz -C uncrustify-source --strip-components=1 # strip the root folder
+  echo "Done downloading uncrustify source code"
+
+  echo "Building uncrustify"
+  cd uncrustify-source
+  mkdir -p build
+  cd build
+  if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+    cmake ../
+    cmake --build . -j$CPUS --config Release
+    cp Release/uncrustify.exe ../../uncrustify.exe
+  else
+    cmake ../
+    make -j$CPUS
+    cp uncrustify ../../uncrustify
+  fi
+  cd ../..
+  echo "Done building uncrustify"
+fi
