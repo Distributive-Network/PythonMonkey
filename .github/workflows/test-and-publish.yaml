@@ -274,7 +274,7 @@ jobs:
           path: ./dist/
   check-install-from-sdist:
     needs: [build-and-test, sdist]
-    runs-on: [ubuntu-24.04]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/setup-python@v5
         with:
