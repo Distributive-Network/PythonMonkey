@@ -36,6 +36,35 @@ public:
    * @param self - The JSStringProxy to be free'd
    */
   static void JSStringProxy_dealloc(JSStringProxy *self);
+
+   /**
+   * @brief copy protocol method for both copy and deepcopy
+   *
+   * @param self - The JSObjectProxy
+   * @return a copy of the string
+   */
+  static PyObject *JSStringProxy_copy_method(JSStringProxy *self);
+};
+
+// docs for methods, copied from cpython
+PyDoc_STRVAR(stringproxy_deepcopy__doc__,
+  "__deepcopy__($self, memo, /)\n"
+"--\n"
+"\n");
+
+PyDoc_STRVAR(stringproxy_copy__doc__,
+"__copy__($self, /)\n"
+"--\n"
+"\n");
+
+/**
+ * @brief Struct for the other methods
+ *
+ */
+static PyMethodDef JSStringProxy_methods[] = {
+  {"__deepcopy__", (PyCFunction)JSStringProxyMethodDefinitions::JSStringProxy_copy_method, METH_O, stringproxy_deepcopy__doc__}, // ignores any memo argument
+  {"__copy__", (PyCFunction)JSStringProxyMethodDefinitions::JSStringProxy_copy_method, METH_NOARGS, stringproxy_copy__doc__},
+  {NULL, NULL}                  /* sentinel */
 };
 
 /**
