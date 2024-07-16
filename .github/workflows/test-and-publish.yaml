@@ -176,7 +176,7 @@ jobs:
             rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
             BUILD_DOCS=1 BUILD_TYPE=None poetry install
       - name: Upload Doxygen-generated docs as CI artifacts
-        if: ${{ (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-24.04') && matrix.python_version == '3.11' }}
+        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
         uses: actions/upload-artifact@v3
         with:
           name: docs-${{ github.run_id }}-${{ github.sha }}
