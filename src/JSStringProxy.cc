@@ -24,5 +24,5 @@ void JSStringProxyMethodDefinitions::JSStringProxy_dealloc(JSStringProxy *self)
 PyObject *JSStringProxyMethodDefinitions::JSStringProxy_copy_method(JSStringProxy *self) {
   JS::RootedString selfString(GLOBAL_CX, ((JSStringProxy *)self)->jsString->toString());
   JS::RootedValue selfStringValue(GLOBAL_CX, JS::StringValue(selfString));
-  return StrType::proxyfiString(GLOBAL_CX, selfStringValue);
+  return StrType::proxifyString(GLOBAL_CX, selfStringValue);
 }
