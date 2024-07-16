@@ -189,7 +189,7 @@ PyObject *StrType::getPyObject(JSContext *cx, JS::HandleValue str) {
     }
   }
 
-  return proxyfiString(cx, str);
+  return proxifyString(cx, str);
 }
 
 const char *StrType::getValue(JSContext *cx, JS::HandleValue str) {
