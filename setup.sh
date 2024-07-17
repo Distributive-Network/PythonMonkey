@@ -34,6 +34,7 @@ fi
 # Install rust compiler
 echo "Installing rust compiler"
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.76
+. $HOME/.cargo/env
 cargo install cbindgen
 # Setup Poetry
 echo "Installing poetry"
