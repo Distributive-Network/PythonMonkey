@@ -66,8 +66,48 @@ static bool iterable_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   return iter_next(cx, args, it);
 }
 
+static bool toPrimitive(JSContext *cx, unsigned argc, JS::Value *vp) {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
+  if (!proxy) {
+    return false;
+  }
+
+  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
+
+  _PyUnicodeWriter writer;
+
+  _PyUnicodeWriter_Init(&writer);
+  
+  PyObject *s = PyObject_Repr(self);
+
+  if (s == nullptr) {
+    args.rval().setString(JS_NewStringCopyZ(cx, "<cannot repr type>"));
+    return true;
+  }
+
+  int res = _PyUnicodeWriter_WriteStr(&writer, s);
+  Py_DECREF(s);
+
+  if (res < 0) {
+    args.rval().setString(JS_NewStringCopyZ(cx, "<cannot repr type>"));
+    return true;
+  }
+
+  PyObject* repr = _PyUnicodeWriter_Finish(&writer);
+ 
+  args.rval().set(jsTypeFactory(cx, repr));
+  return true;
+}
+
+static bool iterable_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return toPrimitive(cx, argc, vp);
+}
+
 JSMethodDef PyIterableProxyHandler::iterable_methods[] = {
   {"next", iterable_next, 0},
+  {"valueOf", iterable_valueOf, 0},
   {NULL, NULL, 0}
 };
 
@@ -172,7 +212,6 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
 ) const {
-
   // see if we're calling a function
   if (id.isString()) {
     for (size_t index = 0;; index++) {
@@ -196,12 +235,51 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
     }
   }
 
+  // "constructor" property
+  bool isConstructorProperty;
+  if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
+    JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
+
+    JS::RootedObject rootedObjectPrototype(cx);
+    if (!JS_GetClassPrototype(cx, JSProto_Object, &rootedObjectPrototype)) {
+      return false;
+    }
+
+    JS::RootedValue Object_Prototype_Constructor(cx);
+    if (!JS_GetProperty(cx, rootedObjectPrototype, "constructor", &Object_Prototype_Constructor)) {
+      return false;
+    }
+
+    JS::RootedObject rootedObjectPrototypeConstructor(cx, Object_Prototype_Constructor.toObjectOrNull());
+
+    desc.set(mozilla::Some(
+      JS::PropertyDescriptor::Data(
+        JS::ObjectValue(*rootedObjectPrototypeConstructor),
+        {JS::PropertyAttribute::Enumerable}
+      )
+    ));
+    return true;
+  }
+
   // symbol property
   if (id.isSymbol()) {
     JS::RootedSymbol rootedSymbol(cx, id.toSymbol());
+    JS::SymbolCode symbolCode = JS::GetSymbolCode(rootedSymbol); 
 
-    if (JS::GetSymbolCode(rootedSymbol) == JS::SymbolCode::iterator) {
+    if (symbolCode == JS::SymbolCode::iterator) {
       JSFunction *newFunction = JS_NewFunction(cx, iterable_values, 0, 0, NULL);
+      if (!newFunction) return false;
+      JS::RootedObject funObj(cx, JS_GetFunctionObject(newFunction));
+      desc.set(mozilla::Some(
+        JS::PropertyDescriptor::Data(
+          JS::ObjectValue(*funObj),
+          {JS::PropertyAttribute::Enumerable}
+        )
+      ));
+      return true;
+    } 
+    else if (symbolCode == JS::SymbolCode::toPrimitive) {
+      JSFunction *newFunction = JS_NewFunction(cx, toPrimitive, 0, 0, nullptr);
       if (!newFunction) return false;
       JS::RootedObject funObj(cx, JS_GetFunctionObject(newFunction));
       desc.set(mozilla::Some(

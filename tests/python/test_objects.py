@@ -1,4 +1,5 @@
 import pythonmonkey as pm
+import sys
 
 
 def test_eval_pyobjects():
@@ -148,3 +149,25 @@ def test_pyobjects_toLocaleString():
 
   o = MyClass()
   assert '[object Object]' == pm.eval("(obj) => { return obj.toLocaleString(); }")(o)
+
+
+def test_toPrimitive_iterable():
+  iterable = iter([1,2])
+  toPrimitive = pm.eval("(obj) => { return obj[Symbol.toPrimitive]; }")(iterable)
+  assert repr(toPrimitive).__contains__("<pythonmonkey.JSFunctionProxy object at")  
+
+
+def test_constructor_iterable():
+  iterable = iter([1,2])
+  constructor = pm.eval("(obj) => { return obj.constructor; }")(iterable)
+  assert repr(constructor).__contains__("<pythonmonkey.JSFunctionProxy object at")    
+
+
+def test_toPrimitive_stdin():
+  toPrimitive = pm.eval("(obj) => { return obj[Symbol.toPrimitive]; }")(sys.stdin)
+  assert repr(toPrimitive).__contains__("<pythonmonkey.JSFunctionProxy object at")  
+
+
+def test_constructor_stdin():
+  constructor = pm.eval("(obj) => { return obj.constructor; }")(sys.stdin)
+  assert repr(constructor).__contains__("<pythonmonkey.JSFunctionProxy object at")      

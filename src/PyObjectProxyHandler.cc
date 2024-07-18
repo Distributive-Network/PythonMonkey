@@ -123,19 +123,27 @@ void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
 bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   PyObject *keys = PyObject_Dir(self);
-  size_t keysLength = PyList_Size(keys);
 
-  PyObject *nonDunderKeys = PyList_New(0);
-  for (size_t i = 0; i < keysLength; i++) {
-    PyObject *key = PyList_GetItem(keys, i);
-    if (PyObject_CallMethod(key, "startswith", "(s)", "__") == Py_False) { // if key starts with "__", ignore it
-      PyList_Append(nonDunderKeys, key);
+  if (keys != nullptr) {
+    size_t keysLength = PyList_Size(keys);
+
+    PyObject *nonDunderKeys = PyList_New(0);
+    for (size_t i = 0; i < keysLength; i++) {
+      PyObject *key = PyList_GetItem(keys, i);
+      if (PyObject_CallMethod(key, "startswith", "(s)", "__") == Py_False) { // if key starts with "__", ignore it
+        PyList_Append(nonDunderKeys, key);
+      }
     }
+
+    return handleOwnPropertyKeys(cx, nonDunderKeys, PyList_Size(nonDunderKeys), props);
+  } 
+  else {
+    if (PyErr_Occurred()) {
+       PyErr_Clear();
+    }
+      
+    return handleOwnPropertyKeys(cx, PyList_New(0), 0, props);
   }
-
-  size_t length = PyList_Size(nonDunderKeys);
-
-  return handleOwnPropertyKeys(cx, nonDunderKeys, length, props);
 }
 
 bool PyObjectProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
