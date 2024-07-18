@@ -212,7 +212,6 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
 ) const {
-  
   // see if we're calling a function
   if (id.isString()) {
     for (size_t index = 0;; index++) {
@@ -239,7 +238,6 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   // "constructor" property
   bool isConstructorProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
-    //printf("PyIterableProxyHandler::handleGetOwnPropertyDescriptor constructor\n");
     JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
 
     JS::RootedObject rootedObjectPrototype(cx);
