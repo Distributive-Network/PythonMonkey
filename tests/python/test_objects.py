@@ -174,11 +174,12 @@ def test_constructor_stdin():
   assert repr(constructor).__contains__("<pythonmonkey.JSFunctionProxy object at")      
 
 
-def test_stdin_tty_console_printing():
+def test_iterable_member_console_printing():
   temp_out = StringIO()
   sys.stdout = temp_out
   obj = {}
-  obj['stdin'] = sys.stdin
+  obj['stdin'] = sys.stdin   # sys.stdin is iterable
+  assert hasattr(sys.stdin, '__iter__') == True
   obj['stdin'].isTTY = sys.stdin.isatty()
   pm.eval('''(function iife(obj){console.log(obj['stdin'].isTTY);})''')(obj)
   assert temp_out.getvalue() == "\x1b[33mfalse\x1b[39m\n"
