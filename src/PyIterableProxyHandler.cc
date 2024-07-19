@@ -294,7 +294,7 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
 
   PyObject *attrName = idToKey(cx, id);
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  PyObject *item = PyDict_GetItemWithError(self, attrName);
+  PyObject *item = PyObject_GetAttr(self, attrName);
 
   return handleGetOwnPropertyDescriptor(cx, id, desc, item);
 }
