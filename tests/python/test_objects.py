@@ -1,6 +1,5 @@
 import pythonmonkey as pm
 import sys
-from io import StringIO
 
 
 def test_eval_pyobjects():
@@ -172,14 +171,3 @@ def test_toPrimitive_stdin():
 def test_constructor_stdin():
   constructor = pm.eval("(obj) => { return obj.constructor; }")(sys.stdin)
   assert repr(constructor).__contains__("<pythonmonkey.JSFunctionProxy object at")      
-
-
-def test_iterable_attribute_console_printing():
-  temp_out = StringIO()
-  sys.stdout = temp_out
-  obj = {}
-  obj['stdin'] = sys.stdin   # sys.stdin is iterable
-  assert hasattr(sys.stdin, '__iter__') == True
-  obj['stdin'].isTTY = sys.stdin.isatty()
-  pm.eval('''(function iife(obj){console.log(obj['stdin'].isTTY);})''')(obj)
-  assert temp_out.getvalue() == "\x1b[33mfalse\x1b[39m\n"

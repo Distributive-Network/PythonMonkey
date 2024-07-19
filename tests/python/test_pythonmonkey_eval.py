@@ -440,3 +440,14 @@ def test_console_array():
   items = [1, 2, 3]
   pm.eval('console.log')(items)
   assert temp_out.getvalue() == "[ \x1b[33m1\x1b[39m, \x1b[33m2\x1b[39m, \x1b[33m3\x1b[39m ]\n"
+
+
+def test_iterable_attribute_console_printing():
+  temp_out = StringIO()
+  sys.stdout = temp_out
+  obj = {}
+  obj['stdin'] = sys.stdin   # sys.stdin is iterable
+  assert hasattr(sys.stdin, '__iter__') == True
+  obj['stdin'].isTTY = sys.stdin.isatty()
+  pm.eval('''(function iife(obj){console.log(obj['stdin'].isTTY);})''')(obj)
+  assert temp_out.getvalue() == "\x1b[33mfalse\x1b[39m\n" 
