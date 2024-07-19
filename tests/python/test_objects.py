@@ -174,7 +174,7 @@ def test_constructor_stdin():
   assert repr(constructor).__contains__("<pythonmonkey.JSFunctionProxy object at")      
 
 
-def test_iterable_member_console_printing():
+def test_iterable_attribute_console_printing():
   temp_out = StringIO()
   sys.stdout = temp_out
   obj = {}
