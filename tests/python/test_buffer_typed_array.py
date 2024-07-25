@@ -360,7 +360,6 @@ def test_entries_next_next_undefined():
 
 # keys
 
-
 def test_keys_iterator():
   items = bytes("abc", "ascii")
   result = [7, 8, 9]
@@ -378,7 +377,6 @@ def test_keys_iterator():
 
 
 # values
-
 
 def test_values_iterator():
   items = bytes("abc", "ascii")
