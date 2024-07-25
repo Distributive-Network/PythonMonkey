@@ -131,6 +131,8 @@ static PyBytesProxyHandler pyBytesProxyHandler;
 
 
 JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
+  Py_INCREF(pyObject);
+
   // Get the pyObject's underlying buffer pointer and size
   Py_buffer *view = new Py_buffer{};
   bool immutable = false;
