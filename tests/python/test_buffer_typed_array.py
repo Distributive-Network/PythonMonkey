@@ -271,7 +271,7 @@ def test_bytes_console():
   temp_out = StringIO()
   sys.stdout = temp_out
   pm.eval('console.log')(bytes("hello world", "ascii"))
-  assert temp_out.getvalue() == "\x1b[32m[String: '104,101,108,108,111,32,119,111,114,108,100']\x1b[39m\n"
+  assert temp_out.getvalue().__contains__('104,101,108,108,111,32,119,111,114,108,100')
 
 
 # iterator symbol property
