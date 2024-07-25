@@ -259,19 +259,19 @@ def test_constructor_creates_typedarray():
 
 def test_bytes_valueOf():
   a = pm.eval('(bytes) => bytes.valueOf()')(bytes("hello world", "ascii"))
-  assert a == "h,e,l,l,o, ,w,o,r,l,d"   
+  assert a == "104,101,108,108,111,32,119,111,114,108,100"   
 
 
 def test_bytes_toString():
   a = pm.eval('(bytes) => bytes.toString()')(bytes("hello world", "ascii"))
-  assert a == "h,e,l,l,o, ,w,o,r,l,d"    
+  assert a == "104,101,108,108,111,32,119,111,114,108,100"    
 
 
 def test_bytes_console():
   temp_out = StringIO()
   sys.stdout = temp_out
   pm.eval('console.log')(bytes("hello world", "ascii"))
-  assert temp_out.getvalue().startswith("{ [String: 'h,e,l,l,o, ,w,o,r,l,d']")
+  assert temp_out.getvalue().startswith("\x1b[32m[String: '104,101,108,108,111,32,119,111,114,108,100'")
 
 
 # iterator symbol property

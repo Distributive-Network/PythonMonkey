@@ -43,7 +43,8 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
     if (index > 0) {
       valueOfString += ",";
     }
-    valueOfString += data[index];
+    
+    valueOfString += std::to_string(data[index]);
   }
 
   args.rval().setString(JS_NewStringCopyZ(cx, valueOfString.c_str()));
