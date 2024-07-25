@@ -246,8 +246,18 @@ def test_bytes_byteoffset():
 
 def test_bytes_instanceof():
   result = [None]
-  pm.eval("(result, obj) => {result[0] = obj instanceof Uint8Array}")(result, bytes("hello world", "ascii"))
+  pm.eval("(result, bytes) => {result[0] = bytes instanceof Uint8Array}")(result, bytes("hello world", "ascii"))
   assert result[0]
+
+
+def test_bytes_valueOf():
+  a = pm.eval('(bytes) => bytes.valueOf()')(bytes("hello world", "ascii"))
+  assert a == "h,e,l,l,o, ,w,o,r,l,d"   
+
+
+def test_bytes_toString():
+  a = pm.eval('(bytes) => bytes.toString()')(bytes("hello world", "ascii"))
+  assert a == "h,e,l,l,o, ,w,o,r,l,d"    
 
 
 def test_bytes_console():

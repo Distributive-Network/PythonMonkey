@@ -50,7 +50,12 @@ static bool bytes_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
+static bool bytes_toString(JSContext *cx, unsigned argc, JS::Value *vp) {
+  return bytes_valueOf(cx, argc, vp);
+}
+
 JSMethodDef PyBytesProxyHandler::bytes_methods[] = {
+  {"toString", bytes_toString, 0},
   {"valueOf", bytes_valueOf, 0},
   {NULL, NULL, 0}
 };
