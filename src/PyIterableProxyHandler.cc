@@ -238,8 +238,6 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   // "constructor" property
   bool isConstructorProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
-    JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
-
     JS::RootedObject rootedObjectPrototype(cx);
     if (!JS_GetClassPrototype(cx, JSProto_Object, &rootedObjectPrototype)) {
       return false;
