@@ -250,6 +250,13 @@ def test_bytes_instanceof():
   assert result[0]
 
 
+def test_constructor_creates_typedarray():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { result[0] = arr.constructor; result[0] = new result[0]; result[0] = result[0] instanceof Uint8Array}")(result, items)
+  assert result[0] == True    
+
+
 def test_bytes_valueOf():
   a = pm.eval('(bytes) => bytes.valueOf()')(bytes("hello world", "ascii"))
   assert a == "h,e,l,l,o, ,w,o,r,l,d"   
@@ -265,3 +272,126 @@ def test_bytes_console():
   sys.stdout = temp_out
   pm.eval('console.log')(bytes("hello world", "ascii"))
   assert temp_out.getvalue().startswith("{ [String: 'h,e,l,l,o, ,w,o,r,l,d']")
+
+
+# iterator symbol property
+
+def test_iterator_type_function():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { result[0] = typeof arr[Symbol.iterator]}")(result, items)
+  assert result[0] == 'function'
+
+
+def test_iterator_first_next():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { result[0] = arr[Symbol.iterator]().next()}")(result, items)
+  assert result[0].value == 104.0
+  assert not result[0].done
+
+
+def test_iterator_second_next():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); result[0] = iterator.next()}")(
+    result, items)
+  assert result[0].value == 101.0
+  assert not result[0].done
+
+
+def test_iterator_last_next():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("""
+    (result, arr) => {
+      let iterator = arr[Symbol.iterator]();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      result[0] = iterator.next();
+    }
+  """)(result, items)
+  assert result[0].value is None
+  assert result[0].done
+
+
+def test_iterator_iterator():
+  items = bytes("hell", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {let iter = arr[Symbol.iterator](); let head = iter.next().value; result[0] = [...iter] }")(
+    result, items)
+  assert result[0] == [101.0, 108.0, 108.0]
+
+
+# entries
+
+def test_entries_next():
+  items = bytes("abc", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {result[0] = arr.entries(); result[0] = result[0].next().value}")(result, items)
+  assert items == bytes("abc", "ascii")
+  assert result[0] == [0, 97.0]
+
+
+def test_entries_next_next():
+  items = bytes("abc", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(
+    result, items)
+  assert result[0] == [1, 98.0]
+
+
+def test_entries_next_next_undefined():
+  items = bytes("a", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(
+    result, items)
+  assert result[0] is None
+
+
+# keys
+
+
+def test_keys_iterator():
+  items = bytes("abc", "ascii")
+  result = [7, 8, 9]
+  pm.eval("""
+    (result, arr) => {
+      index = 0;
+      iterator = arr.keys();
+      for (const key of iterator) {
+        result[index] = key;
+        index++;
+      }
+    }
+  """)(result, items)
+  assert result == [0, 1, 2]
+
+
+# values
+
+
+def test_values_iterator():
+  items = bytes("abc", "ascii")
+  result = [7, 8, 9]
+  pm.eval("""
+    (result, arr) => {
+      index = 0;
+      iterator = arr.values();
+      for (const value of iterator) {
+        result[index] = value;
+        index++;
+      }
+    }
+  """)(result, items)
+  assert result == [97.0, 98.0, 99.0]
+  assert result is not items  

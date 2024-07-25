@@ -1,7 +1,7 @@
 /**
  * @file PyBytesProxyHandler.hh
  * @author Philippe Laporte (philippe@distributive.network)
- * @brief Struct for creating JS proxy objects for immutable bytes objects
+ * @brief Struct for creating JS Uint8Array-like proxy objects for immutable bytes objects
  * @date 2024-07-23
  *
  * @copyright Copyright (c) 2024 Distributive Corp.
@@ -39,7 +39,7 @@ public:
    * @brief An array of method definitions for bytes prototype methods
    *
    */
-  static JSMethodDef bytes_methods[];
+  static JSMethodDef array_methods[];
 };
 
 #endif
