@@ -9,13 +9,52 @@
  */
 
 #include "include/BufferType.hh"
-
+#include "include/PyBytesProxyHandler.hh"
 
 #include <jsapi.h>
 #include <js/ArrayBuffer.h>
 #include <js/experimental/TypedData.h>
 #include <js/ScalarType.h>
 
+
+// JS to Python
+
+/* static */
+const char *BufferType::_toPyBufferFormatCode(JS::Scalar::Type subtype) {
+  // floating point types
+  if (subtype == JS::Scalar::Float32) {
+    return "f";
+  } else if (subtype == JS::Scalar::Float64) {
+    return "d";
+  }
+
+  // integer types
+  bool isSigned = JS::Scalar::isSignedIntType(subtype);
+  uint8_t byteSize = JS::Scalar::byteSize(subtype);
+  // Python `array` type codes are strictly mapped to basic C types (e.g., `int`), widths may vary on different architectures,
+  // but JS TypedArray uses fixed-width integer types (e.g., `uint32_t`)
+  switch (byteSize) {
+  case sizeof(char):
+    return isSigned ? "b" : "B";
+  case sizeof(short):
+    return isSigned ? "h" : "H";
+  case sizeof(int):
+    return isSigned ? "i" : "I";
+  // case sizeof(long): // compile error: duplicate case value
+  //                    // And this is usually where the bit widths on 32/64-bit systems don't agree,
+  //                    //    see https://en.wikipedia.org/wiki/64-bit_computing#64-bit_data_models
+  //   return isSigned ? "l" : "L";
+  case sizeof(long long):
+    return isSigned ? "q" : "Q";
+  default: // invalid
+    return "x"; // type code for pad bytes, no value
+  }
+}
+
+/* static */
+bool BufferType::isSupportedJsTypes(JSObject *obj) {
+  return JS::IsArrayBufferObject(obj) || JS_IsTypedArrayObject(obj);
+}
 
 PyObject *BufferType::getPyObject(JSContext *cx, JS::HandleObject bufObj) {
   PyObject *pyObject;
@@ -30,11 +69,6 @@ PyObject *BufferType::getPyObject(JSContext *cx, JS::HandleObject bufObj) {
   }
 
   return pyObject;
-}
-
-/* static */
-bool BufferType::isSupportedJsTypes(JSObject *obj) {
-  return JS::IsArrayBufferObject(obj) || JS_IsTypedArrayObject(obj);
 }
 
 /* static */
@@ -90,16 +124,31 @@ PyObject *BufferType::fromJsArrayBuffer(JSContext *cx, JS::HandleObject arrayBuf
   return PyMemoryView_FromBuffer(&bufInfo);
 }
 
+
+// Python to JS
+
+static PyBytesProxyHandler pyBytesProxyHandler;
+
+
 JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
-  Py_INCREF(pyObject);
+  Py_INCREF(pyObject); // TODO remove
 
   // Get the pyObject's underlying buffer pointer and size
   Py_buffer *view = new Py_buffer{};
+  bool immutable = false;
   if (PyObject_GetBuffer(pyObject, view, PyBUF_ND | PyBUF_WRITABLE /* C-contiguous and writable */ | PyBUF_FORMAT) < 0) {
+
     // the buffer is immutable (e.g., Python `bytes` type is read-only)
-    return nullptr; // raises a PyExc_BufferError
+    PyErr_Clear();     // a PyExc_BufferError was raised
+
+    if (PyObject_GetBuffer(pyObject, view, PyBUF_ND /* C-contiguous and writable */ | PyBUF_FORMAT) < 0) {
+      return nullptr;  // and a PyExc_BufferError was raised again
+    }
+
+    immutable = true;
   }
-  if (view->ndim != 1) {
+  
+  if (view->ndim != 1 && !immutable) {
     PyErr_SetString(PyExc_BufferError, "multidimensional arrays are not allowed");
     BufferType::_releasePyBuffer(view);
     return nullptr;
@@ -108,7 +157,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
   // Determine the TypedArray's subtype (Uint8Array, Float64Array, ...)
   JS::Scalar::Type subtype = _getPyBufferType(view);
 
-  JSObject *arrayBuffer = nullptr;
+  JSObject *arrayBuffer;
   if (view->len > 0) {
     // Create a new ExternalArrayBuffer object
     // Note: data will be copied instead of transferring the ownership when this external ArrayBuffer is "transferred" to a worker thread.
@@ -117,6 +166,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
       view->buf /* data pointer */,
       {BufferType::_releasePyBuffer, view /* the `bufView` argument to `_releasePyBuffer` */}
     );
+
     arrayBuffer = JS::NewExternalArrayBuffer(cx,
       view->len /* byteLength */, std::move(dataPtr)
     );
@@ -124,9 +174,21 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
     arrayBuffer = JS::NewArrayBuffer(cx, 0);
     BufferType::_releasePyBuffer(view); // the buffer is no longer needed since we are creating a brand new empty ArrayBuffer
   }
-  JS::RootedObject arrayBufferRooted(cx, arrayBuffer);
 
-  return _newTypedArrayWithBuffer(cx, subtype, arrayBufferRooted);
+  if (!immutable) {
+    JS::RootedObject arrayBufferRooted(cx, arrayBuffer);
+    return _newTypedArrayWithBuffer(cx, subtype, arrayBufferRooted);
+  } else {
+    JS::RootedValue v(cx);
+    JS::RootedObject uint8ArrayPrototype(cx);
+    JS_GetClassPrototype(cx, JSProto_Uint8Array, &uint8ArrayPrototype); // so that instanceof will work, not that prototype methods will   TEST THIS
+    JSObject *proxy = js::NewProxyObject(cx, &pyBytesProxyHandler, v, uint8ArrayPrototype.get());
+    JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(pyObject));
+    JS::PersistentRootedObject *arrayBufferPointer = new JS::PersistentRootedObject(cx);
+    arrayBufferPointer->set(arrayBuffer);
+    JS::SetReservedSlot(proxy, OtherSlot, JS::PrivateValue(arrayBufferPointer));
+    return proxy;
+  }
 }
 
 /* static */
@@ -175,38 +237,6 @@ JS::Scalar::Type BufferType::_getPyBufferType(Py_buffer *bufView) {
     return isSigned ? JS::Scalar::BigInt64 : JS::Scalar::BigUint64;
   default:
     return JS::Scalar::MaxTypedArrayViewType; // invalid byteSize
-  }
-}
-
-/* static */
-const char *BufferType::_toPyBufferFormatCode(JS::Scalar::Type subtype) {
-  // floating point types
-  if (subtype == JS::Scalar::Float32) {
-    return "f";
-  } else if (subtype == JS::Scalar::Float64) {
-    return "d";
-  }
-
-  // integer types
-  bool isSigned = JS::Scalar::isSignedIntType(subtype);
-  uint8_t byteSize = JS::Scalar::byteSize(subtype);
-  // Python `array` type codes are strictly mapped to basic C types (e.g., `int`), widths may vary on different architectures,
-  // but JS TypedArray uses fixed-width integer types (e.g., `uint32_t`)
-  switch (byteSize) {
-  case sizeof(char):
-    return isSigned ? "b" : "B";
-  case sizeof(short):
-    return isSigned ? "h" : "H";
-  case sizeof(int):
-    return isSigned ? "i" : "I";
-  // case sizeof(long): // compile error: duplicate case value
-  //                    // And this is usually where the bit widths on 32/64-bit systems don't agree,
-  //                    //    see https://en.wikipedia.org/wiki/64-bit_computing#64-bit_data_models
-  //   return isSigned ? "l" : "L";
-  case sizeof(long long):
-    return isSigned ? "q" : "Q";
-  default: // invalid
-    return "x"; // type code for pad bytes, no value
   }
 }
 

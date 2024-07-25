@@ -4,6 +4,8 @@ import gc
 import numpy
 import array
 import struct
+from io import StringIO
+import sys
 
 
 def test_py_buffer_to_js_typed_array():
@@ -189,16 +191,6 @@ def test_py_buffer_to_js_typed_array():
 
   # TODO (Tom Tang): error for detached ArrayBuffer, or should it be considered as empty?
 
-  # should error on immutable Python buffers
-  # Note: Python `bytes` type must be converted to a (mutable) `bytearray`
-  # because there's no such a concept of read-only ArrayBuffer in JS
-  with pytest.raises(BufferError, match="Object is not writable."):
-    pm.eval("(typedArray) => {}")(b'')
-  immutable_numpy_array = numpy.arange(10)
-  immutable_numpy_array.setflags(write=False)
-  with pytest.raises(ValueError, match="buffer source array is read-only"):
-    pm.eval("(typedArray) => {}")(immutable_numpy_array)
-
   # buffer should be in C order (row major)
   # 1-D array is always considered C-contiguous because it doesn't matter if it's row or column major in 1-D
   fortran_order_arr = numpy.array([[1, 2], [3, 4]], order="F")
@@ -209,3 +201,57 @@ def test_py_buffer_to_js_typed_array():
   numpy_2d_array = numpy.array([[1, 2], [3, 4]], order="C")
   with pytest.raises(BufferError, match="multidimensional arrays are not allowed"):
     pm.eval("(typedArray) => {}")(numpy_2d_array)
+
+
+
+def test_bytes_proxy_write():
+  with pytest.raises(TypeError, match="'bytes' object has only read-only attributes"):
+    pm.eval('(bytes) => bytes[0] = 5')(bytes("hello world", "ascii"))
+
+
+def test_bytes_get_index_python():
+  b = pm.eval('(bytes) => bytes')(bytes("hello world", "ascii"))
+  assert b[0] == 104
+
+
+def test_bytes_get_index_js():
+  b = pm.eval('(bytes) => bytes[1]')(bytes("hello world", "ascii"))
+  assert b == 101.0  
+
+
+def test_bytes_bytes_per_element():
+  b = pm.eval('(bytes) => bytes.BYTES_PER_ELEMENT')(bytes("hello world", "ascii"))
+  assert b == 1.0  
+
+
+def test_bytes_buffer():
+  b = pm.eval('(bytes) => bytes.buffer')(bytes("hello world", "ascii"))
+  assert repr(b).__contains__("memory at")
+  assert b[2] == 108    
+
+
+def test_bytes_length():
+  b = pm.eval('(bytes) => bytes.length')(bytes("hello world", "ascii"))
+  assert b == 11.0      
+
+def test_bytes_bytelength():
+  b = pm.eval('(bytes) => bytes.byteLength')(bytes("hello world", "ascii"))
+  assert b == 11.0   
+
+
+def test_bytes_byteoffset():
+  b = pm.eval('(bytes) => bytes.byteOffset')(bytes("hello world", "ascii"))
+  assert b == 0.0   
+
+
+def test_bytes_instanceof():
+  result = [None]
+  pm.eval("(result, obj) => {result[0] = obj instanceof Uint8Array}")(result, bytes("hello world", "ascii"))
+  assert result[0]
+
+
+def test_bytes_console():
+  temp_out = StringIO()
+  sys.stdout = temp_out
+  pm.eval('console.log')(bytes("hello world", "ascii"))
+  assert temp_out.getvalue().startswith("{ [String: 'h,e,l,l,o, ,w,o,r,l,d']")
