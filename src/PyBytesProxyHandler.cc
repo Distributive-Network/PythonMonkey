@@ -337,8 +337,6 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
 
     // "constructor" property
     if (JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isProperty) && isProperty) {
-      JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
-
       JS::RootedObject uint8ArrayPrototype(cx);
       if (!JS_GetClassPrototype(cx, JSProto_Uint8Array, &uint8ArrayPrototype)) {
         return false;
