@@ -72,7 +72,6 @@ bool PyObjectProxyHandler::handleOwnPropertyKeys(JSContext *cx, PyObject *keys, 
   return true;
 }
 
-// TODO need to let subclasses call superclass methods
 bool PyObjectProxyHandler::handleGetOwnPropertyDescriptor(JSContext *cx, JS::HandleId id,
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc, PyObject *item) {
   // see if we're calling a function
