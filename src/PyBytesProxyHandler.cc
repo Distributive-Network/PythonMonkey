@@ -148,33 +148,32 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
       ));
       return true;
     }
-  }
 
-  // "constructor" property
-  bool isConstructorProperty;
-  if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
-    JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
+    // "constructor" property
+    if (JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isProperty) && isProperty) {
+      JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
 
-    JS::RootedObject uint8ArrayPrototype(cx);
-    if (!JS_GetClassPrototype(cx, JSProto_Uint8Array, &uint8ArrayPrototype)) {
-      return false;
+      JS::RootedObject uint8ArrayPrototype(cx);
+      if (!JS_GetClassPrototype(cx, JSProto_Uint8Array, &uint8ArrayPrototype)) {
+        return false;
+      }
+
+      JS::RootedValue Uint8Array_Prototype_Constructor(cx);
+      if (!JS_GetProperty(cx, uint8ArrayPrototype, "constructor", &Uint8Array_Prototype_Constructor)) {
+        return false;
+      }
+
+      JS::RootedObject rootedUint8ArrayPrototypeConstructor(cx, Uint8Array_Prototype_Constructor.toObjectOrNull());
+
+      desc.set(mozilla::Some(
+        JS::PropertyDescriptor::Data(
+          JS::ObjectValue(*rootedUint8ArrayPrototypeConstructor),
+          {JS::PropertyAttribute::Enumerable}
+        )
+      ));
+
+      return true;
     }
-
-    JS::RootedValue Uint8Array_Prototype_Constructor(cx);
-    if (!JS_GetProperty(cx, uint8ArrayPrototype, "constructor", &Uint8Array_Prototype_Constructor)) {
-      return false;
-    }
-
-    JS::RootedObject rootedUint8ArrayPrototypeConstructor(cx, Uint8Array_Prototype_Constructor.toObjectOrNull());
-
-    desc.set(mozilla::Some(
-      JS::PropertyDescriptor::Data(
-        JS::ObjectValue(*rootedUint8ArrayPrototypeConstructor),
-        {JS::PropertyAttribute::Enumerable}
-      )
-    ));
-
-    return true;
   }
 
   if (id.isSymbol()) {
