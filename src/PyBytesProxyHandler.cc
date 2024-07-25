@@ -375,10 +375,11 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
           {JS::PropertyAttribute::Enumerable}
         )
       ));
-      return true;
+    } else {
+      desc.set(mozilla::Nothing());
     }
 
-    return true; // needed for console.log
+    return true;
   }
 
   // item
