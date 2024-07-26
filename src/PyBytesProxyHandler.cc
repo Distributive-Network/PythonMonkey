@@ -232,7 +232,7 @@ static bool array_values(JSContext *cx, unsigned argc, JS::Value *vp) {
 }
 
 
-JSMethodDef PyBytesProxyHandler::array_methods[] = {
+static JSMethodDef array_methods[] = {
   {"toString", array_toString, 0},
   {"valueOf", array_valueOf, 0},
   {"entries", array_entries, 0},
@@ -287,7 +287,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
   if (id.isString()) {
     bool isProperty;
 
-    // "length" and byteLength properties have the same value
+    // "length" and "byteLength" properties have the same value
     if (((JS_StringEqualsLiteral(cx, id.toString(), "length", &isProperty) && isProperty) || (JS_StringEqualsLiteral(cx, id.toString(), "byteLength", &isProperty) && isProperty))) {
       JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
 
@@ -303,7 +303,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
       return true;
     }
 
-    // buffer property
+    // "buffer" property
     if (JS_StringEqualsLiteral(cx, id.toString(), "buffer", &isProperty) && isProperty) {
       JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
 
@@ -315,7 +315,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
       return true;
     }
 
-    // BYTES_PER_ELEMENT property
+    // "BYTES_PER_ELEMENT" property
     if (JS_StringEqualsLiteral(cx, id.toString(), "BYTES_PER_ELEMENT", &isProperty) && isProperty) {
       desc.set(mozilla::Some(
         JS::PropertyDescriptor::Data(
@@ -325,7 +325,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
       return true;
     }
 
-    // byteOffset property
+    // "byteOffset" property
     if (JS_StringEqualsLiteral(cx, id.toString(), "byteOffset", &isProperty) && isProperty) {
       desc.set(mozilla::Some(
         JS::PropertyDescriptor::Data(
