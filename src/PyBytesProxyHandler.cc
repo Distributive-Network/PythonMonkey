@@ -288,7 +288,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
     JSString *idString = id.toString();
 
     // "length" and "byteLength" properties have the same value
-    if (((JS_StringEqualsLiteral(cx, idString, "length", &isProperty) && isProperty) || (JS_StringEqualsLiteral(cx, id.toString(), "byteLength", &isProperty) && isProperty))) {
+    if ((JS_StringEqualsLiteral(cx, idString, "length", &isProperty) && isProperty) || (JS_StringEqualsLiteral(cx, id.toString(), "byteLength", &isProperty) && isProperty)) {
       JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
 
       JS::RootedObject rootedArrayBuffer(cx, arrayBuffer->get());
