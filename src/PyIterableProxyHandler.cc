@@ -105,7 +105,7 @@ static bool iterable_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   return toPrimitive(cx, argc, vp);
 }
 
-JSMethodDef PyIterableProxyHandler::iterable_methods[] = {
+static JSMethodDef iterable_methods[] = {
   {"next", iterable_next, 0},
   {"valueOf", iterable_valueOf, 0},
   {NULL, NULL, 0}
