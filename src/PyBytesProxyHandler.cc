@@ -14,8 +14,6 @@
 #include <jsapi.h>
 #include <js/ArrayBuffer.h>
 
-#include <Python.h>
-
 
 const char PyBytesProxyHandler::family = 0;
 
