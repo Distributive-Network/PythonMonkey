@@ -180,7 +180,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
   } else {
     JS::RootedValue v(cx);
     JS::RootedObject uint8ArrayPrototype(cx);
-    JS_GetClassPrototype(cx, JSProto_Uint8Array, &uint8ArrayPrototype); // so that instanceof will work, not that prototype methods will   TEST THIS
+    JS_GetClassPrototype(cx, JSProto_Uint8Array, &uint8ArrayPrototype); // so that instanceof will work, not that prototype methods will
     JSObject *proxy = js::NewProxyObject(cx, &pyBytesProxyHandler, v, uint8ArrayPrototype.get());
     JS::SetReservedSlot(proxy, PyObjectSlot, JS::PrivateValue(pyObject));
     JS::PersistentRootedObject *arrayBufferPointer = new JS::PersistentRootedObject(cx);
