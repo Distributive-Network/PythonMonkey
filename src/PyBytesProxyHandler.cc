@@ -287,8 +287,10 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
   if (id.isString()) {
     bool isProperty;
 
+    JSString *idString = id.toString();
+
     // "length" and "byteLength" properties have the same value
-    if (((JS_StringEqualsLiteral(cx, id.toString(), "length", &isProperty) && isProperty) || (JS_StringEqualsLiteral(cx, id.toString(), "byteLength", &isProperty) && isProperty))) {
+    if (((JS_StringEqualsLiteral(cx, idString, "length", &isProperty) && isProperty) || (JS_StringEqualsLiteral(cx, id.toString(), "byteLength", &isProperty) && isProperty))) {
       JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
 
       JS::RootedObject rootedArrayBuffer(cx, arrayBuffer->get());
@@ -304,7 +306,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
     }
 
     // "buffer" property
-    if (JS_StringEqualsLiteral(cx, id.toString(), "buffer", &isProperty) && isProperty) {
+    if (JS_StringEqualsLiteral(cx, idString, "buffer", &isProperty) && isProperty) {
       JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
 
       desc.set(mozilla::Some(
@@ -316,7 +318,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
     }
 
     // "BYTES_PER_ELEMENT" property
-    if (JS_StringEqualsLiteral(cx, id.toString(), "BYTES_PER_ELEMENT", &isProperty) && isProperty) {
+    if (JS_StringEqualsLiteral(cx, idString, "BYTES_PER_ELEMENT", &isProperty) && isProperty) {
       desc.set(mozilla::Some(
         JS::PropertyDescriptor::Data(
           JS::Int32Value(1)
@@ -326,7 +328,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
     }
 
     // "byteOffset" property
-    if (JS_StringEqualsLiteral(cx, id.toString(), "byteOffset", &isProperty) && isProperty) {
+    if (JS_StringEqualsLiteral(cx, idString, "byteOffset", &isProperty) && isProperty) {
       desc.set(mozilla::Some(
         JS::PropertyDescriptor::Data(
           JS::Int32Value(0)
@@ -336,7 +338,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
     }
 
     // "constructor" property
-    if (JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isProperty) && isProperty) {
+    if (JS_StringEqualsLiteral(cx, idString, "constructor", &isProperty) && isProperty) {
       JS::RootedObject uint8ArrayPrototype(cx);
       if (!JS_GetClassPrototype(cx, JSProto_Uint8Array, &uint8ArrayPrototype)) {
         return false;
