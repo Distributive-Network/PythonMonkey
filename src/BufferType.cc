@@ -147,7 +147,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
     immutable = true;
   }
   
-  if (view->ndim != 1 && !immutable) {
+  if (view->ndim != 1) {
     PyErr_SetString(PyExc_BufferError, "multidimensional arrays are not allowed");
     BufferType::_releasePyBuffer(view);
     return nullptr;
