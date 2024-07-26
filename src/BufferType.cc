@@ -140,7 +140,7 @@ JSObject *BufferType::toJsTypedArray(JSContext *cx, PyObject *pyObject) {
     // the buffer is immutable (e.g., Python `bytes` type is read-only)
     PyErr_Clear();     // a PyExc_BufferError was raised
 
-    if (PyObject_GetBuffer(pyObject, view, PyBUF_ND /* C-contiguous and writable */ | PyBUF_FORMAT) < 0) {
+    if (PyObject_GetBuffer(pyObject, view, PyBUF_ND /* C-contiguous */ | PyBUF_FORMAT) < 0) {
       return nullptr;  // a PyExc_BufferError was raised again
     }
 
