@@ -232,7 +232,7 @@ static bool array_values(JSContext *cx, unsigned argc, JS::Value *vp) {
 }
 
 
-JSMethodDef PyBytesProxyHandler::array_methods[] = {
+static JSMethodDef array_methods[] = {
   {"toString", array_toString, 0},
   {"valueOf", array_valueOf, 0},
   {"entries", array_entries, 0},

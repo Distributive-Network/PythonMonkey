@@ -34,12 +34,6 @@ public:
   ) const override;  
 
   void finalize(JS::GCContext *gcx, JSObject *proxy) const override;
-
-  /**
-   * @brief An array of method definitions for bytes prototype methods
-   *
-   */
-  static JSMethodDef array_methods[];
 };
 
 #endif
