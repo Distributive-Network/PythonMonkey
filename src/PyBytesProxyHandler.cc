@@ -35,17 +35,17 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::AutoCheckCannotGC autoNoGC(cx);
   uint8_t *data = JS::GetArrayBufferData(rootedArrayBuffer, &isSharedMemory, autoNoGC);
 
-  std::string valueOfString;
+  const size_t STRING_LENGTH = byteLength*2 - 1;
+  JS::Latin1Char* buffer = (JS::Latin1Char *)malloc(sizeof(JS::Latin1Char) * STRING_LENGTH);
 
-  for (Py_ssize_t index = 0; index < byteLength; index++) {
-    if (index > 0) {
-      valueOfString += ",";
-    }
-    
-    valueOfString += std::to_string(data[index]);
+  buffer[0] = data[0];
+  for (Py_ssize_t index = 1; index < byteLength; index++) {
+    buffer[index*2 - 1] = ',';
+    buffer[index*2] = data[index];
   }
 
-  args.rval().setString(JS_NewStringCopyZ(cx, valueOfString.c_str()));
+  JS::UniqueLatin1Chars str(buffer);
+  args.rval().setString(JS_NewLatin1String(cx, std::move(str), STRING_LENGTH));
   return true;
 }
 
