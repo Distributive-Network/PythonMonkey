@@ -50,6 +50,7 @@ def test_py_buffer_to_js_typed_array():
   assert pm.eval("(arr)=>arr instanceof Int16Array")(numpy.array([1], dtype=numpy.int16))
   assert pm.eval("(arr)=>arr instanceof Int32Array")(numpy.array([1], dtype=numpy.int32))
   assert pm.eval("(arr)=>arr instanceof BigInt64Array")(numpy.array([1], dtype=numpy.int64))
+  assert pm.eval("(arr)=>arr instanceof Float16Array")(numpy.array([1], dtype=numpy.float16))
   assert pm.eval("(arr)=>arr instanceof Float32Array")(numpy.array([1], dtype=numpy.float32))
   assert pm.eval("(arr)=>arr instanceof Float64Array")(numpy.array([1], dtype=numpy.float64))
   assert pm.eval("new Uint8Array([1])").format == "B"
@@ -60,6 +61,7 @@ def test_py_buffer_to_js_typed_array():
   assert pm.eval("new Int16Array([1])").format == "h"
   assert pm.eval("new Int32Array([1])").format == "i"
   assert pm.eval("new BigInt64Array([1n])").format == "q"
+  assert pm.eval("new Float16Array([1])").format == "e"
   assert pm.eval("new Float32Array([1])").format == "f"
   assert pm.eval("new Float64Array([1])").format == "d"
 

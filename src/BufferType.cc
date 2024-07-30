@@ -220,7 +220,10 @@ JS::Scalar::Type BufferType::_getPyBufferType(Py_buffer *bufView) {
     return JS::Scalar::Float32;
   } else if (typeCode == 'd') {
     return JS::Scalar::Float64;
+  } else if (typeCode == 'e') {
+    return JS::Scalar::Float16;
   }
+
 
   // integer types
   // We can't rely on the type codes alone since the typecodes are mapped to C types and would have different sizes on different architectures
