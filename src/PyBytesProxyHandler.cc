@@ -34,18 +34,27 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   bool isSharedMemory; 
   JS::AutoCheckCannotGC autoNoGC(cx);
   uint8_t *data = JS::GetArrayBufferData(rootedArrayBuffer, &isSharedMemory, autoNoGC);
+  
+  size_t numberOfDigits = 0;
+  for (size_t i = 0; i < byteLength; i++) {
+    numberOfDigits += data[i] < 10 ? 1 : data[i] < 100 ? 2 : 3; 
+  }
+  const size_t STRING_LENGTH = byteLength + numberOfDigits;
+  JS::Latin1Char* buffer = (JS::Latin1Char *)malloc(sizeof(JS::Latin1Char) * STRING_LENGTH);
+  
+  size_t charIndex = 0;
+  sprintf((char*)&buffer[charIndex], "%d", data[0]);
+  charIndex += data[0] < 10 ? 1 : data[0] < 100 ? 2 : 3;
 
-  std::string valueOfString;
-
-  for (Py_ssize_t index = 0; index < byteLength; index++) {
-    if (index > 0) {
-      valueOfString += ",";
-    }
-    
-    valueOfString += std::to_string(data[index]);
+  for (size_t dataIndex = 1; dataIndex < byteLength; dataIndex++) {
+    buffer[charIndex] = ',';
+    charIndex++;
+    sprintf((char*)&buffer[charIndex], "%d", data[dataIndex]);
+    charIndex += data[dataIndex] < 10 ? 1 : data[dataIndex] < 100 ? 2 : 3;
   }
 
-  args.rval().setString(JS_NewStringCopyZ(cx, valueOfString.c_str()));
+  JS::UniqueLatin1Chars str(buffer);
+  args.rval().setString(JS_NewLatin1String(cx, std::move(str), STRING_LENGTH - 1)); // don't include null byte
   return true;
 }
 

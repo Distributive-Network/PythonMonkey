@@ -16,15 +16,19 @@
 #include <js/experimental/TypedData.h>
 #include <js/ScalarType.h>
 
+#include <limits.h>
 
 // JS to Python
 
 /* static */
 const char *BufferType::_toPyBufferFormatCode(JS::Scalar::Type subtype) {
   // floating point types
-  if (subtype == JS::Scalar::Float32) {
+  switch (subtype) {
+  case JS::Scalar::Float16:
+    return "e";
+  case JS::Scalar::Float32:
     return "f";
-  } else if (subtype == JS::Scalar::Float64) {
+  case JS::Scalar::Float64:
     return "d";
   }
 
@@ -216,7 +220,10 @@ JS::Scalar::Type BufferType::_getPyBufferType(Py_buffer *bufView) {
     return JS::Scalar::Float32;
   } else if (typeCode == 'd') {
     return JS::Scalar::Float64;
+  } else if (typeCode == 'e') {
+    return JS::Scalar::Float16;
   }
+
 
   // integer types
   // We can't rely on the type codes alone since the typecodes are mapped to C types and would have different sizes on different architectures
