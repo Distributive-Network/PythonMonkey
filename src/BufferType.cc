@@ -23,9 +23,12 @@
 /* static */
 const char *BufferType::_toPyBufferFormatCode(JS::Scalar::Type subtype) {
   // floating point types
-  if (subtype == JS::Scalar::Float32) {
+  switch (subtype) {
+  case JS::Scalar::Float16:
+    return "e";
+  case JS::Scalar::Float32:
     return "f";
-  } else if (subtype == JS::Scalar::Float64) {
+  case JS::Scalar::Float64:
     return "d";
   }
 
