@@ -34,6 +34,7 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   bool isSharedMemory; 
   JS::AutoCheckCannotGC autoNoGC(cx);
   uint8_t *data = JS::GetArrayBufferData(rootedArrayBuffer, &isSharedMemory, autoNoGC);
+  
   size_t numberOfDigits = 0;
   for (size_t i = 0; i < byteLength; i++) {
     numberOfDigits += data[i] < 10 ? 1 : data[i] < 100 ? 2 : 3; 
@@ -44,6 +45,7 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   size_t charIndex = 0;
   sprintf((char*)&buffer[charIndex], "%d", data[0]);
   charIndex += data[0] < 10 ? 1 : data[0] < 100 ? 2 : 3;
+
   for (size_t dataIndex = 1; dataIndex < byteLength; dataIndex++) {
     buffer[charIndex] = ',';
     charIndex++;
