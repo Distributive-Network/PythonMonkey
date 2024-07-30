@@ -190,12 +190,6 @@ public:
     JS::ObjectOpResult &result) const override;
 
   bool getBuiltinClass(JSContext *cx, JS::HandleObject proxy, js::ESClass *cls) const override;
-
-  /**
-   * @brief An array of method definitions for Object prototype methods
-   *
-   */
-  static JSMethodDef object_methods[];
 };
 
 #endif
