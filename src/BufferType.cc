@@ -16,6 +16,7 @@
 #include <js/experimental/TypedData.h>
 #include <js/ScalarType.h>
 
+#include <limits.h>
 
 // JS to Python
 
