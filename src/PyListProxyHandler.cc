@@ -2040,8 +2040,6 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   // "constructor" property
   bool isConstructorProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
-    JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
-
     JS::RootedObject rootedArrayPrototype(cx);
     if (!JS_GetClassPrototype(cx, JSProto_Array, &rootedArrayPrototype)) {
       return false;

@@ -28,12 +28,6 @@ public:
     JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc
   ) const override;
-
-  /**
-   * @brief An array of method definitions for Iterable prototype methods
-   *
-   */
-  static JSMethodDef iterable_methods[];
 };
 
 #endif
