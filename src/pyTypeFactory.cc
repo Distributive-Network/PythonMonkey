@@ -27,6 +27,7 @@
 #include "include/PyListProxyHandler.hh"
 #include "include/PyObjectProxyHandler.hh"
 #include "include/PyIterableProxyHandler.hh"
+#include "include/PyBytesProxyHandler.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
@@ -68,7 +69,8 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
       if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family ||                // this is one of our proxies for python dicts
           js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family ||                // this is one of our proxies for python lists
           js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family ||            // this is one of our proxies for python iterables
-          js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) {              // this is one of our proxies for python objects
+          js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family ||              // this is one of our proxies for python iterables
+          js::GetProxyHandler(obj)->family() == &PyBytesProxyHandler::family) {               // this is one of our proxies for python bytes objects
 
         PyObject *pyObject = JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot);
         Py_INCREF(pyObject);

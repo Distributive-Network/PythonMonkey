@@ -4,6 +4,8 @@ import gc
 import numpy
 import array
 import struct
+from io import StringIO
+import sys
 
 
 def test_py_buffer_to_js_typed_array():
@@ -48,6 +50,7 @@ def test_py_buffer_to_js_typed_array():
   assert pm.eval("(arr)=>arr instanceof Int16Array")(numpy.array([1], dtype=numpy.int16))
   assert pm.eval("(arr)=>arr instanceof Int32Array")(numpy.array([1], dtype=numpy.int32))
   assert pm.eval("(arr)=>arr instanceof BigInt64Array")(numpy.array([1], dtype=numpy.int64))
+  assert pm.eval("(arr)=>arr instanceof Float16Array")(numpy.array([1], dtype=numpy.float16))
   assert pm.eval("(arr)=>arr instanceof Float32Array")(numpy.array([1], dtype=numpy.float32))
   assert pm.eval("(arr)=>arr instanceof Float64Array")(numpy.array([1], dtype=numpy.float64))
   assert pm.eval("new Uint8Array([1])").format == "B"
@@ -58,6 +61,7 @@ def test_py_buffer_to_js_typed_array():
   assert pm.eval("new Int16Array([1])").format == "h"
   assert pm.eval("new Int32Array([1])").format == "i"
   assert pm.eval("new BigInt64Array([1n])").format == "q"
+  assert pm.eval("new Float16Array([1])").format == "e"
   assert pm.eval("new Float32Array([1])").format == "f"
   assert pm.eval("new Float64Array([1])").format == "d"
 
@@ -189,16 +193,6 @@ def test_py_buffer_to_js_typed_array():
 
   # TODO (Tom Tang): error for detached ArrayBuffer, or should it be considered as empty?
 
-  # should error on immutable Python buffers
-  # Note: Python `bytes` type must be converted to a (mutable) `bytearray`
-  # because there's no such a concept of read-only ArrayBuffer in JS
-  with pytest.raises(BufferError, match="Object is not writable."):
-    pm.eval("(typedArray) => {}")(b'')
-  immutable_numpy_array = numpy.arange(10)
-  immutable_numpy_array.setflags(write=False)
-  with pytest.raises(ValueError, match="buffer source array is read-only"):
-    pm.eval("(typedArray) => {}")(immutable_numpy_array)
-
   # buffer should be in C order (row major)
   # 1-D array is always considered C-contiguous because it doesn't matter if it's row or column major in 1-D
   fortran_order_arr = numpy.array([[1, 2], [3, 4]], order="F")
@@ -209,3 +203,195 @@ def test_py_buffer_to_js_typed_array():
   numpy_2d_array = numpy.array([[1, 2], [3, 4]], order="C")
   with pytest.raises(BufferError, match="multidimensional arrays are not allowed"):
     pm.eval("(typedArray) => {}")(numpy_2d_array)
+
+
+
+def test_bytes_proxy_write():
+  with pytest.raises(TypeError, match="'bytes' object has only read-only attributes"):
+    pm.eval('(bytes) => bytes[0] = 5')(bytes("hello world", "ascii"))
+
+
+def test_bytes_get_index_python():
+  b = pm.eval('(bytes) => bytes')(bytes("hello world", "ascii"))
+  assert b[0] == 104
+
+
+def test_bytes_get_index_js():
+  b = pm.eval('(bytes) => bytes[1]')(bytes("hello world", "ascii"))
+  assert b == 101.0  
+
+
+def test_bytes_bytes_per_element():
+  b = pm.eval('(bytes) => bytes.BYTES_PER_ELEMENT')(bytes("hello world", "ascii"))
+  assert b == 1.0  
+
+
+def test_bytes_buffer():
+  b = pm.eval('(bytes) => bytes.buffer')(bytes("hello world", "ascii"))
+  assert repr(b).__contains__("memory at")
+  assert b[2] == 108    
+
+
+def test_bytes_length():
+  b = pm.eval('(bytes) => bytes.length')(bytes("hello world", "ascii"))
+  assert b == 11.0      
+
+def test_bytes_bytelength():
+  b = pm.eval('(bytes) => bytes.byteLength')(bytes("hello world", "ascii"))
+  assert b == 11.0   
+
+
+def test_bytes_byteoffset():
+  b = pm.eval('(bytes) => bytes.byteOffset')(bytes("hello world", "ascii"))
+  assert b == 0.0   
+
+
+def test_bytes_instanceof():
+  result = [None]
+  pm.eval("(result, bytes) => {result[0] = bytes instanceof Uint8Array}")(result, bytes("hello world", "ascii"))
+  assert result[0]
+
+
+def test_constructor_creates_typedarray():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { result[0] = arr.constructor; result[0] = new result[0]; result[0] = result[0] instanceof Uint8Array}")(result, items)
+  assert result[0] == True    
+
+
+def test_bytes_valueOf():
+  a = pm.eval('(bytes) => bytes.valueOf()')(bytes("hello world", "ascii"))
+  assert a == "104,101,108,108,111,32,119,111,114,108,100"   
+
+
+def test_bytes_toString():
+  a = pm.eval('(bytes) => bytes.toString()')(bytes("hello world", "ascii"))
+  assert a == "104,101,108,108,111,32,119,111,114,108,100"    
+
+
+def test_bytes_console():
+  temp_out = StringIO()
+  sys.stdout = temp_out
+  pm.eval('console.log')(bytes("hello world", "ascii"))
+  assert temp_out.getvalue().__contains__('104,101,108,108,111,32,119,111,114,108,100')
+
+
+# iterator symbol property
+
+def test_iterator_type_function():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { result[0] = typeof arr[Symbol.iterator]}")(result, items)
+  assert result[0] == 'function'
+
+
+def test_iterator_first_next():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { result[0] = arr[Symbol.iterator]().next()}")(result, items)
+  assert result[0].value == 104.0
+  assert not result[0].done
+
+
+def test_iterator_second_next():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => { let iterator = arr[Symbol.iterator](); iterator.next(); result[0] = iterator.next()}")(
+    result, items)
+  assert result[0].value == 101.0
+  assert not result[0].done
+
+
+def test_iterator_last_next():
+  items = bytes("hello world", "ascii")
+  result = [0]
+  pm.eval("""
+    (result, arr) => {
+      let iterator = arr[Symbol.iterator]();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      iterator.next();
+      result[0] = iterator.next();
+    }
+  """)(result, items)
+  assert result[0].value is None
+  assert result[0].done
+
+
+def test_iterator_iterator():
+  items = bytes("hell", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {let iter = arr[Symbol.iterator](); let head = iter.next().value; result[0] = [...iter] }")(
+    result, items)
+  assert result[0] == [101.0, 108.0, 108.0]
+
+
+# entries
+
+def test_entries_next():
+  items = bytes("abc", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {result[0] = arr.entries(); result[0] = result[0].next().value}")(result, items)
+  assert items == bytes("abc", "ascii")
+  assert result[0] == [0, 97.0]
+
+
+def test_entries_next_next():
+  items = bytes("abc", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(
+    result, items)
+  assert result[0] == [1, 98.0]
+
+
+def test_entries_next_next_undefined():
+  items = bytes("a", "ascii")
+  result = [0]
+  pm.eval("(result, arr) => {result[0] = arr.entries(); result[0].next(); result[0] = result[0].next().value}")(
+    result, items)
+  assert result[0] is None
+
+
+# keys
+
+def test_keys_iterator():
+  items = bytes("abc", "ascii")
+  result = [7, 8, 9]
+  pm.eval("""
+    (result, arr) => {
+      index = 0;
+      iterator = arr.keys();
+      for (const key of iterator) {
+        result[index] = key;
+        index++;
+      }
+    }
+  """)(result, items)
+  assert result == [0, 1, 2]
+
+
+# values
+
+def test_values_iterator():
+  items = bytes("abc", "ascii")
+  result = [7, 8, 9]
+  pm.eval("""
+    (result, arr) => {
+      index = 0;
+      iterator = arr.values();
+      for (const value of iterator) {
+        result[index] = value;
+        index++;
+      }
+    }
+  """)(result, items)
+  assert result == [97.0, 98.0, 99.0]
+  assert result is not items  

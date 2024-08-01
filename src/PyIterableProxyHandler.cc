@@ -105,7 +105,7 @@ static bool iterable_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   return toPrimitive(cx, argc, vp);
 }
 
-JSMethodDef PyIterableProxyHandler::iterable_methods[] = {
+static JSMethodDef iterable_methods[] = {
   {"next", iterable_next, 0},
   {"valueOf", iterable_valueOf, 0},
   {NULL, NULL, 0}
@@ -238,8 +238,6 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   // "constructor" property
   bool isConstructorProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
-    JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
-
     JS::RootedObject rootedObjectPrototype(cx);
     if (!JS_GetClassPrototype(cx, JSProto_Object, &rootedObjectPrototype)) {
       return false;
