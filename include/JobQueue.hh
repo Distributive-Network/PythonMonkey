@@ -79,7 +79,7 @@ void runJobs(JSContext *cx) override;
 bool empty() const override;
 
 /**
- * @return true if the job queue stops draining, which results in `empty()` being false after `runJobs()`.
+ * @return true if the job queue stopped draining, which results in `empty()` being false after `runJobs()`.
  */
 bool isDrainingStopped() const override;
 

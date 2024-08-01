@@ -30,7 +30,7 @@ public:
   bool isExtensible(JSContext *cx, JS::HandleObject proxy, bool *extensible) const override final;
 };
 
-enum ProxySlots {PyObjectSlot};
+enum ProxySlots {PyObjectSlot, OtherSlot};
 
 typedef struct {
   const char *name;      /* The name of the method */
