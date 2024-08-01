@@ -20,7 +20,7 @@ const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.requi
  * @param {any}     what     The thing to truncate; must have a slice method and index property.
  *                           Works with string, array, typedarray, etc.
  * @param {number}  maxlen   The maximum length for truncation
- * @param {boolean} coerce   Not false = coerce to printable character codes  
+ * @param {boolean=} coerce  Not false = coerce to printable character codes  
  * @returns {string}
  */
 function trunc(what, maxlen, coerce)
@@ -105,6 +105,34 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   onreadystatechange = null;
 
   // 
+  // debugging
+  // 
+  /** The unique connection id to identify each XHR connection when debugging */
+  #connectionId = Math.random().toString(16).slice(2, 9); // random 7-character hex string
+
+  /**
+   * Wrapper to print debug logs with connection id information
+   * @param {string} selector
+   */
+  #debug(selector)
+  {
+    return (...args) => debug(selector)(`Conn<${this.#connectionId}>:`, ...args);
+  }
+
+  /**
+   * Allowing others to inspect the internal properties 
+   */
+  get _requestMetadata()
+  {
+    return {
+      method: this.#requestMethod,
+      url: this.#requestURL.toString(),
+      headers: this.#requestHeaders,
+      body: this.#requestBody,
+    };
+  }
+
+  // 
   // states
   // 
   /** @readonly */ static UNSENT           = 0;
@@ -142,7 +170,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   open(method, url, async = true, username = null, password = null)
   {
-    debug('xhr:open')('open start, method=' + method);
+    this.#debug('xhr:open')('open start, method=' + method);
     // Normalize the method.
     // @ts-expect-error
     method = method.toString().toUpperCase();
@@ -156,7 +184,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       parsedURL.username = username;
     if (password)
       parsedURL.password = password;
-    debug('xhr:open')('url is ' + parsedURL.href);
+    this.#debug('xhr:open')('url is ' + parsedURL.href);
 
     // step 11
     this.#sendFlag = false;
@@ -176,7 +204,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#state = XMLHttpRequest.OPENED;
       this.dispatchEvent(new Event('readystatechange'));
     }
-    debug('xhr:open')('finished open, state is ' + this.#state);
+    this.#debug('xhr:open')('finished open, state is ' + this.#state);
   }
 
   /**
@@ -186,7 +214,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   setRequestHeader(name, value)
   {
-    debug('xhr:headers')(`set header ${name}=${value}`);
+    this.#debug('xhr:headers')(`set header ${name}=${value}`);
     if (this.#state !== XMLHttpRequest.OPENED)
       throw new DOMException('setRequestHeader can only be called when state is OPEN', 'InvalidStateError');
     if (this.#sendFlag)
@@ -252,7 +280,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   send(body = null)
   {
-    debug('xhr:send')(`sending; body length=${body?.length}`);
+    this.#debug('xhr:send')(`sending; body length=${body?.length} «${body ? trunc(body, 100) : ''}»`);
     if (this.#state !== XMLHttpRequest.OPENED) // step 1
       throw new DOMException('connection must be opened before send() is called', 'InvalidStateError');
     if (this.#sendFlag) // step 2
@@ -285,7 +313,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       if (!originalAuthorContentType && extractedContentType)
         this.#requestHeaders['content-type'] = extractedContentType;
     }
-    debug('xhr:send')(`content-type=${this.#requestHeaders['content-type']}`);
+    this.#debug('xhr:send')(`content-type=${this.#requestHeaders['content-type']}`);
 
     // step 5
     if (this.#uploadObject._hasAnyListeners())
@@ -310,7 +338,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
    */
   #sendAsync()
   {
-    debug('xhr:send')('sending in async mode');
+    this.#debug('xhr:send')('sending in async mode');
     this.dispatchEvent(new ProgressEvent('loadstart', { loaded:0, total:0 })); // step 11.1
     
     let requestBodyTransmitted = 0; // step 11.2
@@ -343,7 +371,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     let responseLength = 0;
     const processResponse = (response) =>
     {
-      debug('xhr:response')(`response headers ----\n${response.getAllResponseHeaders()}`);
+      this.#debug('xhr:response')(`response headers ----\n${response.getAllResponseHeaders()}`);
       this.#response = response; // step 11.9.1
       this.#state = XMLHttpRequest.HEADERS_RECEIVED; // step 11.9.4
       this.dispatchEvent(new Event('readystatechange')); // step 11.9.5
@@ -354,7 +382,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
 
     const processBodyChunk = (/** @type {Uint8Array} */ bytes) =>
     {
-      debug('xhr:response')(`recv chunk, ${bytes.length} bytes (${trunc(bytes, 100)})`);
+      this.#debug('xhr:response')(`recv chunk, ${bytes.length} bytes «${trunc(bytes, 100)}»`);
       this.#receivedBytes.push(bytes);
       if (this.#state === XMLHttpRequest.HEADERS_RECEIVED)
         this.#state = XMLHttpRequest.LOADING;
@@ -367,7 +395,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
      */
     const processEndOfBody = () =>
     {
-      debug('xhr:response')(`end of body, received ${this.#receivedLength} bytes`);
+      this.#debug('xhr:response')(`end of body, received ${this.#receivedLength} bytes`);
       const transmitted = this.#receivedLength; // step 3
       const length = responseLength || 0; // step 4
 
@@ -380,8 +408,8 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
         this.dispatchEvent(new ProgressEvent(eventType, { loaded:transmitted, total:length }));
     };
 
-    debug('xhr:send')(`${this.#requestMethod} ${this.#requestURL.href}`);
-    debug('xhr:headers')('headers=' + Object.entries(this.#requestHeaders));
+    this.#debug('xhr:send')(`${this.#requestMethod} ${this.#requestURL.href}`);
+    this.#debug('xhr:headers')('headers=' + Object.entries(this.#requestHeaders));
 
     // send() step 6
     request(
@@ -397,6 +425,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       processEndOfBody,
       () => (this.#timedOutFlag = true), // onTimeoutError
       () => (this.#response = null /* network error */), // onNetworkError
+      this.#debug.bind(this),
     ).catch((e) => this.#handleErrors(e));
   }
 

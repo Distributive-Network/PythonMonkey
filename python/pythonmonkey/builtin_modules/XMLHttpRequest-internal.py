@@ -44,9 +44,10 @@ async def request(
     # callbacks for known exceptions
     onTimeoutError: Callable[[asyncio.TimeoutError], None],
     onNetworkError: Callable[[aiohttp.ClientError], None],
+    # the debug logging function, see `pm.bootstrap.require("debug")`
+    debug: Callable[[str], Callable[..., None]],
     /
 ):
-  debug = pm.bootstrap.require("debug")
 
   # to support HTTP-Keep-Alive
   global keepAliveConnector
