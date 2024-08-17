@@ -146,6 +146,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+      - name: Remove old poetry cache
+        run: rm -rf ~/.cache/pypoetry
+        if: ${{ matrix.os == 'pi' }}
       - name: Setup Poetry
         uses: snok/install-poetry@v1
         with:
@@ -162,7 +165,6 @@ jobs:
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
-          poetry env remove --all -v
           poetry env use python$PYTHON_VERSION || poetry env use python3 # use the correct Python version we've set up
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
