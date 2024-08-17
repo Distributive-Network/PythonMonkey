@@ -162,11 +162,10 @@ jobs:
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
-          poetry env use python$PYTHON_VERSION || poetry env use python3 # use the correct Python version we've set up
+          poetry env remove --all
+          poetry env use python3 # use the correct Python version we've set up
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
-        env:
-          PYTHON_VERSION: ${{ matrix.python_version }}
       - name: Build Docs # only build docs once
         if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
         run: |
