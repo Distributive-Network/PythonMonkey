@@ -75,7 +75,7 @@ cd js/src
 mkdir -p _build
 cd _build
 mkdir -p ../../../../_spidermonkey_install/
-../configure \
+../configure --target=$(clang --print-target-triple) \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
   $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--without-system-zlib"; fi) \
