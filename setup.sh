@@ -34,15 +34,15 @@ fi
 # Install rust compiler
 echo "Installing rust compiler"
 curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.76
-. $HOME/.cargo/env
-cargo install cbindgen
+CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
+$CARGO_BIN install cbindgen
 # Setup Poetry
 echo "Installing poetry"
 curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
   POETRY_BIN="$APPDATA/Python/Scripts/poetry"
 else
-  POETRY_BIN=`echo ~/.local/bin/poetry` # expand tilde
+  POETRY_BIN="$HOME/.local/bin/poetry"
 fi
 $POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
 echo "Done installing dependencies"
