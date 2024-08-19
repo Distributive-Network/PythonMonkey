@@ -8,7 +8,7 @@ using the Python engine to provide the Javascript host environment.
 
 We feature JavaScript Array and Object methods implemented on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API.
 
-This product is in an advanced stage, approximately 95% to MVP as of March 2024. It is under active development by [Distributive](https://distributive.network/).
+This product is in an advanced stage, approximately 98% to MVP as of August 2024. It is under active development by [Distributive](https://distributive.network/).
 
 External contributions and feedback are welcome and encouraged.
 
