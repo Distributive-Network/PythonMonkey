@@ -59,9 +59,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 20.04 / Ubuntu 24.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'ubuntu-24.04', 'macos-13', 'macos-14', 'pi' ] # macOS 14 runner exclusively runs on M1 hardwares
-                                                       # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
+        # Use Ubuntu 20.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14', 'pi' ] # macOS 14 runner exclusively runs on M1 hardwares
+                                                             # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -127,7 +127,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'ubuntu-20.04', 'ubuntu-24.04', 'macos-12', 'macos-14', 'windows-2022', 'pi' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2022', 'pi' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
         exclude:
           # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
