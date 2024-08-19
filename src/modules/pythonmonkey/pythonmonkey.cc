@@ -37,7 +37,6 @@
 #include <js/Object.h>
 #include <js/Proxy.h>
 #include <js/SourceText.h>
-#include <js/Symbol.h>
 
 #include <Python.h>
 #include <datetime.h>

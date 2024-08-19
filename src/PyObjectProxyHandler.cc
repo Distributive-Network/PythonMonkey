@@ -17,7 +17,6 @@
 #include <jsfriendapi.h>
 #include <js/Conversions.h>
 #include <js/Proxy.h>
-#include <js/Symbol.h>
 #include <js/friend/ErrorMessages.h>
 
 #include <Python.h>
