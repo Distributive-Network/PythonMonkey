@@ -26,30 +26,30 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
     return false;
   }
 
-  JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
+  JS::PersistentRootedObject *arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
   JS::RootedObject rootedArrayBuffer(cx, arrayBuffer->get());
 
   auto byteLength = JS::GetArrayBufferByteLength(rootedArrayBuffer);
 
-  bool isSharedMemory; 
+  bool isSharedMemory;
   JS::AutoCheckCannotGC autoNoGC(cx);
   uint8_t *data = JS::GetArrayBufferData(rootedArrayBuffer, &isSharedMemory, autoNoGC);
-  
+
   size_t numberOfDigits = 0;
   for (size_t i = 0; i < byteLength; i++) {
-    numberOfDigits += data[i] < 10 ? 1 : data[i] < 100 ? 2 : 3; 
+    numberOfDigits += data[i] < 10 ? 1 : data[i] < 100 ? 2 : 3;
   }
   const size_t STRING_LENGTH = byteLength + numberOfDigits;
-  JS::Latin1Char* buffer = (JS::Latin1Char *)malloc(sizeof(JS::Latin1Char) * STRING_LENGTH);
-  
+  JS::Latin1Char *buffer = (JS::Latin1Char *)malloc(sizeof(JS::Latin1Char) * STRING_LENGTH);
+
   size_t charIndex = 0;
-  sprintf((char*)&buffer[charIndex], "%d", data[0]);
+  sprintf((char *)&buffer[charIndex], "%d", data[0]);
   charIndex += data[0] < 10 ? 1 : data[0] < 100 ? 2 : 3;
 
   for (size_t dataIndex = 1; dataIndex < byteLength; dataIndex++) {
     buffer[charIndex] = ',';
     charIndex++;
-    sprintf((char*)&buffer[charIndex], "%d", data[dataIndex]);
+    sprintf((char *)&buffer[charIndex], "%d", data[dataIndex]);
     charIndex += data[dataIndex] < 10 ? 1 : data[dataIndex] < 100 ? 2 : 3;
   }
 
@@ -84,7 +84,7 @@ static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   JS::RootedObject thisObj(cx);
   if (!args.computeThis(cx, &thisObj)) return false;
 
-  JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(thisObj, BytesIteratorSlotIteratedObject);
+  JS::PersistentRootedObject *arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(thisObj, BytesIteratorSlotIteratedObject);
   JS::RootedObject rootedArrayBuffer(cx, arrayBuffer->get());
 
   JS::RootedValue rootedNextIndex(cx, JS::GetReservedSlot(thisObj, BytesIteratorSlotNextIndex));
@@ -112,7 +112,7 @@ static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
   if (!JS_SetProperty(cx, result, "done", done)) return false;
 
   if (itemKind == ITEM_KIND_VALUE) {
-    bool isSharedMemory; 
+    bool isSharedMemory;
     JS::AutoCheckCannotGC autoNoGC(cx);
     uint8_t *data = JS::GetArrayBufferData(rootedArrayBuffer, &isSharedMemory, autoNoGC);
 
@@ -125,7 +125,7 @@ static bool iterator_next(JSContext *cx, unsigned argc, JS::Value *vp) {
     JS::RootedValue rootedNextIndex(cx, JS::Int32Value(nextIndex));
     items[0].set(rootedNextIndex);
 
-    bool isSharedMemory; 
+    bool isSharedMemory;
     JS::AutoCheckCannotGC autoNoGC(cx);
     uint8_t *data = JS::GetArrayBufferData(rootedArrayBuffer, &isSharedMemory, autoNoGC);
 
@@ -216,8 +216,8 @@ static bool array_iterator_func(JSContext *cx, unsigned argc, JS::Value *vp, int
   if (!JS::Construct(cx, constructor_val, JS::HandleValueArray::empty(), &obj)) return false;
   if (!obj) return false;
 
-  JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
- 
+  JS::PersistentRootedObject *arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
+
   JS::SetReservedSlot(obj, BytesIteratorSlotIteratedObject, JS::PrivateValue(arrayBuffer));
   JS::SetReservedSlot(obj, BytesIteratorSlotNextIndex, JS::Int32Value(0));
   JS::SetReservedSlot(obj, BytesIteratorSlotItemKind, JS::Int32Value(itemKind));
@@ -253,13 +253,13 @@ bool PyBytesProxyHandler::set(JSContext *cx, JS::HandleObject proxy, JS::HandleI
   JS::HandleValue v, JS::HandleValue receiver,
   JS::ObjectOpResult &result) const {
 
-  // block all modifications  
-  
+  // block all modifications
+
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
   PyErr_Format(PyExc_TypeError,
-               "'%.100s' object has only read-only attributes",
-               Py_TYPE(self)->tp_name);
+    "'%.100s' object has only read-only attributes",
+    Py_TYPE(self)->tp_name);
 
   return result.failReadOnly();
 }
@@ -298,7 +298,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
 
     // "length" and "byteLength" properties have the same value
     if ((JS_StringEqualsLiteral(cx, idString, "length", &isProperty) && isProperty) || (JS_StringEqualsLiteral(cx, id.toString(), "byteLength", &isProperty) && isProperty)) {
-      JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
+      JS::PersistentRootedObject *arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
 
       JS::RootedObject rootedArrayBuffer(cx, arrayBuffer->get());
 
@@ -314,7 +314,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
 
     // "buffer" property
     if (JS_StringEqualsLiteral(cx, idString, "buffer", &isProperty) && isProperty) {
-      JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
+      JS::PersistentRootedObject *arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
 
       desc.set(mozilla::Some(
         JS::PropertyDescriptor::Data(
@@ -392,10 +392,10 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
   // item
   Py_ssize_t index;
   if (idToIndex(cx, id, &index)) {
-    JS::PersistentRootedObject* arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
+    JS::PersistentRootedObject *arrayBuffer = JS::GetMaybePtrFromReservedSlot<JS::PersistentRootedObject>(proxy, OtherSlot);
     JS::RootedObject rootedArrayBuffer(cx, arrayBuffer->get());
 
-    bool isSharedMemory; 
+    bool isSharedMemory;
     JS::AutoCheckCannotGC autoNoGC(cx);
     uint8_t *data = JS::GetArrayBufferData(rootedArrayBuffer, &isSharedMemory, autoNoGC);
 
@@ -406,7 +406,7 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
     ));
 
     return true;
-  } 
+  }
 
   PyObject *attrName = idToKey(cx, id);
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
