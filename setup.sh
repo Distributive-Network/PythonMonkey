@@ -13,18 +13,11 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
     SUDO='sudo'
   fi
   echo "Installing apt packages"
-  $SUDO apt-get install --yes cmake graphviz llvm clang pkg-config m4 unzip \
+  $SUDO apt-get install --yes cmake llvm clang pkg-config m4 unzip \
     wget curl python3-dev
-  # Install Doxygen
-  # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
-  echo "Installing doxygen"
-  wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
-  tar xf doxygen-1.9.7.linux.bin.tar.gz
-  cd doxygen-1.9.7 && $SUDO make install && cd -
-  rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
-  brew install cmake doxygen pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
+  brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
