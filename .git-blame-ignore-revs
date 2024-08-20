@@ -6,3 +6,6 @@ aae30e864449442cf0b04e94f8a242b1b667de9a
 
 # chore(linting): lint all C++ files
 58cd4b45777b046f03a63255c1d93e289e1cab5e
+
+# chore(linting): lint PyBytesProxyHandler.cc
+d540ed6e0edfe9538dc726cf587dfb2cc76dde34
