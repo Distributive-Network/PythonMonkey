@@ -38,6 +38,7 @@ typedef struct {
 
 typedef struct {
   dictiterobject it;
+  JS::PersistentRootedObject *iteratorSymbol;
 } JSObjectIterProxy;
 
 /**

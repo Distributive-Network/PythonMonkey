@@ -284,26 +284,89 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter(JSObjectProxy *self) {
+  printf("JSObjectProxy_iter\n");
+
   // key iteration
   JSObjectIterProxy *iterator = PyObject_GC_New(JSObjectIterProxy, &JSObjectIterProxyType);
   if (iterator == NULL) {
     return NULL;
   }
-  iterator->it.it_index = 0;
-  iterator->it.reversed = false;
-  iterator->it.kind = KIND_KEYS;
-  Py_INCREF(self);
-  iterator->it.di_dict = (PyDictObject *)self;
-  iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
-  // Get **enumerable** own properties
-  if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, iterator->it.props)) {
-    return NULL;
+
+  // check if Symbol.iterator is defined
+  JS::RootedValue symbolValue(GLOBAL_CX, JS::SymbolValue(JS::GetWellKnownSymbol(GLOBAL_CX, JS::SymbolCode::iterator)));
+  JS::RootedId id(GLOBAL_CX);
+
+  printf("JSObjectProxy_iter 2\n");
+
+  if (JS_ValueToId(GLOBAL_CX, symbolValue, &id) && id.isSymbol()) {
+
+    printf("JSObjectProxy_iter 3\n");
+
+    JS::RootedValue iteratorVal(GLOBAL_CX);
+    if (JS_GetPropertyById(GLOBAL_CX, *(self->jsObject), id, &iteratorVal) < 0) {
+      PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
+      return NULL;
+    }
+
+    printf("JSObjectProxy_iter 4\n");
+
+    if (!iteratorVal.isUndefined()) {
+      printf("JSObjectProxy_iter 5\n");
+      JS::RootedValue iteratorObject(GLOBAL_CX);
+      if (!JS_CallFunctionValue(GLOBAL_CX, nullptr, iteratorVal, JS::HandleValueArray::empty(), &iteratorObject)) {
+        PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
+        return NULL;
+      } 
+
+      printf("JSObjectProxy_iter 6\n");
+
+      iterator->iteratorSymbol = new JS::PersistentRootedObject(GLOBAL_CX);
+      iterator->iteratorSymbol->set(iteratorObject.toObjectOrNull());
+
+      iterator->it.props = nullptr;
+    }
+    else {
+      printf("JSObjectProxy_iter 7\n");
+      iterator->it.it_index = 0;
+      iterator->it.reversed = false;
+      iterator->it.kind = KIND_KEYS;
+      Py_INCREF(self);
+      iterator->it.di_dict = (PyDictObject *)self;
+      iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
+
+      // Get **enumerable** own properties
+      if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, iterator->it.props)) {
+        PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
+        return NULL;
+      }
+
+      iterator->iteratorSymbol = nullptr;
+    }
   }
+  else {
+    printf("JSObjectProxy_iter 8\n");
+    iterator->it.it_index = 0;
+    iterator->it.reversed = false;
+    iterator->it.kind = KIND_KEYS;
+    Py_INCREF(self);
+    iterator->it.di_dict = (PyDictObject *)self;
+    iterator->it.props = new JS::PersistentRootedIdVector(GLOBAL_CX);
+
+    // Get **enumerable** own properties
+    if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, iterator->it.props)) {
+      PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
+      return NULL;
+    }
+
+    iterator->iteratorSymbol = nullptr;
+  }
+  
   PyObject_GC_Track(iterator);
   return (PyObject *)iterator;
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy *self) {
+ // printf("JSObjectProxy_iter_next\n");
   PyObject *key = PyUnicode_FromString("next");
   JS::RootedId id(GLOBAL_CX);
   if (!keyToId(key, &id)) {

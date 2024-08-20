@@ -387,3 +387,42 @@ def test___class__attribute():
 def test___none__attribute():
   a = pm.eval("({'0': 1, '1': 2})")
   assert a[2] is None
+
+
+# iterate with Symbol.iterator
+def test_proxy_symbol_iterator():
+  obj = pm.eval("""
+    class ResultHandle extends Array
+{
+        values() {
+    return [9, 12, 15];
+  }
+
+   [Symbol.iterator]() {
+                python.print('Symbol.iterator init');
+    let index = 0;
+    let values = this.values(); // use available values
+    return {
+      next: () => ({
+        value: values[index++],
+        done: index > values.length
+      })
+    };
+  }     
+
+
+}
+
+        new ResultHandle();        
+  """)
+  result = []
+  for i in obj:
+    result.append(i)
+  assert result == [9, 12, 15]
+
+
+
+
+
+
+
