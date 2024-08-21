@@ -8,10 +8,8 @@ import base64
 
 
 def atob(b64):
-  # Workaround for pythons 'Incorrect padding' error when base64 decoding, see: 
-  # https://stackoverflow.com/questions/2941995/python-ignore-incorrect-padding-error-when-base64-decoding
-  append = b"==" if isinstance(b64, bytes) else "=="
-  return str(base64.standard_b64decode(b64 + append), 'latin1')
+  padding = '=' * (4 - (len(b64) & 3))
+  return str(base64.standard_b64decode(b64 + padding), 'latin1')
 
 
 def btoa(data):
