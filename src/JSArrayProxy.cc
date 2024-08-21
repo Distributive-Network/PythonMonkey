@@ -789,10 +789,6 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_insert(JSArrayProxy *self,
   Py_ssize_t index;
   PyObject *value;
 
-  if (!_PyArg_CheckPositional("insert", nargs, 2, 2)) {
-    return NULL;
-  }
-
   {
     Py_ssize_t ival = -1;
     PyObject *iobj = PyNumber_Index(args[0]);
@@ -899,10 +895,6 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_extend(JSArrayProxy *self,
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_pop(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs) {
   Py_ssize_t index = -1;
 
-  if (!_PyArg_CheckPositional("pop", nargs, 0, 1)) {
-    return NULL;
-  }
-
   if (nargs >= 1) {
     Py_ssize_t ival = -1;
     PyObject *iobj = PyNumber_Index(args[0]);
@@ -987,9 +979,6 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_index(JSArrayProxy *self, 
   Py_ssize_t start = 0;
   Py_ssize_t stop = PY_SSIZE_T_MAX;
 
-  if (!_PyArg_CheckPositional("index", nargs, 1, 3)) {
-    return NULL;
-  }
   value = args[0];
   if (nargs < 2) {
     goto skip_optional;
