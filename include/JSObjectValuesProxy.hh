@@ -14,6 +14,7 @@
 #include <jsapi.h>
 
 #include <Python.h>
+#include "include/dictviewShim.hh"
 
 
 /**

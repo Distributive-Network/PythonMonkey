@@ -27,6 +27,7 @@
 #include <jsfriendapi.h>
 
 #include <Python.h>
+#include "include/dictviewShim.hh"
 
 #include <object.h>
 
