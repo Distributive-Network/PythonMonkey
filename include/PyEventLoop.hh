@@ -331,4 +331,8 @@ private:
   static inline std::vector<AsyncHandle> _timeoutIdMap;
 };
 
+// See https://github.com/python/cpython/blob/v3.13.0rc1/Python/pystate.c#L1940-L1951
+// Python 3.13 removed it from the public API. Re-exporting here.
+extern PyObject *_PyThreadState_GetDict(PyThreadState *tstate);
+
 #endif
