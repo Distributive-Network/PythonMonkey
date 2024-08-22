@@ -1168,6 +1168,15 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
+// Python 3.13 moved this function to private API. Re-exporting it.
+extern PyObject *const *_PyArg_UnpackKeywords(
+  PyObject *const *args, Py_ssize_t nargs,
+  PyObject *kwargs, PyObject *kwnames,
+  struct _PyArg_Parser *parser,
+  int minpos, int maxpos, int minkw,
+  PyObject **buf
+);
+
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames) {
   #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
 
