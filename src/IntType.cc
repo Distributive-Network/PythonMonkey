@@ -139,7 +139,11 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx, PyObject *pyObject) {
     // Convert to bytes of 8-bit "digits" in **big-endian** order
     size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
     uint8_t *bytes = (uint8_t *)PyMem_Malloc(byteCount);
+    #if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
+    _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false, false);
+    #else
     _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
+    #endif
 
     // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
     // TODO (Tom Tang): We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API
