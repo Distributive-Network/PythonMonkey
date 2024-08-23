@@ -217,7 +217,7 @@ jobs:
         run: |
           cd ./dist/
           for file in *.whl; do
-            mv "$file" "$(echo "$file" | sed 's/macosx_[0-9]\+_[0-9]\+/macosx_11_0/')";
+            mv "$file" "$(echo "$file" | sed -E 's/macosx_[0-9]+_[0-9]+/macosx_11_0/')";
           done
       - name: Upload wheel as CI artifacts
         uses: actions/upload-artifact@v3
