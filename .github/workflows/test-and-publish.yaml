@@ -215,6 +215,7 @@ jobs:
         # A wheel package file will only be selected by pip to install if the platform tag satisfies, regardless of whether the binary compatibility actually is.
         # Otherwise, pip would fallback to compile from the source distribution.
         run: |
+          cd ./dist/
           for file in *.whl; do
             mv "$file" "$(echo "$file" | sed 's/macosx_[0-9]\+_[0-9]\+/macosx_11_0/')";
           done
