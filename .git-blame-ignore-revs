@@ -9,3 +9,6 @@ aae30e864449442cf0b04e94f8a242b1b667de9a
 
 # chore(linting): lint PyBytesProxyHandler.cc
 d540ed6e0edfe9538dc726cf587dfb2cc76dde34
+
+# chore(linting): lint PyObjectProxyHandler.cc
+1d45ea98e42294cce16deec5454725d4de36f59f
