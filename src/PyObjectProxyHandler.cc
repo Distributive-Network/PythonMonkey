@@ -109,12 +109,12 @@ bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy
     }
 
     return handleOwnPropertyKeys(cx, nonDunderKeys, PyList_Size(nonDunderKeys), props);
-  } 
+  }
   else {
     if (PyErr_Occurred()) {
-       PyErr_Clear();
+      PyErr_Clear();
     }
-      
+
     return handleOwnPropertyKeys(cx, PyList_New(0), 0, props);
   }
 }
