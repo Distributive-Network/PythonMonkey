@@ -40,3 +40,4 @@ jobs:
           body: |
             Changeset: https://hg.mozilla.org/mozilla-central/rev/${{ env.MOZCENTRAL_VERSION }}
           labels: dependencies
+          assignees: Xmader
