@@ -33,6 +33,7 @@ jobs:
           add-paths: mozcentral.version
           commit-message: |
             chore(deps): upgrade SpiderMonkey to `${{ env.MOZCENTRAL_VERSION }}`
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           branch: chore/upgrade-spidermonkey-to-${{ env.MOZCENTRAL_VERSION_SHORT }}
           title: Upgrade SpiderMonkey to mozilla-central commit `${{ env.MOZCENTRAL_VERSION }}`
           body: |
