@@ -8,7 +8,8 @@ import base64
 
 
 def atob(b64):
-  return str(base64.standard_b64decode(b64), 'latin1')
+  padding = '=' * (4 - (len(b64) & 3))
+  return str(base64.standard_b64decode(b64 + padding), 'latin1')
 
 
 def btoa(data):

@@ -245,7 +245,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, &props))
   {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
-    return NULL;
+    return false;
   }
 
   // iterate recursively through members of self and check for equality
@@ -442,7 +442,7 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
         PyErr_Clear();
       }
 
-      if (_PyUnicodeWriter_WriteASCIIString(&writer, "<cannot repr type>", 19)  < 0) {
+      if (_PyUnicodeWriter_WriteASCIIString(&writer, "<cannot repr type>", 19) < 0) {
         goto error;
       }
     }
