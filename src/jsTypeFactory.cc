@@ -49,12 +49,12 @@ static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
 static PyIterableProxyHandler pyIterableProxyHandler;
 
-std::unordered_map<PyObject *, size_t> jsExternalStringPyObjects;// a map of python string objects to the number of JSExternalStrings that depend on it, used when finalizing JSExternalStrings
+std::unordered_map<PyObject *, size_t> externalStringObjToRefCountMap;// a map of python string objects to the number of JSExternalStrings that depend on it, used when finalizing JSExternalStrings
 
 PyObject *PythonExternalString::getPyString(const char16_t *chars)
 {
-  for (auto it: jsExternalStringPyObjects) {
-    if (PyUnicode_DATA(it.first) == (void *)chars) {
+  for (auto it: externalStringObjToRefCountMap) {
+    if (PyUnicode_DATA(it.first) == (void *)chars) { // PyUnicode_<2/1>BYTE_DATA are just type casts of PyUnicode_DATA
       return it.first;
     }
   }
@@ -75,14 +75,14 @@ void PythonExternalString::finalize(char16_t *chars) const
   // to free the object since the entire process memory is being released.
   if (_Py_IsFinalizing()) { return; }
 
-  for (auto it = jsExternalStringPyObjects.cbegin(), next_it = it; it != jsExternalStringPyObjects.cend(); it = next_it) {
+  for (auto it = externalStringObjToRefCountMap.cbegin(), next_it = it; it != externalStringObjToRefCountMap.cend(); it = next_it) {
     next_it++;
     if (PyUnicode_DATA(it->first) == (void *)chars) {
       Py_DECREF(it->first);
-      jsExternalStringPyObjects[it->first] = jsExternalStringPyObjects[it->first] - 1;
+      externalStringObjToRefCountMap[it->first] = externalStringObjToRefCountMap[it->first] - 1;
 
-      if (jsExternalStringPyObjects[it->first] == 0) {
-        jsExternalStringPyObjects.erase(it);
+      if (externalStringObjToRefCountMap[it->first] == 0) {
+        externalStringObjToRefCountMap.erase(it);
       }
     }
   }
@@ -95,7 +95,7 @@ void PythonExternalString::finalize(JS::Latin1Char *chars) const
 
 size_t PythonExternalString::sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const
 {
-  for (auto it: jsExternalStringPyObjects) {
+  for (auto it: externalStringObjToRefCountMap) {
     if (PyUnicode_DATA(it.first) == (void *)chars) {
       return PyUnicode_GetLength(it.first);
     }
@@ -169,14 +169,14 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     case (PyUnicode_2BYTE_KIND): {
-        jsExternalStringPyObjects[object] = jsExternalStringPyObjects[object] + 1;
+        externalStringObjToRefCountMap[object] = externalStringObjToRefCountMap[object] + 1;
         Py_INCREF(object);
         JSString *str = JS_NewExternalUCString(cx, (char16_t *)PyUnicode_2BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         returnType.setString(str);
         break;
       }
     case (PyUnicode_1BYTE_KIND): {
-        jsExternalStringPyObjects[object] = jsExternalStringPyObjects[object] + 1;
+        externalStringObjToRefCountMap[object] = externalStringObjToRefCountMap[object] + 1;
         Py_INCREF(object);
         JSString *str = JS_NewExternalStringLatin1(cx, (JS::Latin1Char *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         // JSExternalString can now be properly treated as either one-byte or two-byte strings when GCed
