@@ -562,6 +562,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  JS_SetGCParameter(GLOBAL_CX, JSGC_MAX_BYTES, (uint32_t)-1);
+
   JS_SetGCCallback(GLOBAL_CX, pythonmonkeyGCCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
