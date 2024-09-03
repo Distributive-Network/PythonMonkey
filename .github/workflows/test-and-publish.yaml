@@ -272,7 +272,11 @@ jobs:
           path: ./dist/
   check-install-from-sdist:
     needs: sdist
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-24.04', 'macos-13', 'windows-2022' ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/setup-python@v5
         with:
