@@ -44,8 +44,9 @@ bool PyObjectProxyHandler::handleGetOwnPropertyDescriptor(JSContext *cx, JS::Han
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc, PyObject *item) {
   // see if we're calling a function
   if (id.isString()) {
-    JS::RootedString idString(cx, id.toString());
-    const char *methodName = JS_EncodeStringToUTF8(cx, idString).get();
+    JS::UniqueChars idString = JS_EncodeStringToUTF8(cx, JS::RootedString(cx, id.toString()));
+    const char *methodName = idString.get();
+
     if (!strcmp(methodName, "toString") || !strcmp(methodName, "toLocaleString") || !strcmp(methodName, "valueOf")) {
       JS::RootedObject objectPrototype(cx);
       if (!JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype)) {
