@@ -48,25 +48,39 @@
 
 JS::PersistentRootedObject jsFunctionRegistry;
 
+/**
+ * @brief During a GC, string buffers may have moved, so we need to re-point our JSStringProxies
+ * The char buffer pointer obtained by previous `JS::Get{Latin1,TwoByte}LinearStringChars` calls remains valid only as long as no GC occurs.
+ */
+void updateCharBufferPointers() {
+  if (_Py_IsFinalizing()) {
+    return; // do not move char pointers around if python is finalizing
+  }
+
+  JS::AutoCheckCannotGC nogc;
+  for (const JSStringProxy *jsStringProxy: jsStringProxies) {
+    JSLinearString *str = JS_ASSERT_STRING_IS_LINEAR(jsStringProxy->jsString->toString());
+    void *updatedCharBufPtr; // pointer to the moved char buffer after a GC
+    if (JS::LinearStringHasLatin1Chars(str)) {
+      updatedCharBufPtr = (void *)JS::GetLatin1LinearStringChars(nogc, str);
+    } else { // utf16 / ucs2 string
+      updatedCharBufPtr = (void *)JS::GetTwoByteLinearStringChars(nogc, str);
+    }
+    ((PyUnicodeObject *)(jsStringProxy))->data.any = updatedCharBufPtr;
+  }
+}
+
 void pythonmonkeyGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_END) {
     JS::ClearKeptObjects(GLOBAL_CX);
     while (JOB_QUEUE->runFinalizationRegistryCallbacks(GLOBAL_CX));
+    updateCharBufferPointers();
+  }
+}
 
-    if (_Py_IsFinalizing()) {
-      return; // do not move char pointers around if python is finalizing
-    }
-
-    JS::AutoCheckCannotGC nogc;
-    for (const JSStringProxy *jsStringProxy: jsStringProxies) { // char buffers may have moved, so we need to re-point our JSStringProxies
-      JSLinearString *str = (JSLinearString *)(jsStringProxy->jsString->toString()); // jsString is guaranteed to be linear
-      if (JS::LinearStringHasLatin1Chars(str)) {
-        (((PyUnicodeObject *)(jsStringProxy))->data.any) = (void *)JS::GetLatin1LinearStringChars(nogc, str);
-      }
-      else { // utf16 / ucs2 string
-        (((PyUnicodeObject *)(jsStringProxy))->data.any) = (void *)JS::GetTwoByteLinearStringChars(nogc, str);
-      }
-    }
+void nurseryCollectionCallback(JSContext *cx, JS::GCNurseryProgress progress, JS::GCReason reason, void *data) {
+  if (progress == JS::GCNurseryProgress::GC_NURSERY_COLLECTION_END) {
+    updateCharBufferPointers();
   }
 }
 
@@ -565,6 +579,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS_SetGCParameter(GLOBAL_CX, JSGC_MAX_BYTES, (uint32_t)-1);
 
   JS_SetGCCallback(GLOBAL_CX, pythonmonkeyGCCallback, NULL);
+  JS::AddGCNurseryCollectionCallback(GLOBAL_CX, nurseryCollectionCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
