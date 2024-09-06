@@ -129,13 +129,6 @@ jobs:
       matrix:
         os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2022', 'pi' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
-        exclude:
-          # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
-          # see https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-          - os: 'macos-14'
-            python_version: '3.8'
-          - os: 'macos-14'
-            python_version: '3.9'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

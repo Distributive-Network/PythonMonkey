@@ -112,6 +112,7 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
   JS::RootedObject obj(cx);
   pyString->jsString = new JS::PersistentRootedValue(cx);
   pyString->jsString->setString((JSString *)lstr);
+  jsStringProxies.insert(pyString);
 
   // Initialize as legacy string (https://github.com/python/cpython/blob/v3.12.0b1/Include/cpython/unicodeobject.h#L78-L93)
   // see https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L1230-L1245

@@ -48,10 +48,25 @@
 
 JS::PersistentRootedObject jsFunctionRegistry;
 
-void finalizationRegistryGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
+void pythonmonkeyGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_END) {
     JS::ClearKeptObjects(GLOBAL_CX);
     while (JOB_QUEUE->runFinalizationRegistryCallbacks(GLOBAL_CX));
+
+    if (_Py_IsFinalizing()) {
+      return; // do not move char pointers around if python is finalizing
+    }
+
+    JS::AutoCheckCannotGC nogc;
+    for (const JSStringProxy *jsStringProxy: jsStringProxies) { // char buffers may have moved, so we need to re-point our JSStringProxies
+      JSLinearString *str = (JSLinearString *)(jsStringProxy->jsString->toString()); // jsString is guaranteed to be linear
+      if (JS::LinearStringHasLatin1Chars(str)) {
+        (((PyUnicodeObject *)(jsStringProxy))->data.any) = (void *)JS::GetLatin1LinearStringChars(nogc, str);
+      }
+      else { // utf16 / ucs2 string
+        (((PyUnicodeObject *)(jsStringProxy))->data.any) = (void *)JS::GetTwoByteLinearStringChars(nogc, str);
+      }
+    }
   }
 }
 
@@ -547,7 +562,9 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  JS_SetGCCallback(GLOBAL_CX, finalizationRegistryGCCallback, NULL);
+  JS_SetGCParameter(GLOBAL_CX, JSGC_MAX_BYTES, (uint32_t)-1);
+
+  JS_SetGCCallback(GLOBAL_CX, pythonmonkeyGCCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
