@@ -12,12 +12,13 @@
 
 #include "include/StrType.hh"
 
-
+std::unordered_set<JSStringProxy *> jsStringProxies;
 extern JSContext *GLOBAL_CX;
 
 
 void JSStringProxyMethodDefinitions::JSStringProxy_dealloc(JSStringProxy *self)
 {
+  jsStringProxies.erase(self);
   delete self->jsString;
 }
 

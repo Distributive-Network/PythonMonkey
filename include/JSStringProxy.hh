@@ -15,6 +15,8 @@
 
 #include <Python.h>
 
+#include <unordered_set>
+
 /**
  * @brief The typedef for the backing store that will be used by JSStringProxy objects. All it contains is a pointer to the JSString
  *
@@ -23,6 +25,8 @@ typedef struct {
   PyUnicodeObject str;
   JS::PersistentRootedValue *jsString;
 } JSStringProxy;
+
+extern std::unordered_set<JSStringProxy *> jsStringProxies; // a collection of all JSStringProxy objects, used during a GCCallback to ensure they continue to point to the correct char buffer
 
 /**
  * @brief This struct is a bundle of methods used by the JSStringProxy type
@@ -37,7 +41,7 @@ public:
    */
   static void JSStringProxy_dealloc(JSStringProxy *self);
 
-   /**
+  /**
    * @brief copy protocol method for both copy and deepcopy
    *
    * @param self - The JSObjectProxy
@@ -49,13 +53,13 @@ public:
 // docs for methods, copied from cpython
 PyDoc_STRVAR(stringproxy_deepcopy__doc__,
   "__deepcopy__($self, memo, /)\n"
-"--\n"
-"\n");
+  "--\n"
+  "\n");
 
 PyDoc_STRVAR(stringproxy_copy__doc__,
-"__copy__($self, /)\n"
-"--\n"
-"\n");
+  "__copy__($self, /)\n"
+  "--\n"
+  "\n");
 
 /**
  * @brief Struct for the other methods
