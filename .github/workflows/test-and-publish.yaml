@@ -17,9 +17,8 @@ on:
         - ''
         - 'ubuntu-20.04'
         - 'macos-12'
-        - 'macos-13'
         - 'macos-14'
-        - 'windows-2019'
+        - 'windows-2022'
       debug_enabled_python:
         type: choice
         description: Choose a Python version to run the build with SSH debugging on
@@ -61,8 +60,8 @@ jobs:
       fail-fast: false
       matrix:
         # Use Ubuntu 20.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14' ] # macOS 14 runner exclusively runs on M1 hardwares
-                                                       # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
+        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14', 'pi' ] # macOS 14 runner exclusively runs on M1 hardwares
+                                                             # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -70,33 +69,38 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+      - name: Read the mozilla-central commit hash to be used
+        run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Cache spidermonkey build
         id: cache-spidermonkey
         uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Setup XCode
         if: ${{ (matrix.os == 'macos-13' || matrix.os == 'macos-14') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        # SpiderMonkey 115 ESR requires XCode SDK version at least 13.3
-        # https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md#installed-sdks
+        # SpiderMonkey requires XCode SDK version at least 13.3
         run: sudo xcode-select -switch /Applications/Xcode_14.3.app
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
   build-spidermonkey-win:
-    runs-on: windows-2019
+    runs-on: windows-2022
+      # SpiderMonkey requires Visual Studio 2022 or newer.
+      # The Windows 2019 runner only has Visual Studio Enterprise 2019 installed.
     steps:
       - uses: actions/checkout@v4
+      - name: Read the mozilla-central commit hash to be used
+        run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Cache spidermonkey build
         id: cache-spidermonkey
         uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
@@ -105,7 +109,7 @@ jobs:
           # Already installed in Github Actions runner
           # choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System' # add CMake to system PATH
           # choco install -y llvm gnuwin32-m4
-          choco install -y wget make
+          choco install -y wget make unzip
       - name: Install MozillaBuild
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
@@ -123,19 +127,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The lowest supported version is Ubuntu 20.04 + Python 3.8 or macOS 12 + Python 3.9
-        os: [ 'ubuntu-20.04', 'macos-12', 'macos-13', 'macos-14', 'windows-2019' ]
+        os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2022', 'pi' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
-        exclude:
-          # macOS 12 comes with Python 3.9 by default, so we drop ci support for Python 3.8 on macOS
-          - os: 'macos-12'
-            python_version: '3.8'
-          # actions/setup-python: The version '3.8'/'3.9' with architecture 'arm64' was not found for macOS.
-          # see https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-          - os: 'macos-14'
-            python_version: '3.8'
-          - os: 'macos-14'
-            python_version: '3.9'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -146,6 +139,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+      - name: Remove old poetry cache
+        run: rm -rf ~/.cache/pypoetry
+        if: ${{ matrix.os == 'pi' }}
       - name: Setup Poetry
         uses: snok/install-poetry@v1
         with:
@@ -155,22 +151,42 @@ jobs:
           echo "Installing Dependencies"
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
             sudo apt-get update -y
-            sudo apt-get install -y cmake graphviz llvm
+            sudo apt-get install -y cmake llvm
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
-            brew install cmake pkg-config wget coreutils # `coreutils` installs the `realpath` command
+            brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
-          poetry env use python3 # use the correct Python version we've set up
+          poetry env use python$PYTHON_VERSION || poetry env use python3 # use the correct Python version we've set up
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
+        env:
+          PYTHON_VERSION: ${{ matrix.python_version }}
+      - name: Build Docs # only build docs once
+        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        run: |
+            sudo apt-get install -y graphviz 
+            # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
+            wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
+            tar xf doxygen-1.9.7.linux.bin.tar.gz
+            cd doxygen-1.9.7 && sudo make install && cd -
+            rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
+            BUILD_DOCS=1 BUILD_TYPE=None poetry install
+      - name: Upload Doxygen-generated docs as CI artifacts
+        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs-${{ github.run_id }}-${{ github.sha }}
+          path: ./build/docs/html/
+      - name: Read the mozilla-central commit hash to be used
+        run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Use cached spidermonkey build
         uses: actions/cache@v4
         with:
           path: |
             ./_spidermonkey_install/*
-          key: spidermonkey115.8.0-${{ runner.os }}-${{ runner.arch }}
+          key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           fail-on-cache-miss: true # SpiderMonkey is expected to be cached in its dedicated job
       - name: Build pminit
         run: |
@@ -185,13 +201,24 @@ jobs:
           WORKFLOW_BUILD_TYPE=${{ inputs.build_type }}
           BUILD_TYPE=${WORKFLOW_BUILD_TYPE:-"Debug"} poetry build --format=wheel
           ls -lah ./dist/
+      - name: Make the wheels we build also support lower versions of macOS
+        if: ${{ matrix.os == 'macos-12' || matrix.os == 'macos-14' }}
+        # Change the platform tag part of the wheel filename to `macosx_11_0_xxx` (means to support macOS 11.0 and above)
+        # See https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-format
+        # A wheel package file will only be selected by pip to install if the platform tag satisfies, regardless of whether the binary compatibility actually is.
+        # Otherwise, pip would fallback to compile from the source distribution.
+        run: |
+          cd ./dist/
+          for file in *.whl; do
+            mv "$file" "$(echo "$file" | sed -E 's/macosx_[0-9]+_[0-9]+/macosx_11_0/')";
+          done
       - name: Upload wheel as CI artifacts
         uses: actions/upload-artifact@v3
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
       - name: Set cores to get stored in /cores
-        if: ${{ matrix.os != 'windows-2019' }}
+        if: ${{ matrix.os != 'windows-2022' }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         run: |
           sudo mkdir -p /cores
@@ -226,7 +253,7 @@ jobs:
           credentials: "admin:admin"
       - name: Upload core dumps as CI artifacts
         uses: actions/upload-artifact@v3
-        if: ${{ matrix.os != 'windows-2019' && failure() }}
+        if: ${{ matrix.os != 'windows-2022' && failure() }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
@@ -246,14 +273,7 @@ jobs:
           version: 1.5.1
       - name: Build source distribution (sdist) file
         run: |
-          # Install Doxygen
-            # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
-            wget -c -q https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz
-            tar xf doxygen-1.9.7.linux.bin.tar.gz
-            cd doxygen-1.9.7 && sudo make install && cd -
-            rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
           poetry self add "poetry-dynamic-versioning[plugin]"
-          BUILD_DOCS=1 BUILD_TYPE=None poetry install
           poetry build --format=sdist
           ls -lah ./dist/
       - name: Upload sdist as CI artifacts
@@ -261,11 +281,19 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}
           path: ./dist/
-      - name: Upload Doxygen-generated docs as CI artifacts
-        uses: actions/upload-artifact@v3
+  check-install-from-sdist:
+    needs: sdist
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/setup-python@v5
         with:
-          name: docs-${{ github.run_id }}-${{ github.sha }}
-          path: ./build/docs/html/
+          python-version: '3.10'
+      - name: Download wheels built
+        uses: actions/download-artifact@v3
+        with:
+          name: wheel-${{ github.run_id }}-${{ github.sha }}
+          path: ./dist/
+      - run: pip install ./dist/pythonmonkey-*.tar.gz
   publish:
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04

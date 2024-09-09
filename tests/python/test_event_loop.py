@@ -32,6 +32,19 @@ def test_setInterval_unref():
   assert asyncio.run(async_fn())
 
 
+def test_clearInterval():
+  async def async_fn():
+    obj = {'val': 0}
+    pm.eval("""(obj) => {
+            const interval = setInterval(()=>{ obj.val++ }, 200)
+            setTimeout(()=>{ clearInterval(interval) }, 500)
+        }""")(obj)
+    await pm.wait()  # It should stop after 500ms on the clearInterval
+    assert obj['val'] == 2  # The setInterval timer should only run twice (500 // 200 == 2)
+    return True
+  assert asyncio.run(async_fn())
+
+
 def test_finished_timer_ref():
   async def async_fn():
     # Making sure the event-loop won't be activated again when a finished timer gets re-refed.
@@ -299,7 +312,7 @@ def test_promises():
       #               <objects of this type are not handled by PythonMonkey yet>
       # await pm.eval("Promise.resolve().then(()=>{ throw {a:1,toString(){return'anything'}} })")
     # not going through the conversion
-    with pytest.raises(pm.SpiderMonkeyError, match="on line 1, column 31:\nTypeError: undefined has no properties"):
+    with pytest.raises(pm.SpiderMonkeyError, match="on line 1, column 31:\nTypeError: can\'t access property \"prop\" of undefined"):
       await pm.eval("Promise.resolve().then(()=>{ (undefined).prop })")
 
     # TODO (Tom Tang): Modify this testcase once we support ES2020-style dynamic import
@@ -337,10 +350,68 @@ def test_promises():
                      match="PythonMonkey cannot find a running Python event-loop to make asynchronous calls."):
     pm.eval("new Promise(() => { })")
 
-# off-thread promises
+
+def test_errors_thrown_in_promise():
+  async def async_fn():
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def exceptionHandler(loop, context):
+      future.set_exception(context["exception"])
+    loop.set_exception_handler(exceptionHandler)
+
+    pm.eval("""
+    new Promise(function (resolve, reject)
+    {
+      reject(new Error('in Promise'));
+    });
+
+    new Promise(function (resolve, reject)
+    {
+      console.log('ok');
+    });
+    """)
+    with pytest.raises(pm.SpiderMonkeyError, match="Error: in Promise"):
+      await asyncio.wait_for(future, timeout=0.1)
+
+    loop.set_exception_handler(None)
+    return True
+  assert asyncio.run(async_fn())
+
+
+def test_errors_thrown_in_async_function():
+  async def async_fn():
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+
+    def exceptionHandler(loop, context):
+      future.set_exception(context["exception"])
+    loop.set_exception_handler(exceptionHandler)
+
+    pm.eval("""
+    async function aba() {
+      throw new Error('in async function');
+    }
+
+    async function abb() {
+      console.log('ok');
+    }
+
+    aba();
+    abb();
+    """)
+    with pytest.raises(pm.SpiderMonkeyError, match="Error: in async function"):
+      await asyncio.wait_for(future, timeout=0.1)
+
+    loop.set_exception_handler(None)
+    return True
+  assert asyncio.run(async_fn())
 
 
 def test_webassembly():
+  """
+  Tests for off-thread promises
+  """
   async def async_fn():
     # off-thread promises can run
     assert 'instantiated' == await pm.eval("""

@@ -23,6 +23,11 @@ using AsyncHandle = PyEventLoop::AsyncHandle;
  */
 
 static bool enqueueWithDelay(JSContext *cx, unsigned argc, JS::Value *vp) {
+  if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_SystemExit)) {
+     // quit, exit or sys.exit was called (and raised SystemExit)
+     return false;
+  }
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JS::HandleValue jobArgVal = args.get(0);
   double delaySeconds = args.get(1).toNumber();
@@ -59,6 +64,7 @@ static bool cancelByTimeoutId(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   // Cancel this job on the Python event-loop
   handle->cancel();
+  handle->removeRef();
 
   return true;
 }

@@ -38,6 +38,11 @@
       "problemMatcher": [
         "$gcc"
       ],
+      "options": {
+        "env": {
+          "BUILD_TYPE": "Debug"
+        }
+      },
       "group": {
         "kind": "build",
       }

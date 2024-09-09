@@ -2040,8 +2040,6 @@ bool PyListProxyHandler::getOwnPropertyDescriptor(
   // "constructor" property
   bool isConstructorProperty;
   if (id.isString() && JS_StringEqualsLiteral(cx, id.toString(), "constructor", &isConstructorProperty) && isConstructorProperty) {
-    JS::RootedObject global(cx, JS::GetNonCCWObjectGlobal(proxy));
-
     JS::RootedObject rootedArrayPrototype(cx);
     if (!JS_GetClassPrototype(cx, JSProto_Array, &rootedArrayPrototype)) {
       return false;
@@ -2101,8 +2099,8 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (Py_REFCNT(self) > 1) {
+  if (!_Py_IsFinalizing()) {
+    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
     Py_DECREF(self);
   }
 }

@@ -48,10 +48,39 @@
 
 JS::PersistentRootedObject jsFunctionRegistry;
 
-void finalizationRegistryGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
+/**
+ * @brief During a GC, string buffers may have moved, so we need to re-point our JSStringProxies
+ * The char buffer pointer obtained by previous `JS::Get{Latin1,TwoByte}LinearStringChars` calls remains valid only as long as no GC occurs.
+ */
+void updateCharBufferPointers() {
+  if (_Py_IsFinalizing()) {
+    return; // do not move char pointers around if python is finalizing
+  }
+
+  JS::AutoCheckCannotGC nogc;
+  for (const JSStringProxy *jsStringProxy: jsStringProxies) {
+    JSLinearString *str = JS_ASSERT_STRING_IS_LINEAR(jsStringProxy->jsString->toString());
+    void *updatedCharBufPtr; // pointer to the moved char buffer after a GC
+    if (JS::LinearStringHasLatin1Chars(str)) {
+      updatedCharBufPtr = (void *)JS::GetLatin1LinearStringChars(nogc, str);
+    } else { // utf16 / ucs2 string
+      updatedCharBufPtr = (void *)JS::GetTwoByteLinearStringChars(nogc, str);
+    }
+    ((PyUnicodeObject *)(jsStringProxy))->data.any = updatedCharBufPtr;
+  }
+}
+
+void pythonmonkeyGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_END) {
     JS::ClearKeptObjects(GLOBAL_CX);
     while (JOB_QUEUE->runFinalizationRegistryCallbacks(GLOBAL_CX));
+    updateCharBufferPointers();
+  }
+}
+
+void nurseryCollectionCallback(JSContext *cx, JS::GCNurseryProgress progress, JS::GCReason reason, void *data) {
+  if (progress == JS::GCNurseryProgress::GC_NURSERY_COLLECTION_END) {
+    updateCharBufferPointers();
   }
 }
 
@@ -128,8 +157,10 @@ PyTypeObject JSObjectProxyType = {
 PyTypeObject JSStringProxyType = {
   .tp_name = PyUnicode_Type.tp_name,
   .tp_basicsize = sizeof(JSStringProxy),
+  .tp_dealloc = (destructor)JSStringProxyMethodDefinitions::JSStringProxy_dealloc,
   .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_UNICODE_SUBCLASS,
-  .tp_doc = PyDoc_STR("Javascript String value"),
+  .tp_doc = PyDoc_STR("Javascript String proxy"),
+  .tp_methods = JSStringProxy_methods,
   .tp_base = &PyUnicode_Type
 };
 
@@ -388,7 +419,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
     if (getEvalOption(evalOptions, "filename", &s)) options.setFile(s);
     if (getEvalOption(evalOptions, "lineno", &l)) options.setLine(l);
-    if (getEvalOption(evalOptions, "column", &l)) options.setColumn(l);
+    if (getEvalOption(evalOptions, "column", &l)) options.setColumn(JS::ColumnNumberOneOrigin(l));
     if (getEvalOption(evalOptions, "mutedErrors", &b)) options.setMutedErrors(b);
     if (getEvalOption(evalOptions, "noScriptRval", &b)) options.setNoScriptRval(b);
     if (getEvalOption(evalOptions, "selfHosting", &b)) options.setSelfHostingMode(b);
@@ -419,7 +450,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 
   // compile the code to execute
   JS::RootedScript script(GLOBAL_CX);
-  JS::Rooted<JS::Value> *rval = new JS::Rooted<JS::Value>(GLOBAL_CX);
+  JS::Rooted<JS::Value> rval(GLOBAL_CX);
   if (code) {
     JS::SourceText<mozilla::Utf8Unit> source;
     const char *codeChars = PyUnicode_AsUTF8(code);
@@ -440,25 +471,15 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // execute the compiled code; last expr goes to rval
-  if (!JS_ExecuteScript(GLOBAL_CX, script, rval)) {
+  if (!JS_ExecuteScript(GLOBAL_CX, script, &rval)) {
     setSpiderMonkeyException(GLOBAL_CX);
     return NULL;
   }
 
   // translate to the proper python type
-  PyObject *returnValue = pyTypeFactory(GLOBAL_CX, *rval);
+  PyObject *returnValue = pyTypeFactory(GLOBAL_CX, rval);
   if (PyErr_Occurred()) {
     return NULL;
-  }
-
-  // TODO: Find a way to root strings for the lifetime of a proxying python string
-  js::ESClass cls = js::ESClass::Other;   // placeholder if `rval` is not a JSObject
-  if (rval->isObject()) {
-    JS::GetBuiltinClass(GLOBAL_CX, JS::RootedObject(GLOBAL_CX, &rval->toObject()), &cls);
-  }
-
-  if (!(rval->isString() || cls == js::ESClass::String)) {   // rval may be a string which must be kept alive.
-    delete rval;
   }
 
   if (returnValue) {
@@ -480,6 +501,11 @@ static PyObject *waitForEventLoop(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED
   return PyObject_CallMethod(waiter, "wait", NULL);
 }
 
+static PyObject *closeAllPending(PyObject *Py_UNUSED(self), PyObject *Py_UNUSED(_)) {
+  if (!PyEventLoop::AsyncHandle::cancelAll()) return NULL;
+  Py_RETURN_NONE;
+}
+
 static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
   PyObject *item = PyTuple_GetItem(args, 0);
   if (!PyUnicode_Check(item)) {
@@ -489,15 +515,17 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
 
   const char *bufferUtf8 = PyUnicode_AsUTF8(item);
 
-  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8)))
+  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8))) {
     Py_RETURN_TRUE;
-  else
+  } else {
     Py_RETURN_FALSE;
+  }
 }
 
 PyMethodDef PythonMonkeyMethods[] = {
   {"eval", eval, METH_VARARGS, "Javascript evaluator in Python"},
   {"wait", waitForEventLoop, METH_NOARGS, "The event-loop shield. Blocks until all asynchronous jobs finish."},
+  {"stop", closeAllPending, METH_NOARGS, "Cancel all pending event-loop jobs."},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the Spidermonkey garbage collector"},
   {NULL, NULL, 0, NULL}
@@ -548,12 +576,13 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  JS_SetGCCallback(GLOBAL_CX, finalizationRegistryGCCallback, NULL);
+  JS_SetGCParameter(GLOBAL_CX, JSGC_MAX_BYTES, (uint32_t)-1);
+
+  JS_SetGCCallback(GLOBAL_CX, pythonmonkeyGCCallback, NULL);
+  JS::AddGCNurseryCollectionCallback(GLOBAL_CX, nurseryCollectionCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
-  creationOptions.setWeakRefsEnabled(JS::WeakRefSpecifier::EnabledWithoutCleanupSome); // enable FinalizationRegistry
-  creationOptions.setIteratorHelpersEnabled(true);
   JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
   global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
@@ -565,13 +594,18 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS::RootedObject debuggerGlobal(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
   {
     JSAutoRealm r(GLOBAL_CX, debuggerGlobal);
-    JS_DefineProperty(GLOBAL_CX, debuggerGlobal, "mainGlobal", *global, JSPROP_READONLY);
     JS_DefineDebuggerObject(GLOBAL_CX, debuggerGlobal);
+  }
+  {
+    JSAutoRealm r(GLOBAL_CX, *global);
+    JS::Rooted<JS::PropertyDescriptor> desc(GLOBAL_CX, JS::PropertyDescriptor::Data(
+      JS::ObjectValue(*debuggerGlobal)
+    ));
+    JS_WrapPropertyDescriptor(GLOBAL_CX, &desc);
+    JS_DefineUCProperty(GLOBAL_CX, *global, u"debuggerGlobal", 14, desc);
   }
 
   autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
-
-  JS_DefineProperty(GLOBAL_CX, *global, "debuggerGlobal", debuggerGlobal, JSPROP_READONLY);
 
   // XXX: SpiderMonkey bug???
   // In https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/jit/CacheIR.cpp#l317, trying to use the callback returned by `js::GetDOMProxyShadowsCheck()` even it's unset (nullptr)

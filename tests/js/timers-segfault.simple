@@ -1,0 +1,13 @@
+/**
+ * @file        timers-segfault.simple
+ *              Test using the builtin_modules/timers.js module.
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ *
+ * timeout: 10
+ */
+/* eslint-disable brace-style */
+
+setTimeout(() => { console.log(0); });
+const interval = setInterval(() => { console.log(1); }, 500);
+setTimeout(() => { clearInterval(interval); console.log(2); }, 1000);

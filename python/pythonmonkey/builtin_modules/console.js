@@ -98,11 +98,14 @@ class Console
       const header = args.length > 0
         ? `Trace: ${format(...args)}\n`
         : 'Trace\n';
-      const stacks = new Error().stack
-        .split('\n')
-        .filter(s => s !== '') // filter out empty lines
-        .map(s => '    '+s)    // add indent
-        .join('\n');
+
+      let stacks = new Error().stack
+            .split('\n')
+      stacks.shift();              // skip the first line which is this.trace itself
+      stacks = stacks
+            .filter(s => s !== '') // filter out empty lines
+            .map(s => '    '+s)    // add indent
+            .join('\n');
       return this.debug(header + stacks);
     };
 

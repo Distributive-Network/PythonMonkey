@@ -1,4 +1,5 @@
 import pythonmonkey as pm
+import sys
 
 
 def test_eval_pyobjects():
@@ -148,3 +149,40 @@ def test_pyobjects_toLocaleString():
 
   o = MyClass()
   assert '[object Object]' == pm.eval("(obj) => { return obj.toLocaleString(); }")(o)
+
+
+def test_toPrimitive_iterable():
+  iterable = iter([1,2])
+  toPrimitive = pm.eval("(obj) => { return obj[Symbol.toPrimitive]; }")(iterable)
+  assert repr(toPrimitive).__contains__("<pythonmonkey.JSFunctionProxy object at")  
+
+
+def test_constructor_iterable():
+  iterable = iter([1,2])
+  constructor = pm.eval("(obj) => { return obj.constructor; }")(iterable)
+  assert repr(constructor).__contains__("<pythonmonkey.JSFunctionProxy object at")    
+
+
+def test_toPrimitive_stdin():
+  toPrimitive = pm.eval("(obj) => { return obj[Symbol.toPrimitive]; }")(sys.stdin)
+  assert repr(toPrimitive).__contains__("<pythonmonkey.JSFunctionProxy object at")  
+
+
+def test_constructor_stdin():
+  constructor = pm.eval("(obj) => { return obj.constructor; }")(sys.stdin)
+  assert repr(constructor).__contains__("<pythonmonkey.JSFunctionProxy object at")     
+
+
+def test_toString_is_prototype_toString():
+  is_to_string_correct = pm.eval("x => x.toString === Object.prototype.toString")
+  assert is_to_string_correct({})
+
+
+def test_toString_is_prototype_toLocaleString():
+  is_to_locale_string_correct = pm.eval("x => x.toLocaleString === Object.prototype.toLocaleString")
+  assert is_to_locale_string_correct({})
+
+
+def test_valueof_is_prototype_valueof():
+  is_valueof_correct = pm.eval("x => x.valueOf === Object.prototype.valueOf")
+  assert is_valueof_correct({})

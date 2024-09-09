@@ -1,6 +1,6 @@
 # PythonMonkey
 
-![Testing Suite](https://github.com/Kings-Distributed-Systems/PythonMonkey/actions/workflows/tests.yaml/badge.svg)
+[![Test and Publish Suite](https://github.com/Distributive-Network/PythonMonkey/actions/workflows/test-and-publish.yaml/badge.svg)](https://github.com/Distributive-Network/PythonMonkey/actions/workflows/test-and-publish.yaml)
 
 ## About
 [PythonMonkey](https://pythonmonkey.io) is a Mozilla [SpiderMonkey](https://firefox-source-docs.mozilla.org/js/index.html) JavaScript engine embedded into the Python Runtime,
@@ -8,7 +8,7 @@ using the Python engine to provide the Javascript host environment.
 
 We feature JavaScript Array and Object methods implemented on Python List and Dictionaries using the cPython C API, and the inverse using the Mozilla Firefox Spidermonkey JavaScript C++ API.
 
-This product is in an advanced stage, approximately 95% to MVP as of March 2024. It is under active development by [Distributive](https://distributive.network/).
+This project has reached MVP as of September 2024. It is under maintenance by [Distributive](https://distributive.network/).
 
 External contributions and feedback are welcome and encouraged.
 
@@ -68,12 +68,12 @@ Read this if you want to build a local version.
 1. You will need the following installed (which can be done automatically by running `./setup.sh`):
     - bash
     - cmake
-    - Doxygen 1.9 series
-    - graphviz
+    - Doxygen 1.9 series (if you want to build the docs)
+    - graphviz  (if you want to build the docs)
     - llvm
     - rust
     - python3.8 or later with header files (python3-dev)
-    - spidermonkey 115.1.0 or later
+    - spidermonkey latest from mozilla-central
     - [Poetry](https://python-poetry.org/docs/#installation)
     - [poetry-dynamic-versioning](https://github.com/mtkennerly/poetry-dynamic-versioning)
 
@@ -163,11 +163,11 @@ They are largely based on SpiderMonkey's `CompileOptions`. The supported option 
 - `filename`: set the filename of this code for the purposes of generating stack traces etc.
 - `lineno`: set the line number offset of this code for the purposes of generating stack traces etc.
 - `column`: set the column number offset of this code for the purposes of generating stack traces etc.
-- `mutedErrors`: experimental
-- `noScriptRval`: experimental
-- `selfHosting`: experimental
-- `strict`: experimental
-- `module`: experimental
+- `mutedErrors`: if set to `True`, eval errors or unhandled rejections are ignored ("muted"). Default `False`.
+- `noScriptRval`: if `False`, return the last expression value of the script as the result value to the caller. Default `False`.
+- `selfHosting`: *experimental*
+- `strict`: forcibly evaluate in strict mode (`"use strict"`). Default `False`.
+- `module`: indicate the file is an ECMAScript module (always strict mode code and disallow HTML comments). Default `False`.
 - `fromPythonFrame`: generate the equivalent of filename, lineno, and column based on the location of
   the Python call to eval. This makes it possible to evaluate Python multiline string literals and
   generate stack traces in JS pointing to the error in the Python source file.
@@ -461,7 +461,7 @@ List of commands:
 ```console
 $ pmjs
 
-Welcome to PythonMonkey v0.4.0.
+Welcome to PythonMonkey v1.0.0.
 Type ".help" for more information.
 > .python import sys
 > .python sys.path

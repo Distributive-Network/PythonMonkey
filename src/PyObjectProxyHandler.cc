@@ -24,38 +24,6 @@
 
 const char PyObjectProxyHandler::family = 0;
 
-bool PyObjectProxyHandler::object_toString(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  args.rval().setString(JS_NewStringCopyZ(cx, "[object Object]"));
-  return true;
-}
-
-bool PyObjectProxyHandler::object_toLocaleString(JSContext *cx, unsigned argc, JS::Value *vp) {
-  return object_toString(cx, argc, vp);
-}
-
-bool PyObjectProxyHandler::object_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
-  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-
-  JS::RootedObject proxy(cx, JS::ToObject(cx, args.thisv()));
-  if (!proxy) {
-    return false;
-  }
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-
-  // return ref to self
-  args.rval().set(jsTypeFactory(cx, self));
-  return true;
-}
-
-JSMethodDef PyObjectProxyHandler::object_methods[] = {
-  {"toString", PyObjectProxyHandler::object_toString, 0},
-  {"toLocaleString", PyObjectProxyHandler::object_toLocaleString, 0},
-  {"valueOf", PyObjectProxyHandler::object_valueOf, 0},
-  {NULL, NULL, 0}
-};
-
 bool PyObjectProxyHandler::handleOwnPropertyKeys(JSContext *cx, PyObject *keys, size_t length, JS::MutableHandleIdVector props) {
   if (!props.reserve(length)) {
     return false; // out of memory
@@ -76,24 +44,30 @@ bool PyObjectProxyHandler::handleGetOwnPropertyDescriptor(JSContext *cx, JS::Han
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc, PyObject *item) {
   // see if we're calling a function
   if (id.isString()) {
-    for (size_t index = 0;; index++) {
-      bool isThatFunction;
-      const char *methodName = object_methods[index].name;
-      if (methodName == NULL) {
-        break;
+    JS::UniqueChars idString = JS_EncodeStringToUTF8(cx, JS::RootedString(cx, id.toString()));
+    const char *methodName = idString.get();
+
+    if (!strcmp(methodName, "toString") || !strcmp(methodName, "toLocaleString") || !strcmp(methodName, "valueOf")) {
+      JS::RootedObject objectPrototype(cx);
+      if (!JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype)) {
+        return false;
       }
-      else if (JS_StringEqualsAscii(cx, id.toString(), methodName, &isThatFunction) && isThatFunction) {
-        JSFunction *newFunction = JS_NewFunction(cx, object_methods[index].call, object_methods[index].nargs, 0, NULL);
-        if (!newFunction) return false;
-        JS::RootedObject funObj(cx, JS_GetFunctionObject(newFunction));
-        desc.set(mozilla::Some(
-          JS::PropertyDescriptor::Data(
-            JS::ObjectValue(*funObj),
-            {JS::PropertyAttribute::Enumerable}
-          )
-        ));
-        return true;
+
+      JS::RootedValue Object_Prototype_Method(cx);
+      if (!JS_GetProperty(cx, objectPrototype, methodName, &Object_Prototype_Method)) {
+        return false;
       }
+
+      JS::RootedObject rootedObjectPrototypeConstructor(cx, Object_Prototype_Method.toObjectOrNull());
+
+      desc.set(mozilla::Some(
+        JS::PropertyDescriptor::Data(
+          JS::ObjectValue(*rootedObjectPrototypeConstructor),
+          {JS::PropertyAttribute::Enumerable}
+        )
+      ));
+
+      return true;
     }
   }
 
@@ -114,8 +88,8 @@ void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (Py_REFCNT(self) > 1) {
+  if (!_Py_IsFinalizing()) {
+    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
     Py_DECREF(self);
   }
 }
@@ -123,19 +97,27 @@ void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
 bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleIdVector props) const {
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   PyObject *keys = PyObject_Dir(self);
-  size_t keysLength = PyList_Size(keys);
 
-  PyObject *nonDunderKeys = PyList_New(0);
-  for (size_t i = 0; i < keysLength; i++) {
-    PyObject *key = PyList_GetItem(keys, i);
-    if (PyObject_CallMethod(key, "startswith", "(s)", "__") == Py_False) { // if key starts with "__", ignore it
-      PyList_Append(nonDunderKeys, key);
+  if (keys != nullptr) {
+    size_t keysLength = PyList_Size(keys);
+
+    PyObject *nonDunderKeys = PyList_New(0);
+    for (size_t i = 0; i < keysLength; i++) {
+      PyObject *key = PyList_GetItem(keys, i);
+      if (PyObject_CallMethod(key, "startswith", "(s)", "__") == Py_False) { // if key starts with "__", ignore it
+        PyList_Append(nonDunderKeys, key);
+      }
     }
+
+    return handleOwnPropertyKeys(cx, nonDunderKeys, PyList_Size(nonDunderKeys), props);
   }
+  else {
+    if (PyErr_Occurred()) {
+      PyErr_Clear();
+    }
 
-  size_t length = PyList_Size(nonDunderKeys);
-
-  return handleOwnPropertyKeys(cx, nonDunderKeys, length, props);
+    return handleOwnPropertyKeys(cx, PyList_New(0), 0, props);
+  }
 }
 
 bool PyObjectProxyHandler::delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,

@@ -13,14 +13,14 @@
 
 #include "include/ExceptionType.hh"
 #include "include/StrType.hh"
+#include "include/DictType.hh"
+#include "include/JSObjectProxy.hh"
 
 #include <jsapi.h>
 #include <js/Exception.h>
 
 #include <frameobject.h>
 
-
-// TODO (Tom Tang): preserve the original Python exception object somewhere in the JS obj for lossless two-way conversion
 
 PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   // Convert the JS Error object to a Python string
@@ -35,6 +35,10 @@ PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   PyObject *pyObject = PyObject_CallFunction(SpiderMonkeyError, "O", errStr); // PyObject_CallOneArg is not available in Python < 3.9
   #endif
   Py_XDECREF(errStr);
+
+  // Preserve the original JS Error object as the Python Exception's `jsError` attribute for lossless two-way conversion
+  PyObject *originalJsErrCapsule = DictType::getPyObject(cx, errValue);
+  PyObject_SetAttrString(pyObject, "jsError", originalJsErrCapsule);
 
   return pyObject;
 }
@@ -79,6 +83,13 @@ tb_print_line_repeated(_PyUnicodeWriter *writer, long cnt)
 JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyObject *traceBack) {
   assert(exceptionValue != NULL);
 
+  if (PyObject_HasAttrString(exceptionValue, "jsError")) {
+    PyObject *originalJsErrCapsule = PyObject_GetAttrString(exceptionValue, "jsError");
+    if (originalJsErrCapsule && PyObject_TypeCheck(originalJsErrCapsule, &JSObjectProxyType)) {
+      return *((JSObjectProxy *)originalJsErrCapsule)->jsObject;
+    }
+  }
+
   // Gather JS context
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wformat-zero-length"
@@ -96,7 +107,8 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   if (stackObj.get()) {
     JS::RootedString stackStr(cx);
     JS::BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
-    stackStream << "\nJS Stack Trace:\n" << StrType::getValue(cx, stackStr);
+    JS::RootedValue stackStrVal(cx, JS::StringValue(stackStr));
+    stackStream << "\nJS Stack Trace:\n" << StrType::getValue(cx, stackStrVal);
   }
 
 
@@ -264,7 +276,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
       JS::RootedString filename(cx, JS_NewStringCopyZ(cx, PyUnicode_AsUTF8(fileName)));
       JS::RootedString message(cx, JS_NewStringCopyZ(cx, msgStream.str().c_str()));
       // stack argument cannot be passed in as a string anymore (deprecated), and could not find a proper example using the new argument type
-      if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, lineno, 0, nullptr, message, JS::NothingHandleValue, &rval)) {
+      if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, lineno, JS::ColumnNumberOneOrigin(1), nullptr, message, JS::NothingHandleValue, &rval)) {
         return NULL;
       }
 
@@ -294,7 +306,7 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   JS::RootedString filename(cx, JS_NewStringCopyZ(cx, "")); // cannot be null or omitted, but is overriden by the errorReport
   JS::RootedString message(cx, JS_NewStringCopyZ(cx, msgStream.str().c_str()));
   // filename cannot be null
-  if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, 0, errorReport, message, JS::NothingHandleValue, &rval)) {
+  if (!JS::CreateError(cx, JSExnType::JSEXN_ERR, nullptr, filename, 0, JS::ColumnNumberOneOrigin(1), errorReport, message, JS::NothingHandleValue, &rval)) {
     return NULL;
   }
 

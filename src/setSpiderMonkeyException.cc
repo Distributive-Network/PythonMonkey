@@ -11,6 +11,7 @@
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
+#include "include/DictType.hh"
 
 #include <jsapi.h>
 #include <Python.h>
@@ -37,11 +38,15 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
   std::stringstream outStrStream;
 
   JSErrorReport *errorReport = reportBuilder.report();
-  if (errorReport && errorReport->filename) { // `errorReport->filename` (the source file name) can be null
+  if (errorReport && !!errorReport->filename) { // `errorReport->filename` (the source file name) can be null
     std::string offsetSpaces(errorReport->tokenOffset(), ' '); // number of spaces equal to tokenOffset
     std::string linebuf; // the offending JS line of code (can be empty)
 
-    outStrStream << "Error in file " << errorReport->filename << ", on line " << errorReport->lineno << ", column " << errorReport->column << ":\n";
+    /* *INDENT-OFF* */
+    outStrStream << "Error in file " << errorReport->filename.c_str()
+                 << ", on line " << errorReport->lineno
+                 << ", column " << errorReport->column.oneOriginValue() << ":\n";
+    /* *INDENT-ON* */
     if (errorReport->linebuf()) {
       std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
       std::u16string u16linebuf(errorReport->linebuf());
@@ -61,7 +66,8 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
     if (stackObj.get()) {
       JS::RootedString stackStr(cx);
       BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
-      outStrStream << "Stack Trace:\n" << StrType::getValue(cx, stackStr);
+      JS::RootedValue stackStrVal(cx, JS::StringValue(stackStr));
+      outStrStream << "Stack Trace:\n" << StrType::getValue(cx, stackStrVal);
     }
   }
 
@@ -102,6 +108,14 @@ void setSpiderMonkeyException(JSContext *cx) {
   // `PyErr_SetString` uses `PyErr_SetObject` with `PyUnicode_FromString` under the hood
   //    see https://github.com/python/cpython/blob/3.9/Python/errors.c#L234-L236
   PyObject *errStr = getExceptionString(cx, exceptionStack, printStack);
-  PyErr_SetObject(SpiderMonkeyError, errStr);
+  PyObject *errObj = PyObject_CallFunction(SpiderMonkeyError, "O", errStr); // errObj = SpiderMonkeyError(errStr)
   Py_XDECREF(errStr);
+  // Preserve the original JS value as the `jsError` attribute for lossless back conversion
+  PyObject *originalJsErrCapsule = DictType::getPyObject(cx, exn);
+  PyObject_SetAttrString(errObj, "jsError", originalJsErrCapsule);
+  Py_XDECREF(originalJsErrCapsule);
+  // `PyErr_SetObject` can accept either an already created Exception instance or the containing exception value as the second argument
+  //  see https://github.com/python/cpython/blob/v3.9.16/Python/errors.c#L134-L150
+  PyErr_SetObject(SpiderMonkeyError, errObj);
+  Py_XDECREF(errObj);
 }

@@ -245,7 +245,7 @@ bool JSObjectProxyMethodDefinitions::JSObjectProxy_richcompare_helper(JSObjectPr
   if (!js::GetPropertyKeys(GLOBAL_CX, *(self->jsObject), JSITER_OWNONLY, &props))
   {
     PyErr_Format(PyExc_SystemError, "%s JSAPI call failed", JSObjectProxyType.tp_name);
-    return NULL;
+    return false;
   }
 
   // iterate recursively through members of self and check for equality
@@ -338,7 +338,14 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self) {
-  Py_ssize_t i = Py_ReprEnter((PyObject *)self);
+  // Detect cyclic objects
+  PyObject *objPtr = PyLong_FromVoidPtr(self->jsObject->get());
+  // For `Py_ReprEnter`, we must get a same PyObject when visiting the same JSObject.
+  // We cannot simply use the object returned by `PyLong_FromVoidPtr` because it won't reuse the PyLongObjects for ints not between -5 and 256.
+  // Instead, we store this PyLongObject in a global dict, using itself as the hashable key, effectively interning the PyLongObject.
+  PyObject *tsDict = PyThreadState_GetDict();
+  PyObject *cyclicKey = PyDict_SetDefault(tsDict, /*key*/ objPtr, /*value*/ objPtr); // cyclicKey = (tsDict[objPtr] ??= objPtr)
+  int i = Py_ReprEnter(cyclicKey);
   if (i != 0) {
     return i > 0 ? PyUnicode_FromString("{...}") : NULL;
   }
@@ -346,7 +353,8 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
   Py_ssize_t selfLength = JSObjectProxy_length(self);
 
   if (selfLength == 0) {
-    Py_ReprLeave((PyObject *)self);
+    Py_ReprLeave(cyclicKey);
+    PyDict_DelItem(tsDict, cyclicKey);
     return PyUnicode_FromString("{}");
   }
 
@@ -417,15 +425,26 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
       value = pyTypeFactory(GLOBAL_CX, elementVal);
     }
 
-    s = PyObject_Repr(value);
-    if (s == NULL) {
-      goto error;
-    }
+    if (value != NULL) {
+      s = PyObject_Repr(value);
+      if (s == NULL) {
+        goto error;
+      }
 
-    res = _PyUnicodeWriter_WriteStr(&writer, s);
-    Py_DECREF(s);
-    if (res < 0) {
-      goto error;
+      res = _PyUnicodeWriter_WriteStr(&writer, s);
+      Py_DECREF(s);
+      if (res < 0) {
+        goto error;
+      }
+    } else {
+      // clear any exception that was just set
+      if (PyErr_Occurred()) {
+        PyErr_Clear();
+      }
+
+      if (_PyUnicodeWriter_WriteASCIIString(&writer, "<cannot repr type>", 19) < 0) {
+        goto error;
+      }
     }
 
     Py_CLEAR(key);
@@ -437,11 +456,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_repr(JSObjectProxy *self
     goto error;
   }
 
-  Py_ReprLeave((PyObject *)self);
+  Py_ReprLeave(cyclicKey);
+  PyDict_DelItem(tsDict, cyclicKey);
   return _PyUnicodeWriter_Finish(&writer);
 
 error:
-  Py_ReprLeave((PyObject *)self);
+  Py_ReprLeave(cyclicKey);
+  PyDict_DelItem(tsDict, cyclicKey);
   _PyUnicodeWriter_Dealloc(&writer);
   Py_XDECREF(key);
   Py_XDECREF(value);

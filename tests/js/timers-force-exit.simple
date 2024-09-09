@@ -1,0 +1,13 @@
+/**
+ * @file        timers-force-exit.simple
+ *              ensure we can use python.exit() even though there are timers  pending
+ * @author      Wes Garland, wes@distributive.network
+ * @date        July 2023
+ *
+ * timeout: 4
+ */
+
+setTimeout(()=>console.log('fired timer'), 500000);
+setTimeout(()=>console.error('should not have fired timer!'), 0);
+console.log('about to exit even though timers are pending');
+python.exit(0);

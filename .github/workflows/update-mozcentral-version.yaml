@@ -1,0 +1,43 @@
+name: 'Create pull requests to update mozilla-central version to the latest'
+
+on:
+  schedule:
+    - cron: "00 14 */100,1-7 * 1" # run on the first Monday of each month at 14:00 UTC (10:00 Eastern Daylight Time)
+                                  # See https://blog.healthchecks.io/2022/09/schedule-cron-job-the-funky-way/
+  workflow_call:
+  workflow_dispatch: # or you can run it manually
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  update:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Version
+        # Check the latest changes on mozilla-central via the Mercurial pushlog HTTP API
+        # See https://mozilla-version-control-tools.readthedocs.io/en/latest/hgmo/pushlog.html#hgweb-commands
+        run: |
+          COMMIT_HASH=$(
+            curl -s "https://hg.mozilla.org/mozilla-central/json-pushes?tipsonly=1&version=2" |\
+            jq --join-output '(.lastpushid | tostring) as $pushid | empty, .pushes[$pushid].changesets[0]'
+          )
+          echo "MOZCENTRAL_VERSION=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "MOZCENTRAL_VERSION_SHORT=${COMMIT_HASH:0:7}" >> $GITHUB_ENV
+      - name: Update `mozcentral.version` File
+        run: echo -n $MOZCENTRAL_VERSION > mozcentral.version
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          add-paths: mozcentral.version
+          commit-message: |
+            chore(deps): upgrade SpiderMonkey to `${{ env.MOZCENTRAL_VERSION }}`
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          branch: chore/upgrade-spidermonkey-to-${{ env.MOZCENTRAL_VERSION_SHORT }}
+          title: Upgrade SpiderMonkey to mozilla-central commit `${{ env.MOZCENTRAL_VERSION }}`
+          body: |
+            Changeset: https://hg.mozilla.org/mozilla-central/rev/${{ env.MOZCENTRAL_VERSION }}
+          labels: dependencies
+          assignees: Xmader

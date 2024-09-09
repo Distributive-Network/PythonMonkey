@@ -27,6 +27,7 @@
 #include "include/PyListProxyHandler.hh"
 #include "include/PyObjectProxyHandler.hh"
 #include "include/PyIterableProxyHandler.hh"
+#include "include/PyBytesProxyHandler.hh"
 #include "include/setSpiderMonkeyException.hh"
 #include "include/StrType.hh"
 #include "include/modules/pythonmonkey/pythonmonkey.hh"
@@ -37,6 +38,8 @@
 #include <js/ValueArray.h>
 
 PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
+  std::string errorString;
+
   if (rval.isUndefined()) {
     return NoneType::getPyObject();
   }
@@ -50,10 +53,10 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
     return FloatType::getPyObject(rval.toNumber());
   }
   else if (rval.isString()) {
-    return StrType::getPyObject(cx, rval.toString());
+    return StrType::getPyObject(cx, rval);
   }
   else if (rval.isSymbol()) {
-    printf("symbol type is not handled by PythonMonkey yet");
+    errorString = "symbol type is not handled by PythonMonkey yet.\n";
   }
   else if (rval.isBigInt()) {
     return IntType::getPyObject(cx, rval.toBigInt());
@@ -66,7 +69,8 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
       if (js::GetProxyHandler(obj)->family() == &PyDictProxyHandler::family ||                // this is one of our proxies for python dicts
           js::GetProxyHandler(obj)->family() == &PyListProxyHandler::family ||                // this is one of our proxies for python lists
           js::GetProxyHandler(obj)->family() == &PyIterableProxyHandler::family ||            // this is one of our proxies for python iterables
-          js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family) {              // this is one of our proxies for python objects
+          js::GetProxyHandler(obj)->family() == &PyObjectProxyHandler::family ||              // this is one of our proxies for python iterables
+          js::GetProxyHandler(obj)->family() == &PyBytesProxyHandler::family) {               // this is one of our proxies for python bytes objects
 
         PyObject *pyObject = JS::GetMaybePtrFromReservedSlot<PyObject>(obj, PyObjectSlot);
         Py_INCREF(pyObject);
@@ -117,12 +121,17 @@ PyObject *pyTypeFactory(JSContext *cx, JS::HandleValue rval) {
     return DictType::getPyObject(cx, rval);
   }
   else if (rval.isMagic()) {
-    printf("magic type is not handled by PythonMonkey yet\n");
+    errorString = "magic type is not handled by PythonMonkey yet.\n";
   }
 
-  std::string errorString("pythonmonkey cannot yet convert Javascript value of: ");
-  JS::RootedString str(cx, JS::ToString(cx, rval));
-  errorString += JS_EncodeStringToUTF8(cx, str).get();
+  errorString += "pythonmonkey cannot yet convert Javascript value of: ";
+  JSString *valToStr = JS::ToString(cx, rval);
+  if (!valToStr) { // `JS::ToString` returns `nullptr` for JS symbols, see https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/vm/StringType.cpp#l2208
+    // TODO (Tom Tang): Revisit this once we have Symbol coercion support
+    valToStr = JS_ValueToSource(cx, rval);
+  }
+  JS::RootedString valToStrRooted(cx, valToStr);
+  errorString += JS_EncodeStringToUTF8(cx, valToStrRooted).get();
   PyErr_SetString(PyExc_TypeError, errorString.c_str());
   return NULL;
 }

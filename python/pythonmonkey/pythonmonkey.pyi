@@ -1,4 +1,5 @@
 """
+stub file for type hints & documentations for the native module
 @see https://typing.readthedocs.io/en/latest/source/stubs.html
 """
 
@@ -25,6 +26,25 @@ def eval(code: str, evalOpts: EvalOptions = {}, /) -> _typing.Any:
   """
 
 
+def require(moduleIdentifier: str, /) -> JSObjectProxy:
+  """
+  Return the exports of a CommonJS module identified by `moduleIdentifier`, using standard CommonJS semantics
+  """
+
+
+def new(ctor: JSFunctionProxy) -> _typing.Callable[..., _typing.Any]:
+  """
+  Wrap the JS new operator, emitting a lambda which constructs a new
+  JS object upon invocation
+  """
+
+
+def typeof(jsval: _typing.Any, /):
+  """
+  This is the JS `typeof` operator, wrapped in a function so that it can be used easily from Python.
+  """
+
+
 def wait() -> _typing.Awaitable[None]:
   """
   Block until all asynchronous jobs (Promise/setTimeout/etc.) finish.
@@ -37,6 +57,18 @@ def wait() -> _typing.Awaitable[None]:
   """
 
 
+def stop() -> None:
+  """
+  Stop all pending asynchronous jobs, and unblock `await pm.wait()`
+  """
+
+
+def runProgramModule(filename: str, argv: _typing.List[str], extraPaths: _typing.List[str] = []) -> None:
+  """
+  Load and evaluate a program (main) module. Program modules must be written in JavaScript.
+  """
+
+
 def isCompilableUnit(code: str) -> bool:
   """
   Hint if a string might be compilable Javascript without actual evaluation
@@ -46,6 +78,14 @@ def isCompilableUnit(code: str) -> bool:
 def collect() -> None:
   """
   Calls the spidermonkey garbage collector
+  """
+
+
+def internalBinding(namespace: str) -> JSObjectProxy:
+  """
+  INTERNAL USE ONLY
+
+  See function declarations in ./builtin_modules/internal-binding.d.ts
   """
 
 
@@ -75,13 +115,60 @@ class JSMethodProxy(JSFunctionProxy, object):
   print(myObject.value) # 42.0
   """
 
-  def __init__(self) -> None:
-    """
-    PythonMonkey init function
-    """
+  def __init__(self) -> None: "deleted"
+
+
+class JSObjectProxy(dict):
+  """
+  JavaScript Object proxy dict
+  """
+
+  def __init__(self) -> None: "deleted"
+
+
+class JSArrayProxy(list):
+  """
+  JavaScript Array proxy
+  """
+
+  def __init__(self) -> None: "deleted"
+
+
+class JSArrayIterProxy(_typing.Iterator):
+  """
+  JavaScript Array Iterator proxy
+  """
+
+  def __init__(self) -> None: "deleted"
+
+
+class JSStringProxy(str):
+  """
+  JavaScript String proxy
+  """
+
+  def __init__(self) -> None: "deleted"
+
+
+class bigint(int):
+  """
+  Representing JavaScript BigInt in Python
+  """
+
+
+class SpiderMonkeyError(Exception):
+  """
+  Representing a corresponding JS Error in Python
+  """
 
 
 null = _typing.Annotated[
-    _typing.NewType("pythonmonkey.null", object),
-    "Representing the JS null type in Python using a singleton object",
+  _typing.NewType("pythonmonkey.null", object),
+  "Representing the JS null type in Python using a singleton object",
+]
+
+
+globalThis = _typing.Annotated[
+  JSObjectProxy,
+  "A Python Dict which is equivalent to the globalThis object in JavaScript",
 ]
