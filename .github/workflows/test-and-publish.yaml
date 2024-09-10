@@ -297,7 +297,7 @@ jobs:
   publish:
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04
-    if: ${{ success() && github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
+    if: ${{ success() && github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       # no need to checkout
       - uses: actions/setup-python@v5
@@ -320,7 +320,7 @@ jobs:
     # and deploy the static files to GitHub Pages
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04
-    if: ${{ (success() || failure()) && github.ref_name == 'main' }} # publish nightly builds regardless of tests failure
+    if: ${{ (success() || failure()) && (github.ref_name == 'main' || github.ref_type == 'tag') }} # publish nightly builds regardless of tests failure
     permissions: # grant GITHUB_TOKEN the permissions required to make a Pages deployment
       pages: write
       id-token: write
