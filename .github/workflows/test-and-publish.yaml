@@ -416,7 +416,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.ARCHIVE_HOST }}
-          username: ${{ secrets.ARCHIVE_USERNAME }}
+          username: pythonmonkey
           key: ${{ secrets.ARCHIVE_KEY }}
           source: ./*
-          target: ${{ steps.get_path.outputs.ARCHIVE_PATH }}
+          target: archive/${{ steps.get_path.outputs.ARCHIVE_PATH }}
