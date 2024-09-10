@@ -383,7 +383,7 @@ jobs:
     # Publish to ⊇istributive's archive server (https://archive.distributed.computer/releases/pythonmonkey/)
     needs: [build-and-test, sdist]
     runs-on: ubuntu-20.04
-    if: ${{ (success() || failure()) && true }} # (github.ref_name == 'main' || github.ref_type == 'tag')
+    if: ${{ (success() || failure()) && (github.ref_name == 'main' || github.ref_type == 'tag') }}
     environment:
       name: archive
       url: https://archive.distributed.computer/releases/pythonmonkey/${{ steps.get_path.outputs.ARCHIVE_PATH }}
@@ -420,3 +420,4 @@ jobs:
           key: ${{ secrets.ARCHIVE_KEY }}
           source: ./*
           target: archive/${{ steps.get_path.outputs.ARCHIVE_PATH }}
+          overwrite: true
