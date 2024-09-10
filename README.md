@@ -135,6 +135,15 @@ $ poetry build --format=wheel
 ```
 and install them by `pip install ./dist/*`.
 
+## Uninstallation
+
+Installing `pythonmonkey` will also install the `pminit` package as a dependency. However, `pip uninstall`ing a package won't automatically remove its dependencies.  
+If you want to cleanly remove `pythonmonkey` from your system, do the following:
+
+```bash
+$ pip uninstall pythonmonkey pminit
+```
+
 ## Debugging Steps
 
 1. [build the project locally](#build-instructions)
