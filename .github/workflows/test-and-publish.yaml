@@ -54,6 +54,10 @@ defaults:
     # run with Git Bash on Windows
     shell: bash
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-spidermonkey-unix:
     strategy:
