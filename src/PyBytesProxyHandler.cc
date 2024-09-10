@@ -43,13 +43,17 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   const size_t STRING_LENGTH = byteLength + numberOfDigits;
   JS::Latin1Char *buffer = (JS::Latin1Char *)malloc(sizeof(JS::Latin1Char) * STRING_LENGTH);
 
-  snprintf((char *)&buffer[0], 3 + 1, "%hu", data[0]);
+  if (snprintf((char *)&buffer[0], 3 + 1, "%hu", data[0]) < 0) {
+    return false;
+  }
   size_t charIndex = data[0] < 10 ? 1 : data[0] < 100 ? 2 : 3;
 
   for (size_t dataIndex = 1; dataIndex < byteLength; dataIndex++) {
     buffer[charIndex] = ',';
     charIndex++;
-    snprintf((char *)&buffer[charIndex], 3 + 1, "%hu", data[dataIndex]);
+    if (snprintf((char *)&buffer[charIndex], 3 + 1, "%hu", data[dataIndex]) < 0) {
+      return false;
+    }
     charIndex += data[dataIndex] < 10 ? 1 : data[dataIndex] < 100 ? 2 : 3;
   }
 
