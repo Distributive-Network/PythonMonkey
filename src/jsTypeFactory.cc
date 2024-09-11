@@ -379,14 +379,22 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   else {
     nNormalArgs = 1;
     PyObject *f = pyFunc;
+    bool isMethod;
     if (PyMethod_Check(pyFunc)) {
       f = PyMethod_Function(pyFunc); // borrowed reference
       nNormalArgs -= 1; // don't include the implicit `self` of the method as an argument
+      isMethod = true;
+    } else {
+      isMethod = false;
     }
     PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(f); // borrowed reference
     PyObject *defaults = PyFunction_GetDefaults(f); // borrowed reference
     nDefaultArgs = defaults ? PyTuple_Size(defaults) : 0;
-    nNormalArgs += bytecode->co_argcount - nDefaultArgs - 1;
+    if (bytecode->co_argcount == 0 && isMethod) {
+      nNormalArgs += nDefaultArgs;
+    } else {
+      nNormalArgs += bytecode->co_argcount - nDefaultArgs - 1;
+    }
     if (bytecode->co_flags & CO_VARARGS) {
       varargs = true;
     }
