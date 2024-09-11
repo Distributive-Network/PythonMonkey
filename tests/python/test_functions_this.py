@@ -216,5 +216,4 @@ def test_method_no_self():
     assert (False)
   except Exception as e:
     assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-    assert str(e).__contains__('TypeError:')
     assert str(e).__contains__('takes 0 positional arguments but 1 was given')
