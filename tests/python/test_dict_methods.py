@@ -555,3 +555,19 @@ def test_next_operator():
     assert (True)
   fourth = next(myit, 'default')
   assert fourth == 'default'
+
+
+def test_next_operator_non_iterator():
+  make_js_generator = pm.eval("""
+  function* sliceGenerator(pyIter)
+  {
+      yield python.eval('lambda x: next(x)')(pyIter);
+  }
+  sliceGenerator;
+  """)
+
+  try:
+    next(make_js_generator(range(0,5)))
+    assert (False)
+  except StopIteration as e:
+    assert (True)
