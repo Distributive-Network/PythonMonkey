@@ -214,6 +214,5 @@ def test_method_no_self():
   try:
     pm.eval('x => x.some_method()')(obj)
     assert (False)
-  except Exception as e:
-    assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
-    assert str(e).__contains__('takes 0 positional arguments but 1 was given')
+  except pm.SpiderMonkeyError as e:
+    assert 'takes 0 positional arguments but 1 was given' in str(e)
