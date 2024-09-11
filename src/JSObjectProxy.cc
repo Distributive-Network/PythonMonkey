@@ -321,10 +321,6 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_iter_next(JSObjectProxy 
   PyObject *retVal = JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(nextFunction, PyTuple_New(0), NULL);
   Py_DECREF(nextFunction);
   if (retVal == NULL) {
-    if (PyErr_Occurred()) {
-      PyErr_PrintEx(0);    
-    }
-    PyErr_SetNone(PyExc_StopIteration);
     return NULL;
   }
 

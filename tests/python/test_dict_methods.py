@@ -569,5 +569,6 @@ def test_next_operator_non_iterator():
   try:
     next(make_js_generator(range(0,5)))
     assert (False)
-  except StopIteration as e:
-    assert (True)
+  except Exception as e:
+    assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+    assert str(e).__contains__("'range' object is not an iterator")
