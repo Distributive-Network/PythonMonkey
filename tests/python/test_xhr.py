@@ -6,7 +6,7 @@ import json
 
 def test_xhr():
   class TestHTTPRequestHandler(BaseHTTPRequestHandler):
-    def log_request(self, code: int | str = "-", size: int | str = "-") -> None:
+    def log_request(self, *args) -> None:
       return
     
     def do_GET(self):
