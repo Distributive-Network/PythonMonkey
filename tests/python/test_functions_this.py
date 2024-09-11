@@ -202,3 +202,19 @@ def test_function_finalization():
   pm.collect()  # this should collect the JS proxy to pyFunc, which should decref pyFunc
   # pyFunc should be collected by now
   assert ref[0]() is None
+
+
+def test_method_no_self():
+  class What:
+    def some_method():
+        return 3
+
+  obj = What()
+
+  try:
+    pm.eval('x => x.some_method()')(obj)
+    assert (False)
+  except Exception as e:
+    assert str(type(e)) == "<class 'pythonmonkey.SpiderMonkeyError'>"
+    assert str(e).__contains__('TypeError:')
+    assert str(e).__contains__('takes 0 positional arguments but 1 was given')
