@@ -39,22 +39,26 @@ static bool array_valueOf(JSContext *cx, unsigned argc, JS::Value *vp) {
   for (size_t i = 0; i < byteLength; i++) {
     numberOfDigits += data[i] < 10 ? 1 : data[i] < 100 ? 2 : 3;
   }
+
   const size_t STRING_LENGTH = byteLength + numberOfDigits;
   JS::Latin1Char *buffer = (JS::Latin1Char *)malloc(sizeof(JS::Latin1Char) * STRING_LENGTH);
 
-  size_t charIndex = 0;
-  snprintf((char *)&buffer[charIndex], 4, "%d", data[0]);
-  charIndex += data[0] < 10 ? 1 : data[0] < 100 ? 2 : 3;
+  if (snprintf((char *)&buffer[0], 3 + 1, "%hu", data[0]) < 0) {
+    return false;
+  }
+  size_t charIndex = data[0] < 10 ? 1 : data[0] < 100 ? 2 : 3;
 
   for (size_t dataIndex = 1; dataIndex < byteLength; dataIndex++) {
     buffer[charIndex] = ',';
     charIndex++;
-    snprintf((char *)&buffer[charIndex], 4, "%d", data[dataIndex]);
+    if (snprintf((char *)&buffer[charIndex], 3 + 1, "%hu", data[dataIndex]) < 0) {
+      return false;
+    }
     charIndex += data[dataIndex] < 10 ? 1 : data[dataIndex] < 100 ? 2 : 3;
   }
 
   JS::UniqueLatin1Chars str(buffer);
-  args.rval().setString(JS_NewLatin1String(cx, std::move(str), STRING_LENGTH - 1)); // don't include null byte
+  args.rval().setString(JS_NewLatin1String(cx, std::move(str), STRING_LENGTH - 1)); // don't include the null terminating byte
   return true;
 }
 
