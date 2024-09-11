@@ -382,7 +382,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     if (PyMethod_Check(pyFunc)) {
       f = PyMethod_Function(pyFunc); // borrowed reference
       nNormalArgs -= 1; // don't include the implicit `self` of the method as an argument
-    }
+    } 
     PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(f); // borrowed reference
     PyObject *defaults = PyFunction_GetDefaults(f); // borrowed reference
     nDefaultArgs = defaults ? PyTuple_Size(defaults) : 0;
@@ -393,7 +393,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   // use faster calling if no arguments are needed
-  if (((nNormalArgs + nDefaultArgs) == 0 && !varargs)) {
+  if (((nNormalArgs + nDefaultArgs) <= 0 && !varargs)) {
     #if PY_VERSION_HEX >= 0x03090000
     pyRval = PyObject_CallNoArgs(pyFunc);
     #else
