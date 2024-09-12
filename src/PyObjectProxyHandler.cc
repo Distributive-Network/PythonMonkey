@@ -44,8 +44,9 @@ bool PyObjectProxyHandler::handleGetOwnPropertyDescriptor(JSContext *cx, JS::Han
   JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc, PyObject *item) {
   // see if we're calling a function
   if (id.isString()) {
-    JS::RootedString idString(cx, id.toString());
-    const char *methodName = JS_EncodeStringToUTF8(cx, idString).get();
+    JS::UniqueChars idString = JS_EncodeStringToUTF8(cx, JS::RootedString(cx, id.toString()));
+    const char *methodName = idString.get();
+
     if (!strcmp(methodName, "toString") || !strcmp(methodName, "toLocaleString") || !strcmp(methodName, "valueOf")) {
       JS::RootedObject objectPrototype(cx);
       if (!JS_GetClassPrototype(cx, JSProto_Object, &objectPrototype)) {
@@ -87,8 +88,8 @@ void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  if (Py_REFCNT(self) > 1) {
+  if (!_Py_IsFinalizing()) {
+    PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
     Py_DECREF(self);
   }
 }
@@ -109,12 +110,12 @@ bool PyObjectProxyHandler::ownPropertyKeys(JSContext *cx, JS::HandleObject proxy
     }
 
     return handleOwnPropertyKeys(cx, nonDunderKeys, PyList_Size(nonDunderKeys), props);
-  } 
+  }
   else {
     if (PyErr_Occurred()) {
-       PyErr_Clear();
+      PyErr_Clear();
     }
-      
+
     return handleOwnPropertyKeys(cx, PyList_New(0), 0, props);
   }
 }

@@ -49,17 +49,23 @@ static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
 static PyIterableProxyHandler pyIterableProxyHandler;
 
-std::unordered_map<const char16_t *, PyObject *> ucs2ToPyObjectMap; // a map of char16_t (UCS-2) buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
-std::unordered_map<const JS::Latin1Char *, PyObject *> latin1ToPyObjectMap; // a map of Latin-1 char buffers to their corresponding PyObjects, used when finalizing JSExternalStrings
+std::unordered_map<PyObject *, size_t> externalStringObjToRefCountMap;// a map of python string objects to the number of JSExternalStrings that depend on it, used when finalizing JSExternalStrings
 
 PyObject *PythonExternalString::getPyString(const char16_t *chars)
 {
-  return ucs2ToPyObjectMap[chars];
+  for (auto it: externalStringObjToRefCountMap) {
+    if (PyUnicode_DATA(it.first) == (void *)chars) { // PyUnicode_<2/1>BYTE_DATA are just type casts of PyUnicode_DATA
+      return it.first;
+    }
+  }
+
+  return NULL; // this shouldn't be reachable
 }
 
 PyObject *PythonExternalString::getPyString(const JS::Latin1Char *chars)
 {
-  return latin1ToPyObjectMap[chars];
+  
+  return PythonExternalString::getPyString((const char16_t *)chars);
 }
 
 void PythonExternalString::finalize(char16_t *chars) const
@@ -67,28 +73,40 @@ void PythonExternalString::finalize(char16_t *chars) const
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  PyObject *object = ucs2ToPyObjectMap[chars];
-  if (Py_REFCNT(object) > 1) {
-    Py_DECREF(object);
+  if (_Py_IsFinalizing()) { return; }
+
+  for (auto it = externalStringObjToRefCountMap.cbegin(), next_it = it; it != externalStringObjToRefCountMap.cend(); it = next_it) {
+    next_it++;
+    if (PyUnicode_DATA(it->first) == (void *)chars) {
+      Py_DECREF(it->first);
+      externalStringObjToRefCountMap[it->first] = externalStringObjToRefCountMap[it->first] - 1;
+
+      if (externalStringObjToRefCountMap[it->first] == 0) {
+        externalStringObjToRefCountMap.erase(it);
+      }
+    }
   }
 }
 
 void PythonExternalString::finalize(JS::Latin1Char *chars) const
 {
-  PyObject *object = latin1ToPyObjectMap[chars];
-  if (Py_REFCNT(object) > 1) {
-    Py_DECREF(object);
-  }
+  PythonExternalString::finalize((char16_t *)chars);
 }
 
 size_t PythonExternalString::sizeOfBuffer(const char16_t *chars, mozilla::MallocSizeOf mallocSizeOf) const
 {
-  return PyUnicode_GetLength(ucs2ToPyObjectMap[chars]);
+  for (auto it: externalStringObjToRefCountMap) {
+    if (PyUnicode_DATA(it.first) == (void *)chars) {
+      return PyUnicode_GetLength(it.first);
+    }
+  }
+
+  return 0; // // this shouldn't be reachable
 }
 
 size_t PythonExternalString::sizeOfBuffer(const JS::Latin1Char *chars, mozilla::MallocSizeOf mallocSizeOf) const
 {
-  return PyUnicode_GetLength(latin1ToPyObjectMap[chars]);
+  return PythonExternalString::sizeOfBuffer((const char16_t *)chars, mallocSizeOf);
 }
 
 PythonExternalString PythonExternalStringCallbacks = {};
@@ -151,13 +169,15 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     case (PyUnicode_2BYTE_KIND): {
-        ucs2ToPyObjectMap[(char16_t *)PyUnicode_2BYTE_DATA(object)] = object;
+        externalStringObjToRefCountMap[object] = externalStringObjToRefCountMap[object] + 1;
+        Py_INCREF(object);
         JSString *str = JS_NewExternalUCString(cx, (char16_t *)PyUnicode_2BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         returnType.setString(str);
         break;
       }
     case (PyUnicode_1BYTE_KIND): {
-        latin1ToPyObjectMap[(JS::Latin1Char *)PyUnicode_1BYTE_DATA(object)] = object;
+        externalStringObjToRefCountMap[object] = externalStringObjToRefCountMap[object] + 1;
+        Py_INCREF(object);
         JSString *str = JS_NewExternalStringLatin1(cx, (JS::Latin1Char *)PyUnicode_1BYTE_DATA(object), PyUnicode_GET_LENGTH(object), &PythonExternalStringCallbacks);
         // JSExternalString can now be properly treated as either one-byte or two-byte strings when GCed
         // see https://hg.mozilla.org/releases/mozilla-esr128/file/tip/js/src/vm/StringType-inl.h#l785
@@ -165,7 +185,6 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
         break;
       }
     }
-    Py_INCREF(object);
   }
   else if (PyMethod_Check(object) || PyFunction_Check(object) || PyCFunction_Check(object)) {
     // can't determine number of arguments for PyCFunctions, so just assume potentially unbounded
@@ -363,7 +382,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     if (PyMethod_Check(pyFunc)) {
       f = PyMethod_Function(pyFunc); // borrowed reference
       nNormalArgs -= 1; // don't include the implicit `self` of the method as an argument
-    }
+    } 
     PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(f); // borrowed reference
     PyObject *defaults = PyFunction_GetDefaults(f); // borrowed reference
     nDefaultArgs = defaults ? PyTuple_Size(defaults) : 0;
@@ -374,7 +393,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
   }
 
   // use faster calling if no arguments are needed
-  if (((nNormalArgs + nDefaultArgs) == 0 && !varargs)) {
+  if (((nNormalArgs + nDefaultArgs) <= 0 && !varargs)) {
     #if PY_VERSION_HEX >= 0x03090000
     pyRval = PyObject_CallNoArgs(pyFunc);
     #else
