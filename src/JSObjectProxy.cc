@@ -781,7 +781,8 @@ PyObject *newPyDictViewObject(PyObject *dict, PyTypeObject *type) {
   dv = PyObject_GC_New(_PyDictViewObject, type);
   if (dv == NULL)
     return NULL;
-  dv->dv_dict = (PyDictObject *)Py_NewRef(dict);
+  Py_INCREF(dict);
+  dv->dv_dict = (PyDictObject *)dict;
   PyObject_GC_Track(dv);
   return (PyObject *)dv;
 }
