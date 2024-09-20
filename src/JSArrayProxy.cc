@@ -1181,7 +1181,7 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
 }
 
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *args, PyObject *kwargs) {
-  static const char *const _keywords[] = {"key", "reverse", NULL};
+  static char *_keywords[] = {"key", "reverse", NULL};
 
   PyObject *keyfunc = Py_None;
   int reverse = 0;
