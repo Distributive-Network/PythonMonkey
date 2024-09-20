@@ -623,6 +623,9 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_get_method(JSObjectProxy
   PyObject *key;
   PyObject *default_value = Py_None;
 
+  if (!_PyArg_CheckPositional("get", nargs, 1, 2)) {
+    return NULL;
+  }
   key = args[0];
   if (nargs < 2) {
     goto skip_optional;
@@ -644,6 +647,9 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_setdefault_method(JSObje
   PyObject *key;
   PyObject *default_value = Py_None;
 
+  if (!_PyArg_CheckPositional("setdefault", nargs, 1, 2)) {
+    return NULL;
+  }
   key = args[0];
   if (nargs < 2) {
     goto skip_optional;
@@ -673,6 +679,9 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method(JSObjectProxy
   PyObject *key;
   PyObject *default_value = NULL;
 
+  if (!_PyArg_CheckPositional("pop", nargs, 1, 2)) {
+    return NULL;
+  }
   key = args[0];
   if (nargs < 2) {
     goto skip_optional;
