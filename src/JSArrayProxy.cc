@@ -23,6 +23,7 @@
 #include <jsfriendapi.h>
 
 #include <Python.h>
+#include "include/pyshim.hh"
 
 
 void JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc(JSArrayProxy *self)

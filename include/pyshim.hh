@@ -38,4 +38,35 @@ typedef struct {
 } _PyDictViewObject;
 #endif
 
+/**
+ * @brief Shim for `_PyArg_CheckPositional`.
+ *        Since Python 3.13, `_PyArg_CheckPositional` function became an internal API.
+ * @see Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Python/getargs.c#L2738-L2780
+ */
+#if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
+inline int _PyArg_CheckPositional(const char *name, Py_ssize_t nargs, Py_ssize_t min, Py_ssize_t max) {
+  if (nargs < min) {
+    PyErr_Format(
+      PyExc_TypeError,
+      "%.200s expected %s%zd argument%s, got %zd",
+      name, (min == max ? "" : "at least "), min, min == 1 ? "" : "s", nargs);
+    return 0;
+  }
+
+  if (nargs == 0) {
+    return 1;
+  }
+
+  if (nargs > max) {
+    PyErr_Format(
+      PyExc_TypeError,
+      "%.200s expected %s%zd argument%s, got %zd",
+      name, (min == max ? "" : "at most "), max, max == 1 ? "" : "s", nargs);
+    return 0;
+  }
+
+  return 1;
+}
+#endif
+
 #endif // #ifndef PythonMonkey_py_version_shim_
