@@ -774,14 +774,29 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectPr
   Py_RETURN_NONE;
 }
 
+/**
+ * @brief Shim for `_PyDictView_New`.
+ *        Since Python 3.13, `_PyDictView_New` function became an internal API.
+ * @see Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Objects/dictobject.c#L5806-L5827
+ */
+PyObject *newPyDictViewObject(PyObject *dict, PyTypeObject *type) {
+  _PyDictViewObject *dv;
+  dv = PyObject_GC_New(_PyDictViewObject, type);
+  if (dv == NULL)
+    return NULL;
+  dv->dv_dict = (PyDictObject *)Py_NewRef(dict);
+  PyObject_GC_Track(dv);
+  return (PyObject *)dv;
+}
+
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectKeysProxyType);
+  return newPyDictViewObject((PyObject *)self, &JSObjectKeysProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_values_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectValuesProxyType);
+  return newPyDictViewObject((PyObject *)self, &JSObjectValuesProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_items_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectItemsProxyType);
+  return newPyDictViewObject((PyObject *)self, &JSObjectItemsProxyType);
 }
