@@ -43,7 +43,8 @@ typedef struct {
  *        Since Python 3.13, `_PyArg_CheckPositional` function became an internal API.
  * @see Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Python/getargs.c#L2738-L2780
  */
-inline int PyArg_CheckNArgs(const char *name, Py_ssize_t nargs, Py_ssize_t min, Py_ssize_t max) {
+#if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
+inline int _PyArg_CheckPositional(const char *name, Py_ssize_t nargs, Py_ssize_t min, Py_ssize_t max) {
   if (nargs < min) {
     PyErr_Format(
       PyExc_TypeError,
@@ -66,6 +67,7 @@ inline int PyArg_CheckNArgs(const char *name, Py_ssize_t nargs, Py_ssize_t min, 
 
   return 1;
 }
+#endif
 
 /**
  * @brief Shim for `_PyDictView_New`.
