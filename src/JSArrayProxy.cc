@@ -790,7 +790,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_insert(JSArrayProxy *self,
   Py_ssize_t index;
   PyObject *value;
 
-  if (!_PyArg_CheckPositional("insert", nargs, 2, 2)) {
+  if (!PyArg_CheckNArgs("insert", nargs, 2, 2)) {
     return NULL;
   }
 
@@ -900,7 +900,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_extend(JSArrayProxy *self,
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_pop(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs) {
   Py_ssize_t index = -1;
 
-  if (!_PyArg_CheckPositional("pop", nargs, 0, 1)) {
+  if (!PyArg_CheckNArgs("pop", nargs, 0, 1)) {
     return NULL;
   }
 
@@ -988,7 +988,7 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_index(JSArrayProxy *self, 
   Py_ssize_t start = 0;
   Py_ssize_t stop = PY_SSIZE_T_MAX;
 
-  if (!_PyArg_CheckPositional("index", nargs, 1, 3)) {
+  if (!PyArg_CheckNArgs("index", nargs, 1, 3)) {
     return NULL;
   }
   value = args[0];
