@@ -146,8 +146,15 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
   // However, simply replacing it with `PyThreadState_GetDict()` does not work,
   //   since the public `PyThreadState_GetDict()` API can only get from the current thread.
   // We need to somehow get the thread dictionary on the main thread instead of the current thread.
-  if (tstate == NULL) {
-    return _loopNotFound();
+  if (!tstate->dict) {
+    // Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Python/pystate.c#L1934-L1951
+    tstate->dict = PyDict_New();
+    if (tstate->dict == NULL) { // when it's still null, no per-thread state is available, and an exception should not be raised
+      PyObject *old_exc = tstate->current_exception;
+      tstate->current_exception = NULL; // _PyErr_Clear(tstate)
+      Py_XDECREF(old_exc);
+      return _loopNotFound();
+    }
   }
   PyObject *ts_dict = tstate->dict;
   #elif PY_VERSION_HEX >= 0x03090000 // Python version is greater than 3.9
