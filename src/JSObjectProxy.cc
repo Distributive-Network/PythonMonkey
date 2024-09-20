@@ -669,9 +669,6 @@ skip_optional:
   return value;
 }
 
-// Python 3.13 moved this undocumented function to private API. Re-exporting it here.
-extern void _PyErr_SetKeyError(PyObject *);
-
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_pop_method(JSObjectProxy *self, PyObject *const *args, Py_ssize_t nargs) {
   PyObject *key;
   PyObject *default_value = NULL;
@@ -696,7 +693,7 @@ skip_optional:
       Py_INCREF(default_value);
       return default_value;
     }
-    _PyErr_SetKeyError(key);
+    PyErr_SetObject(PyExc_KeyError, key);
     return NULL;
   }
   else {
