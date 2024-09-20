@@ -31,9 +31,11 @@
  *
  * @see https://github.com/python/cpython/blob/v3.13.0rc1/Include/internal/pycore_dict.h#L64-L72
  */
+#if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
 typedef struct {
   PyObject_HEAD
   PyDictObject *dv_dict;
 } _PyDictViewObject;
+#endif
 
 #endif // #ifndef PythonMonkey_py_version_shim_
