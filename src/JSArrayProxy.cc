@@ -1168,15 +1168,6 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-// Python 3.13 moved this function to private API. Re-exporting it.
-extern PyObject *const *_PyArg_UnpackKeywords(
-  PyObject *const *args, Py_ssize_t nargs,
-  PyObject *kwargs, PyObject *kwnames,
-  struct _PyArg_Parser *parser,
-  int minpos, int maxpos, int minkw,
-  PyObject **buf
-);
-
 PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames) {
   static const char *const _keywords[] = {"key", "reverse", NULL};
   static _PyArg_Parser _parser = {
@@ -1190,7 +1181,9 @@ PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, P
   PyObject *keyfunc = Py_None;
   int reverse = 0;
 
-  args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 0, 0, argsbuf);
+  // args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 0, 0, argsbuf);
+  Py_RETURN_NONE;
+
   if (!args) {
     return NULL;
   }
