@@ -1180,43 +1180,15 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames) {
+PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *args, PyObject *kwargs) {
   static const char *const _keywords[] = {"key", "reverse", NULL};
-  static _PyArg_Parser _parser = {
-    .keywords = _keywords,
-    .fname = "sort",
-    .kwtuple = NULL,
-  };
 
-  PyObject *argsbuf[2];
-  Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
   PyObject *keyfunc = Py_None;
   int reverse = 0;
-
-  // args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 0, 0, argsbuf);
-  Py_RETURN_NONE;
-
-  if (!args) {
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|$Op:sort", _keywords, &keyfunc, &reverse)) {
     return NULL;
   }
 
-  if (!noptargs) {
-    goto skip_optional_kwonly;
-  }
-
-  if (args[0]) {
-    keyfunc = args[0];
-    if (!--noptargs) {
-      goto skip_optional_kwonly;
-    }
-  }
-
-  reverse = PyObject_IsTrue(args[1]);
-  if (reverse < 0) {
-    return NULL;
-  }
-
-skip_optional_kwonly:
   if (JSArrayProxy_length(self) > 1) {
     JS::RootedValue jReturnedArray(GLOBAL_CX);
     if (keyfunc != Py_None) {

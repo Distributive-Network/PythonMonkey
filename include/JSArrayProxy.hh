@@ -251,11 +251,10 @@ public:
    *
    * @param self - The JSArrayProxy
    * @param args - arguments to the sort method (not used)
-   * @param nargs - number of arguments to the sort method
-   * @param kwnames - keyword arguments to the sort method (reverse=True|False, key=keyfunction)
+   * @param kwargs - keyword arguments to the sort method (reverse=True|False, key=keyfunction)
    * @return PyObject* NULL on exception, None otherwise
    */
-  static PyObject *JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames);
+  static PyObject *JSArrayProxy_sort(JSArrayProxy *self, PyObject *args, PyObject *kwargs);
 
   /**
    * @brief tp_traverse
@@ -404,7 +403,7 @@ static PyMethodDef JSArrayProxy_methods[] = {
   {"index", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_index, METH_FASTCALL, list_index__doc__},
   {"count", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_count, METH_O, list_count__doc__},
   {"reverse", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_reverse, METH_NOARGS, list_reverse__doc__},
-  {"sort", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_sort, METH_FASTCALL|METH_KEYWORDS, list_sort__doc__},
+  {"sort", (PyCFunction)JSArrayProxyMethodDefinitions::JSArrayProxy_sort, METH_VARARGS|METH_KEYWORDS, list_sort__doc__},
   {NULL, NULL}                       /* sentinel */
 };
 
