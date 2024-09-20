@@ -82,8 +82,11 @@ globalThis.python.stdout.write = lambda s: sys.stdout.write(s)
 globalThis.python.stderr.write = lambda s: sys.stderr.write(s)
 globalThis.python.stdout.read = lambda n: sys.stdout.read(n)
 globalThis.python.stderr.read = lambda n: sys.stderr.read(n)
-globalThis.python.eval = eval
-globalThis.python.exec = exec
+# Python 3.13 dramatically changed how the namespace in `exec`/`eval` works
+# See https://docs.python.org/3.13/whatsnew/3.13.html#defined-mutation-semantics-for-locals
+_locals = {}  # keep the local variables inside `eval`/`exec` to a dict
+globalThis.python.eval = lambda x: eval(x, None, _locals)
+globalThis.python.exec = lambda x: exec(x, None, _locals)
 globalThis.python.getenv = os.getenv
 globalThis.python.paths = sys.path
 
