@@ -25,4 +25,15 @@
   #define Py_IsFinalizing _Py_IsFinalizing
 #endif
 
+/**
+ * @brief `_PyDictViewObject` type definition moved from Python's public API
+ *          to the **internal** header file `internal/pycore_dict.h` in Python 3.13.
+ *
+ * @see https://github.com/python/cpython/blob/v3.13.0rc1/Include/internal/pycore_dict.h#L64-L72
+ */
+typedef struct {
+  PyObject_HEAD
+  PyDictObject *dv_dict;
+} _PyDictViewObject;
+
 #endif // #ifndef PythonMonkey_py_version_shim_
