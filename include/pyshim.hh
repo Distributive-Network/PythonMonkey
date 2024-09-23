@@ -93,4 +93,18 @@ inline PyObject *PyDictViewObject_new(PyObject *dict, PyTypeObject *type) {
 #endif
 }
 
+/**
+ * @brief Shim for `_PyErr_SetKeyError`.
+ *        Since Python 3.13, `_PyErr_SetKeyError` function became an internal API.
+ */
+inline void PyErr_SetKeyError(PyObject *key) {
+  // Use the provided API when possible, as `PyErr_SetObject`'s behaviour is more complex than originally thought
+  // see also: https://github.com/python/cpython/issues/101578
+#if PY_VERSION_HEX < 0x030d0000 // Python version is lower than 3.13
+  return _PyErr_SetKeyError(key);
+#else
+  return PyErr_SetObject(PyExc_KeyError, key);
+#endif
+}
+
 #endif // #ifndef PythonMonkey_py_version_shim_
