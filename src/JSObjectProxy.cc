@@ -702,7 +702,11 @@ skip_optional:
       Py_INCREF(default_value);
       return default_value;
     }
+    #if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
     PyErr_SetObject(PyExc_KeyError, key);
+    #else
+    _PyErr_SetKeyError(key);
+    #endif
     return NULL;
   }
   else {
