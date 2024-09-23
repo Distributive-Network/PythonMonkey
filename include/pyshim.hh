@@ -45,6 +45,10 @@ typedef struct {
  */
 #if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
 inline int _PyArg_CheckPositional(const char *name, Py_ssize_t nargs, Py_ssize_t min, Py_ssize_t max) {
+  if (!name) { // _PyArg_CheckPositional may also be when unpacking a tuple
+    name = "unpacked tuple"; // https://github.com/python/cpython/blob/v3.13.0rc1/Python/getargs.c#L2746
+  }
+
   if (nargs < min) {
     PyErr_Format(
       PyExc_TypeError,
