@@ -54,6 +54,16 @@ static bool containsSurrogatePair(const char16_t *chars, size_t length) {
 }
 
 /**
+ * @brief check if the Latin-1 encoded `chars` only contain ascii characters
+ */
+static bool containsOnlyAscii(const JS::Latin1Char *chars, size_t length) {
+  for (size_t i = 0; i < length; i++) {
+    if (chars[i] >= 128) return false;
+  }
+  return true;
+}
+
+/**
  * @brief creates new UCS4-encoded pyObject string. This must be called by the user if the original JSString contains any surrogate pairs
  *
  * @return PyObject* - the UCS4-encoding of the pyObject string
@@ -134,6 +144,16 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
     PY_UNICODE_OBJECT_WSTR_LENGTH(pyString) = 0;
     PY_UNICODE_OBJECT_READY(pyString) = 1;
   #endif
+
+  #ifdef Py_DEBUG
+    // In a debug build of CPython, it needs to be a well-formed PyUnicodeObject, otherwise a `_PyObject_AssertFailed` error will be raised.
+    // See: `_PyUnicode_CheckConsistency` https://github.com/python/cpython/blob/v3.11.3/Objects/unicodeobject.c#L594-L600, #L552-L553
+    if (containsOnlyAscii(chars, length)) {
+      PY_UNICODE_OBJECT_STATE(pyString).ascii = 1;
+      PY_UNICODE_OBJECT_UTF8(pyString) = (char *)chars; // XXX: most APIs (e.g. PyUnicode_AsUTF8) assume this is a \0 terminated string
+      PY_UNICODE_OBJECT_UTF8_LENGTH(pyString) = length;
+    }
+  #endif
   }
   else { // utf16 spidermonkey, ucs2 python
     const char16_t *chars = JS::GetTwoByteLinearStringChars(nogc, lstr);
@@ -195,7 +215,7 @@ PyObject *StrType::getPyObject(JSContext *cx, JS::HandleValue str) {
 
 const char *StrType::getValue(JSContext *cx, JS::HandleValue str) {
   PyObject *pyString = proxifyString(cx, str);
-  const char *value = PyUnicode_AsUTF8(pyString);
+  const char *value = PyUnicode_AsUTF8(PyUnicode_FromObject(pyString));
   Py_DECREF(pyString);
   return value;
 }
