@@ -121,6 +121,7 @@ bool sendJobToMainLoop(PyObject *pyFunc) {
   }
   loop.enqueue(pyFunc);
 
+  loop._loop = nullptr; // the `Py_XDECREF` Python API call in `PyEventLoop`'s destructor will not be accessible once we hand over the GIL by `PyGILState_Release`
   PyGILState_Release(gstate);
   return true;
 }
