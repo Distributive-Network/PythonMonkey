@@ -436,8 +436,9 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
     }
   }
 
-  if (!setItemCalled) {
-    Py_DECREF(fillValueItem);
+  Py_INCREF(fillValueItem);
+  if (setItemCalled) {
+    Py_INCREF(fillValueItem);
   }
 
   // return ref to self
