@@ -303,11 +303,19 @@ PyTypeObject JSObjectItemsProxyType = {
 };
 
 static void cleanup() {
+  // Clean up the PythonMonkey module
+  Py_XDECREF(PythonMonkey_Null);
+  Py_XDECREF(PythonMonkey_BigInt);
+
+  // Clean up SpiderMonkey
   delete autoRealm;
   delete global;
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
   delete JOB_QUEUE;
   JS_ShutDown();
+}
+static void cleanup(PyObject *) {
+  cleanup();
 }
 
 static PyObject *collect(PyObject *self, PyObject *args) {
@@ -550,7 +558,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
   }
-  Py_AtExit(cleanup);
 
   GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
   if (!GLOBAL_CX) {
@@ -642,6 +649,16 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   PyObject *pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
     return NULL;
+
+  // Clean up SpiderMonkey when the PythonMonkey module gets destroyed (module.___cleanup is GCed)
+  // The `cleanup` function will be called automatically when this PyCapsule gets GCed
+  // We cannot use `Py_AtExit(cleanup);` because the GIL is unavailable after Python finalization, no more Python APIs can be called.
+  PyObject *autoDestructor = PyCapsule_New(&pythonmonkey, NULL, cleanup);
+  if (PyModule_AddObject(pyModule, "___cleanup", autoDestructor) < 0) {
+    Py_DECREF(autoDestructor);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
 
   Py_INCREF(&NullType);
   if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {
