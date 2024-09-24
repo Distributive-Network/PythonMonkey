@@ -79,7 +79,7 @@ static bool toPrimitive(JSContext *cx, unsigned argc, JS::Value *vp) {
   _PyUnicodeWriter writer;
 
   _PyUnicodeWriter_Init(&writer);
-  
+
   PyObject *s = PyObject_Repr(self);
 
   if (s == nullptr) {
@@ -95,8 +95,8 @@ static bool toPrimitive(JSContext *cx, unsigned argc, JS::Value *vp) {
     return true;
   }
 
-  PyObject* repr = _PyUnicodeWriter_Finish(&writer);
- 
+  PyObject *repr = _PyUnicodeWriter_Finish(&writer);
+
   args.rval().set(jsTypeFactory(cx, repr));
   return true;
 }
@@ -262,7 +262,7 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   // symbol property
   if (id.isSymbol()) {
     JS::RootedSymbol rootedSymbol(cx, id.toSymbol());
-    JS::SymbolCode symbolCode = JS::GetSymbolCode(rootedSymbol); 
+    JS::SymbolCode symbolCode = JS::GetSymbolCode(rootedSymbol);
 
     if (symbolCode == JS::SymbolCode::iterator) {
       JSFunction *newFunction = JS_NewFunction(cx, iterable_values, 0, 0, NULL);
@@ -275,7 +275,7 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
         )
       ));
       return true;
-    } 
+    }
     else if (symbolCode == JS::SymbolCode::toPrimitive) {
       JSFunction *newFunction = JS_NewFunction(cx, toPrimitive, 0, 0, nullptr);
       if (!newFunction) return false;
@@ -293,6 +293,9 @@ bool PyIterableProxyHandler::getOwnPropertyDescriptor(
   PyObject *attrName = idToKey(cx, id);
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   PyObject *item = PyObject_GetAttr(self, attrName);
+  if (!item && PyErr_ExceptionMatches(PyExc_AttributeError)) {
+    PyErr_Clear(); // clear error, we will be returning undefined in this case
+  }
 
   return handleGetOwnPropertyDescriptor(cx, id, desc, item);
 }
