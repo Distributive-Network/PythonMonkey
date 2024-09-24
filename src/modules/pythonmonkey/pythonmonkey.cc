@@ -303,8 +303,6 @@ PyTypeObject JSObjectItemsProxyType = {
 };
 
 static void cleanup() {
-  Py_XDECREF(PythonMonkey_Null);
-  Py_XDECREF(PythonMonkey_BigInt);
   delete autoRealm;
   delete global;
   if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
