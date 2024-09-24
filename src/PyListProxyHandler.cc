@@ -550,15 +550,7 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
   Py_ssize_t selfSize = PyList_GET_SIZE(self);
-
-  PyObject *result = PyList_New(selfSize);
-
-  // Copy items to the new list
-  for (Py_ssize_t index = 0; index < selfSize; index++) {
-    PyObject *item = PyList_GetItem(self, index);
-    Py_INCREF(item); // `PyList_SetItem` steals the reference, so we must increase the reference count by 1
-    PyList_SetItem(result, index, item);
-  }
+  PyObject *result = PyList_GetSlice(self, 0, selfSize);
 
   unsigned numArgs = args.length();
   JS::RootedValue elementVal(cx);
