@@ -553,8 +553,11 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   PyObject *result = PyList_New(selfSize);
 
+  // Copy items to the new list
   for (Py_ssize_t index = 0; index < selfSize; index++) {
-    PyList_SetItem(result, index, PyList_GetItem(self, index));
+    PyObject *item = PyList_GetItem(self, index);
+    Py_INCREF(item); // `PyList_SetItem` steals the reference, so we must increase the reference count by 1
+    PyList_SetItem(result, index, item);
   }
 
   unsigned numArgs = args.length();
