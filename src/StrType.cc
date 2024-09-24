@@ -212,10 +212,3 @@ PyObject *StrType::getPyObject(JSContext *cx, JS::HandleValue str) {
 
   return proxifyString(cx, str);
 }
-
-const char *StrType::getValue(JSContext *cx, JS::HandleValue str) {
-  PyObject *pyString = proxifyString(cx, str);
-  const char *value = PyUnicode_AsUTF8(PyUnicode_FromObject(pyString));
-  Py_DECREF(pyString);
-  return value;
-}
