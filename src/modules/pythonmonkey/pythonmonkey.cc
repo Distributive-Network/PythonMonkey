@@ -331,7 +331,7 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, const c
     value = PyDict_GetItemString(evalOptions, optionName);
   }
   if (value && value != Py_None) {
-    *s_p = PyUnicode_AsUTF8(value);
+    *s_p = PyUnicode_AsUTF8(PyUnicode_FromObject(value));
   }
   return value != NULL && value != Py_None;
 }
@@ -449,7 +449,8 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 #endif
       if (!getEvalOption(evalOptions, "filename", &s)) {
         if (filename && PyUnicode_Check(filename)) {
-          options.setFile(PyUnicode_AsUTF8(filename));
+          PyObject *filenameStr = PyUnicode_FromObject(filename); // needs a strict Python str object (not a subtype)
+          options.setFile(PyUnicode_AsUTF8(filenameStr));
         }
       } /* filename */
     } /* fromPythonFrame */
