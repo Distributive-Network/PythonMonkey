@@ -461,8 +461,9 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   JS::Rooted<JS::Value> rval(GLOBAL_CX);
   if (code) {
     JS::SourceText<mozilla::Utf8Unit> source;
-    const char *codeChars = PyUnicode_AsUTF8(code);
-    if (!source.init(GLOBAL_CX, codeChars, strlen(codeChars), JS::SourceOwnership::Borrowed)) {
+    Py_ssize_t codeLength;
+    const char *codeChars = PyUnicode_AsUTF8AndSize(code, &codeLength);
+    if (!source.init(GLOBAL_CX, codeChars, codeLength, JS::SourceOwnership::Borrowed)) {
       setSpiderMonkeyException(GLOBAL_CX);
       return NULL;
     }
@@ -521,9 +522,10 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  const char *bufferUtf8 = PyUnicode_AsUTF8(item);
+  Py_ssize_t bufferLength;
+  const char *bufferUtf8 = PyUnicode_AsUTF8AndSize(item, &bufferLength);
 
-  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8))) {
+  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, bufferLength)) {
     Py_RETURN_TRUE;
   } else {
     Py_RETURN_FALSE;
