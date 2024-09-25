@@ -781,13 +781,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectPr
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method(JSObjectProxy *self) {
-  return PyDictViewObject_new((PyObject *)self, &JSObjectKeysProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectKeysProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_values_method(JSObjectProxy *self) {
-  return PyDictViewObject_new((PyObject *)self, &JSObjectValuesProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectValuesProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_items_method(JSObjectProxy *self) {
-  return PyDictViewObject_new((PyObject *)self, &JSObjectItemsProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectItemsProxyType);
 }

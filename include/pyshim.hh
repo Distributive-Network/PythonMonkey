@@ -78,7 +78,7 @@ inline int _PyArg_CheckPositional(const char *name, Py_ssize_t nargs, Py_ssize_t
  *        Since Python 3.13, `_PyDictView_New` function became an internal API.
  * @see Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Objects/dictobject.c#L5806-L5827
  */
-inline PyObject *PyDictViewObject_new(PyObject *dict, PyTypeObject *type) {
+inline PyObject *PyDictView_New(PyObject *dict, PyTypeObject *type) {
 #if PY_VERSION_HEX < 0x030d0000 // Python version is lower than 3.13
   return _PyDictView_New(dict, type);
 #else
