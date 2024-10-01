@@ -86,6 +86,7 @@ globalThis.python.stderr.read = lambda n: sys.stderr.read(n)
 # See https://docs.python.org/3.13/whatsnew/3.13.html#defined-mutation-semantics-for-locals
 globalThis.python.eval = lambda x: eval(x, None, sys._getframe(1).f_locals)
 globalThis.python.exec = lambda x: exec(x, None, sys._getframe(1).f_locals)
+globalThis.python.getenv = os.getenv
 globalThis.python.paths = sys.path
 
 globalThis.python.exit = pm.eval("""'use strict';
