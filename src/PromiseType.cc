@@ -20,7 +20,6 @@
 #include <js/Promise.h>
 
 #include <Python.h>
-#include "include/pyshim.hh"
 
 // slot ids to access the python object in JS callbacks
 #define PY_FUTURE_OBJ_SLOT 0
@@ -41,7 +40,7 @@ static bool onResolvedCb(JSContext *cx, unsigned argc, JS::Value *vp) {
   if (state == JS::PromiseState::Rejected && !PyExceptionInstance_Check(result)) {
     // Wrap the result object into a SpiderMonkeyError object
     // because only *Exception objects can be thrown in Python `raise` statement and alike
-    PyObject *wrapped = PyObject_CallOneArg(SpiderMonkeyError, result); // wrapped = SpiderMonkeyError(result)
+    PyObject *wrapped = _PyObject_CallOneArg(SpiderMonkeyError, result); // wrapped = SpiderMonkeyError(result)
     // Preserve the original JS value as the `jsError` attribute for lossless conversion back
     PyObject *originalJsErrCapsule = DictType::getPyObject(cx, resultArg);
     PyObject_SetAttrString(wrapped, "jsError", originalJsErrCapsule);
