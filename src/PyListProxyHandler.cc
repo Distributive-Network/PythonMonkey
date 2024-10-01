@@ -428,18 +428,16 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   JS::RootedValue fillValue(cx, args[0].get());
   PyObject *fillValueItem = pyTypeFactory(cx, fillValue);
-  bool setItemCalled = false;
   for (int index = actualStart; index < actualEnd; index++) {
-    setItemCalled = true;
+    // Since each call of `PyList_SetItem` steals a reference (even if its to the same object),
+    // We need multiple references to it for it to steal.
+    Py_INCREF(fillValueItem);
     if (PyList_SetItem(self, index, fillValueItem) < 0) {
       return false;
     }
   }
 
-  Py_INCREF(fillValueItem);
-  if (setItemCalled) {
-    Py_INCREF(fillValueItem);
-  }
+  Py_DECREF(fillValueItem);
 
   // return ref to self
   args.rval().set(jsTypeFactory(cx, self));
