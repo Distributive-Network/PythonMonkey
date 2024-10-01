@@ -15,6 +15,7 @@
 #include <js/BigInt.h>
 
 #include <Python.h>
+#include "include/pyshim.hh"
 
 #include <vector>
 
@@ -100,7 +101,7 @@ PyObject *IntType::getPyObject(JSContext *cx, JS::BigInt *bigint) {
   // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
   //  allowing Py<->JS two-way BigInt conversion.
   // We don't do `Py_SET_TYPE` because `_PyLong_FromByteArray` may cache and reuse objects for small ints
-  PyObject *pyObject = _PyObject_CallOneArg(getPythonMonkeyBigInt(), pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
+  PyObject *pyObject = PyObject_CallOneArg(getPythonMonkeyBigInt(), pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
   Py_DECREF(pyIntObj);
 
   // Set the sign bit

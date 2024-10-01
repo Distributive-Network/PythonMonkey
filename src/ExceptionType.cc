@@ -21,6 +21,7 @@
 
 #include <Python.h>
 #include <frameobject.h>
+#include "include/pyshim.hh"
 
 
 PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
@@ -30,7 +31,7 @@ PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   PyObject *errStr = getExceptionString(cx, JS::ExceptionStack(cx, errValue, errStack), true);
 
   // Construct a new SpiderMonkeyError python object
-  PyObject *pyObject = _PyObject_CallOneArg(SpiderMonkeyError, errStr); // _PyErr_CreateException, https://github.com/python/cpython/blob/3.9/Python/errors.c#L100
+  PyObject *pyObject = PyObject_CallOneArg(SpiderMonkeyError, errStr); // _PyErr_CreateException, https://github.com/python/cpython/blob/3.9/Python/errors.c#L100
   Py_XDECREF(errStr);
 
   // Preserve the original JS Error object as the Python Exception's `jsError` attribute for lossless two-way conversion
