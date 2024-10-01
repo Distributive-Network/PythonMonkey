@@ -394,11 +394,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
 
   // use faster calling if no arguments are needed
   if (((nNormalArgs + nDefaultArgs) <= 0 && !varargs)) {
-    #if PY_VERSION_HEX >= 0x03090000
-    pyRval = PyObject_CallNoArgs(pyFunc);
-    #else
-    pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
-    #endif
+    pyRval = PyObject_CallObject(pyFunc, NULL);
     if (PyErr_Occurred() && setPyException(cx)) { // Check if an exception has already been set in Python error stack
       goto failure;
     }
