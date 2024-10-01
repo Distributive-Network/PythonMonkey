@@ -14,6 +14,9 @@
 #include <jsapi.h>
 #include <js/BigInt.h>
 
+#include <Python.h>
+#include "include/pyshim.hh"
+
 #include <vector>
 
 #define SIGN_BIT_MASK 0b1000 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l40
@@ -98,11 +101,7 @@ PyObject *IntType::getPyObject(JSContext *cx, JS::BigInt *bigint) {
   // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
   //  allowing Py<->JS two-way BigInt conversion.
   // We don't do `Py_SET_TYPE` because `_PyLong_FromByteArray` may cache and reuse objects for small ints
-  #if PY_VERSION_HEX >= 0x03090000
   PyObject *pyObject = PyObject_CallOneArg(getPythonMonkeyBigInt(), pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
-  #else
-  PyObject *pyObject = PyObject_CallFunction(getPythonMonkeyBigInt(), "O", pyIntObj); // PyObject_CallOneArg is not available in Python < 3.9
-  #endif
   Py_DECREF(pyIntObj);
 
   // Set the sign bit

@@ -118,4 +118,14 @@ static inline void _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size) {
 #define Py_SET_SIZE(ob, size) _Py_SET_SIZE((PyVarObject *)(ob), size)
 #endif
 
+/**
+ * @brief Shim for `PyObject_CallOneArg`.
+ *        `PyObject_CallOneArg` is not available in Python < 3.9
+ */
+#if PY_VERSION_HEX < 0x03090000 // Python version is less than 3.9
+inline PyObject *PyObject_CallOneArg(PyObject *func, PyObject *arg) {
+  return PyObject_CallFunction(func, "O", arg);
+}
+#endif
+
 #endif // #ifndef PythonMonkey_py_version_shim_
