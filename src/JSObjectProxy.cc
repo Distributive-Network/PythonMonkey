@@ -638,6 +638,7 @@ skip_optional:
 
   PyObject *value = JSObjectProxy_get(self, key);
   if (value == Py_None) {
+    Py_INCREF(default_value);
     value = default_value;
   }
 
