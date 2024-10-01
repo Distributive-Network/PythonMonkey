@@ -310,7 +310,10 @@ static void cleanup() {
   // Clean up SpiderMonkey
   delete autoRealm;
   delete global;
-  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
+  if (GLOBAL_CX) {
+    JS_DestroyContext(GLOBAL_CX);
+    GLOBAL_CX = nullptr;
+  }
   delete JOB_QUEUE;
   JS_ShutDown();
 }
