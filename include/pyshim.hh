@@ -128,4 +128,18 @@ inline PyObject *PyObject_CallOneArg(PyObject *func, PyObject *arg) {
 }
 #endif
 
+/**
+ * @brief Shim for `_PyLong_AsByteArray`.
+ *        Python 3.13.0a4 added a new public API `PyLong_AsNativeBytes()` to replace the private `_PyLong_AsByteArray()`.
+ *        But this change also modified the function signature of `_PyLong_AsByteArray()`.
+ * @see https://github.com/python/cpython/issues/111140
+ */
+inline int PyLong_AsByteArray(PyLongObject *v, unsigned char *bytes, size_t n, bool little_endian, bool is_signed) {
+#if PY_VERSION_HEX >= 0x030d0000 // Python version is 3.13 or higher
+  return _PyLong_AsByteArray(v, bytes, n, little_endian, is_signed, /*with_exceptions*/ false);
+#else
+  return _PyLong_AsByteArray(v, bytes, n, little_endian, is_signed);
+#endif
+}
+
 #endif // #ifndef PythonMonkey_py_version_shim_
