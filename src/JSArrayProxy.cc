@@ -23,6 +23,7 @@
 #include <jsfriendapi.h>
 
 #include <Python.h>
+#include "include/pyshim.hh"
 
 
 void JSArrayProxyMethodDefinitions::JSArrayProxy_dealloc(JSArrayProxy *self)
@@ -1179,60 +1180,15 @@ static bool sort_compare_default(JSContext *cx, unsigned argc, JS::Value *vp) {
   return true;
 }
 
-PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames) {
-  #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
-
-  #define NUM_KEYWORDS 2
-  static struct {
-    PyGC_Head _this_is_not_used;
-    PyObject_VAR_HEAD
-    PyObject *ob_item[NUM_KEYWORDS];
-  } _kwtuple = {
-    .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
-    .ob_item = {&_Py_ID(key), &_Py_ID(reverse), },
-  };
-  #undef NUM_KEYWORDS
-  #define KWTUPLE (&_kwtuple.ob_base.ob_base)
-
-  #else // !Py_BUILD_CORE
-  #  define KWTUPLE NULL
-  #endif // !Py_BUILD_CORE
-
+PyObject *JSArrayProxyMethodDefinitions::JSArrayProxy_sort(JSArrayProxy *self, PyObject *args, PyObject *kwargs) {
   static const char *const _keywords[] = {"key", "reverse", NULL};
-  static _PyArg_Parser _parser = {
-    .keywords = _keywords,
-    .fname = "sort",
-    .kwtuple = KWTUPLE,
-  };
-  #undef KWTUPLE
 
-  PyObject *argsbuf[2];
-  Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
   PyObject *keyfunc = Py_None;
   int reverse = 0;
-
-  args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 0, 0, argsbuf);
-  if (!args) {
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|$Op:sort", (char **)_keywords, &keyfunc, &reverse)) {
     return NULL;
   }
 
-  if (!noptargs) {
-    goto skip_optional_kwonly;
-  }
-
-  if (args[0]) {
-    keyfunc = args[0];
-    if (!--noptargs) {
-      goto skip_optional_kwonly;
-    }
-  }
-
-  reverse = PyObject_IsTrue(args[1]);
-  if (reverse < 0) {
-    return NULL;
-  }
-
-skip_optional_kwonly:
   if (JSArrayProxy_length(self) > 1) {
     JS::RootedValue jReturnedArray(GLOBAL_CX);
     if (keyfunc != Py_None) {

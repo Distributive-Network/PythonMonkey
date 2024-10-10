@@ -21,6 +21,7 @@
 #include <js/friend/ErrorMessages.h>
 
 #include <Python.h>
+#include "include/pyshim.hh"
 
 const char PyObjectProxyHandler::family = 0;
 
@@ -88,7 +89,7 @@ void PyObjectProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  if (!_Py_IsFinalizing()) {
+  if (!Py_IsFinalizing()) {
     PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
     Py_DECREF(self);
   }

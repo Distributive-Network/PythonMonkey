@@ -36,6 +36,7 @@
 
 #include <Python.h>
 #include <datetime.h>
+#include "include/pyshim.hh"
 
 #include <unordered_map>
 
@@ -49,7 +50,7 @@ static PyObjectProxyHandler pyObjectProxyHandler;
 static PyListProxyHandler pyListProxyHandler;
 static PyIterableProxyHandler pyIterableProxyHandler;
 
-std::unordered_map<PyObject *, size_t> externalStringObjToRefCountMap;// a map of python string objects to the number of JSExternalStrings that depend on it, used when finalizing JSExternalStrings
+std::unordered_map<PyObject *, size_t> externalStringObjToRefCountMap; // a map of python string objects to the number of JSExternalStrings that depend on it, used when finalizing JSExternalStrings
 
 PyObject *PythonExternalString::getPyString(const char16_t *chars)
 {
@@ -64,7 +65,6 @@ PyObject *PythonExternalString::getPyString(const char16_t *chars)
 
 PyObject *PythonExternalString::getPyString(const JS::Latin1Char *chars)
 {
-  
   return PythonExternalString::getPyString((const char16_t *)chars);
 }
 
@@ -73,7 +73,7 @@ void PythonExternalString::finalize(char16_t *chars) const
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  if (_Py_IsFinalizing()) { return; }
+  if (Py_IsFinalizing()) { return; }
 
   for (auto it = externalStringObjToRefCountMap.cbegin(), next_it = it; it != externalStringObjToRefCountMap.cend(); it = next_it) {
     next_it++;
@@ -382,7 +382,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
     if (PyMethod_Check(pyFunc)) {
       f = PyMethod_Function(pyFunc); // borrowed reference
       nNormalArgs -= 1; // don't include the implicit `self` of the method as an argument
-    } 
+    }
     PyCodeObject *bytecode = (PyCodeObject *)PyFunction_GetCode(f); // borrowed reference
     PyObject *defaults = PyFunction_GetDefaults(f); // borrowed reference
     nDefaultArgs = defaults ? PyTuple_Size(defaults) : 0;
@@ -394,11 +394,7 @@ bool callPyFunc(JSContext *cx, unsigned int argc, JS::Value *vp) {
 
   // use faster calling if no arguments are needed
   if (((nNormalArgs + nDefaultArgs) <= 0 && !varargs)) {
-    #if PY_VERSION_HEX >= 0x03090000
-    pyRval = PyObject_CallNoArgs(pyFunc);
-    #else
-    pyRval = _PyObject_CallNoArg(pyFunc); // in Python 3.8, the API is only available under the name with a leading underscore
-    #endif
+    pyRval = PyObject_CallObject(pyFunc, NULL);
     if (PyErr_Occurred() && setPyException(cx)) { // Check if an exception has already been set in Python error stack
       goto failure;
     }

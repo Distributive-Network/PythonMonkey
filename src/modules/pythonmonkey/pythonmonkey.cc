@@ -41,6 +41,7 @@
 
 #include <Python.h>
 #include <datetime.h>
+#include "include/pyshim.hh"
 
 #include <unordered_map>
 #include <vector>
@@ -53,7 +54,7 @@ JS::PersistentRootedObject jsFunctionRegistry;
  * The char buffer pointer obtained by previous `JS::Get{Latin1,TwoByte}LinearStringChars` calls remains valid only as long as no GC occurs.
  */
 void updateCharBufferPointers() {
-  if (_Py_IsFinalizing()) {
+  if (Py_IsFinalizing()) {
     return; // do not move char pointers around if python is finalizing
   }
 

@@ -140,10 +140,37 @@ PyEventLoop PyEventLoop::_loopNotFound() {
 /* static */
 PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
   // Modified from Python 3.9 `get_running_loop` https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L241-L278
-  #if PY_VERSION_HEX >= 0x03090000 // Python version is greater than 3.9
-  PyObject *ts_dict = _PyThreadState_GetDict(tstate);  // borrowed reference
+
+  PyObject *ts_dict;
+  #if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
+  // The private `_PyThreadState_GetDict(tstate)` API gets removed in Python 3.13.
+  // However, simply replacing it with `PyThreadState_GetDict()` does not work,
+  //   since the public `PyThreadState_GetDict()` API can only get from the current thread.
+  // We need to somehow get the thread dictionary on the main thread instead of the current thread.
+  //
+  // UPDATE: We don't need the thread dictionary anymore.
+  // To get the thread's running event-loop in Python 3.13 is as simple as `thread_state->asyncio_running_loop`
+  {
+    // Every `PyThreadState` is actually allocated with extra fields as a `_PyThreadStateImpl` struct
+    // See https://github.com/python/cpython/blob/v3.13.0rc1/Include/internal/pycore_tstate.h#L17-L24
+    using PyThreadStateHolder = struct { // _PyThreadStateImpl
+      PyThreadState base;
+      PyObject *asyncio_running_loop; // we only need the first field of `_PyThreadStateImpl`
+    };
+
+    // Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Modules/_asynciomodule.c#L3205-L3210
+    PyObject *loop = ((PyThreadStateHolder *)tstate)->asyncio_running_loop;
+    if (loop == NULL) {
+      return _loopNotFound();
+    }
+
+    Py_INCREF(loop);
+    return PyEventLoop(loop);
+  }
+  #elif PY_VERSION_HEX >= 0x03090000 // Python version is greater than 3.9
+  ts_dict = _PyThreadState_GetDict(tstate);  // borrowed reference
   #else // Python 3.8
-  PyObject *ts_dict = tstate->dict; // see https://github.com/python/cpython/blob/v3.8.17/Modules/_asynciomodule.c#L244-L245
+  ts_dict = tstate->dict; // see https://github.com/python/cpython/blob/v3.8.17/Modules/_asynciomodule.c#L244-L245
   #endif
   if (ts_dict == NULL) {
     return _loopNotFound();

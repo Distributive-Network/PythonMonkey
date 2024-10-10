@@ -27,6 +27,7 @@
 #include <jsfriendapi.h>
 
 #include <Python.h>
+#include "include/pyshim.hh"
 
 #include <object.h>
 
@@ -636,6 +637,7 @@ skip_optional:
 
   PyObject *value = JSObjectProxy_get(self, key);
   if (value == Py_None) {
+    Py_INCREF(default_value);
     value = default_value;
   }
 
@@ -701,7 +703,7 @@ skip_optional:
       Py_INCREF(default_value);
       return default_value;
     }
-    _PyErr_SetKeyError(key);
+    PyErr_SetKeyError(key);
     return NULL;
   }
   else {
@@ -780,13 +782,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectPr
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectKeysProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectKeysProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_values_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectValuesProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectValuesProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_items_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectItemsProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectItemsProxyType);
 }
