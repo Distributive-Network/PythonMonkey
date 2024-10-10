@@ -30,7 +30,7 @@ on:
         - '3.10'
         - '3.11'
         - '3.12'
-        - '3.13-dev'
+        - '3.13'
       build_type:
         type: choice
         description: 'Choose the build type to use'
@@ -133,7 +133,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2022', 'pi' ]
-        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13-dev' ]
+        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
