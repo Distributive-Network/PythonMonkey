@@ -56,7 +56,7 @@ bool PyDictProxyHandler::getOwnPropertyDescriptor(
 ) const {
   PyObject *attrName = idToKey(cx, id);
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
-  PyObject *item = PyDict_GetItemWithError(self, attrName);
+  PyObject *item = PyDict_GetItemWithError(self, attrName); // returns NULL without an exception set if the key wasn’t present.
 
   return handleGetOwnPropertyDescriptor(cx, id, desc, item);
 }

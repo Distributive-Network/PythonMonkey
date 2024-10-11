@@ -27,6 +27,7 @@
 #include <jsfriendapi.h>
 
 #include <Python.h>
+#include "include/pyshim.hh"
 
 #include <object.h>
 
@@ -35,9 +36,10 @@ JSContext *GLOBAL_CX; /**< pointer to PythonMonkey's JSContext */
 bool keyToId(PyObject *key, JS::MutableHandleId idp) {
   if (PyUnicode_Check(key)) { // key is str type
     JS::RootedString idString(GLOBAL_CX);
-    const char *keyStr = PyUnicode_AsUTF8(key);
-    JS::ConstUTF8CharsZ utf8Chars(keyStr, strlen(keyStr));
-    idString.set(JS_NewStringCopyUTF8Z(GLOBAL_CX, utf8Chars));
+    Py_ssize_t length;
+    const char *keyStr = PyUnicode_AsUTF8AndSize(key, &length);
+    JS::UTF8Chars utf8Chars(keyStr, length);
+    idString.set(JS_NewStringCopyUTF8N(GLOBAL_CX, utf8Chars));
     return JS_StringToId(GLOBAL_CX, idString, idp);
   } else if (PyLong_Check(key)) { // key is int type
     uint32_t keyAsInt = PyLong_AsUnsignedLong(key); // TODO raise OverflowError if the value of pylong is out of range for a unsigned long
@@ -636,6 +638,7 @@ skip_optional:
 
   PyObject *value = JSObjectProxy_get(self, key);
   if (value == Py_None) {
+    Py_INCREF(default_value);
     value = default_value;
   }
 
@@ -701,7 +704,7 @@ skip_optional:
       Py_INCREF(default_value);
       return default_value;
     }
-    _PyErr_SetKeyError(key);
+    PyErr_SetKeyError(key);
     return NULL;
   }
   else {
@@ -780,13 +783,13 @@ PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_update_method(JSObjectPr
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_keys_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectKeysProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectKeysProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_values_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectValuesProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectValuesProxyType);
 }
 
 PyObject *JSObjectProxyMethodDefinitions::JSObjectProxy_items_method(JSObjectProxy *self) {
-  return _PyDictView_New((PyObject *)self, &JSObjectItemsProxyType);
+  return PyDictView_New((PyObject *)self, &JSObjectItemsProxyType);
 }

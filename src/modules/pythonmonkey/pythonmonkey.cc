@@ -41,6 +41,7 @@
 
 #include <Python.h>
 #include <datetime.h>
+#include "include/pyshim.hh"
 
 #include <unordered_map>
 #include <vector>
@@ -53,7 +54,7 @@ JS::PersistentRootedObject jsFunctionRegistry;
  * The char buffer pointer obtained by previous `JS::Get{Latin1,TwoByte}LinearStringChars` calls remains valid only as long as no GC occurs.
  */
 void updateCharBufferPointers() {
-  if (_Py_IsFinalizing()) {
+  if (Py_IsFinalizing()) {
     return; // do not move char pointers around if python is finalizing
   }
 
@@ -302,13 +303,22 @@ PyTypeObject JSObjectItemsProxyType = {
 };
 
 static void cleanup() {
+  // Clean up the PythonMonkey module
   Py_XDECREF(PythonMonkey_Null);
   Py_XDECREF(PythonMonkey_BigInt);
+
+  // Clean up SpiderMonkey
   delete autoRealm;
   delete global;
-  if (GLOBAL_CX) JS_DestroyContext(GLOBAL_CX);
+  if (GLOBAL_CX) {
+    JS_DestroyContext(GLOBAL_CX);
+    GLOBAL_CX = nullptr;
+  }
   delete JOB_QUEUE;
   JS_ShutDown();
+}
+static void cleanup(PyObject *) {
+  cleanup();
 }
 
 static PyObject *collect(PyObject *self, PyObject *args) {
@@ -324,7 +334,7 @@ static bool getEvalOption(PyObject *evalOptions, const char *optionName, const c
     value = PyDict_GetItemString(evalOptions, optionName);
   }
   if (value && value != Py_None) {
-    *s_p = PyUnicode_AsUTF8(value);
+    *s_p = PyUnicode_AsUTF8(PyUnicode_FromObject(value));
   }
   return value != NULL && value != Py_None;
 }
@@ -442,7 +452,8 @@ static PyObject *eval(PyObject *self, PyObject *args) {
 #endif
       if (!getEvalOption(evalOptions, "filename", &s)) {
         if (filename && PyUnicode_Check(filename)) {
-          options.setFile(PyUnicode_AsUTF8(filename));
+          PyObject *filenameStr = PyUnicode_FromObject(filename); // needs a strict Python str object (not a subtype)
+          options.setFile(PyUnicode_AsUTF8(filenameStr));
         }
       } /* filename */
     } /* fromPythonFrame */
@@ -453,8 +464,9 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   JS::Rooted<JS::Value> rval(GLOBAL_CX);
   if (code) {
     JS::SourceText<mozilla::Utf8Unit> source;
-    const char *codeChars = PyUnicode_AsUTF8(code);
-    if (!source.init(GLOBAL_CX, codeChars, strlen(codeChars), JS::SourceOwnership::Borrowed)) {
+    Py_ssize_t codeLength;
+    const char *codeChars = PyUnicode_AsUTF8AndSize(code, &codeLength);
+    if (!source.init(GLOBAL_CX, codeChars, codeLength, JS::SourceOwnership::Borrowed)) {
       setSpiderMonkeyException(GLOBAL_CX);
       return NULL;
     }
@@ -513,9 +525,10 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  const char *bufferUtf8 = PyUnicode_AsUTF8(item);
+  Py_ssize_t bufferLength;
+  const char *bufferUtf8 = PyUnicode_AsUTF8AndSize(item, &bufferLength);
 
-  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, strlen(bufferUtf8))) {
+  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, bufferLength)) {
     Py_RETURN_TRUE;
   } else {
     Py_RETURN_FALSE;
@@ -551,7 +564,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not be initialized.");
     return NULL;
   }
-  Py_AtExit(cleanup);
 
   GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
   if (!GLOBAL_CX) {
@@ -643,6 +655,16 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   PyObject *pyModule = PyModule_Create(&pythonmonkey);
   if (pyModule == NULL)
     return NULL;
+
+  // Clean up SpiderMonkey when the PythonMonkey module gets destroyed (module.___cleanup is GCed)
+  // The `cleanup` function will be called automatically when this PyCapsule gets GCed
+  // We cannot use `Py_AtExit(cleanup);` because the GIL is unavailable after Python finalization, no more Python APIs can be called.
+  PyObject *autoDestructor = PyCapsule_New(&pythonmonkey, NULL, cleanup);
+  if (PyModule_AddObject(pyModule, "___cleanup", autoDestructor) < 0) {
+    Py_DECREF(autoDestructor);
+    Py_DECREF(pyModule);
+    return NULL;
+  }
 
   Py_INCREF(&NullType);
   if (PyModule_AddObject(pyModule, "null", (PyObject *)&NullType) < 0) {

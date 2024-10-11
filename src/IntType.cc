@@ -14,6 +14,9 @@
 #include <jsapi.h>
 #include <js/BigInt.h>
 
+#include <Python.h>
+#include "include/pyshim.hh"
+
 #include <vector>
 
 #define SIGN_BIT_MASK 0b1000 // https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.h#l40
@@ -44,11 +47,7 @@ static inline void PythonLong_SetSign(PyLongObject *op, int sign) {
 #else // Python version is less than 3.12
   // see https://github.com/python/cpython/blob/v3.9.16/Objects/longobject.c#L956
   Py_ssize_t pyDigitCount = Py_SIZE(op);
-  #if PY_VERSION_HEX >= 0x03090000
   Py_SET_SIZE(op, sign * std::abs(pyDigitCount));
-  #else
-  ((PyVarObject *)op)->ob_size = sign * std::abs(pyDigitCount); // Py_SET_SIZE is not available in Python < 3.9
-  #endif
 #endif
 }
 
@@ -102,11 +101,7 @@ PyObject *IntType::getPyObject(JSContext *cx, JS::BigInt *bigint) {
   // Cast to a pythonmonkey.bigint to differentiate it from a normal Python int,
   //  allowing Py<->JS two-way BigInt conversion.
   // We don't do `Py_SET_TYPE` because `_PyLong_FromByteArray` may cache and reuse objects for small ints
-  #if PY_VERSION_HEX >= 0x03090000
   PyObject *pyObject = PyObject_CallOneArg(getPythonMonkeyBigInt(), pyIntObj); // pyObject = pythonmonkey.bigint(pyIntObj)
-  #else
-  PyObject *pyObject = PyObject_CallFunction(getPythonMonkeyBigInt(), "O", pyIntObj); // PyObject_CallOneArg is not available in Python < 3.9
-  #endif
   Py_DECREF(pyIntObj);
 
   // Set the sign bit
@@ -139,7 +134,7 @@ JS::BigInt *IntType::toJsBigInt(JSContext *cx, PyObject *pyObject) {
     // Convert to bytes of 8-bit "digits" in **big-endian** order
     size_t byteCount = (size_t)JS_DIGIT_BYTE * jsDigitCount;
     uint8_t *bytes = (uint8_t *)PyMem_Malloc(byteCount);
-    _PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
+    PyLong_AsByteArray((PyLongObject *)pyObject, bytes, byteCount, /*is_little_endian*/ false, false);
 
     // Convert pm.bigint to JS::BigInt through hex strings (no public API to convert directly through bytes)
     // TODO (Tom Tang): We could manually allocate the memory, https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/BigIntType.cpp#l162, but still no public API

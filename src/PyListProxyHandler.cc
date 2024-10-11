@@ -24,7 +24,7 @@
 #include <js/friend/ErrorMessages.h>
 
 #include <Python.h>
-
+#include "include/pyshim.hh"
 
 
 const char PyListProxyHandler::family = 0;
@@ -428,17 +428,16 @@ static bool array_fill(JSContext *cx, unsigned argc, JS::Value *vp) {
 
   JS::RootedValue fillValue(cx, args[0].get());
   PyObject *fillValueItem = pyTypeFactory(cx, fillValue);
-  bool setItemCalled = false;
   for (int index = actualStart; index < actualEnd; index++) {
-    setItemCalled = true;
+    // Since each call of `PyList_SetItem` steals a reference (even if its to the same object),
+    // We need multiple references to it for it to steal.
+    Py_INCREF(fillValueItem);
     if (PyList_SetItem(self, index, fillValueItem) < 0) {
       return false;
     }
   }
 
-  if (!setItemCalled) {
-    Py_DECREF(fillValueItem);
-  }
+  Py_DECREF(fillValueItem);
 
   // return ref to self
   args.rval().set(jsTypeFactory(cx, self));
@@ -550,12 +549,7 @@ static bool array_concat(JSContext *cx, unsigned argc, JS::Value *vp) {
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
 
   Py_ssize_t selfSize = PyList_GET_SIZE(self);
-
-  PyObject *result = PyList_New(selfSize);
-
-  for (Py_ssize_t index = 0; index < selfSize; index++) {
-    PyList_SetItem(result, index, PyList_GetItem(self, index));
-  }
+  PyObject *result = PyList_GetSlice(self, 0, selfSize);
 
   unsigned numArgs = args.length();
   JS::RootedValue elementVal(cx);
@@ -2099,7 +2093,7 @@ void PyListProxyHandler::finalize(JS::GCContext *gcx, JSObject *proxy) const {
   // We cannot call Py_DECREF here when shutting down as the thread state is gone.
   // Then, when shutting down, there is only on reference left, and we don't need
   // to free the object since the entire process memory is being released.
-  if (!_Py_IsFinalizing()) {
+  if (!Py_IsFinalizing()) {
     PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
     Py_DECREF(self);
   }

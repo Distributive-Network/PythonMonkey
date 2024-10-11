@@ -415,6 +415,9 @@ bool PyBytesProxyHandler::getOwnPropertyDescriptor(
   PyObject *attrName = idToKey(cx, id);
   PyObject *self = JS::GetMaybePtrFromReservedSlot<PyObject>(proxy, PyObjectSlot);
   PyObject *item = PyObject_GetAttr(self, attrName);
+  if (!item && PyErr_ExceptionMatches(PyExc_AttributeError)) {
+    PyErr_Clear(); // clear error, we will be returning undefined in this case
+  }
 
   return handleGetOwnPropertyDescriptor(cx, id, desc, item);
 }

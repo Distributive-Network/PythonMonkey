@@ -66,8 +66,8 @@ PyObject *getExceptionString(JSContext *cx, const JS::ExceptionStack &exceptionS
     if (stackObj.get()) {
       JS::RootedString stackStr(cx);
       BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
-      JS::RootedValue stackStrVal(cx, JS::StringValue(stackStr));
-      outStrStream << "Stack Trace:\n" << StrType::getValue(cx, stackStrVal);
+      JS::UniqueChars stackStrUtf8 = JS_EncodeStringToUTF8(cx, stackStr);
+      outStrStream << "Stack Trace:\n" << stackStrUtf8.get();
     }
   }
 

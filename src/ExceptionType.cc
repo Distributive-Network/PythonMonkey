@@ -19,7 +19,9 @@
 #include <jsapi.h>
 #include <js/Exception.h>
 
+#include <Python.h>
 #include <frameobject.h>
+#include "include/pyshim.hh"
 
 
 PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
@@ -29,11 +31,7 @@ PyObject *ExceptionType::getPyObject(JSContext *cx, JS::HandleObject error) {
   PyObject *errStr = getExceptionString(cx, JS::ExceptionStack(cx, errValue, errStack), true);
 
   // Construct a new SpiderMonkeyError python object
-  #if PY_VERSION_HEX >= 0x03090000
   PyObject *pyObject = PyObject_CallOneArg(SpiderMonkeyError, errStr); // _PyErr_CreateException, https://github.com/python/cpython/blob/3.9/Python/errors.c#L100
-  #else
-  PyObject *pyObject = PyObject_CallFunction(SpiderMonkeyError, "O", errStr); // PyObject_CallOneArg is not available in Python < 3.9
-  #endif
   Py_XDECREF(errStr);
 
   // Preserve the original JS Error object as the Python Exception's `jsError` attribute for lossless two-way conversion
@@ -107,8 +105,8 @@ JSObject *ExceptionType::toJsError(JSContext *cx, PyObject *exceptionValue, PyOb
   if (stackObj.get()) {
     JS::RootedString stackStr(cx);
     JS::BuildStackString(cx, nullptr, stackObj, &stackStr, 2, js::StackFormat::SpiderMonkey);
-    JS::RootedValue stackStrVal(cx, JS::StringValue(stackStr));
-    stackStream << "\nJS Stack Trace:\n" << StrType::getValue(cx, stackStrVal);
+    JS::UniqueChars stackStrUtf8 = JS_EncodeStringToUTF8(cx, stackStr);
+    stackStream << "\nJS Stack Trace:\n" << stackStrUtf8.get();
   }
 
 
