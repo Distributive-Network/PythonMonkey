@@ -13,8 +13,7 @@
 #include "include/StrType.hh"
 
 std::unordered_set<JSStringProxy *> jsStringProxies;
-extern JSContext *GLOBAL_CX;
-
+extern SuperGlobalContext superGlobalContext;
 
 void JSStringProxyMethodDefinitions::JSStringProxy_dealloc(JSStringProxy *self)
 {
@@ -23,7 +22,7 @@ void JSStringProxyMethodDefinitions::JSStringProxy_dealloc(JSStringProxy *self)
 }
 
 PyObject *JSStringProxyMethodDefinitions::JSStringProxy_copy_method(JSStringProxy *self) {
-  JS::RootedString selfString(GLOBAL_CX, ((JSStringProxy *)self)->jsString->toString());
-  JS::RootedValue selfStringValue(GLOBAL_CX, JS::StringValue(selfString));
-  return StrType::proxifyString(GLOBAL_CX, selfStringValue);
+  JS::RootedString selfString(superGlobalContext.getJSContext(), ((JSStringProxy *)self)->jsString->toString());
+  JS::RootedValue selfStringValue(superGlobalContext.getJSContext(), JS::StringValue(selfString));
+  return StrType::proxifyString(superGlobalContext.getJSContext(), selfStringValue);
 }

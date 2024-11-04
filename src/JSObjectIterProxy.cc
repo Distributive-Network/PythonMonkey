@@ -58,13 +58,13 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
   if (self->it.reversed) {
     if (self->it.it_index >= 0) {
       JS::HandleId id = (*(self->it.props))[(self->it.it_index)--];
-      PyObject *key = idToKey(GLOBAL_CX, id);
+      PyObject *key = idToKey(superGlobalContext.getJSContext(), id);
       PyObject *value;
 
       if (self->it.kind != KIND_KEYS) {
-        JS::RootedValue jsVal(GLOBAL_CX);
-        JS_GetPropertyById(GLOBAL_CX, *(((JSObjectProxy *)(self->it.di_dict))->jsObject), id, &jsVal);
-        value = pyTypeFactory(GLOBAL_CX, jsVal);
+        JS::RootedValue jsVal(superGlobalContext.getJSContext());
+        JS_GetPropertyById(superGlobalContext.getJSContext(), *(((JSObjectProxy *)(self->it.di_dict))->jsObject), id, &jsVal);
+        value = pyTypeFactory(superGlobalContext.getJSContext(), jsVal);
       }
 
       PyObject *ret;
@@ -88,13 +88,13 @@ PyObject *JSObjectIterProxyMethodDefinitions::JSObjectIterProxy_nextkey(JSObject
   } else {
     if (self->it.it_index < JSObjectProxyMethodDefinitions::JSObjectProxy_length((JSObjectProxy *)dict)) {
       JS::HandleId id = (*(self->it.props))[(self->it.it_index)++];
-      PyObject *key = idToKey(GLOBAL_CX, id);
+      PyObject *key = idToKey(superGlobalContext.getJSContext(), id);
       PyObject *value;
 
       if (self->it.kind != KIND_KEYS) {
-        JS::RootedValue jsVal(GLOBAL_CX);
-        JS_GetPropertyById(GLOBAL_CX, *(((JSObjectProxy *)(self->it.di_dict))->jsObject), id, &jsVal);
-        value = pyTypeFactory(GLOBAL_CX, jsVal);
+        JS::RootedValue jsVal(superGlobalContext.getJSContext());
+        JS_GetPropertyById(superGlobalContext.getJSContext(), *(((JSObjectProxy *)(self->it.di_dict))->jsObject), id, &jsVal);
+        value = pyTypeFactory(superGlobalContext.getJSContext(), jsVal);
       }
 
       PyObject *ret;

@@ -36,7 +36,7 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_new(PyTypeObject *subtyp
   JSMethodProxy *self = (JSMethodProxy *)subtype->tp_alloc(subtype, 0);
   if (self) {
     self->self = im_self;
-    self->jsFunc = new JS::PersistentRootedObject(GLOBAL_CX);
+    self->jsFunc = new JS::PersistentRootedObject(superGlobalContext.getJSContext());
     self->jsFunc->set(*(jsFunctionProxy->jsFunc));
   }
 
@@ -44,8 +44,8 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_new(PyTypeObject *subtyp
 }
 
 PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyObject *args, PyObject *kwargs) {
-  JSContext *cx = GLOBAL_CX;
-  JS::RootedValue jsFunc(GLOBAL_CX, JS::ObjectValue(**((JSMethodProxy *)self)->jsFunc));
+  JSContext *cx = superGlobalContext.getJSContext();
+  JS::RootedValue jsFunc(cx, JS::ObjectValue(**((JSMethodProxy *)self)->jsFunc));
   JS::RootedValue selfValue(cx, jsTypeFactory(cx, ((JSMethodProxy *)self)->self));
   JS::RootedObject selfObject(cx);
   JS_ValueToObject(cx, selfValue, &selfObject);

@@ -49,6 +49,12 @@
 
 JS::PersistentRootedObject jsFunctionRegistry;
 
+SuperGlobalContext superGlobalContext;
+std::unordered_map<int, Context*> contextMap;
+int contextCounter = 0;
+
+#define GLOBAL_CX superGlobalContext.getJSContext()
+
 /**
  * @brief During a GC, string buffers may have moved, so we need to re-point our JSStringProxies
  * The char buffer pointer obtained by previous `JS::Get{Latin1,TwoByte}LinearStringChars` calls remains valid only as long as no GC occurs.
@@ -74,7 +80,7 @@ void updateCharBufferPointers() {
 void pythonmonkeyGCCallback(JSContext *cx, JSGCStatus status, JS::GCReason reason, void *data) {
   if (status == JSGCStatus::JSGC_END) {
     JS::ClearKeptObjects(GLOBAL_CX);
-    while (JOB_QUEUE->runFinalizationRegistryCallbacks(GLOBAL_CX));
+    while (superGlobalContext.getJobQueue()->runFinalizationRegistryCallbacks(GLOBAL_CX));
     updateCharBufferPointers();
   }
 }
@@ -92,7 +98,7 @@ bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
 }
 
 static void cleanupFinalizationRegistry(JSFunction *callback, JSObject *global [[maybe_unused]], void *user_data [[maybe_unused]]) {
-  JOB_QUEUE->queueFinalizationRegistryCallback(callback);
+  superGlobalContext.getJobQueue()->queueFinalizationRegistryCallback(callback);
 }
 
 static PyObject *PythonMonkey_Null;
@@ -308,13 +314,12 @@ static void cleanup() {
   Py_XDECREF(PythonMonkey_BigInt);
 
   // Clean up SpiderMonkey
-  delete autoRealm;
-  delete global;
-  if (GLOBAL_CX) {
-    JS_DestroyContext(GLOBAL_CX);
-    GLOBAL_CX = nullptr;
+  delete superGlobalContext.getAutoRealm();
+  delete superGlobalContext.getGlobalObject();
+  if (superGlobalContext.getJSContext()) {
+    JS_DestroyContext(superGlobalContext.getJSContext());
   }
-  delete JOB_QUEUE;
+  delete superGlobalContext.getJobQueue();
   JS_ShutDown();
 }
 static void cleanup(PyObject *) {
@@ -415,7 +420,7 @@ static PyObject *eval(PyObject *self, PyObject *args) {
   }
 
   // initialize JS context
-  JSAutoRealm ar(GLOBAL_CX, *global);
+  JSAutoRealm ar(GLOBAL_CX, *superGlobalContext.getGlobalObject());
   JS::CompileOptions options (GLOBAL_CX);
   options.setFileAndLine("evaluate", 1)
   .setIsRunOnce(true)
@@ -528,11 +533,84 @@ static PyObject *isCompilableUnit(PyObject *self, PyObject *args) {
   Py_ssize_t bufferLength;
   const char *bufferUtf8 = PyUnicode_AsUTF8AndSize(item, &bufferLength);
 
-  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *global, bufferUtf8, bufferLength)) {
+  if (JS_Utf8BufferIsCompilableUnit(GLOBAL_CX, *superGlobalContext.getGlobalObject(), bufferUtf8, bufferLength)) {
     Py_RETURN_TRUE;
   } else {
     Py_RETURN_FALSE;
   }
+}
+
+static PyObject *createContext(PyObject *self, PyObject *args) {
+  Context* context = new Context();
+  contextMap[++contextCounter] = context;
+  return PyLong_FromLong(contextCounter);
+}
+
+static PyObject *evalInContext(PyObject *self, PyObject *args) {
+  int contextID;
+  PyObject *code;
+  if (!PyArg_ParseTuple(args, "iO", &contextID, &code)) {
+    PyErr_SetString(PyExc_TypeError, "Invalid arguments. Expected context ID and code.");
+    return NULL;
+  }
+
+  Context* context = contextMap[contextID];
+  if (!context) {
+    PyErr_SetString(PyExc_ValueError, "Invalid context ID.");
+    return NULL;
+  }
+
+  JSAutoRealm ar(context->getJSContext(), *context->getGlobalObject());
+  JS::CompileOptions options(context->getJSContext());
+  options.setFileAndLine("evaluate", 1)
+         .setIsRunOnce(true)
+         .setNoScriptRval(false)
+         .setIntroductionType("pythonmonkey eval");
+
+  JS::RootedScript script(context->getJSContext());
+  JS::Rooted<JS::Value> rval(context->getJSContext());
+  if (PyUnicode_Check(code)) {
+    JS::SourceText<mozilla::Utf8Unit> source;
+    Py_ssize_t codeLength;
+    const char *codeChars = PyUnicode_AsUTF8AndSize(code, &codeLength);
+    if (!source.init(context->getJSContext(), codeChars, codeLength, JS::SourceOwnership::Borrowed)) {
+      setSpiderMonkeyException(context->getJSContext());
+      return NULL;
+    }
+    script = JS::Compile(context->getJSContext(), options, source);
+  } else {
+    PyErr_SetString(PyExc_TypeError, "Code must be a string.");
+    return NULL;
+  }
+
+  if (!script) {
+    setSpiderMonkeyException(context->getJSContext());
+    return NULL;
+  }
+
+  if (!JS_ExecuteScript(context->getJSContext(), script, &rval)) {
+    setSpiderMonkeyException(context->getJSContext());
+    return NULL;
+  }
+
+  PyObject *returnValue = pyTypeFactory(context->getJSContext(), rval);
+  if (PyErr_Occurred()) {
+    return NULL;
+  }
+
+  if (returnValue) {
+    return returnValue;
+  } else {
+    Py_RETURN_NONE;
+  }
+}
+
+static PyObject *cleanupContexts(PyObject *self, PyObject *args) {
+  for (auto& pair : contextMap) {
+    delete pair.second;
+  }
+  contextMap.clear();
+  Py_RETURN_NONE;
 }
 
 PyMethodDef PythonMonkeyMethods[] = {
@@ -541,6 +619,9 @@ PyMethodDef PythonMonkeyMethods[] = {
   {"stop", closeAllPending, METH_NOARGS, "Cancel all pending event-loop jobs."},
   {"isCompilableUnit", isCompilableUnit, METH_VARARGS, "Hint if a string might be compilable Javascript"},
   {"collect", collect, METH_VARARGS, "Calls the Spidermonkey garbage collector"},
+  {"context", createContext, METH_NOARGS, "Create a new JavaScript execution context"},
+  {"evalInContext", evalInContext, METH_VARARGS, "Evaluate JavaScript code within a specified context"},
+  {"cleanupContexts", cleanupContexts, METH_NOARGS, "Clean up all JavaScript execution contexts"},
   {NULL, NULL, 0, NULL}
 };
 
@@ -565,8 +646,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  GLOBAL_CX = JS_NewContext(JS::DefaultHeapMaxBytes);
-  if (!GLOBAL_CX) {
+  superGlobalContext = SuperGlobalContext();
+  if (!superGlobalContext.getJSContext()) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a JS context.");
     return NULL;
   }
@@ -577,8 +658,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   .setAsyncStack(true)
   .setSourcePragmas(true);
 
-  JOB_QUEUE = new JobQueue(GLOBAL_CX);
-  if (!JOB_QUEUE->init(GLOBAL_CX)) {
+  if (!superGlobalContext.getJobQueue()->init(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
   }
@@ -593,31 +673,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS_SetGCCallback(GLOBAL_CX, pythonmonkeyGCCallback, NULL);
   JS::AddGCNurseryCollectionCallback(GLOBAL_CX, nurseryCollectionCallback, NULL);
 
-  JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
-  JS::RealmBehaviors behaviours = JS::RealmBehaviors();
-  JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
-  static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
-  global = new JS::RootedObject(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
-  if (!global) {
-    PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create a global object.");
-    return NULL;
-  }
-
-  JS::RootedObject debuggerGlobal(GLOBAL_CX, JS_NewGlobalObject(GLOBAL_CX, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
-  {
-    JSAutoRealm r(GLOBAL_CX, debuggerGlobal);
-    JS_DefineDebuggerObject(GLOBAL_CX, debuggerGlobal);
-  }
-  {
-    JSAutoRealm r(GLOBAL_CX, *global);
-    JS::Rooted<JS::PropertyDescriptor> desc(GLOBAL_CX, JS::PropertyDescriptor::Data(
-      JS::ObjectValue(*debuggerGlobal)
-    ));
-    JS_WrapPropertyDescriptor(GLOBAL_CX, &desc);
-    JS_DefineUCProperty(GLOBAL_CX, *global, u"debuggerGlobal", 14, desc);
-  }
-
-  autoRealm = new JSAutoRealm(GLOBAL_CX, *global);
+  autoRealm = new JSAutoRealm(GLOBAL_CX, *superGlobalContext.getGlobalObject());
 
   // XXX: SpiderMonkey bug???
   // In https://hg.mozilla.org/releases/mozilla-esr102/file/3b574e1/js/src/jit/CacheIR.cpp#l317, trying to use the callback returned by `js::GetDOMProxyShadowsCheck()` even it's unset (nullptr)
@@ -769,7 +825,7 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS::RootedValue FinalizationRegistry(GLOBAL_CX);
   JS::RootedObject registryObject(GLOBAL_CX);
 
-  JS_GetProperty(GLOBAL_CX, *global, "FinalizationRegistry", &FinalizationRegistry);
+  JS_GetProperty(GLOBAL_CX, *superGlobalContext.getGlobalObject(), "FinalizationRegistry", &FinalizationRegistry);
   JS::Rooted<JS::ValueArray<1>> args(GLOBAL_CX);
   JSFunction *registryCallback = JS_NewFunction(GLOBAL_CX, functionRegistryCallback, 1, 0, NULL);
   JS::RootedObject registryCallbackObject(GLOBAL_CX, JS_GetFunctionObject(registryCallback));
@@ -784,4 +840,112 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS::SetHostCleanupFinalizationRegistryCallback(GLOBAL_CX, cleanupFinalizationRegistry, NULL);
 
   return pyModule;
+}
+
+Context::Context() {
+    cx = JS_NewContext(JS::DefaultHeapMaxBytes);
+    if (!cx) {
+        throw std::runtime_error("Failed to create JSContext.");
+    }
+
+    JS::ContextOptionsRef(cx)
+        .setWasm(true)
+        .setAsmJS(true)
+        .setAsyncStack(true)
+        .setSourcePragmas(true);
+
+    jobQueue = new JobQueue(cx);
+    if (!jobQueue->init(cx)) {
+        throw std::runtime_error("Failed to initialize JobQueue.");
+    }
+
+    JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+    JS::RealmBehaviors behaviours = JS::RealmBehaviors();
+    JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
+    static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
+    global = new JS::RootedObject(cx, JS_NewGlobalObject(cx, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
+    if (!global) {
+        throw std::runtime_error("Failed to create global object.");
+    }
+
+    autoRealm = new JSAutoRealm(cx, *global);
+}
+
+Context::~Context() {
+    delete autoRealm;
+    delete global;
+    if (cx) {
+        JS_DestroyContext(cx);
+    }
+    delete jobQueue;
+}
+
+JSContext* Context::getJSContext() {
+    return cx;
+}
+
+JS::RootedObject* Context::getGlobalObject() {
+    return global;
+}
+
+JSAutoRealm* Context::getAutoRealm() {
+    return autoRealm;
+}
+
+JobQueue* Context::getJobQueue() {
+    return jobQueue;
+}
+
+SuperGlobalContext::SuperGlobalContext() {
+    cx = JS_NewContext(JS::DefaultHeapMaxBytes);
+    if (!cx) {
+        throw std::runtime_error("Failed to create JSContext.");
+    }
+
+    JS::ContextOptionsRef(cx)
+        .setWasm(true)
+        .setAsmJS(true)
+        .setAsyncStack(true)
+        .setSourcePragmas(true);
+
+    jobQueue = new JobQueue(cx);
+    if (!jobQueue->init(cx)) {
+        throw std::runtime_error("Failed to initialize JobQueue.");
+    }
+
+    JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+    JS::RealmBehaviors behaviours = JS::RealmBehaviors();
+    JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
+    static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
+    global = new JS::RootedObject(cx, JS_NewGlobalObject(cx, &globalClass, nullptr, JS::FireOnNewGlobalHook, options));
+    if (!global) {
+        throw std::runtime_error("Failed to create global object.");
+    }
+
+    autoRealm = new JSAutoRealm(cx, *global);
+}
+
+SuperGlobalContext::~SuperGlobalContext() {
+    delete autoRealm;
+    delete global;
+    if (cx) {
+        JS_DestroyContext(cx);
+    }
+    delete jobQueue;
+}
+
+JSContext* SuperGlobalContext::getJSContext() {
+    return cx;
+}
+
+JS::RootedObject* SuperGlobalContext::getGlobalObject() {
+    return global;
+}
+
+JSAutoRealm* SuperGlobalContext::getAutoRealm() {
+    return autoRealm;
+}
+
+JobQueue* SuperGlobalContext::getJobQueue() {
+    return jobQueue;
 }

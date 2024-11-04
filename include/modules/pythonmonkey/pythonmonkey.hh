@@ -77,4 +77,40 @@ extern struct PyModuleDef pythonmonkey;
  *
  */
 extern PyObject *SpiderMonkeyError;
+
+class Context {
+public:
+    JSContext *cx;
+    JS::RootedObject *global;
+    JSAutoRealm *autoRealm;
+    JobQueue *jobQueue;
+
+    Context();
+    ~Context();
+
+    JSContext* getJSContext();
+    JS::RootedObject* getGlobalObject();
+    JSAutoRealm* getAutoRealm();
+    JobQueue* getJobQueue();
+};
+
+class SuperGlobalContext {
+public:
+    JSContext *cx;
+    JS::RootedObject *global;
+    JSAutoRealm *autoRealm;
+    JobQueue *jobQueue;
+
+    SuperGlobalContext();
+    ~SuperGlobalContext();
+
+    JSContext* getJSContext();
+    JS::RootedObject* getGlobalObject();
+    JSAutoRealm* getAutoRealm();
+    JobQueue* getJobQueue();
+};
+
+Context* createContext();
+PyObject* evalInContext(Context* context, PyObject* args);
+void cleanupContexts();
 #endif

@@ -202,13 +202,13 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     Py_INCREF(object); // otherwise the python function object would be double-freed on GC in Python 3.11+
 
     // add function to jsFunctionRegistry, to DECREF the PyObject when the JSFunction is finalized
-    JS::RootedValueArray<2> registerArgs(GLOBAL_CX);
+    JS::RootedValueArray<2> registerArgs(superGlobalContext.getJSContext());
     registerArgs[0].setObject(*jsFuncObject);
     registerArgs[1].setPrivate(object);
-    JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
-    if (!JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal)) {
-      setSpiderMonkeyException(GLOBAL_CX);
+    JS::RootedValue ignoredOutVal(superGlobalContext.getJSContext());
+    JS::RootedObject registry(superGlobalContext.getJSContext(), jsFunctionRegistry);
+    if (!JS_CallFunctionName(superGlobalContext.getJSContext(), registry, "register", registerArgs, &ignoredOutVal)) {
+      setSpiderMonkeyException(superGlobalContext.getJSContext());
       return returnType;
     }
   }
@@ -240,18 +240,18 @@ JS::Value jsTypeFactory(JSContext *cx, PyObject *object) {
     args[0].set(jsTypeFactory(cx, self));
     JS::Rooted<JS::Value> boundFunction(cx);
     if (!JS_CallFunctionName(cx, func, "bind", args, &boundFunction)) {
-      setSpiderMonkeyException(GLOBAL_CX);
+      setSpiderMonkeyException(superGlobalContext.getJSContext());
       return returnType;
     }
     returnType.set(boundFunction);
     // add function to jsFunctionRegistry, to DECREF the PyObject when the JSFunction is finalized
-    JS::RootedValueArray<2> registerArgs(GLOBAL_CX);
+    JS::RootedValueArray<2> registerArgs(superGlobalContext.getJSContext());
     registerArgs[0].set(boundFunction);
     registerArgs[1].setPrivate(object);
-    JS::RootedValue ignoredOutVal(GLOBAL_CX);
-    JS::RootedObject registry(GLOBAL_CX, jsFunctionRegistry);
-    if (!JS_CallFunctionName(GLOBAL_CX, registry, "register", registerArgs, &ignoredOutVal)) {
-      setSpiderMonkeyException(GLOBAL_CX);
+    JS::RootedValue ignoredOutVal(superGlobalContext.getJSContext());
+    JS::RootedObject registry(superGlobalContext.getJSContext(), jsFunctionRegistry);
+    if (!JS_CallFunctionName(superGlobalContext.getJSContext(), registry, "register", registerArgs, &ignoredOutVal)) {
+      setSpiderMonkeyException(superGlobalContext.getJSContext());
       return returnType;
     }
 
