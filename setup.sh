@@ -49,6 +49,8 @@ echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
 cd firefox-source
+
+# Apply patching
 # making it work for both GNU and BSD (macOS) versions of sed
 sed -i'' -e 's/os not in ("WINNT", "OSX", "Android")/os not in ("WINNT", "Android")/' ./build/moz.configure/pkg.configure # use pkg-config on macOS
 sed -i'' -e '/"WindowsDllMain.cpp"/d' ./mozglue/misc/moz.build # https://discourse.mozilla.org/t/105671, https://bugzilla.mozilla.org/show_bug.cgi?id=1751561
@@ -63,6 +65,8 @@ sed -i'' -e 's/return !IsIteratorHelpersEnabled()/return false/' ./js/src/vm/Glo
 sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedList.h # would crash in Debug Build: in `~LinkedList()` it should have removed all this list's elements before the list's destruction
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
 sed -i'' -e 's|-id $(abspath $(libdir)|-id $(abspath @rpath|' ./js/src/build/Makefile.in # Set the `install_name` field of libmozjs dylib to use the RPATH instead of an absolute path
+sed -i'' -e 's/-fuse-ld=ld/-ld64/' ./build/moz.configure/toolchain.configure # the classic linker can be explicitly requested using the `-ld64` flag. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
+
 cd js/src
 mkdir -p _build
 cd _build
@@ -74,6 +78,7 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
+  $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
   --enable-optimize 
 make -j$CPUS
 echo "Done building spidermonkey"
