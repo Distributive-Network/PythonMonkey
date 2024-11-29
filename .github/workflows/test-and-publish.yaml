@@ -85,7 +85,7 @@ jobs:
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Setup XCode
-        if: ${{ (matrix.os == 'macos-13' || matrix.os == 'macos-14') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey requires XCode SDK version at least 13.3
         run: sudo xcode-select -switch /Applications/Xcode_14.3.app
       - name: Build spidermonkey
