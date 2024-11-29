@@ -18,6 +18,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
+  brew install lld
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
@@ -74,7 +75,6 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
-  $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
   --enable-optimize 
 make -j$CPUS
 echo "Done building spidermonkey"
