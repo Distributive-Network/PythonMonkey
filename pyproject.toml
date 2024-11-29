@@ -9,12 +9,12 @@ packages = [
 ]
 include = [
   # Linux and macOS
-  "python/pythonmonkey/pythonmonkey.so",
-  "python/pythonmonkey/libmozjs*",
+  { path = "python/pythonmonkey/pythonmonkey.so", format = ["sdist", "wheel"] },
+  { path = "python/pythonmonkey/libmozjs*", format = ["sdist", "wheel"] },
 
   # Windows
-  "python/pythonmonkey/pythonmonkey.pyd",
-  "python/pythonmonkey/mozjs-*.dll",
+  { path = "python/pythonmonkey/pythonmonkey.pyd", format = ["sdist", "wheel"] },
+  { path = "python/pythonmonkey/mozjs-*.dll", format = ["sdist", "wheel"] },
 
   # include all files for source distribution
   { path = "src", format = "sdist" },
