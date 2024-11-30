@@ -18,7 +18,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
-  brew install llvm@15
+  brew install lld
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
@@ -69,7 +69,7 @@ cd _build
 mkdir -p ../../../../_spidermonkey_install/
 ../configure --target=$(clang --print-target-triple) \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
-  $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--with-toolchain-prefix=$(brew --prefix llvm@15)/bin/"; fi) \
+  $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--with-toolchain-prefix=$(brew --prefix llvm)/bin/"; fi) \
   --with-intl-api \
   $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--without-system-zlib"; fi) \
   --disable-debug-symbols \
