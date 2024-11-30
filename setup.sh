@@ -18,7 +18,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
-  brew install lld
+  brew install llvm@14
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
