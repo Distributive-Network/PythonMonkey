@@ -18,7 +18,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
-  brew install llvm@14
+  brew install llvm@15
 elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
@@ -68,6 +68,7 @@ cd js/src
 mkdir -p _build
 cd _build
 mkdir -p ../../../../_spidermonkey_install/
+$(if [[ "$OSTYPE" == "darwin"* ]]; then echo "LD=$(brew --prefix llvm@15)/bin/lld HOST_LD=$(brew --prefix llvm@15)/bin/lld"; fi) \
 ../configure --target=$(clang --print-target-triple) \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
