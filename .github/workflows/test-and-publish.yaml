@@ -88,15 +88,6 @@ jobs:
         if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey requires XCode SDK version at least 13.3
         run: sudo xcode-select -switch /Applications/Xcode_14.3.app
-      - name: Setup LLVM
-        if: ${{ (matrix.os == 'macos-13' || matrix.os == 'macos-14') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        run: |
-          brew install llvm@15
-          ln -s $(brew --prefix llvm@15)/bin/lld /usr/local/bin/lld
-          ln -s $(brew --prefix llvm@15)/bin/ld64.lld /usr/local/bin/ld64.lld
-          ln -s $(brew --prefix llvm@15)/bin/llvm-install-name-tool /usr/local/bin/llvm-install-name-tool
-          ld64.lld --version
-          llvm-install-name-tool --version
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
@@ -177,13 +168,6 @@ jobs:
           echo "Installed Dependencies"
         env:
           PYTHON_VERSION: ${{ matrix.python_version }}
-      - name: Setup LLVM
-        if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' }}
-        run: |
-          brew install llvm@15
-          ln -s $(brew --prefix llvm@15)/bin/lld /usr/local/bin/lld
-          ln -s $(brew --prefix llvm@15)/bin/ld64.lld /usr/local/bin/ld64.lld
-          ld64.lld --version
       - name: Build Docs # only build docs once
         if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
         run: |
