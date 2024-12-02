@@ -65,7 +65,7 @@ sed -i'' -e 's/return !IsIteratorHelpersEnabled()/return false/' ./js/src/vm/Glo
 sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedList.h # would crash in Debug Build: in `~LinkedList()` it should have removed all this list's elements before the list's destruction
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
 sed -i'' -e 's|-id $(abspath $(libdir)|-id $(abspath @rpath|' ./js/src/build/Makefile.in # Set the `install_name` field of libmozjs dylib to use the RPATH instead of an absolute path
-sed -i'' -e 's/-fuse-ld=ld/-ld64/' ./build/moz.configure/toolchain.configure # the classic linker can be explicitly requested using the `-ld64` flag. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
+sed -i'' -e 's/"-fuse-ld=ld"/"-ld64" if c_compiler.version >= "15.0" else "-fuse-ld=ld"/' ./build/moz.configure/toolchain.configure # XCode 15 changed the linker behaviour. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
 
 cd js/src
 mkdir -p _build
