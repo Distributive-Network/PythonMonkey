@@ -177,6 +177,13 @@ jobs:
           echo "Installed Dependencies"
         env:
           PYTHON_VERSION: ${{ matrix.python_version }}
+      - name: Setup LLVM
+        if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' }}
+        run: |
+          brew install llvm@15
+          ln -s $(brew --prefix llvm@15)/bin/lld /usr/local/bin/lld
+          ln -s $(brew --prefix llvm@15)/bin/ld64.lld /usr/local/bin/ld64.lld
+          ld64.lld --version
       - name: Build Docs # only build docs once
         if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
         run: |
