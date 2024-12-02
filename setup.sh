@@ -68,7 +68,6 @@ cd _build
 mkdir -p ../../../../_spidermonkey_install/
 ../configure --target=$(clang --print-target-triple) \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
-  $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--with-toolchain-prefix=$(brew --prefix llvm@15)/bin/"; fi) \
   --with-intl-api \
   $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--without-system-zlib"; fi) \
   --disable-debug-symbols \
@@ -85,7 +84,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   cd ../../../../_spidermonkey_install/lib/
   # Set the `install_name` field to use RPATH instead of an absolute path
   # overrides https://hg.mozilla.org/releases/mozilla-esr102/file/89d799cb/js/src/build/Makefile.in#l83
-  install_name_tool -id @rpath/$(basename ./libmozjs*) ./libmozjs* # making it work for whatever name the libmozjs dylib is called
+  llvm-install-name-tool -id @rpath/$(basename ./libmozjs*) ./libmozjs* # making it work for whatever name the libmozjs dylib is called
 fi
 echo "Done installing spidermonkey"
 
