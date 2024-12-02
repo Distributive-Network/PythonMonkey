@@ -49,11 +49,12 @@ echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
 cd firefox-source
+
+# Apply patching
 # making it work for both GNU and BSD (macOS) versions of sed
 sed -i'' -e 's/os not in ("WINNT", "OSX", "Android")/os not in ("WINNT", "Android")/' ./build/moz.configure/pkg.configure # use pkg-config on macOS
 sed -i'' -e '/"WindowsDllMain.cpp"/d' ./mozglue/misc/moz.build # https://discourse.mozilla.org/t/105671, https://bugzilla.mozilla.org/show_bug.cgi?id=1751561
 sed -i'' -e '/"winheap.cpp"/d' ./memory/mozalloc/moz.build # https://bugzilla.mozilla.org/show_bug.cgi?id=1802675
-sed -i'' -e 's/"install-name-tool"/"install_name_tool"/' ./moz.configure # `install-name-tool` does not exist, but we have `install_name_tool`
 sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
 sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
 sed -i'' -e 's/shared_lib = self._pretty_path(libdef.output_path, backend_file)/shared_lib = libdef.lib_name/' ./python/mozbuild/mozbuild/backend/recursivemake.py # would generate a Makefile to install the binary files from an invalid path prefix
@@ -63,6 +64,9 @@ sed -i'' -e 's/return JS::GetWeakRefsEnabled() == JS::WeakRefSpecifier::Disabled
 sed -i'' -e 's/return !IsIteratorHelpersEnabled()/return false/' ./js/src/vm/GlobalObject.cpp # forcibly enable iterator helpers
 sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedList.h # would crash in Debug Build: in `~LinkedList()` it should have removed all this list's elements before the list's destruction
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
+sed -i'' -e 's|-id $(abspath $(libdir)|-id $(abspath @rpath|' ./js/src/build/Makefile.in # Set the `install_name` field of libmozjs dylib to use the RPATH instead of an absolute path
+sed -i'' -e 's/"-fuse-ld=ld"/"-ld64" if c_compiler.version > "14.0.0" else "-fuse-ld=ld"/' ./build/moz.configure/toolchain.configure # XCode 15 changed the linker behaviour. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
+
 cd js/src
 mkdir -p _build
 cd _build
@@ -74,6 +78,7 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
+  $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
   --enable-optimize 
 make -j$CPUS
 echo "Done building spidermonkey"
@@ -81,12 +86,6 @@ echo "Done building spidermonkey"
 echo "Installing spidermonkey"
 # install to ../../../../_spidermonkey_install/
 make install 
-if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
-  cd ../../../../_spidermonkey_install/lib/
-  # Set the `install_name` field to use RPATH instead of an absolute path
-  # overrides https://hg.mozilla.org/releases/mozilla-esr102/file/89d799cb/js/src/build/Makefile.in#l83
-  install_name_tool -id @rpath/$(basename ./libmozjs*) ./libmozjs* # making it work for whatever name the libmozjs dylib is called
-fi
 echo "Done installing spidermonkey"
 
 # if this is being ran in the root directory of the PythonMonkey repo, then include dev configurations
