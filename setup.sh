@@ -62,6 +62,7 @@ sed -i'' -e 's/return JS::GetWeakRefsEnabled() == JS::WeakRefSpecifier::Disabled
 sed -i'' -e 's/return !IsIteratorHelpersEnabled()/return false/' ./js/src/vm/GlobalObject.cpp # forcibly enable iterator helpers
 sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedList.h # would crash in Debug Build: in `~LinkedList()` it should have removed all this list's elements before the list's destruction
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
+sed -i'' -e 's|-id $(abspath $(libdir)|-id $(abspath @rpath|' ./js/src/build/Makefile.in # Set the `install_name` field to use RPATH instead of an absolute path
 cd js/src
 mkdir -p _build
 cd _build
@@ -80,12 +81,12 @@ echo "Done building spidermonkey"
 echo "Installing spidermonkey"
 # install to ../../../../_spidermonkey_install/
 make install 
-if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
-  cd ../../../../_spidermonkey_install/lib/
-  # Set the `install_name` field to use RPATH instead of an absolute path
-  # overrides https://hg.mozilla.org/releases/mozilla-esr102/file/89d799cb/js/src/build/Makefile.in#l83
-  llvm-install-name-tool -id @rpath/$(basename ./libmozjs*) ./libmozjs* # making it work for whatever name the libmozjs dylib is called
-fi
+# if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
+#   cd ../../../../_spidermonkey_install/lib/
+#   # Set the `install_name` field to use RPATH instead of an absolute path
+#   # overrides https://hg.mozilla.org/releases/mozilla-esr102/file/89d799cb/js/src/build/Makefile.in#l83
+#   llvm-install-name-tool -id @rpath/$(basename ./libmozjs*) ./libmozjs* # making it work for whatever name the libmozjs dylib is called
+# fi
 echo "Done installing spidermonkey"
 
 # if this is being ran in the root directory of the PythonMonkey repo, then include dev configurations
