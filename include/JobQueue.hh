@@ -35,15 +35,6 @@ explicit JobQueue(JSContext *cx);
 bool init(JSContext *cx);
 
 /**
- * @brief Ask the embedding for the incumbent global.
- *
- * SpiderMonkey doesn't itself have a notion of incumbent globals as defined
- * by the HTML spec, so we need the embedding to provide this. See
- * dom/script/ScriptSettings.h for details.
- */
-JSObject *getIncumbentGlobal(JSContext *cx) override;
-
-/**
  * @brief Enqueue a reaction job `job` for `promise`, which was allocated at
  * `allocationSite`. Provide `incumbentGlobal` as the incumbent global for
  * the reaction job's execution.

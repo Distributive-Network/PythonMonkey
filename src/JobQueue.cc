@@ -26,10 +26,6 @@ JobQueue::JobQueue(JSContext *cx) {
   finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);   // Leaks but it's OK since freed at process exit
 }
 
-JSObject *JobQueue::getIncumbentGlobal(JSContext *cx) {
-  return JS::CurrentGlobalOrNull(cx);
-}
-
 bool JobQueue::enqueuePromiseJob(JSContext *cx,
   [[maybe_unused]] JS::HandleObject promise,
   JS::HandleObject job,
