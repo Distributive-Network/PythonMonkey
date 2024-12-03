@@ -16,7 +16,7 @@ on:
         options:
         - ''
         - 'ubuntu-20.04'
-        - 'macos-12'
+        - 'macos-13'
         - 'macos-14'
         - 'windows-2022'
       debug_enabled_python:
@@ -132,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'ubuntu-20.04', 'macos-12', 'macos-14', 'windows-2022', 'pi' ]
+        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14', 'windows-2022', 'pi' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -207,7 +207,7 @@ jobs:
           BUILD_TYPE=${WORKFLOW_BUILD_TYPE:-"Debug"} poetry build --format=wheel
           ls -lah ./dist/
       - name: Make the wheels we build also support lower versions of macOS
-        if: ${{ matrix.os == 'macos-12' || matrix.os == 'macos-14' }}
+        if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' }}
         # Change the platform tag part of the wheel filename to `macosx_11_0_xxx` (means to support macOS 11.0 and above)
         # See https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-format
         # A wheel package file will only be selected by pip to install if the platform tag satisfies, regardless of whether the binary compatibility actually is.
