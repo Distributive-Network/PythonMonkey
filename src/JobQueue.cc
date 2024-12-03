@@ -26,6 +26,11 @@ JobQueue::JobQueue(JSContext *cx) {
   finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);   // Leaks but it's OK since freed at process exit
 }
 
+bool JobQueue::getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> data) const {
+  data.set(nullptr); // We don't need the host defined data
+  return true; // `true` indicates no error
+}
+
 bool JobQueue::enqueuePromiseJob(JSContext *cx,
   [[maybe_unused]] JS::HandleObject promise,
   JS::HandleObject job,
