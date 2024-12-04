@@ -3,11 +3,13 @@ name = "pminit"
 version = "0"
 description = "Post-install hook for PythonMonkey"
 authors = [
-  "Tom Tang <xmader@distributive.network>",
-  "Caleb Aikens <caleb@distributive.network>",
-  "Wes Garland <wes@distributive.network>",
-  "Hamada Gasmallah <hamada@distributive.network>"
+  "Distributive Corp. <pm@distributive.network>"
 ]
+license = "MIT"
+homepage = "https://pythonmonkey.io/"
+documentation = "https://docs.pythonmonkey.io/"
+repository = "https://github.com/Distributive-Network/PythonMonkey"
+
 include = [
   # Install extra files into the pythonmonkey package
   "pythonmonkey/package*.json",
