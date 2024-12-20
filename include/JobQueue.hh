@@ -35,13 +35,21 @@ explicit JobQueue(JSContext *cx);
 bool init(JSContext *cx);
 
 /**
- * @brief Ask the embedding for the incumbent global.
+ * @brief Ask the embedding for the host defined data.
  *
- * SpiderMonkey doesn't itself have a notion of incumbent globals as defined
+ * SpiderMonkey doesn't itself have a notion of host defined data as defined
  * by the HTML spec, so we need the embedding to provide this. See
  * dom/script/ScriptSettings.h for details.
+ *
+ * If the embedding has the host defined data, this method should return the
+ * host defined data via the `data` out parameter and return `true`.
+ * The object in the `data` out parameter can belong to any compartment.
+ * If the embedding doesn't need the host defined data, this method should
+ * set the `data` out parameter to `nullptr` and return `true`.
+ * If any error happens while generating the host defined data, this method
+ * should set a pending exception to `cx` and return `false`.
  */
-JSObject *getIncumbentGlobal(JSContext *cx) override;
+bool getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> data) const override;
 
 /**
  * @brief Enqueue a reaction job `job` for `promise`, which was allocated at
