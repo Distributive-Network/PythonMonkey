@@ -257,7 +257,7 @@ jobs:
         with:
           credentials: "admin:admin"
       - name: Upload core dumps as CI artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ matrix.os != 'windows-2022' && failure() }}
         # TODO (Caleb Aikens) figure out how to get Windows core dumps
         with:
