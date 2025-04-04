@@ -376,12 +376,12 @@ jobs:
           html+="<li><a href="pminit/">pminit</a></li>"
           html+="</body></html>"
           echo "$html" > ./index.html
-      - uses: actions/upload-pages-artifact@v1
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: ./
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
   publish-archive:
     # Publish to ⊇istributive's archive server (https://archive.distributed.computer/releases/pythonmonkey/)
     needs: [build-and-test, sdist]
