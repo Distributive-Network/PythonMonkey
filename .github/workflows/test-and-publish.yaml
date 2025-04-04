@@ -220,7 +220,7 @@ jobs:
       - name: Upload wheel as CI artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-${{ github.run_id }}-${{ github.sha }}-${{ matrix.os }}
+          name: wheel-${{ github.run_id }}-${{ github.sha }}-{{ runner.os }}_${{ runner.arch }}_Python{{ matrix.python_version }}
           path: ./dist/
       - name: Set cores to get stored in /cores
         if: ${{ matrix.os != 'windows-2022' }}
