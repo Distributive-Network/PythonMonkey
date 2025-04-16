@@ -1,8 +1,8 @@
 name: 'Create pull requests to update mozilla-central version to the latest'
 
 on:
-  schedule:
-    - cron: "00 14 */100,1-7 * 1" # run on the first Monday of each month at 14:00 UTC (10:00 Eastern Daylight Time)
+  # schedule:
+  # - cron: "00 14 */100,1-7 * 1" # run on the first Monday of each month at 14:00 UTC (10:00 Eastern Daylight Time)
                                   # See https://blog.healthchecks.io/2022/09/schedule-cron-job-the-funky-way/
   workflow_call:
   workflow_dispatch: # or you can run it manually
@@ -21,7 +21,7 @@ jobs:
         # See https://mozilla-version-control-tools.readthedocs.io/en/latest/hgmo/pushlog.html#hgweb-commands
         run: |
           COMMIT_HASH=$(
-            curl -s "https://hg.mozilla.org/mozilla-central/json-pushes?tipsonly=1&version=2" |\
+            curl -L -s "https://hg.mozilla.org/mozilla-central/json-pushes?tipsonly=1&version=2" |\
             jq --join-output '(.lastpushid | tostring) as $pushid | empty, .pushes[$pushid].changesets[0]'
           )
           echo "MOZCENTRAL_VERSION=$COMMIT_HASH" >> $GITHUB_ENV
