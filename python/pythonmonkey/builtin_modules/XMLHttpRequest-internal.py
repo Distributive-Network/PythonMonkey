@@ -34,6 +34,7 @@ async def request(
     headers: dict,
     body: Union[str, ByteString],
     timeoutMs: float,
+    proxy: str,
     # callbacks for request body progress
     processRequestBodyChunkLength: Callable[[int], None],
     processRequestEndOfBody: Callable[[], None],
@@ -90,6 +91,7 @@ async def request(
                                data=BytesPayloadWithProgress(body) if body else None,
                                timeout=timeoutOptions,
                                connector=keepAliveConnector,
+                               proxy=proxy if proxy else None,
                                ) as res:
       debug('xhr:aiohttp')('got', res.content_type, 'result')
 
