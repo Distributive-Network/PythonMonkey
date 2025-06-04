@@ -87,8 +87,12 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
-      - if: ${{ matrix.os == 'ubuntu-22.04' }}
-        run: apt-get update -y && apt-get install -y sudo
+      - name: Setup container
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: |
+          apt-get update -y
+          apt-get install -y sudo
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
       - name: Setup XCode
         if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey requires XCode SDK version at least 13.3
