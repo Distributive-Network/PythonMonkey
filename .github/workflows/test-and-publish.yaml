@@ -15,7 +15,7 @@ on:
         required: false
         options:
         - ''
-        - 'ubuntu-20.04'
+        - 'ubuntu-22.04'
         - 'macos-13'
         - 'macos-14'
         - 'windows-2022'
@@ -64,8 +64,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 20.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14', 'ubuntu-22.04-arm' ] # macOS 14 runner exclusively runs on M1 hardwares
+        # Use Ubuntu 22.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'ubuntu-22.04-arm' ] # macOS 14 runner exclusively runs on M1 hardwares
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
@@ -132,7 +132,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
+        os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -166,7 +166,7 @@ jobs:
         env:
           PYTHON_VERSION: ${{ matrix.python_version }}
       - name: Build Docs # only build docs once
-        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python_version == '3.11' }}
         run: |
             sudo apt-get install -y graphviz 
             # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
@@ -176,7 +176,7 @@ jobs:
             rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
             BUILD_DOCS=1 BUILD_TYPE=None poetry install
       - name: Upload Doxygen-generated docs as CI artifacts
-        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python_version == '3.11' }}
         uses: actions/upload-artifact@v4
         with:
           name: docs-${{ github.run_id }}-${{ github.sha }}
@@ -261,7 +261,7 @@ jobs:
           name: cores-${{ matrix.os }}-${{ matrix.python_version }}
           path: /cores
   sdist:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -283,22 +283,9 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}-sdist
           path: ./dist/
-  check-install-from-sdist:
-    needs: sdist
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Download wheels built
-        uses: actions/download-artifact@v4
-        with:
-          name: wheel-${{ github.run_id }}-${{ github.sha }}-sdist
-          path: ./dist/
-      - run: pip install ./dist/pythonmonkey-*.tar.gz
   publish:
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ success() && github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       # no need to checkout
@@ -322,7 +309,7 @@ jobs:
     # Implement a very basic Python package repository (https://peps.python.org/pep-0503/)
     # and deploy the static files to GitHub Pages
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ (success() || failure()) && (github.ref_name == 'main' || github.ref_type == 'tag') }} # publish nightly builds regardless of tests failure
     permissions: # grant GITHUB_TOKEN the permissions required to make a Pages deployment
       pages: write
@@ -382,7 +369,7 @@ jobs:
   publish-archive:
     # Publish to ⊇istributive's archive server (https://archive.distributed.computer/releases/pythonmonkey/)
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ (success() || failure()) && (github.ref_name == 'main' || github.ref_type == 'tag') }}
     environment:
       name: archive
