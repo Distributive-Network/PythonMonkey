@@ -44,8 +44,8 @@ echo "Done installing dependencies"
 echo "Downloading spidermonkey source code"
 # Read the commit hash for mozilla-central from the `mozcentral.version` file
 MOZCENTRAL_VERSION=$(cat mozcentral.version)
-wget -c -q -O firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla/gecko-dev/archive/${MOZCENTRAL_VERSION}.zip
-unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv gecko-dev-${MOZCENTRAL_VERSION} firefox-source
+wget -c -q -O firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla-firefox/firefox/archive/${MOZCENTRAL_VERSION}.zip
+unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv firefox-${MOZCENTRAL_VERSION} firefox-source
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
