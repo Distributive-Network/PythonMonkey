@@ -148,6 +148,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }}
     steps:
+      - name: Setup container
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: |
+          apt-get update -y
+          apt-get install -y sudo libnss3-dev libssl-dev
+          apt-get install -y git # required for `actions/checkout`
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata # tzdata may ask for user interaction if not explicitly installed here
+          echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
       - uses: actions/checkout@v4
         with:
           submodules: recursive
