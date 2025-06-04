@@ -154,6 +154,7 @@ jobs:
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
           apt-get install -y git # required for `actions/checkout`
+          apt-get install -y build-essential
           apt-get install -y strace # required to run JS tests
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata # tzdata may ask for user interaction if not explicitly installed here
           echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
