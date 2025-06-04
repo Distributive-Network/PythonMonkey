@@ -156,6 +156,7 @@ jobs:
           apt-get install -y git # required for `actions/checkout`
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata # tzdata may ask for user interaction if not explicitly installed here
           echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
+          git config --global --add safe.directory '*' # silence "git failed because of dubious ownership"
       - uses: actions/checkout@v4
         with:
           submodules: recursive
