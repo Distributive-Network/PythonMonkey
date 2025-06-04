@@ -249,20 +249,12 @@ jobs:
           path: ./dist/
       - name: Run Python tests (pytest)
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
-          # TODO (Caleb Aikens) figure out how to get Windows core dumps
-            ulimit -c unlimited
-          fi
           WORKFLOW_BUILD_TYPE=${{ inputs.build_type }}
           BUILD_TYPE=${WORKFLOW_BUILD_TYPE:-"Debug"} poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
         if: ${{ (success() || failure()) }}
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
-          # TODO (Caleb Aikens) figure out how to get Windows core dumps
-            ulimit -c unlimited
-          fi
           poetry run bash ./peter-jr ./tests/js/
       - name: SSH debug session
         if: ${{ (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled_os == matrix.os && inputs.debug_enabled_python == matrix.python_version}}
