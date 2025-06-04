@@ -88,7 +88,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-22.04' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           apt-get update -y
-          apt-get install -y sudo
+          apt-get install -y sudo libnss3-dev libssl-dev
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
           echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
       - uses: actions/setup-python@v5
