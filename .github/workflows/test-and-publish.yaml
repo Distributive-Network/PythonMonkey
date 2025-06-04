@@ -247,18 +247,6 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}-${{ runner.os }}_${{ runner.arch }}_Python${{ matrix.python_version }}
           path: ./dist/
-      - name: Set cores to get stored in /cores
-        if: ${{ matrix.os != 'windows-2022' }}
-        # TODO (Caleb Aikens) figure out how to get Windows core dumps
-        run: |
-          sudo mkdir -p /cores
-          sudo chmod 777 /cores
-          # Core filenames will be of the form osname.pythonversion.executable.pid.timestamp:
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            sudo bash -c 'echo "/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%t" > /proc/sys/kernel/core_pattern'
-          else
-            sudo sysctl kern.corefile="/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%y"
-          fi
       - name: Run Python tests (pytest)
         run: |
           if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
@@ -281,13 +269,6 @@ jobs:
         uses: fawazahmed0/action-debug@main
         with:
           credentials: "admin:admin"
-      - name: Upload core dumps as CI artifacts
-        uses: actions/upload-artifact@v4
-        if: ${{ matrix.os != 'windows-2022' && failure() }}
-        # TODO (Caleb Aikens) figure out how to get Windows core dumps
-        with:
-          name: cores-${{ matrix.os }}-${{ matrix.python_version }}
-          path: /cores
   sdist:
     runs-on: ubuntu-22.04
     steps:
