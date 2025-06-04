@@ -49,6 +49,8 @@ env:
   # don't upgrade outdated brew packages because the process is too slow
   HOMEBREW_NO_INSTALL_UPGRADE: 1
   HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+  # apt-get should run in noninteractive mode
+  DEBIAN_FRONTEND: noninteractive
 
 defaults:
   run:
