@@ -74,9 +74,6 @@ jobs:
     container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python_version }}
       - name: Read the mozilla-central commit hash to be used
         run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Cache spidermonkey build
@@ -88,12 +85,16 @@ jobs:
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
       - name: Setup container
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           apt-get update -y
           apt-get install -y sudo
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
           echo "RUNNER_TOOL_CACHE=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
+      - uses: actions/setup-python@v5
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        with:
+          python-version: ${{ matrix.python_version }}
       - name: Setup XCode
         if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey requires XCode SDK version at least 13.3
