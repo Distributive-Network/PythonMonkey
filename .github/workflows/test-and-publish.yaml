@@ -93,6 +93,7 @@ jobs:
           apt-get update -y
           apt-get install -y sudo
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
+          rm -rf $RUNNER_TOOL_CACHE # do not use the Python installation cached for Ubuntu 22.04
       - name: Setup XCode
         if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey requires XCode SDK version at least 13.3
