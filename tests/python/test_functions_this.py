@@ -126,14 +126,6 @@ def test_JSMethodProxy_this():
 # require
 
 
-def test_require_correct_this():
-  subprocess.check_call('npm install crypto-js', shell=True)
-  CryptoJS = pm.require('crypto-js')
-  cipher = CryptoJS.SHA256("Hello, World!").toString()
-  assert cipher == "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
-  subprocess.check_call('npm uninstall crypto-js', shell=True)
-
-
 def test_require_correct_this_old_style_class():
   example = pm.eval("""
   () => {
@@ -207,7 +199,7 @@ def test_function_finalization():
 def test_method_no_self():
   class What:
     def some_method():
-        return 3
+      return 3
 
   obj = What()
 

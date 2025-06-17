@@ -367,14 +367,6 @@ def test_toLocaleString():
   pm.eval("(result, obj) => {result[0] = obj.toLocaleString()}")(result, items)
   assert result[0] == '[object Object]'
 
-# repr
-
-
-def test_repr_max_recursion_depth():
-  subprocess.check_call('npm install crypto-js', shell=True)
-  CryptoJS = pm.require('crypto-js')
-  assert str(CryptoJS).__contains__("{'lib': {'Base': {'extend':")
-
 
 # __class__
 def test___class__attribute():

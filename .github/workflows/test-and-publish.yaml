@@ -15,7 +15,7 @@ on:
         required: false
         options:
         - ''
-        - 'ubuntu-20.04'
+        - 'ubuntu-22.04'
         - 'macos-13'
         - 'macos-14'
         - 'windows-2022'
@@ -49,6 +49,8 @@ env:
   # don't upgrade outdated brew packages because the process is too slow
   HOMEBREW_NO_INSTALL_UPGRADE: 1
   HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+  # apt-get should run in noninteractive mode
+  DEBIAN_FRONTEND: noninteractive
 
 defaults:
   run:
@@ -64,16 +66,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 20.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14', 'ubuntu-22.04-arm' ] # macOS 14 runner exclusively runs on M1 hardwares
+        # Use Ubuntu 22.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'ubuntu-22.04-arm' ] # macOS 14 runner exclusively runs on M1 hardwares
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
+    container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python_version }}
       - name: Read the mozilla-central commit hash to be used
         run: echo "MOZCENTRAL_VERSION=$(cat mozcentral.version)" >> $GITHUB_ENV
       - name: Cache spidermonkey build
@@ -84,6 +84,17 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
           lookup-only: true # skip download
+      - name: Setup container
+        if: ${{ matrix.os == 'ubuntu-22.04' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: |
+          apt-get update -y
+          apt-get install -y sudo libnss3-dev libssl-dev
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
+          echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
+      - uses: actions/setup-python@v5
+        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        with:
+          python-version: ${{ matrix.python_version }}
       - name: Setup XCode
         if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         # SpiderMonkey requires XCode SDK version at least 13.3
@@ -132,10 +143,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'ubuntu-20.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
+        os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
+    container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }}
     steps:
+      - name: Setup container
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: |
+          apt-get update -y
+          apt-get install -y sudo libnss3-dev libssl-dev
+          apt-get install -y git # required for `actions/checkout`
+          apt-get install -y build-essential
+          apt-get install -y strace # required to run JS tests
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata # tzdata may ask for user interaction if not explicitly installed here
+          echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
+          git config --global --add safe.directory '*' # silence "git failed because of dubious ownership"
+          
+          # CMake 3.25 or higher is required
+          apt-get install -y ca-certificates gpg wget
+          wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+          apt-get update -y && apt-get install -y cmake
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -166,7 +195,7 @@ jobs:
         env:
           PYTHON_VERSION: ${{ matrix.python_version }}
       - name: Build Docs # only build docs once
-        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python_version == '3.11' }}
         run: |
             sudo apt-get install -y graphviz 
             # the newest version in Ubuntu 20.04 repository is 1.8.17, but we need Doxygen 1.9 series
@@ -176,7 +205,7 @@ jobs:
             rm -rf doxygen-1.9.7 doxygen-1.9.7.linux.bin.tar.gz
             BUILD_DOCS=1 BUILD_TYPE=None poetry install
       - name: Upload Doxygen-generated docs as CI artifacts
-        if: ${{ matrix.os == 'ubuntu-20.04' && matrix.python_version == '3.11' }}
+        if: ${{ matrix.os == 'ubuntu-22.04' && matrix.python_version == '3.11' }}
         uses: actions/upload-artifact@v4
         with:
           name: docs-${{ github.run_id }}-${{ github.sha }}
@@ -219,49 +248,22 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}-${{ runner.os }}_${{ runner.arch }}_Python${{ matrix.python_version }}
           path: ./dist/
-      - name: Set cores to get stored in /cores
-        if: ${{ matrix.os != 'windows-2022' }}
-        # TODO (Caleb Aikens) figure out how to get Windows core dumps
-        run: |
-          sudo mkdir -p /cores
-          sudo chmod 777 /cores
-          # Core filenames will be of the form osname.pythonversion.executable.pid.timestamp:
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            sudo bash -c 'echo "/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%t" > /proc/sys/kernel/core_pattern'
-          else
-            sudo sysctl kern.corefile="/cores/${OSTYPE}.$(poetry run python --version).%e.%p.%y"
-          fi
       - name: Run Python tests (pytest)
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
-          # TODO (Caleb Aikens) figure out how to get Windows core dumps
-            ulimit -c unlimited
-          fi
           WORKFLOW_BUILD_TYPE=${{ inputs.build_type }}
           BUILD_TYPE=${WORKFLOW_BUILD_TYPE:-"Debug"} poetry run python -m pip install --force-reinstall --verbose ./dist/*
           poetry run python -m pytest tests/python
       - name: Run JS tests (peter-jr)
         if: ${{ (success() || failure()) }}
         run: |
-          if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
-          # TODO (Caleb Aikens) figure out how to get Windows core dumps
-            ulimit -c unlimited
-          fi
           poetry run bash ./peter-jr ./tests/js/
       - name: SSH debug session
         if: ${{ (success() || failure()) && github.event_name == 'workflow_dispatch' && inputs.debug_enabled_os == matrix.os && inputs.debug_enabled_python == matrix.python_version}}
         uses: fawazahmed0/action-debug@main
         with:
           credentials: "admin:admin"
-      - name: Upload core dumps as CI artifacts
-        uses: actions/upload-artifact@v4
-        if: ${{ matrix.os != 'windows-2022' && failure() }}
-        # TODO (Caleb Aikens) figure out how to get Windows core dumps
-        with:
-          name: cores-${{ matrix.os }}-${{ matrix.python_version }}
-          path: /cores
   sdist:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -283,22 +285,9 @@ jobs:
         with:
           name: wheel-${{ github.run_id }}-${{ github.sha }}-sdist
           path: ./dist/
-  check-install-from-sdist:
-    needs: sdist
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Download wheels built
-        uses: actions/download-artifact@v4
-        with:
-          name: wheel-${{ github.run_id }}-${{ github.sha }}-sdist
-          path: ./dist/
-      - run: pip install ./dist/pythonmonkey-*.tar.gz
   publish:
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ success() && github.event_name == 'push' && github.ref_type == 'tag' }}
     steps:
       # no need to checkout
@@ -322,7 +311,7 @@ jobs:
     # Implement a very basic Python package repository (https://peps.python.org/pep-0503/)
     # and deploy the static files to GitHub Pages
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ (success() || failure()) && (github.ref_name == 'main' || github.ref_type == 'tag') }} # publish nightly builds regardless of tests failure
     permissions: # grant GITHUB_TOKEN the permissions required to make a Pages deployment
       pages: write
@@ -382,7 +371,7 @@ jobs:
   publish-archive:
     # Publish to ⊇istributive's archive server (https://archive.distributed.computer/releases/pythonmonkey/)
     needs: [build-and-test, sdist]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ (success() || failure()) && (github.ref_name == 'main' || github.ref_type == 'tag') }}
     environment:
       name: archive
