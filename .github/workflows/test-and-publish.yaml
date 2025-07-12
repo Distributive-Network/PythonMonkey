@@ -83,7 +83,6 @@ jobs:
           path: |
             ./_spidermonkey_install/*
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
-          lookup-only: true # skip download
       - name: Setup container
         if: ${{ matrix.os == 'ubuntu-22.04' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
@@ -102,6 +101,11 @@ jobs:
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
+      - name: Upload spidermonkey build as CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+          path: ./_spidermonkey_install/
   build-spidermonkey-win:
     runs-on: windows-2022
       # SpiderMonkey requires Visual Studio 2022 or newer.
@@ -117,7 +121,6 @@ jobs:
           path: |
             ./_spidermonkey_install/*
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
-          lookup-only: true # skip download
       - name: Install dependencies
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         shell: powershell
@@ -138,6 +141,11 @@ jobs:
           # see https://groups.google.com/u/1/a/mozilla.org/g/dev-platform/c/hF51Q3j6ca8
           USE_MINTTY: 0
         run: /c/mozilla-build/start-shell.bat -use-full-path -here ./setup.sh
+      - name: Upload spidermonkey build as CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+          path: ./_spidermonkey_install/
   build-and-test:
     needs: [build-spidermonkey-unix, build-spidermonkey-win]
     strategy:
