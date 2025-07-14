@@ -71,7 +71,7 @@ jobs:
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
+    container: ${{ ( runner.os == 'Linux' && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
     steps:
       - uses: actions/checkout@v4
       - name: Read the mozilla-central commit hash to be used
@@ -84,14 +84,29 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
       - name: Setup container
-        if: ${{ matrix.os == 'ubuntu-22.04' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ runner.os == 'Linux' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
+          apt-get install -y curl zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev # required for pyenv
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
           echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
+      - name: Setup Python
+        if: ${{ runner.os == 'Linux' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: |
+          # Use pyenv to install Python version that is not available via `actions/setup-python`
+          unset PYENV_ROOT
+          curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+          echo "$HOME/.pyenv/bin" >> $GITHUB_PATH # ~/.bashrc file is not read, so we need to add to GITHUB_PATH manually
+          echo "$HOME/.pyenv/shims" >> $GITHUB_PATH
+          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
+          export PATH="$HOME/.pyenv/bin:$PATH"
+          pyenv install $PYTHON_VERSION
+          pyenv global $PYTHON_VERSION
+        env:
+          PYTHON_VERSION: ${{ matrix.python_version }}
       - uses: actions/setup-python@v5
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ runner.os != 'Linux' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup XCode
@@ -154,10 +169,10 @@ jobs:
         os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }}
+    container: ${{ (runner.os == 'Linux' && 'ubuntu:20.04') || null }}
     steps:
       - name: Setup container
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ runner.os == 'Linux' }}
         run: |
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
@@ -198,9 +213,6 @@ jobs:
         if: ${{ runner.os != 'Linux' }}
         with:
           python-version: ${{ matrix.python_version }}
-      - run: |
-          python --version
-          python3 --version
       - name: Setup Poetry
         uses: snok/install-poetry@v1
         with:
