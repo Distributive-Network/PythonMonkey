@@ -179,7 +179,20 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # fetch all history for all branches and tags
           # poetry-dynamic-versioning needs git tags to produce the correct version number 
+      - name: Setup Python
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          # Use pyenv to install Python version that is not available via `actions/setup-python`
+          curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+          echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+          echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+          echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
+          pyenv install $PYTHON_VERSION
+          pyenv global $PYTHON_VERSION
+        env:
+          PYTHON_VERSION: ${{ matrix.python_version }}
       - uses: actions/setup-python@v5
+        if: ${{ runner.os != 'Linux' }}
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
