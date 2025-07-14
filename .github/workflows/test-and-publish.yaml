@@ -198,10 +198,15 @@ jobs:
         if: ${{ runner.os != 'Linux' }}
         with:
           python-version: ${{ matrix.python_version }}
+      - run: |
+          source ~/.bashrc || true # load pyenv into the current shell
+          python --version
+          python3 --version
       - name: Setup Poetry
         uses: snok/install-poetry@v1
         with:
           version: 1.5.1
+          virtualenvs-create: false
       - name: Install Dependencies
         run: |
           echo "Installing Dependencies"
