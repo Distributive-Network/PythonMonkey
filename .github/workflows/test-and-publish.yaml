@@ -71,7 +71,7 @@ jobs:
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:18.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:18.10') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
     steps:
       - uses: actions/checkout@v4
       - name: Read the mozilla-central commit hash to be used
@@ -99,7 +99,7 @@ jobs:
           apt-get install -y lsb-release wget software-properties-common gnupg
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          ./llvm.sh 18 # install LLVM version 18
+          ./llvm.sh 18 -n=bionic # install LLVM version 18
           update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-18 18
           update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 18
           update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 18
@@ -183,7 +183,7 @@ jobs:
         os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:18.04') || null }}
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:18.10') || null }}
     steps:
       - name: Setup container
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
@@ -202,7 +202,7 @@ jobs:
           # CMake 3.25 or higher is required
           apt-get install -y ca-certificates gpg wget
           wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
           apt-get update -y && apt-get install -y cmake
       - uses: actions/checkout@v4
         with:
