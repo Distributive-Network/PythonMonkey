@@ -88,7 +88,8 @@ jobs:
         run: |
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
-          apt-get install -y curl zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev # required for pyenv
+          apt-get install -y curl make git build-essential
+          apt-get install -y zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev # required for pyenv
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
           echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
       - name: Setup Python
