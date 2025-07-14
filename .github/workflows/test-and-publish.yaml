@@ -71,7 +71,7 @@ jobs:
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ ( runner.os == 'Linux' && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
     steps:
       - uses: actions/checkout@v4
       - name: Read the mozilla-central commit hash to be used
@@ -84,7 +84,7 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
       - name: Setup container
-        if: ${{ runner.os == 'Linux' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
@@ -92,7 +92,7 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
           echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
       - name: Setup Python
-        if: ${{ runner.os == 'Linux' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           # Use pyenv to install Python version that is not available via `actions/setup-python`
           unset PYENV_ROOT
@@ -106,7 +106,7 @@ jobs:
         env:
           PYTHON_VERSION: ${{ matrix.python_version }}
       - uses: actions/setup-python@v5
-        if: ${{ runner.os != 'Linux' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ !startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup XCode
@@ -169,10 +169,10 @@ jobs:
         os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (runner.os == 'Linux' && 'ubuntu:20.04') || null }}
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }}
     steps:
       - name: Setup container
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: |
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
@@ -196,7 +196,7 @@ jobs:
           fetch-depth: 0 # fetch all history for all branches and tags
           # poetry-dynamic-versioning needs git tags to produce the correct version number 
       - name: Setup Python
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: |
           # Use pyenv to install Python version that is not available via `actions/setup-python`
           unset PYENV_ROOT
@@ -210,7 +210,7 @@ jobs:
         env:
           PYTHON_VERSION: ${{ matrix.python_version }}
       - uses: actions/setup-python@v5
-        if: ${{ runner.os != 'Linux' }}
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
