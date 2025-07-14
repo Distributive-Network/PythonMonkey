@@ -71,7 +71,7 @@ jobs:
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:18.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
     steps:
       - uses: actions/checkout@v4
       - name: Read the mozilla-central commit hash to be used
@@ -183,7 +183,7 @@ jobs:
         os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }}
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:18.04') || null }}
     steps:
       - name: Setup container
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
