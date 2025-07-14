@@ -96,9 +96,10 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           apt-get install -y lsb-release wget software-properties-common gnupg
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          ./llvm.sh 18 # install LLVM version 18
+          echo "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" | tee -a /etc/apt/sources.list.d/llvm.list
+          echo "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-defaults main" | tee -a /etc/apt/sources.list.d/llvm.list
+          apt-get update -y
+          apt-get install -y llvm-defaults clang
       - name: Setup Python
         if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
