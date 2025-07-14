@@ -71,7 +71,7 @@ jobs:
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }} # Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to build
     steps:
       - uses: actions/checkout@v4
       - name: Read the mozilla-central commit hash to be used
@@ -84,14 +84,43 @@ jobs:
             ./_spidermonkey_install/*
           key: spidermonkey-${{ env.MOZCENTRAL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
       - name: Setup container
-        if: ${{ matrix.os == 'ubuntu-22.04' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
+          apt-get install -y curl make git build-essential
+          apt-get install -y zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev # required for pyenv
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
           echo "AGENT_TOOLSDIRECTORY=/" >> $GITHUB_ENV # do not use the Python installation cached for Ubuntu 22.04
+      - name: Setup LLVM
+        if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: |
+          apt-get install -y llvm clang
+          apt-get install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          ./llvm.sh 18 # install LLVM version 18
+          update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-18 18
+          update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 18
+          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 18
+          clang --version
+          clang++ --version
+      - name: Setup Python
+        if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        run: |
+          # Use pyenv to install Python version that is not available via `actions/setup-python`
+          unset PYENV_ROOT
+          curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+          echo "$HOME/.pyenv/bin" >> $GITHUB_PATH # ~/.bashrc file is not read, so we need to add to GITHUB_PATH manually
+          echo "$HOME/.pyenv/shims" >> $GITHUB_PATH
+          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
+          export PATH="$HOME/.pyenv/bin:$PATH"
+          pyenv install $PYTHON_VERSION
+          pyenv global $PYTHON_VERSION
+        env:
+          PYTHON_VERSION: ${{ matrix.python_version }}
       - uses: actions/setup-python@v5
-        if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        if: ${{ !startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup XCode
@@ -154,13 +183,14 @@ jobs:
         os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     runs-on: ${{ matrix.os }}
-    container: ${{ (matrix.os == 'ubuntu-22.04' && 'ubuntu:20.04') || null }}
+    container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }}
     steps:
       - name: Setup container
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: |
           apt-get update -y
           apt-get install -y sudo libnss3-dev libssl-dev
+          apt-get install -y curl zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev # required for pyenv
           apt-get install -y git # required for `actions/checkout`
           apt-get install -y nodejs npm # required for pminit to build
           apt-get install -y build-essential
@@ -179,7 +209,22 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # fetch all history for all branches and tags
           # poetry-dynamic-versioning needs git tags to produce the correct version number 
+      - name: Setup Python
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: |
+          # Use pyenv to install Python version that is not available via `actions/setup-python`
+          unset PYENV_ROOT
+          curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+          echo "$HOME/.pyenv/bin" >> $GITHUB_PATH # ~/.bashrc file is not read, so we need to add to GITHUB_PATH manually
+          echo "$HOME/.pyenv/shims" >> $GITHUB_PATH
+          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
+          export PATH="$HOME/.pyenv/bin:$PATH"
+          pyenv install $PYTHON_VERSION
+          pyenv global $PYTHON_VERSION
+        env:
+          PYTHON_VERSION: ${{ matrix.python_version }}
       - uses: actions/setup-python@v5
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
