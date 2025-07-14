@@ -135,6 +135,12 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
 
   if (JS::LinearStringHasLatin1Chars(lstr)) { // latin1 spidermonkey, latin1 python
     const JS::Latin1Char *chars = JS::GetLatin1LinearStringChars(nogc, lstr);
+    if (chars[length] != 0) { // not a null-terminated string
+      // most Python C APIs assume the string buffer is null-terminated, so we need to create a copy
+      PyObject *copied = PyUnicode_FromObject(pyString); // create a copy when it's not a true Unicode object
+      Py_DECREF(pyString);
+      return copied;
+    }
 
     PY_UNICODE_OBJECT_DATA_ANY(pyString) = (void *)chars;
     PY_UNICODE_OBJECT_KIND(pyString) = PyUnicode_1BYTE_KIND;
@@ -157,6 +163,11 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
   }
   else { // utf16 spidermonkey, ucs2 python
     const char16_t *chars = JS::GetTwoByteLinearStringChars(nogc, lstr);
+    if (chars[length] != 0) { // not a null-terminated string
+      PyObject *copied = PyUnicode_FromObject(pyString);
+      Py_DECREF(pyString);
+      return copied;
+    }
 
     PY_UNICODE_OBJECT_DATA_ANY(pyString) = (void *)chars;
     PY_UNICODE_OBJECT_KIND(pyString) = PyUnicode_2BYTE_KIND;
