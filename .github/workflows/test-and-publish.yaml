@@ -95,7 +95,7 @@ jobs:
       - name: Setup LLVM
         if: ${{ startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: |
-          apt-get install -y clang clang++
+          apt-get install -y llvm clang
           apt-get install -y lsb-release wget software-properties-common gnupg
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
