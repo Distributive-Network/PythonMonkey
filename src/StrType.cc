@@ -165,11 +165,6 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
   }
   else { // utf16 spidermonkey, ucs2 python
     const char16_t *chars = JS::GetTwoByteLinearStringChars(nogc, lstr);
-    if ((PY_VERSION_HEX) >= 0x030d0000) { // Python 3.13+, see above
-      PyObject *copied = PyUnicode_FromKindAndData(PyUnicode_2BYTE_KIND, chars, length);
-      Py_DECREF(pyString);
-      return copied;
-    }
 
     PY_UNICODE_OBJECT_DATA_ANY(pyString) = (void *)chars;
     PY_UNICODE_OBJECT_KIND(pyString) = PyUnicode_2BYTE_KIND;
@@ -201,6 +196,11 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
       }
       Py_DECREF(pyString);
       return ucs4Obj;
+    }
+    if ((PY_VERSION_HEX) >= 0x030d0000) { // Python 3.13+, fix `ValueError: embedded null character`
+      PyObject *copied = PyUnicode_FromKindAndData(PyUnicode_2BYTE_KIND, chars, length); // create a copy of the string buffer
+      Py_DECREF(pyString);
+      return copied;
     }
   }
 
