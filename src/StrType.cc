@@ -139,7 +139,7 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
       // Short path to temporarily fix the issue with Python 3.13+ compact unicode representation.
       // It would error with `ValueError: embedded null character`, which is caused by the fact that
       // most Python C APIs assume the string buffer is null-terminated, so we need to create a copy.
-      PyObject *copied = PyUnicode_FromObject((PyObject *)pyString); // create a copy when it's not a true Unicode object
+      PyObject *copied = PyUnicode_FromKindAndData(PyUnicode_1BYTE_KIND, chars, length);
       Py_DECREF(pyString);
       return copied;
     }
@@ -166,7 +166,7 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
   else { // utf16 spidermonkey, ucs2 python
     const char16_t *chars = JS::GetTwoByteLinearStringChars(nogc, lstr);
     if ((PY_VERSION_HEX) >= 0x030d0000) { // Python 3.13+, see above
-      PyObject *copied = PyUnicode_FromObject((PyObject *)pyString); // create a copy when it's not a true Unicode object
+      PyObject *copied = PyUnicode_FromKindAndData(PyUnicode_2BYTE_KIND, chars, length);
       Py_DECREF(pyString);
       return copied;
     }
