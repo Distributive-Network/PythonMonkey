@@ -36,6 +36,7 @@ export declare function request(
   headers: Record<string, string>,
   body: string | Uint8Array,
   timeoutMs: number,
+  proxy: string,
   // callbacks for request body progress
   processRequestBodyChunkLength: (bytesLength: number) => void,
   processRequestEndOfBody: () => void,

@@ -241,6 +241,11 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   timeout = 0;
 
   /**
+   * URL of HTTP proxy to use
+   */
+  proxy = '';
+
+  /**
    * A boolean value that indicates whether or not cross-site `Access-Control` requests should be made using credentials such as cookies, authorization headers or TLS client certificates.  
    * Setting withCredentials has no effect on same-origin requests.
    * @see https://xhr.spec.whatwg.org/#the-withcredentials-attribute
@@ -418,6 +423,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       this.#requestHeaders,
       this.#requestBody ?? '',
       this.timeout,
+      this.proxy,
       processRequestBodyChunkLength,
       processRequestEndOfBody,
       processResponse,
