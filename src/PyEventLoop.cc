@@ -155,7 +155,14 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
     // See https://github.com/python/cpython/blob/v3.13.0rc1/Include/internal/pycore_tstate.h#L17-L24
     using PyThreadStateHolder = struct { // _PyThreadStateImpl
       PyThreadState base;
-      PyObject *asyncio_running_loop; // we only need the first field of `_PyThreadStateImpl`
+      #if PY_VERSION_HEX >= 0x030e0000 // Python version is greater than 3.14
+      // the struct is changed with more additional fields, see https://github.com/python/cpython/blob/v3.14.0rc3/Include/internal/pycore_tstate.h#L24-L40
+      Py_ssize_t refcount;
+      uintptr_t c_stack_top;
+      uintptr_t c_stack_soft_limit;
+      uintptr_t c_stack_hard_limit;
+      #endif
+      PyObject *asyncio_running_loop; // we only need the first few fields of `_PyThreadStateImpl`
     };
 
     // Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Modules/_asynciomodule.c#L3205-L3210
