@@ -220,6 +220,10 @@ jobs:
           echo "$HOME/.pyenv/shims" >> $GITHUB_PATH
           echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
           export PATH="$HOME/.pyenv/bin:$PATH"
+          if [ "$PYTHON_VERSION" = "3.14-dev" ]; then
+            # Replacing 3.14-dev with a pinned prerelease version for fast installation
+            PYTHON_VERSION="3.14.0rc3"
+          fi
           pyenv install $PYTHON_VERSION
           pyenv global $PYTHON_VERSION
         env:
@@ -244,6 +248,7 @@ jobs:
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
+          echo "Use the correct Python version we've set up"
           poetry env use python$PYTHON_VERSION || poetry env use python3 # use the correct Python version we've set up
           poetry install --no-root --only=dev
           echo "Installed Dependencies"
