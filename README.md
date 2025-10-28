@@ -59,7 +59,7 @@ js_eval("console.log")('hello, world')
 - [done] JS TypedArrays coerce to Python TypeArrays
 - [done] Python lists coerce to JS Arrays
 - [done] JS arrays coerce to Python lists
-- [90%] PythonMonkey can run the dcp-client npm package from Distributive.
+- [done] PythonMonkey can run the dcp-client npm package from Distributive.
 
 ## Build Instructions
 
