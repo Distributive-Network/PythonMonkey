@@ -16,7 +16,7 @@ on:
         options:
         - ''
         - 'ubuntu-22.04'
-        - 'macos-13'
+        - 'macos-15-intel'
         - 'macos-14'
         - 'windows-2022'
       debug_enabled_python:
@@ -67,8 +67,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Use Ubuntu 22.04 / macOS 13 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
-        os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'ubuntu-22.04-arm' ] # macOS 14 runner exclusively runs on M1 hardwares
+        # Use Ubuntu 22.04 / macOS 15 x86_64 / macOS 14 arm64 + Python 3.10 to build SpiderMonkey
+        os: [ 'ubuntu-22.04', 'macos-15-intel', 'macos-14', 'ubuntu-22.04-arm' ] # macOS 14 runner exclusively runs on M1 hardwares
                                                                            # see https://github.blog/changelog/2024-01-30-github-actions-macos-14-sonoma-is-now-available
         python_version: [ '3.10' ]
     runs-on: ${{ matrix.os }}
@@ -124,10 +124,6 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         with:
           python-version: ${{ matrix.python_version }}
-      - name: Setup XCode
-        if: ${{ matrix.os == 'macos-13' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
-        # SpiderMonkey requires XCode SDK version at least 13.3
-        run: sudo xcode-select -switch /Applications/Xcode_14.3.app
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
@@ -181,7 +177,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'ubuntu-22.04', 'macos-13', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
+        os: [ 'ubuntu-22.04', 'macos-15-intel', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
         python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14-dev' ]
     runs-on: ${{ matrix.os }}
     container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }}
@@ -293,7 +289,7 @@ jobs:
           BUILD_TYPE=${WORKFLOW_BUILD_TYPE:-"Debug"} poetry build --format=wheel
           ls -lah ./dist/
       - name: Make the wheels we build also support lower versions of macOS
-        if: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' }}
+        if: ${{ matrix.os == 'macos-15-intel' || matrix.os == 'macos-14' }}
         # Change the platform tag part of the wheel filename to `macosx_11_0_xxx` (means to support macOS 11.0 and above)
         # See https://packaging.python.org/en/latest/specifications/binary-distribution-format/#file-format
         # A wheel package file will only be selected by pip to install if the platform tag satisfies, regardless of whether the binary compatibility actually is.
