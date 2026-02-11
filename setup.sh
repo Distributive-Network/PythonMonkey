@@ -78,7 +78,7 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-jemalloc \
   --disable-tests \
   --enable-optimize \
-  --disable-explicit-resource-management
+  --disable-explicit-resource-management \
 # disable-explicit-resource-management: Disable the `using` syntax that is enabled by default in SpiderMonkey nightly, otherwise the header files will disagree with the compiled lib .so file
 #                                       when it's using a `IF_EXPLICIT_RESOURCE_MANAGEMENT` macro, e.g., the `enum JSProtoKey` index would be off by 1 (header `JSProto_Uint8Array` 27 will be interpreted as `JSProto_Int8Array` in lib as lib has an extra element)
 #                                       https://bugzilla.mozilla.org/show_bug.cgi?id=1940342
@@ -87,7 +87,7 @@ echo "Done building spidermonkey"
 
 echo "Installing spidermonkey"
 # install to ../../../../_spidermonkey_install/
-make install 
+make install -headerpad_max_install_names
 if [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   cd ../../../../_spidermonkey_install/lib/
   # Set the `install_name` field to use RPATH instead of an absolute path
