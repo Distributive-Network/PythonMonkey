@@ -124,6 +124,10 @@ jobs:
         if: ${{ !startsWith(matrix.os, 'ubuntu') && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         with:
           python-version: ${{ matrix.python_version }}
+      - name: Setup XCode
+        if: ${{ matrix.os == 'macos-15-intel' && steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
+        # Xcode 16.x removed the old linker behaviour (-ld64 or -ld_classic) that SpiderMonkey relies on, so we need to switch to an older version
+        run: sudo xcode-select -switch /Applications/Xcode_16.0.app
       - name: Build spidermonkey
         if: ${{ steps.cache-spidermonkey.outputs.cache-hit != 'true' }}
         run: ./setup.sh
