@@ -2,6 +2,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+echo "$ clang --print-target-triple"
+clang --print-target-triple
+
 # Get number of CPU cores
 CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null || getconf NPROCESSORS_ONLN 2>/dev/null || echo 1)
 
