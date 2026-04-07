@@ -31,7 +31,7 @@ on:
         - '3.11'
         - '3.12'
         - '3.13'
-        - '3.14-dev'
+        - '3.14'
       build_type:
         type: choice
         description: 'Choose the build type to use'
@@ -182,7 +182,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'ubuntu-22.04', 'macos-15-intel', 'macos-14', 'windows-2022', 'ubuntu-22.04-arm' ]
-        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14-dev' ]
+        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14' ]
     runs-on: ${{ matrix.os }}
     container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }}
     steps:
@@ -220,10 +220,6 @@ jobs:
           echo "$HOME/.pyenv/shims" >> $GITHUB_PATH
           echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
           export PATH="$HOME/.pyenv/bin:$PATH"
-          if [ "$PYTHON_VERSION" = "3.14-dev" ]; then
-            # Replacing 3.14-dev with a pinned prerelease version for fast installation
-            PYTHON_VERSION="3.14.0rc3"
-          fi
           pyenv install $PYTHON_VERSION
           pyenv global $PYTHON_VERSION
         env:
