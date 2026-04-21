@@ -1,0 +1,28 @@
+/**
+ * @file        js2py/kwargs.simple
+ *              Simple test which shows that kwargs passed from python to JS end up as an additional final dict argument
+ *
+ * @author      Caleb Aikens, caikens@amd.com
+ * @date        April 2026
+ */
+'use strict';
+
+function js_func() {
+  return [...arguments];
+}
+
+python.exec(`
+def kwarg_test(js_func):
+  return js_func(1, 2, i=42, j=43)
+`);
+const kwarg_test = python.eval('kwarg_test');
+
+const [first, second, kwargs] = kwarg_test(js_func);
+
+if (first     !== 1  ||
+    second    !== 2  ||
+    kwargs.i  !== 42 ||
+    kwargs.j  !== 43) {
+    
+    throw new Error('args or kwargs were not passed correctly.');
+}
