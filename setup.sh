@@ -27,11 +27,11 @@ else
 fi
 # Install rust compiler
 echo "Installing rust compiler"
-HOST_ABI_FLAGS=("")
+unset HOST_ABI_FLAGS
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  HOST_ABI_FLAGS+=("--default-host" "$(clang --print-target-triple)")
+  HOST_ABI_FLAGS=("--default-host" "$(clang --print-target-triple)")
 fi
-curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y "${HOST_ABI_FLAGS[@]}" --default-toolchain 1.85
+curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.85
 CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
 $CARGO_BIN install cbindgen
 # Setup Poetry
