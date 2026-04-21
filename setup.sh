@@ -27,7 +27,7 @@ else
 fi
 # Install rust compiler
 echo "Installing rust compiler"
-HOST_ABI_FLAGS=()
+HOST_ABI_FLAGS=("")
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
   HOST_ABI_FLAGS+=("--default-host" "$(clang --print-target-triple)")
 fi
