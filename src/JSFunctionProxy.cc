@@ -52,6 +52,18 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
     }
   }
 
+  if (kwargs && PyDict_Size(kwargs) > 0) {
+    JS::Value jsValue = jsTypeFactory(cx, kwargs);
+    if (PyErr_Occurred()) { // Check if an exception has already been set in the flow of control
+      return NULL; // Fail-fast
+    }
+    if (!jsArgsVector.append(jsValue)) {
+      // out of memory
+      setSpiderMonkeyException(cx);
+      return NULL;
+    }
+  }
+
   JS::HandleValueArray jsArgs(jsArgsVector);
   JS::RootedValue jsReturnVal(cx);
   if (!JS_CallFunctionValue(cx, thisObj, jsFunc, jsArgs, &jsReturnVal)) {
