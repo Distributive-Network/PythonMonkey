@@ -119,3 +119,17 @@ def test_default_vararg_func_too_few_args():
   def f(a, b, c=42, d=43, *args):
     return [a, b, c, d, *args]
   assert [1, None, 42, 43] == pm.eval("(f) => f(1)")(f)
+
+def test_kwargs_in_js():
+  assert [1, 2, {"i": 42, "j": 43}] == pm.eval("(first, second, kwargs) => {return [first, second, kwargs]}")(1, 2, i=42, j=43)
+
+def test_kwargs_in_js_arguments_array():
+  # Note: arguments object is only available in non-arrow functions
+  assert [1, 2, {"i": 42, "j": 43}] == pm.eval("(function() {return [...arguments]})")(1, 2, i=42, j=43)
+
+def test_kwargs_pass_through():
+  def py_func(*args, **kwargs):
+    return [*args, kwargs];
+  
+  # Note: kwargs passed py1->js->py2 end up in args for py2 rather than kwargs, since JS has no equivalent to kwargs
+  assert [1, 2, {"i": 42, "j": 43}, {}] == pm.eval("(py_func, ...args) => { return py_func(...args)}")(py_func, 1, 2, i=42, j=43)
