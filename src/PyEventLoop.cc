@@ -74,6 +74,7 @@ PyEventLoop::AsyncHandle PyEventLoop::enqueue(PyObject *jobFn) {
   // Enqueue job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon
   PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_soon_threadsafe", "O", wrapper);
+  Py_DECREF(wrapper); // the Handle owns the wrapper now; release our ref so jobFn is freed after the job runs
   return PyEventLoop::AsyncHandle(asyncHandle);
 }
 
@@ -82,6 +83,7 @@ static PyObject *_enqueueWithDelay(PyObject *_loop, PyEventLoop::AsyncHandle::id
   // Schedule job to the Python event-loop
   //    https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_later
   PyObject *asyncHandle = PyObject_CallMethod(_loop, "call_later", "dOOIdb", delaySeconds, wrapper, _loop, handleId, delaySeconds, repeat); // https://docs.python.org/3/c-api/arg.html#c.Py_BuildValue
+  Py_DECREF(wrapper); // the TimerHandle now owns the wrapper; release our creation ref
   if (!asyncHandle) {
     return nullptr; // RuntimeError
   }
