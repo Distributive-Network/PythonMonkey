@@ -135,7 +135,7 @@ PyObject *StrType::proxifyString(JSContext *cx, JS::HandleValue strVal) {
 
   if (JS::LinearStringHasLatin1Chars(lstr)) { // latin1 spidermonkey, latin1 python
     const JS::Latin1Char *chars = JS::GetLatin1LinearStringChars(nogc, lstr);
-    if ((PY_VERSION_HEX) >= 0x030d0000) { // Python version is greater than 3.13
+    if ((PY_VERSION_HEX) >= 0x030c0000) { // Python version is greater than 3.12
       // Short path to temporarily fix the issue with Python 3.13+ compact unicode representation.
       // It would error with `ValueError: embedded null character`, which is caused by the fact that
       // most Python C APIs assume the string buffer is null-terminated, so we need to create a copy.
