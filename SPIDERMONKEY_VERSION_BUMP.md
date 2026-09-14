@@ -607,6 +607,23 @@ compiles"):
      values (spot-checked a sample series: `values[:5] = [25. 25. 25. 25.
      25.]`, `dtype=float32`, as expected for this model).
 
+5. **Real `job.exec()` (not `localExec()`) — genuine network dispatch,
+   verified separately** (`dcp_real_exec_test.py`, modelled directly on
+   `dcp_sample_job.py`'s pattern but loading identity from `id.keystore`
+   the same safe way `dcp_local_job_test.py` does, rather than an inline
+   private key). This is a materially different code path from everything
+   above: `localExec()` never leaves the process, while `exec()` submits to
+   the real DCP scheduler, needs a funded wallet, and depends on real
+   workers actually being present on the target compute group
+   (`demo`/`dcp`, the same public demo group both existing sample scripts
+   already use). **Passed, real end-to-end**: full real readystate
+   lifecycle (`exec → init → preauth → deploying → listeners →
+   compute-groups → uploading → deployed`), a real scheduler-assigned job
+   ID, 8 real `result` events from real workers, no `nofunds`/`error`
+   events, correct final output `YELLING!`. This confirms the rebuild is
+   solid for the actual production dispatch path, not just the
+   local-simulation path this document otherwise focuses on.
+
 ## Not yet done / open as of this writing
 
 - **Not independently verified**: `Atomics.waitAsync` with a real timeout
