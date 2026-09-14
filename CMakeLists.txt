@@ -30,7 +30,21 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(FetchContent)
 
   if (WIN32)
-    SET(COMPILE_FLAGS "/GR- /W0")
+    # LOCAL PATCH: pythonmonkey's own compile of its .cc files (and of
+    # SpiderMonkey's public headers pulled in by them) goes through this
+    # CMake/clang-cl build directly, not through Mozilla's own moz.build
+    # system -- which normally defines XP_WIN for every object file it
+    # compiles. Without it, SpiderMonkey headers that branch on
+    # `defined(XP_WIN)` (assuming it's always set on Windows, since
+    # that's Mozilla's own standard "we're building for Windows" macro)
+    # silently fall through to their POSIX/pthread branch instead,
+    # confirmed via a real build failure (PlatformMutex.h including the
+    # nonexistent <pthread.h>, UniquePtrExtensions.h missing Windows
+    # HANDLE-based types as a result). Defining it globally here fixes
+    # every such header at once, rather than patching each one
+    # individually as it's discovered (one already was, in
+    # BaseProfilerUtils.h, before this more general fix existed).
+    SET(COMPILE_FLAGS "/GR- /W0 /DXP_WIN")
 
     SET(OPTIMIZED "/O2")
     SET(UNOPTIMIZED "/Od")

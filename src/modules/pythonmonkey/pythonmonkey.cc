@@ -488,6 +488,15 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
+  // LOCAL PATCH (SpiderMonkey 157a1 API change): perform a microtask
+  // checkpoint. Previously unnecessary because JobQueue::enqueuePromiseJob
+  // forwarded each job to Python's event-loop the instant SpiderMonkey
+  // created it; now SpiderMonkey queues jobs internally instead, and
+  // nothing drains that queue unless the embedder explicitly asks it to
+  // (see the long comment on JobQueue::runJobs in JobQueue.hh/.cc). This
+  // mirrors the HTML spec's "clean up after running script" checkpoint.
+  js::RunJobs(GLOBAL_CX);
+
   // translate to the proper python type
   PyObject *returnValue = pyTypeFactory(GLOBAL_CX, rval);
   if (PyErr_Occurred()) {
@@ -571,9 +580,14 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  // LOCAL PATCH (SpiderMonkey 157a1 API change): ContextOptions::setAsmJS
+  // no longer exists -- confirmed via js/public/ContextOptions.h, which has
+  // no asm.js-related member at all anymore. asm.js has been fully removed
+  // from SpiderMonkey (a legacy pre-WebAssembly feature; WebAssembly, which
+  // .setWasm(true) below already enables, has long since superseded it).
+  // Mechanical removal, not a judgment call -- there's nothing left to set.
   JS::ContextOptionsRef(GLOBAL_CX)
   .setWasm(true)
-  .setAsmJS(true)
   .setAsyncStack(true)
   .setSourcePragmas(true);
 
@@ -594,6 +608,16 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS::AddGCNurseryCollectionCallback(GLOBAL_CX, nurseryCollectionCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+  /* LOCAL PATCH: enable SharedArrayBuffer/Atomics and shared WASM memory.
+   * Off by default in this SpiderMonkey embedding, mirroring a browser
+   * tab's default (pre-cross-origin-isolation) behaviour -- a Spectre
+   * mitigation that doesn't apply to a local, embedded, single-trusted-
+   * process pythonmonkey run. Needed for Pyodide's threaded WASM build to
+   * link at all ("LinkError: shared memory is disabled" otherwise). See
+   * DCP/localexec_patch/STATUS.md, "Pyodide / shared memory" section, for
+   * the full investigation that led here.
+   */
+  creationOptions.setSharedMemoryAndAtomicsEnabled(true);
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
   JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
