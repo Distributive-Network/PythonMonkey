@@ -49,42 +49,52 @@ bool init(JSContext *cx);
  * If any error happens while generating the host defined data, this method
  * should set a pending exception to `cx` and return `false`.
  */
-bool getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> data) const override;
+bool getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> incumbentGlobal, JS::MutableHandle<JSObject *> data) const override;
 
 /**
- * @brief Enqueue a reaction job `job` for `promise`, which was allocated at
- * `allocationSite`. Provide `incumbentGlobal` as the incumbent global for
- * the reaction job's execution.
+ * @brief Ask the embedding for the host defined global to use when running
+ * a JS microtask (LOCAL PATCH: new pure-virtual method added alongside the
+ * SpiderMonkey 157a1 JobQueue redesign -- see runJobs() below for context).
  *
- * `promise` can be null if the promise is optimized out.
- * `promise` is guaranteed not to be optimized out if the promise has
- * non-default user-interaction flag.
+ * Mirrors the "we don't track this" stance already taken in
+ * getHostDefinedData() above: we have no host defined global of our own, so
+ * SpiderMonkey falls back to its own default (the microtask's execution
+ * global, from GetExecutionGlobalFromJSMicroTask). Matches SpiderMonkey's
+ * own reference embedding, InternalJobQueue::getHostDefinedGlobal, which
+ * does exactly this (js/src/vm/JSContext.cpp).
  */
-bool enqueuePromiseJob(JSContext *cx, JS::HandleObject promise,
-  JS::HandleObject job, JS::HandleObject allocationSite,
-  JS::HandleObject incumbentGlobal) override;
+bool getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) const override;
 
 /**
- * @brief Run all jobs in the queue. Running one job may enqueue others; continue to
- * run jobs until the queue is empty.
+ * @brief Pull every job SpiderMonkey has queued internally since the last
+ * call, and forward each one to the Python event-loop for execution.
+ *
+ * LOCAL PATCH (SpiderMonkey 157a1 API change): `JobQueue::enqueuePromiseJob`
+ * -- the old per-job push callback this class used to override -- was
+ * removed from the base class entirely. SpiderMonkey now enqueues promise
+ * reaction jobs into its own internal queue as it creates them (see
+ * EnqueueJob() in js/src/builtin/Promise.cpp), without notifying the
+ * embedding. The embedding is instead expected to pull queued jobs itself,
+ * here, whenever it wants a "microtask checkpoint" to happen -- triggered
+ * by the embedder calling the free function js::RunJobs(cx) (declared in
+ * jsfriendapi.h; NOT the same thing as this method, despite the identical
+ * name -- js::RunJobs(cx) is what calls cx->jobQueue->runJobs(cx), i.e.
+ * this override). PythonMonkey calls js::RunJobs(GLOBAL_CX) once after each
+ * top-level JS_ExecuteScript() call, in pythonmonkey.cc.
+ *
+ * This preserves the original behaviour -- JS promise reactions execute as
+ * Python asyncio callbacks, not synchronously inline -- by draining
+ * SpiderMonkey's internal queue and re-creating the same "hand this job to
+ * Python's event loop" forwarding enqueuePromiseJob used to do per-job, just
+ * done here in a pull/batch fashion instead.
  *
  * Calling this method at the wrong time can break the web. The HTML spec
  * indicates exactly when the job queue should be drained (in HTML jargon,
  * when it should "perform a microtask checkpoint"), and doing so at other
  * times can incompatibly change the semantics of programs that use promises
  * or other microtask-based features.
- *
- * This method is called only via AutoDebuggerJobQueueInterruption, used by
- * the Debugger API implementation to ensure that the debuggee's job queue is
- * protected from the debugger's own activity. See the comments on
- * AutoDebuggerJobQueueInterruption.
  */
 void runJobs(JSContext *cx) override;
-
-/**
- * @return true if the job queue is empty, false otherwise.
- */
-bool empty() const override;
 
 /**
  * @return true if the job queue stopped draining, which results in `empty()` being false after `runJobs()`.
@@ -127,11 +137,53 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> saveJobQueue(JSContext *) override;
  * @brief The callback for dispatching an off-thread promise to the event loop
  *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l580
  *              https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/OffThreadPromiseRuntimeState.cpp#l160
+ *
+ * LOCAL PATCH (SpiderMonkey 157a1 API change): `JS::InitDispatchToEventLoop`
+ * (2-callback init) was replaced by `JS::InitAsyncTaskCallbacks`, which now
+ * mandates both a `DispatchToEventLoopCallback` AND a
+ * `DelayedDispatchToEventLoopCallback` (see delayedDispatchToEventLoop()
+ * below). The callback signature itself also changed: it now takes ownership
+ * of the Dispatchable via `js::UniquePtr<Dispatchable>&&` instead of a raw
+ * pointer, and `Dispatchable::run()` is now `protected` -- callers must go
+ * through the new public static `Dispatchable::Run(cx, task, shuttingDown)`
+ * instead of calling `->run()` directly.
+ *
  * @param closure - closure, currently the javascript context
- * @param dispatchable - Pointer to the Dispatchable to be called
+ * @param dispatchable - the Dispatchable to be called; ownership transferred to this callback
  * @return not shutting down
  */
-static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
+static bool dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable);
+
+/**
+ * @brief The callback for dispatching an off-thread promise to the event
+ * loop after a delay (LOCAL PATCH: newly mandatory as of the same API
+ * change described on dispatchToEventLoop() above -- previously this
+ * concept didn't need to exist as a separate callback for this embedding).
+ *
+ * NEEDS REVIEW: this embedding has no cross-thread-safe delayed-dispatch
+ * mechanism (PyEventLoop::enqueueWithDelay exists but calls
+ * asyncio.loop.call_later, which -- unlike call_soon_threadsafe, used
+ * elsewhere in this codebase -- is not documented as safe to call from a
+ * thread other than the one running the loop; this callback, per its
+ * declaration in js/public/Promise.h, must be safe to call from ANY
+ * thread). Per that same header's documented contract ("If a timeout
+ * manager is not available for given context, it should return false"),
+ * this always returns false, i.e. this embedding declines to service
+ * engine-level delayed dispatch. This should only affect internal
+ * SpiderMonkey features that specifically need a delayed off-thread
+ * callback (e.g. an Atomics.waitAsync timeout) -- ordinary JS
+ * `setTimeout`/`setInterval` in pythonmonkey go through a separate,
+ * already-working path (PyEventLoop::enqueueWithDelay called from JS-exposed
+ * timer functions, not this SpiderMonkey-internal callback) and are
+ * unaffected. Not verified against a real Atomics.waitAsync-with-timeout
+ * test case.
+ *
+ * @param closure - closure, currently the javascript context
+ * @param dispatchable - the Dispatchable that would be called; ownership transferred to this callback
+ * @param delay - requested delay in milliseconds
+ * @return false (no timeout manager available for cross-thread delayed dispatch)
+ */
+static bool delayedDispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable, uint32_t delay);
 
 /**
  * @brief The callback that gets invoked whenever a Promise is rejected without a rejection handler (uncaught/unhandled exception)

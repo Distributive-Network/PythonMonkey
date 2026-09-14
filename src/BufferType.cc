@@ -14,6 +14,7 @@
 #include <jsapi.h>
 #include <js/ArrayBuffer.h>
 #include <js/experimental/TypedData.h>
+#include <js/GCAPI.h>
 #include <js/ScalarType.h>
 
 #include <limits.h>
@@ -88,9 +89,37 @@ PyObject *BufferType::fromJsTypedArray(JSContext *cx, JS::HandleObject typedArra
   bool isSharedMemory;
   if (!JS_GetArrayBufferViewBuffer(cx, typedArray, &isSharedMemory)) return nullptr;
 
-  uint8_t __destBuf[0] = {}; // we don't care about its value as it's used only if the TypedArray still having inline data
-  uint8_t *data = JS_GetArrayBufferViewFixedData(typedArray, __destBuf, 0 /* making sure we don't copy inline data */);
-  if (data == nullptr) { // shared memory or still having inline data
+  if (isSharedMemory) {
+    PyErr_SetString(PyExc_TypeError, "PythonMonkey cannot coerce TypedArrays backed by shared memory.");
+    return nullptr;
+  }
+
+  // LOCAL PATCH (SpiderMonkey 157a1 API change, needs team review -- see
+  // handover doc): JS_GetArrayBufferViewFixedData was removed upstream;
+  // JS_GetArrayBufferViewData is its replacement, but trades the old
+  // function's own "return nullptr if the data is still inline/movable"
+  // runtime guard for a caller-supplied JS::AutoRequireNoGC token instead.
+  // AutoRequireNoGC (js/GCAPI.h) is a trivial marker type with no runtime
+  // behaviour of its own -- it's a compile-time "I've verified this is
+  // safe" token, not an active GC suppressor. The safety property the old
+  // function's guard provided (never returning a pointer into GC-movable
+  // inline TypedArray storage) is still expected to hold here because of
+  // the JS_GetArrayBufferViewBuffer() call above: per ITS OWN comment, it
+  // forces any inline/movable data to be promoted to a real, stably
+  // allocated ArrayBuffer first. This reasoning has NOT been independently
+  // verified against SpiderMonkey's actual GC internals (e.g. by stress
+  // testing with --enable-gczeal / a compacting-GC configuration) -- do
+  // that before trusting this for anything beyond experimentation.
+  // AutoRequireNoGC's own ctor/dtor are protected (it's a base marker type,
+  // not directly instantiable) -- use AutoAssertNoGC instead, which is
+  // publicly constructible AND (in diagnostic builds) actually verifies at
+  // runtime that no GC happens while it's alive, rather than being a pure
+  // no-op marker. Strictly better for confidence in this fix than the bare
+  // base class would have been even if it were public.
+  JS::AutoAssertNoGC nogc(cx);
+  bool isSharedMemory2; // redundant with isSharedMemory above; required by this function's signature
+  uint8_t *data = static_cast<uint8_t *>(JS_GetArrayBufferViewData(typedArray, &isSharedMemory2, nogc));
+  if (data == nullptr) {
     PyErr_SetString(PyExc_TypeError, "PythonMonkey cannot coerce TypedArrays backed by shared memory.");
     return nullptr;
   }

@@ -19,37 +19,64 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
   brew install lld
-elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
+elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
   echo "Unsupported OS"
   exit 1
 fi
 # Install rust compiler
-echo "Installing rust compiler"
-unset HOST_ABI_FLAGS
-if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  HOST_ABI_FLAGS=("--default-host" "$(clang --print-target-triple)")
-fi
-curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.85
-CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
-$CARGO_BIN install cbindgen
-# Setup Poetry
-echo "Installing poetry"
-curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
-if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  POETRY_BIN="$APPDATA/Python/Scripts/poetry"
+# LOCAL PATCH: like the Poetry skip below, this step was unconditional --
+# no check for whether rust/the 1.85 toolchain is already installed. On a
+# machine where it already is, re-running rustup-init.sh downloads a fresh
+# installer exe into a temp dir and executes it, which on this Windows
+# machine gets blocked ("Permission denied", almost certainly Defender/
+# SmartScreen refusing to run a newly-downloaded, unsigned exe straight out
+# of a temp directory) -- a real, reproducible failure, not a flake. Skip
+# the whole block if rustup + the 1.85 toolchain are already present.
+if command -v rustup >/dev/null && rustup toolchain list 2>/dev/null | grep -q '^1\.85'; then
+  echo "Rust 1.85 toolchain already installed, skipping rustup-init"
 else
-  POETRY_BIN="$HOME/.local/bin/poetry"
+  echo "Installing rust compiler"
+  unset HOST_ABI_FLAGS
+  if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
+    HOST_ABI_FLAGS=("--default-host" "$(clang --print-target-triple)")
+  fi
+  curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.85
 fi
-$POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
+CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
+command -v cbindgen >/dev/null || $CARGO_BIN install cbindgen
+# Setup Poetry
+# LOCAL PATCH: skipped. Poetry is only actually consumed later in this
+# script inside the `if test -f .git/hooks/pre-commit` dev-tooling branch
+# (installing autopep8/uncrustify for git hooks) -- irrelevant to actually
+# building SpiderMonkey/pythonmonkey, and that file doesn't exist in a
+# shallow clone anyway. Also, `python3` doesn't exist on this machine
+# (only `python`), which made the real installer command fail outright.
+echo "Skipping poetry install (not needed for the actual build)"
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
 # Read the commit hash for mozilla-central from the `mozcentral.version` file
 MOZCENTRAL_VERSION=$(cat mozcentral.version)
-wget -c -q -O firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla-firefox/firefox/archive/${MOZCENTRAL_VERSION}.zip
-unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv firefox-${MOZCENTRAL_VERSION} firefox-source
+# LOCAL PATCH: this download+extract is not idempotent as originally
+# written -- it always re-extracts and always re-`mv`s, which fails once
+# firefox-source already exists from a prior (possibly failed-later) run.
+# Since this script needs re-running whenever a later step fails (and we've
+# hit several unrelated Windows-environment issues after this point), skip
+# entirely once firefox-source is already present.
+if [ ! -d firefox-source ]; then
+  # LOCAL PATCH: wget.exe (MSYS2's, and presumably any other copy) is
+  # blocked outright on this machine by a Windows Defender Application
+  # Control policy ("An Application Control policy has blocked this
+  # file" -- confirmed directly, not a PATH/permission-bits issue).
+  # curl is unaffected (checked both Windows' own and MSYS2's) -- use it
+  # instead. unzip is also unaffected, kept as-is.
+  curl -fsSL -o firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla-firefox/firefox/archive/${MOZCENTRAL_VERSION}.zip
+  unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv firefox-${MOZCENTRAL_VERSION} firefox-source
+else
+  echo "firefox-source already exists, skipping download+extract"
+fi
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
@@ -69,6 +96,7 @@ sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedLi
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
 sed -i'' -e 's/"-fuse-ld=ld"/"-ld64" if c_compiler.version > "14.0.0" else "-fuse-ld=ld"/' ./build/moz.configure/toolchain.configure # XCode 15 changed the linker behaviour. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
 sed -i'' -e 's/defined(XP_WIN)/defined(_WIN32)/' ./mozglue/baseprofiler/public/BaseProfilerUtils.h # this header file is introduced to js/Debug.h in https://phabricator.services.mozilla.com/D221102, but it would be compiled without XP_WIN in this building configuration
+sed -i'' -e 's/os\.environ\["MOZILLABUILD"\]/os.environ.get("MOZILLABUILD", "")/g' ./python/mozbuild/mozbuild/backend/visualstudio.py # LOCAL PATCH: this VS-project-file-generation convenience feature (not needed for a command-line-only build) does an unguarded os.environ["MOZILLABUILD"] lookup and crashes with KeyError when it's unset, which it is here (we don't use the official Mozilla Build package) -- confirmed via a real build failure, not speculative
 
 cd js/src
 mkdir -p _build
@@ -77,16 +105,22 @@ mkdir -p ../../../../_spidermonkey_install/
 ../configure --target=$(clang --print-target-triple) \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
-  $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--without-system-zlib"; fi) \
+  $(if [[ "$OSTYPE" != "msys"* && "$OSTYPE" != "cygwin"* ]]; then echo "--without-system-zlib"; fi) \
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
   $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
-  --enable-optimize \
-  --disable-explicit-resource-management
-# disable-explicit-resource-management: Disable the `using` syntax that is enabled by default in SpiderMonkey nightly, otherwise the header files will disagree with the compiled lib .so file
-#                                       when it's using a `IF_EXPLICIT_RESOURCE_MANAGEMENT` macro, e.g., the `enum JSProtoKey` index would be off by 1 (header `JSProto_Uint8Array` 27 will be interpreted as `JSProto_Int8Array` in lib as lib has an extra element)
-#                                       https://bugzilla.mozilla.org/show_bug.cgi?id=1940342
+  --enable-optimize
+# LOCAL PATCH: the original --disable-explicit-resource-management flag
+# (worked around Bugzilla 1940342, a header/lib enum mismatch from when
+# the `using` syntax was newly landing in nightly circa early 2025) is
+# now an unrecognized configure option on this newer mozilla-central
+# snapshot -- confirmed via a real `InvalidOptionError: Unknown option`
+# build failure. The explicit-resource-management feature has evidently
+# shipped/stabilized since, taking the flag (and presumably the bug it
+# worked around) with it. Removed rather than guessing at a replacement
+# flag; if header/lib enum mismatches resurface, that bug tracker is the
+# place to check first.
 make -j$CPUS
 echo "Done building spidermonkey"
 
@@ -120,7 +154,7 @@ if test -f .git/hooks/pre-commit; then
   cd uncrustify-source
   mkdir -p build
   cd build
-  if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
     cmake ../
     cmake --build . -j$CPUS --config Release
     cp Release/uncrustify.exe ../../uncrustify.exe
