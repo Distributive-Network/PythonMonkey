@@ -16,6 +16,7 @@
 #include "include/setSpiderMonkeyException.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 
 #include <Python.h>
 
@@ -58,6 +59,20 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
     setSpiderMonkeyException(cx);
     return NULL;
   }
+
+  // LOCAL PATCH (SpiderMonkey 157a1 JobQueue redesign, found via retesting
+  // the claims in SPIDERMONKEY_VERSION_BUMP.md -- fix #7's checkpoint list
+  // missed this site): this is the generic entry point Python uses to call
+  // back into any JS function it was handed -- e.g. a `setTimeout` callback
+  // dispatched from PyEventLoop, or a JS event-listener invoked directly by
+  // Python code. If the JS function just called resolved/rejected a Promise
+  // with already-attached reactions (the common case: `resolve(...)` inside
+  // a `setTimeout` callback), that enqueues a job into cx->microTaskQueues
+  // with nothing else scheduled to drain it -- this call happens outside of
+  // JS_ExecuteScript() and outside PromiseType.cc's two checkpoints. Confirmed
+  // via a real hang: awaiting a JS Promise that resolves via `setTimeout`
+  // never returned until this checkpoint was added here.
+  js::RunJobs(cx);
 
   if (PyErr_Occurred()) {
     return NULL;

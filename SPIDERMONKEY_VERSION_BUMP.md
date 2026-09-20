@@ -71,7 +71,7 @@ Old pin preserved at `mozcentral.version.orig-backup-136a1` for rollback.
 + 1704651e7d6c706fcb753adab577e0954d61cee0
 ```
 
-### 2. `setup.sh` — five fixes, all confirmed necessary by real build failures (not speculative)
+### 2. `setup.sh` — several fixes, all confirmed necessary by real build failures (not speculative)
 
 **a. Rust install step made idempotent.** Was unconditional on every run.
 Re-running `rustup-init.sh` when Rust is already installed downloads a fresh
@@ -119,7 +119,8 @@ the flag (and presumably the underlying bug) with it. Removed rather than
 guessing a replacement.
 
 **d. `MOZILLABUILD` `KeyError` fix reapplied.** This is the *same* fix already
-documented in `BUILD_LOG.md`'s "7th issue" from the original build — but that
+made once before, ad-hoc, during the earlier one-line SharedArrayBuffer/Atomics
+build session against the old `136a1` engine (not part of this PR) — but that
 fix was applied directly to a file *inside* the ephemeral `firefox-source`
 checkout, not to this persistent `setup.sh`, so it was lost when
 `firefox-source` was deleted and re-fetched for the new commit. Re-applied,
@@ -128,6 +129,31 @@ existing pattern of the other ~10 patches) so it survives future re-extracts:
 
 ```diff
 + sed -i'' -e 's/os\.environ\["MOZILLABUILD"\]/os.environ.get("MOZILLABUILD", "")/g' ./python/mozbuild/mozbuild/backend/visualstudio.py # LOCAL PATCH: ...
+```
+
+**e. Poetry install made idempotent, and kept — not dropped.** An earlier
+version of this patch skipped installing Poetry altogether, reasoning that it
+was only consumed later in this same script's `.git/hooks/pre-commit`
+dev-tooling branch and thus "irrelevant to actually building
+SpiderMonkey/pythonmonkey." That reasoning was wrong — it broke that branch's
+`$POETRY_BIN run pip install autopep8` line for anyone whose clone does take
+it, by deleting `POETRY_BIN`'s own definition along with the install step.
+Caught during review/retesting, not by a build failure. Fixed the *actual*
+problem instead (this machine has no `python3` on `PATH`, only `python`, so
+the real installer's `python3 - --version ...` invocation failed outright)
+and made the install idempotent, matching the Rust fix in (a):
+
+```diff
++ if command -v "$POETRY_BIN" >/dev/null || [ -x "$POETRY_BIN" ]; then
++   echo "Poetry already installed, skipping"
++ else
+    echo "Installing poetry"
+-   curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
++   PYTHON_FOR_POETRY=$(command -v python3 || command -v python)
++   curl -sSL https://install.python-poetry.org | "$PYTHON_FOR_POETRY" - --version "1.7.1"
+    ...
++   "$POETRY_BIN" self add 'poetry-dynamic-versioning[plugin]'
++ fi
 ```
 
 ### 3. Rust toolchain override: 1.85 → `stable` (1.98.1)
@@ -557,6 +583,63 @@ this) has long since superseded it upstream. Simply deleted the
 context setup — nothing to replace it with, since the feature itself is gone,
 not relocated.
 
+### 11. `src/JSFunctionProxy.cc` / `src/JSMethodProxy.cc` — a 4th missing JobQueue checkpoint, found by independent retesting (moderate risk, now fixed)
+
+**This section exists because the "All passed, repeatably" claim under point 3
+of the Testing section below was wrong when first written.** Independent
+retesting (by Claude, at the requester's request, specifically to audit this
+PR before review) redeployed the actual built `pythonmonkey.pyd` +
+`mozjs-157a1.dll` — the previously-installed copy in `site-packages` was
+stale, still linked against the old `136a1` engine, so earlier manual smoke
+tests after the JobQueue rewrite had not actually been exercising this build
+— and found that awaiting a JS Promise resolved via `setTimeout` hangs
+indefinitely, and so does the real `dcp_local_job_test.py` end-to-end job
+(it gets through bootstrap and identity loading, then never fires a single
+`readystatechange` event).
+
+**Root cause**: fix #7's checkpoint list (`JobQueue::runJobs`,
+`PromiseType::getPyObject`, `futureOnDoneCallback` — three places new jobs
+get enqueued into `cx->microTaskQueues` outside of a top-level
+`JS_ExecuteScript()` call) missed a fourth: `JSFunctionProxy_call`
+(`src/JSFunctionProxy.cc`) and `JSMethodProxy_call` (`src/JSMethodProxy.cc`)
+are the generic entry points Python uses to call back into *any* JS function
+or bound method it was handed — this is what fires a `setTimeout` callback
+dispatched from `PyEventLoop`, or a JS event listener invoked directly from
+Python code. Both call `JS_CallFunctionValue` and return without ever
+draining the job queue afterward. If the JS function just called
+resolved/rejected a Promise with already-attached reactions (the common case:
+`resolve(...)` inside a `setTimeout` callback), that enqueues a job nothing
+was scheduled to drain.
+
+**Fix**, identical in both files — add the same checkpoint used everywhere
+else in this rewrite, immediately after the call succeeds:
+
+```diff
+   if (!JS_CallFunctionValue(cx, thisObj, jsFunc, jsArgs, &jsReturnVal)) {
+     setSpiderMonkeyException(cx);
+     return NULL;
+   }
+
++  js::RunJobs(cx);
++
+   if (PyErr_Occurred()) {
+     return NULL;
+   }
+```
+
+(`#include <jsfriendapi.h>` added to both files for the declaration, matching
+`JobQueue.cc`'s existing include.)
+
+**Retested after this fix** — all of Testing point 3 below plus an added
+sequential-delayed-promises case, and all of points 4 and 5 (the full
+`localExec()` suite and the real `exec()` test) were rerun end-to-end against
+this exact rebuilt binary. All passed; see the corrected Testing section
+below. This is the second time in this same JobQueue rewrite that "compiles
+and a few manual checks look right" turned out not to mean "actually works"
+— treat that as a standing warning for any *other* not-yet-exercised path in
+this rewrite (the Debugger-API paths flagged in "Not yet done" below), not
+just the two paths that have now each independently failed once.
+
 ---
 
 ## Testing — what was actually run, and what it showed
@@ -585,12 +668,22 @@ compiles"):
    three call sites, verified: a single `await` of an already-resolved JS
    Promise; a two-`await` chain inside a JS async function, checking both
    completion *and* correct ordering (`[1, 3, 5]`, not e.g. `[1, 5, 3]`); and
-   a `setTimeout`-based Promise (exercising the separate, pre-existing
-   `PyEventLoop::enqueueWithDelay` timer path, unaffected by the JobQueue
-   rewrite). All passed, repeatably, on a final clean rebuild after removing
-   temporary debug tracing used to diagnose the hang.
+   a `setTimeout`-based Promise. **This third case was reported as passing
+   here, but that was wrong** — see fix #11 above: the actual built binary
+   deployed to `site-packages` was stale at the time (still the old `136a1`
+   engine), so this hadn't really been exercised against this rewrite. Once
+   retested against the real binary, the `setTimeout` case hung, was
+   root-caused to a 4th missing checkpoint (fix #11), and after that fix, all
+   of the above — plus an added sequential-back-to-back-delayed-promises
+   case — passed, repeatably, confirmed against the actual rebuilt
+   `pythonmonkey.pyd`.
 4. **The real `localExec()` test suite**, run end-to-end against the new
-   engine, exactly as originally planned:
+   engine, exactly as originally planned. **Like point 3, this was also
+   re-verified after fix #11** — `dcp_local_job_test.py` specifically hangs
+   after identity loading without that fix (identity loading itself is an
+   `async` JS function call, which goes through `PromiseType::getPyObject`
+   and was already covered; the job's own event/timer-driven machinery is
+   what hit the missing 4th checkpoint):
    - `dcp_local_job_test.py` — a real job (`dcp.compute_for` over 8 letters,
      uppercasing work function), through the full `localExec()` pipeline
      (readystate transitions, identity loading from a real `id.keystore`,
@@ -605,7 +698,9 @@ compiles"):
      serialization round-trip rather than the primitive fast path. **Passed**
      — all 5 slices completed with correct structure and correct numeric
      values (spot-checked a sample series: `values[:5] = [25. 25. 25. 25.
-     25.]`, `dtype=float32`, as expected for this model).
+     25.]`, `dtype=float32`, as expected for this model). Takes a few minutes
+     (real Pyodide package loading: `pandas`/`numpy`/`cloudpickle`/etc.) —
+     don't mistake the lack of output during that window for a hang.
 
 5. **Real `job.exec()` (not `localExec()`) — genuine network dispatch,
    verified separately** (`dcp_real_exec_test.py`, modelled directly on
@@ -622,9 +717,24 @@ compiles"):
    ID, 8 real `result` events from real workers, no `nofunds`/`error`
    events, correct final output `YELLING!`. This confirms the rebuild is
    solid for the actual production dispatch path, not just the
-   local-simulation path this document otherwise focuses on.
+   local-simulation path this document otherwise focuses on. **Also
+   re-verified after fix #11**, for the same reason as point 4.
 
 ## Not yet done / open as of this writing
+
+- **Resolved, was previously unverified**: fix #11 above closed the 4th
+  missing JobQueue checkpoint. Before it, every claim in the Testing section
+  that touched an event/timer-driven callback (the `setTimeout`-Promise case
+  in point 3, and both `localExec()`/`exec()` end-to-end tests in points 4-5)
+  had actually been checked against a stale, pre-rewrite binary rather than
+  this PR's real build, and would have hung for anyone who ran them for
+  real. All were rerun against the actual rebuilt `pythonmonkey.pyd` and now
+  pass. Leaving this note here rather than deleting it: if a *fifth*
+  Python→JS callback path turns up somewhere that neither this fix nor the
+  original three cover, that would make two independent misses in the same
+  rewrite, which would be a good reason to stop patching call sites
+  one-by-one and instead audit every `JS_Call*`/`JS_Invoke` call in the
+  codebase for the same gap systematically.
 
 - **Not independently verified**: `Atomics.waitAsync` with a real timeout
   (the `delayedDispatchToEventLoop` stub in fix #9 always declines these —

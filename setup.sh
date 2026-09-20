@@ -47,13 +47,28 @@ fi
 CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
 command -v cbindgen >/dev/null || $CARGO_BIN install cbindgen
 # Setup Poetry
-# LOCAL PATCH: skipped. Poetry is only actually consumed later in this
-# script inside the `if test -f .git/hooks/pre-commit` dev-tooling branch
-# (installing autopep8/uncrustify for git hooks) -- irrelevant to actually
-# building SpiderMonkey/pythonmonkey, and that file doesn't exist in a
-# shallow clone anyway. Also, `python3` doesn't exist on this machine
-# (only `python`), which made the real installer command fail outright.
-echo "Skipping poetry install (not needed for the actual build)"
+if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
+  POETRY_BIN="$APPDATA/Python/Scripts/poetry"
+else
+  POETRY_BIN="$HOME/.local/bin/poetry"
+fi
+# LOCAL PATCH: like the rustup step above, made idempotent (skip if already
+# installed) rather than always re-running the installer. Also, this
+# machine has no `python3` on PATH (only `python`), which made the real
+# installer command (`python3 - --version ...`) fail outright -- confirmed
+# via a real failure, not speculative. Poetry itself is still needed: the
+# `.git/hooks/pre-commit` dev-tooling branch further down calls
+# `$POETRY_BIN run pip install autopep8`, so skipping this setup entirely
+# (an earlier version of this patch did) would silently break that branch
+# for anyone whose clone takes it.
+if command -v "$POETRY_BIN" >/dev/null || [ -x "$POETRY_BIN" ]; then
+  echo "Poetry already installed, skipping"
+else
+  echo "Installing poetry"
+  PYTHON_FOR_POETRY=$(command -v python3 || command -v python)
+  curl -sSL https://install.python-poetry.org | "$PYTHON_FOR_POETRY" - --version "1.7.1"
+  "$POETRY_BIN" self add 'poetry-dynamic-versioning[plugin]'
+fi
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
