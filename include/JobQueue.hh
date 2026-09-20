@@ -53,15 +53,11 @@ bool getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> incumbentGl
 
 /**
  * @brief Ask the embedding for the host defined global to use when running
- * a JS microtask (LOCAL PATCH: new pure-virtual method added alongside the
- * SpiderMonkey 157a1 JobQueue redesign -- see runJobs() below for context).
+ * a JS microtask.
  *
- * Mirrors the "we don't track this" stance already taken in
- * getHostDefinedData() above: we have no host defined global of our own, so
- * SpiderMonkey falls back to its own default (the microtask's execution
- * global, from GetExecutionGlobalFromJSMicroTask). Matches SpiderMonkey's
- * own reference embedding, InternalJobQueue::getHostDefinedGlobal, which
- * does exactly this (js/src/vm/JSContext.cpp).
+ * Same "we don't track this" stance as getHostDefinedData() above -- falls
+ * back to SpiderMonkey's own default, matching the reference embedding
+ * (InternalJobQueue::getHostDefinedGlobal, js/src/vm/JSContext.cpp).
  */
 bool getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) const override;
 
@@ -69,24 +65,14 @@ bool getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) cons
  * @brief Pull every job SpiderMonkey has queued internally since the last
  * call, and forward each one to the Python event-loop for execution.
  *
- * LOCAL PATCH (SpiderMonkey 157a1 API change): `JobQueue::enqueuePromiseJob`
- * -- the old per-job push callback this class used to override -- was
- * removed from the base class entirely. SpiderMonkey now enqueues promise
- * reaction jobs into its own internal queue as it creates them (see
- * EnqueueJob() in js/src/builtin/Promise.cpp), without notifying the
- * embedding. The embedding is instead expected to pull queued jobs itself,
- * here, whenever it wants a "microtask checkpoint" to happen -- triggered
- * by the embedder calling the free function js::RunJobs(cx) (declared in
- * jsfriendapi.h; NOT the same thing as this method, despite the identical
- * name -- js::RunJobs(cx) is what calls cx->jobQueue->runJobs(cx), i.e.
- * this override). PythonMonkey calls js::RunJobs(GLOBAL_CX) once after each
- * top-level JS_ExecuteScript() call, in pythonmonkey.cc.
- *
- * This preserves the original behaviour -- JS promise reactions execute as
- * Python asyncio callbacks, not synchronously inline -- by draining
- * SpiderMonkey's internal queue and re-creating the same "hand this job to
- * Python's event loop" forwarding enqueuePromiseJob used to do per-job, just
- * done here in a pull/batch fashion instead.
+ * SpiderMonkey no longer pushes promise jobs to the embedding as they're
+ * created (the old enqueuePromiseJob); it queues them internally and
+ * expects the embedder to pull them here on demand, via the free function
+ * js::RunJobs(cx) (jsfriendapi.h -- not the same thing as this method: it's
+ * what calls cx->jobQueue->runJobs(cx)). PythonMonkey calls
+ * js::RunJobs(GLOBAL_CX) after every top-level JS_ExecuteScript(), plus a
+ * few call sites where JS callbacks resolve promises outside of script
+ * execution (see JSFunctionProxy.cc, PromiseType.cc).
  *
  * Calling this method at the wrong time can break the web. The HTML spec
  * indicates exactly when the job queue should be drained (in HTML jargon,
@@ -138,15 +124,8 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> saveJobQueue(JSContext *) override;
  *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l580
  *              https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/OffThreadPromiseRuntimeState.cpp#l160
  *
- * LOCAL PATCH (SpiderMonkey 157a1 API change): `JS::InitDispatchToEventLoop`
- * (2-callback init) was replaced by `JS::InitAsyncTaskCallbacks`, which now
- * mandates both a `DispatchToEventLoopCallback` AND a
- * `DelayedDispatchToEventLoopCallback` (see delayedDispatchToEventLoop()
- * below). The callback signature itself also changed: it now takes ownership
- * of the Dispatchable via `js::UniquePtr<Dispatchable>&&` instead of a raw
- * pointer, and `Dispatchable::run()` is now `protected` -- callers must go
- * through the new public static `Dispatchable::Run(cx, task, shuttingDown)`
- * instead of calling `->run()` directly.
+ * Takes ownership of the Dispatchable (run via the public static
+ * Dispatchable::Run, since Dispatchable::run() is protected).
  *
  * @param closure - closure, currently the javascript context
  * @param dispatchable - the Dispatchable to be called; ownership transferred to this callback
@@ -156,27 +135,15 @@ static bool dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &
 
 /**
  * @brief The callback for dispatching an off-thread promise to the event
- * loop after a delay (LOCAL PATCH: newly mandatory as of the same API
- * change described on dispatchToEventLoop() above -- previously this
- * concept didn't need to exist as a separate callback for this embedding).
+ * loop after a delay.
  *
- * NEEDS REVIEW: this embedding has no cross-thread-safe delayed-dispatch
- * mechanism (PyEventLoop::enqueueWithDelay exists but calls
- * asyncio.loop.call_later, which -- unlike call_soon_threadsafe, used
- * elsewhere in this codebase -- is not documented as safe to call from a
- * thread other than the one running the loop; this callback, per its
- * declaration in js/public/Promise.h, must be safe to call from ANY
- * thread). Per that same header's documented contract ("If a timeout
- * manager is not available for given context, it should return false"),
- * this always returns false, i.e. this embedding declines to service
- * engine-level delayed dispatch. This should only affect internal
- * SpiderMonkey features that specifically need a delayed off-thread
- * callback (e.g. an Atomics.waitAsync timeout) -- ordinary JS
- * `setTimeout`/`setInterval` in pythonmonkey go through a separate,
- * already-working path (PyEventLoop::enqueueWithDelay called from JS-exposed
- * timer functions, not this SpiderMonkey-internal callback) and are
- * unaffected. Not verified against a real Atomics.waitAsync-with-timeout
- * test case.
+ * Always returns false (no timeout manager available), which
+ * js/public/Promise.h documents as a valid response when the embedding
+ * can't service delayed cross-thread dispatch. Only affects SpiderMonkey
+ * features needing a delayed off-thread callback (e.g. an
+ * Atomics.waitAsync timeout) -- ordinary setTimeout/setInterval go through
+ * PyEventLoop::enqueueWithDelay instead and are unaffected. NEEDS REVIEW:
+ * not verified against a real Atomics.waitAsync-with-timeout case.
  *
  * @param closure - closure, currently the javascript context
  * @param dispatchable - the Dispatchable that would be called; ownership transferred to this callback

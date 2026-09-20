@@ -78,13 +78,9 @@ PyObject *PromiseType::getPyObject(JSContext *cx, JS::HandleObject promise) {
   js::SetFunctionNativeReserved(onResolved, PROMISE_OBJ_SLOT, JS::ObjectValue(*promise));
   JS::AddPromiseReactions(cx, promise, onResolved, onResolved);
 
-  // LOCAL PATCH (SpiderMonkey 157a1 API change): if `promise` is already
-  // settled, AddPromiseReactions just enqueued a reaction job into
-  // cx->microTaskQueues. This happens outside of any JS_ExecuteScript()
-  // call (Python is awaiting a JS promise here), so nothing else will drain
-  // it unless we explicitly checkpoint now. See the long comment on
-  // JobQueue::runJobs (JobQueue.hh/.cc) for the full picture of why this is
-  // needed in multiple places since the JobQueue redesign.
+  // If `promise` was already settled, AddPromiseReactions just queued a job
+  // with nothing else scheduled to drain it (we're outside JS_ExecuteScript
+  // here). See JobQueue::runJobs.
   js::RunJobs(cx);
 
   return future.getFutureObject(); // must be a new reference, ref count == 3
@@ -119,12 +115,8 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
     JS::RejectPromise(cx, promise, JS::RootedValue(cx, jsTypeFactorySafe(cx, exception)));
   }
 
-  // LOCAL PATCH (SpiderMonkey 157a1 API change): resolving/rejecting
-  // `promise` here may have just enqueued its already-attached `.then()`
-  // reaction jobs into cx->microTaskQueues -- this runs from a Python
-  // Future's done-callback, entirely outside any JS_ExecuteScript() call,
-  // so (as in PromiseType::getPyObject above) nothing else will drain them
-  // without an explicit checkpoint.
+  // Same as getPyObject above: resolving/rejecting here may queue reaction
+  // jobs with nothing else scheduled to drain them.
   js::RunJobs(cx);
 
   Py_XDECREF(exception); // cleanup

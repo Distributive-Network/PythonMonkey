@@ -27,23 +27,12 @@ JobQueue::JobQueue(JSContext *cx) {
   finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);   // Leaks but it's OK since freed at process exit
 }
 
-// LOCAL PATCH (SpiderMonkey 157a1 API change): getHostDefinedData gained a
-// second out-param, incumbentGlobal (previously that concept was only
-// supplied as an *input* to enqueuePromiseJob below, which this class
-// already ignores -- it doesn't track incumbent globals at all). Mechanical
-// fix, not a judgment call: set the new param to nullptr too, matching the
-// exact same "we don't need this" stance already taken for the original
-// `data` param immediately below.
 bool JobQueue::getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> incumbentGlobal, JS::MutableHandle<JSObject *> data) const {
   incumbentGlobal.set(nullptr); // We don't need the incumbent global
   data.set(nullptr); // We don't need the host defined data
   return true; // `true` indicates no error
 }
 
-// LOCAL PATCH (SpiderMonkey 157a1 API change): see the long comment on
-// getHostDefinedGlobal() in JobQueue.hh -- this is a strictly "we don't
-// track this" stance, matching InternalJobQueue::getHostDefinedGlobal in
-// SpiderMonkey's own reference embedding (js/src/vm/JSContext.cpp).
 bool JobQueue::getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) const {
   out.set(nullptr);
   return true;
@@ -68,15 +57,8 @@ static PyObject *runMicroTaskCallback(PyObject *closure, PyObject *Py_UNUSED(unu
     ok = JS::RunJSMicroTask(cx, job);
   }
 
-  // LOCAL PATCH (SpiderMonkey 157a1 API change): running this microtask may
-  // itself have enqueued further jobs into cx->microTaskQueues (the classic
-  // case: the next `await` continuation inside an async function body).
-  // Nothing else will pull those out and forward them to Python unless we
-  // explicitly re-checkpoint here -- discovered via a real hang (a promise
-  // chain with two `await`s stalled after the first hop) when this call was
-  // initially missing. See also the two analogous calls in PromiseType.cc,
-  // for the other two places new jobs get enqueued outside of a top-level
-  // JS_ExecuteScript() call.
+  // Running this microtask may enqueue the next one in an await chain --
+  // re-checkpoint so it doesn't just sit there. See also PromiseType.cc.
   js::RunJobs(cx);
 
   if (!ok) {
@@ -89,25 +71,12 @@ static PyObject *runMicroTaskCallback(PyObject *closure, PyObject *Py_UNUSED(unu
 
 static PyMethodDef runMicroTaskCallbackDef = {"JsMicroTaskCallable", runMicroTaskCallback, METH_NOARGS, NULL};
 
-// LOCAL PATCH (SpiderMonkey 157a1 API change): see the long comment on
-// runJobs() in JobQueue.hh for why this is no longer a no-op. In short:
-// SpiderMonkey now owns the actual job queue (cx->microTaskQueues) and
-// expects the embedding to pull jobs from it here, rather than pushing
-// each job to the embedding as it's created (the old enqueuePromiseJob
-// design). This drains whatever is currently queued and forwards each job
-// to the Python event-loop exactly as enqueuePromiseJob used to.
-//
-// NEEDS REVIEW: this is an architecture change, not a mechanical signature
-// fix. Two things in particular haven't been independently verified against
-// SpiderMonkey's actual internals: (1) that draining once per top-level
-// JS_ExecuteScript() call (see pythonmonkey.cc) is the correct/only place
-// a "microtask checkpoint" needs to happen for this embedding's use cases;
-// (2) GC-safety of rooting a JSMicroTask* (a plain JSObject*) across the
-// gap between dequeuing it here and Python's event-loop actually calling
-// runMicroTaskCallback -- modelled on the existing, working
-// finalizationRegistryCallbacks/PersistentRooted pattern in this same file,
-// but not traced through SpiderMonkey's GC to confirm a JSMicroTask has no
-// unusual rooting requirements beyond a normal JSObject*.
+// NEEDS REVIEW: GC-safety of rooting a JSMicroTask* across the gap between
+// dequeuing it here and the Python event-loop calling runMicroTaskCallback
+// is modelled on the finalizationRegistryCallbacks pattern below, but not
+// independently verified for JSMicroTask specifically. Also unverified:
+// that draining once per top-level JS_ExecuteScript() (pythonmonkey.cc) is
+// the only place a checkpoint is needed for this embedding.
 void JobQueue::runJobs(JSContext *cx) {
   while (JS::HasAnyMicroTasks(cx)) {
     JS::RootedValue entry(cx, JS::DequeueNextMicroTask(cx));
@@ -163,12 +132,8 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
-  // LOCAL PATCH (SpiderMonkey 157a1 API change): see the long comment on
-  // dispatchToEventLoop()/delayedDispatchToEventLoop() in JobQueue.hh.
-  // JS::InitDispatchToEventLoop was replaced by JS::InitAsyncTaskCallbacks,
-  // which additionally requires a delayed-dispatch callback; the last two
-  // (asyncTaskStarted/FinishedCallback) are optional and left null, as this
-  // embedding has no need to track background-task liveness itself.
+  // Last two args (asyncTaskStarted/FinishedCallback) are optional; this
+  // embedding doesn't need to track background-task liveness.
   JS::InitAsyncTaskCallbacks(cx, dispatchToEventLoop, delayedDispatchToEventLoop, nullptr, nullptr, cx);
   JS::SetPromiseRejectionTrackerCallback(cx, promiseRejectionTracker);
   return true;
@@ -177,12 +142,8 @@ bool JobQueue::init(JSContext *cx) {
 static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUSED(unused)) {
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(dispatchFuncTuple, 0));
   JS::Dispatchable *dispatchable = (JS::Dispatchable *)PyLong_AsVoidPtr(PyTuple_GetItem(dispatchFuncTuple, 1));
-  // LOCAL PATCH (SpiderMonkey 157a1 API change): Dispatchable::run() is now
-  // protected; the new public entry point is the static Dispatchable::Run,
-  // which also takes (and is responsible for releasing) ownership -- hence
-  // reconstructing a UniquePtr from the raw pointer smuggled through the
-  // Python closure (see dispatchToEventLoop(), which released it into this
-  // same raw form).
+  // Dispatchable::run() is protected; reconstruct the UniquePtr released
+  // into raw form by dispatchToEventLoop() below and run it via Run().
   JS::Dispatchable::Run(cx, js::UniquePtr<JS::Dispatchable>(dispatchable), JS::Dispatchable::NotShuttingDown);
   Py_RETURN_NONE;
 }
@@ -211,22 +172,10 @@ bool JobQueue::dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable
 }
 
 bool JobQueue::delayedDispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable, uint32_t delay) {
-  // See the long comment on this method's declaration in JobQueue.hh:
-  // this embedding has no cross-thread-safe delayed-dispatch mechanism, and
-  // js/public/Promise.h explicitly sanctions returning false in that case.
-  //
-  // When declining a dispatch after taking ownership, the correct call is
-  // the public static JS::Dispatchable::ReleaseFailedTask -- NOT
-  // transferToRuntime() (a first attempt at this used that instead, going
-  // off Dispatchable's doc comment showing its usage pattern, but that
-  // comment describes SpiderMonkey's OWN internal usage: transferToRuntime()
-  // is `protected`, confirmed by a real build error, so an embedder
-  // callback like this one cannot call it directly). Found the actually
-  // correct, embedder-facing pattern by reading real production usage in
-  // Gecko: dom/workers/RuntimeService.cpp's JSDispatchableRunnable::
-  // PostDispatch calls exactly this, in exactly this "we took ownership but
-  // failed/declined to dispatch" situation:
-  //   JS::Dispatchable::ReleaseFailedTask(std::move(mDispatchable));
+  // No cross-thread-safe delayed-dispatch mechanism here (see JobQueue.hh).
+  // ReleaseFailedTask is the embedder-facing way to decline after taking
+  // ownership -- transferToRuntime() is SpiderMonkey's own internal use
+  // and is protected.
   JS::Dispatchable::ReleaseFailedTask(std::move(dispatchable));
   return false;
 }
@@ -285,12 +234,7 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
-  // LOCAL PATCH (SpiderMonkey 157a1 removed mfbt's mozilla::Unused/Unused.h
-  // entirely -- confirmed absent anywhere in the current mozilla-central
-  // tree, not just renamed. mozilla::Unused<<expr was only ever a
-  // discard-nodiscard-return-value helper (see its old definition, backed
-  // up at _spidermonkey_install.orig-136a1-backup/.../mozilla/Unused.h) --
-  // functionally identical to a plain (void) cast.
+  // mozilla::Unused (mfbt) was removed upstream; it was just a discard cast.
   (void)finalizationRegistryCallbacks->append(callback);
 }
 

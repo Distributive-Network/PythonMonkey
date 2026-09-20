@@ -71,11 +71,7 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
     return NULL;
   }
 
-  // LOCAL PATCH (SpiderMonkey 157a1 JobQueue redesign): same missing
-  // checkpoint as JSFunctionProxy_call in JSFunctionProxy.cc -- see the
-  // comment there for the full explanation and the real hang that surfaced
-  // it. This is the same "Python calls back into a JS callable" bridge, just
-  // for bound methods instead of plain functions.
+  // Same checkpoint as JSFunctionProxy_call, for bound methods.
   js::RunJobs(cx);
 
   if (PyErr_Occurred()) {

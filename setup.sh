@@ -26,14 +26,8 @@ else
   exit 1
 fi
 # Install rust compiler
-# LOCAL PATCH: like the Poetry skip below, this step was unconditional --
-# no check for whether rust/the 1.85 toolchain is already installed. On a
-# machine where it already is, re-running rustup-init.sh downloads a fresh
-# installer exe into a temp dir and executes it, which on this Windows
-# machine gets blocked ("Permission denied", almost certainly Defender/
-# SmartScreen refusing to run a newly-downloaded, unsigned exe straight out
-# of a temp directory) -- a real, reproducible failure, not a flake. Skip
-# the whole block if rustup + the 1.85 toolchain are already present.
+# Skip if already installed: re-running rustup-init.sh here downloads and
+# runs a fresh installer exe, which Defender/SmartScreen blocks on this box.
 if command -v rustup >/dev/null && rustup toolchain list 2>/dev/null | grep -q '^1\.85'; then
   echo "Rust 1.85 toolchain already installed, skipping rustup-init"
 else
@@ -52,15 +46,9 @@ if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
 else
   POETRY_BIN="$HOME/.local/bin/poetry"
 fi
-# LOCAL PATCH: like the rustup step above, made idempotent (skip if already
-# installed) rather than always re-running the installer. Also, this
-# machine has no `python3` on PATH (only `python`), which made the real
-# installer command (`python3 - --version ...`) fail outright -- confirmed
-# via a real failure, not speculative. Poetry itself is still needed: the
-# `.git/hooks/pre-commit` dev-tooling branch further down calls
-# `$POETRY_BIN run pip install autopep8`, so skipping this setup entirely
-# (an earlier version of this patch did) would silently break that branch
-# for anyone whose clone takes it.
+# Skip if already installed (same idempotency reasoning as rustup above).
+# Falls back to `python` since this machine has no `python3` on PATH.
+# Poetry is still needed below by the .git/hooks/pre-commit branch.
 if command -v "$POETRY_BIN" >/dev/null || [ -x "$POETRY_BIN" ]; then
   echo "Poetry already installed, skipping"
 else
@@ -74,19 +62,10 @@ echo "Done installing dependencies"
 echo "Downloading spidermonkey source code"
 # Read the commit hash for mozilla-central from the `mozcentral.version` file
 MOZCENTRAL_VERSION=$(cat mozcentral.version)
-# LOCAL PATCH: this download+extract is not idempotent as originally
-# written -- it always re-extracts and always re-`mv`s, which fails once
-# firefox-source already exists from a prior (possibly failed-later) run.
-# Since this script needs re-running whenever a later step fails (and we've
-# hit several unrelated Windows-environment issues after this point), skip
-# entirely once firefox-source is already present.
+# Skip if already extracted -- lets this script be re-run after a later
+# step fails without re-downloading/re-extracting every time.
 if [ ! -d firefox-source ]; then
-  # LOCAL PATCH: wget.exe (MSYS2's, and presumably any other copy) is
-  # blocked outright on this machine by a Windows Defender Application
-  # Control policy ("An Application Control policy has blocked this
-  # file" -- confirmed directly, not a PATH/permission-bits issue).
-  # curl is unaffected (checked both Windows' own and MSYS2's) -- use it
-  # instead. unzip is also unaffected, kept as-is.
+  # curl instead of wget: wget.exe is blocked by this machine's WDAC policy.
   curl -fsSL -o firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla-firefox/firefox/archive/${MOZCENTRAL_VERSION}.zip
   unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv firefox-${MOZCENTRAL_VERSION} firefox-source
 else
@@ -111,7 +90,7 @@ sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedLi
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
 sed -i'' -e 's/"-fuse-ld=ld"/"-ld64" if c_compiler.version > "14.0.0" else "-fuse-ld=ld"/' ./build/moz.configure/toolchain.configure # XCode 15 changed the linker behaviour. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
 sed -i'' -e 's/defined(XP_WIN)/defined(_WIN32)/' ./mozglue/baseprofiler/public/BaseProfilerUtils.h # this header file is introduced to js/Debug.h in https://phabricator.services.mozilla.com/D221102, but it would be compiled without XP_WIN in this building configuration
-sed -i'' -e 's/os\.environ\["MOZILLABUILD"\]/os.environ.get("MOZILLABUILD", "")/g' ./python/mozbuild/mozbuild/backend/visualstudio.py # LOCAL PATCH: this VS-project-file-generation convenience feature (not needed for a command-line-only build) does an unguarded os.environ["MOZILLABUILD"] lookup and crashes with KeyError when it's unset, which it is here (we don't use the official Mozilla Build package) -- confirmed via a real build failure, not speculative
+sed -i'' -e 's/os\.environ\["MOZILLABUILD"\]/os.environ.get("MOZILLABUILD", "")/g' ./python/mozbuild/mozbuild/backend/visualstudio.py # avoid KeyError: we don't use the official Mozilla Build package, so this is never set
 
 cd js/src
 mkdir -p _build
@@ -126,16 +105,8 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-tests \
   $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
   --enable-optimize
-# LOCAL PATCH: the original --disable-explicit-resource-management flag
-# (worked around Bugzilla 1940342, a header/lib enum mismatch from when
-# the `using` syntax was newly landing in nightly circa early 2025) is
-# now an unrecognized configure option on this newer mozilla-central
-# snapshot -- confirmed via a real `InvalidOptionError: Unknown option`
-# build failure. The explicit-resource-management feature has evidently
-# shipped/stabilized since, taking the flag (and presumably the bug it
-# worked around) with it. Removed rather than guessing at a replacement
-# flag; if header/lib enum mismatches resurface, that bug tracker is the
-# place to check first.
+# --disable-explicit-resource-management (worked around Bugzilla 1940342)
+# is no longer a recognized flag -- the feature it gated has since shipped.
 make -j$CPUS
 echo "Done building spidermonkey"
 
