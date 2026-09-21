@@ -100,10 +100,10 @@ jobs:
           apt-get install -y lsb-release wget software-properties-common gnupg
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          ./llvm.sh 18 # install LLVM version 18
-          update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-18 18
-          update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 18
-          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 18
+          ./llvm.sh 19 # SpiderMonkey at the current mozcentral.version pin requires clang/llvm >= 19 (confirmed via its own configure error)
+          update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-19 19
+          update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 19
+          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 19
           clang --version
           clang++ --version
       - name: Setup Python
