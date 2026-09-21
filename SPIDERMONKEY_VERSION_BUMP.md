@@ -156,25 +156,48 @@ and made the install idempotent, matching the Rust fix in (a):
 + fi
 ```
 
-### 3. Rust toolchain override: 1.85 → `stable` (1.98.1)
+### 3. Rust toolchain pin: 1.85 → 1.90.0 — was only worked around locally, not actually fixed, until CI caught it
 
 The new mozilla-central snapshot's own `configure` now hard-requires
 `rustc >= 1.90.0` (`ERROR: Rust compiler 1.85.1 is too old`) — pythonmonkey's
-own 1.85 pin is unrelated to this; it's Mozilla's minimum that moved. Rust's
-stable channel (1.98.1) was already installed on this machine from earlier
-exploration. Switched pythonmonkey-src's directory-level `rustup override`
-from `1.85-x86_64-pc-windows-msvc` to `stable-x86_64-pc-windows-msvc`, rather
-than installing yet another specific pinned version. This relies on Rust's
-strong backward-compatibility guarantee (stable code essentially never breaks
-on a newer compiler) — **not independently verified against pythonmonkey's
-own Rust code specifically**, just against the fact that the build proceeded
-past this point without new Rust-level errors.
+own 1.85 pin is unrelated to this; it's Mozilla's minimum that moved.
 
-```
-rustup override set stable   # (run inside pythonmonkey-src)
-```
+**This was originally worked around with a local, per-directory `rustup
+override set stable` on the development machine only** — it never touched
+`setup.sh`'s own `--default-toolchain 1.85`, so it was invisible to CI and to
+anyone doing a fresh clone. That gap is exactly what caused all five CI
+platforms to fail once this PR was actually pushed (`Rust compiler 1.85.1 is
+too old` on Windows; the equivalent clang-side minimum, also newer than what
+CI installs, on the other four — see the CI section below). Caught and fixed
+by an autonomous pass that noticed the PR's CI had been red since the last
+push and diagnosed it from the actual failure logs, not assumed.
 
-The 1.85 toolchain itself was left installed (not removed) — no reason to.
+**Actual fix, in `setup.sh` itself**: bumped the hardcoded default toolchain
+from `1.85` to `1.90.0` (the exact minimum `configure` reported), so a fresh
+install — CI included — gets a toolchain that actually satisfies this
+snapshot's requirement, rather than relying on whatever happens to be
+overridden locally on one machine.
+
+### 3b. CI toolchain versions were also stale — same root cause, different files
+
+Confirmed via the actual GitHub Actions logs for this PR (all 5 platforms
+failed, all for a version of this same reason):
+
+- **ubuntu (x64 and arm)**: `.github/workflows/test-and-publish.yaml`'s
+  "Setup LLVM" step explicitly installed LLVM 18 (`./llvm.sh 18`) — bumped
+  to 19, matching `configure`'s own `Only clang/llvm 19.0 or newer is
+  supported` error.
+- **macOS (macos-14, macos-15-intel)**: no explicit LLVM install existed at
+  all — the build was relying on Xcode's bundled clang (16.0.0 and 17.0.6 on
+  the current runner images respectively), both below the same >=19
+  requirement. Added `brew install llvm` plus putting its bin dir first on
+  `PATH` in `setup.sh`'s own macOS branch (homebrew's llvm keg isn't
+  symlinked onto PATH by default).
+- **Windows**: covered by the rustc 1.90.0 bump above.
+
+None of this had been verified against real CI before — the "Testing"
+section below was checked against local builds and a real network job, not
+a green CI run. See that section for the corrected status.
 
 ### 4. `CMakeLists.txt` — `XP_WIN` now defined globally for the Windows build
 
@@ -643,6 +666,15 @@ just the two paths that have now each independently failed once.
 ---
 
 ## Testing — what was actually run, and what it showed
+
+**Important caveat added later**: everything in this section was run
+against a local build on the original development machine, using the local
+Rust `stable` override described in section 3 above — **not against real
+CI**. When this PR's actual CI ran, all 5 platforms failed on toolchain
+version mismatches invisible to that local setup (section 3/3b). Fixed as
+of the most recent commit; CI has not yet been re-verified green after that
+fix (this doc will be updated once it has, or note here if it wasn't
+before merge).
 
 Ten build errors were fixed in total (sections 1-10 above), each one a real
 SpiderMonkey-internal API break between the old `136a1` nightly-alpha build

@@ -19,6 +19,12 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
   brew install lld
+  # Xcode's bundled clang (16-17 on current runner images) is older than
+  # SpiderMonkey's own minimum at the current mozcentral.version pin (>=19,
+  # per its own configure error) -- homebrew's llvm keg isn't symlinked onto
+  # PATH by default, so put it first explicitly for the rest of this script.
+  brew install llvm
+  export PATH="$(brew --prefix llvm)/bin:$PATH"
 elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
@@ -28,15 +34,17 @@ fi
 # Install rust compiler
 # Skip if already installed: re-running rustup-init.sh here downloads and
 # runs a fresh installer exe, which Defender/SmartScreen blocks on this box.
-if command -v rustup >/dev/null && rustup toolchain list 2>/dev/null | grep -q '^1\.85'; then
-  echo "Rust 1.85 toolchain already installed, skipping rustup-init"
+if command -v rustup >/dev/null && rustup toolchain list 2>/dev/null | grep -q '^1\.90'; then
+  echo "Rust 1.90 toolchain already installed, skipping rustup-init"
 else
   echo "Installing rust compiler"
   unset HOST_ABI_FLAGS
   if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
     HOST_ABI_FLAGS=("--default-host" "$(clang --print-target-triple)")
   fi
-  curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.85
+  # SpiderMonkey at the current mozcentral.version pin requires at least
+  # rustc 1.90.0 (confirmed via its own configure error message).
+  curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.90.0
 fi
 CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
 command -v cbindgen >/dev/null || $CARGO_BIN install cbindgen
