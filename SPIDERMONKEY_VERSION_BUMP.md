@@ -183,21 +183,29 @@ overridden locally on one machine.
 Confirmed via the actual GitHub Actions logs for this PR (all 5 platforms
 failed, all for a version of this same reason):
 
-- **ubuntu (x64 and arm)**: `.github/workflows/test-and-publish.yaml`'s
-  "Setup LLVM" step explicitly installed LLVM 18 (`./llvm.sh 18`) — bumped
-  to 19, matching `configure`'s own `Only clang/llvm 19.0 or newer is
-  supported` error.
 - **macOS (macos-14, macos-15-intel)**: no explicit LLVM install existed at
   all — the build was relying on Xcode's bundled clang (16.0.0 and 17.0.6 on
-  the current runner images respectively), both below the same >=19
-  requirement. Added `brew install llvm` plus putting its bin dir first on
-  `PATH` in `setup.sh`'s own macOS branch (homebrew's llvm keg isn't
-  symlinked onto PATH by default).
-- **Windows**: covered by the rustc 1.90.0 bump above.
+  the current runner images respectively), both below the >=19 requirement.
+  **Fixed, committed**: added `brew install llvm` plus putting its bin dir
+  first on `PATH` in `setup.sh`'s own macOS branch (homebrew's llvm keg
+  isn't symlinked onto PATH by default).
+- **Windows**: covered by the rustc 1.90.0 bump above. **Fixed, committed.**
+- **ubuntu (x64 and arm)**: `.github/workflows/test-and-publish.yaml`'s
+  "Setup LLVM" step explicitly installs LLVM 18 (`./llvm.sh 18`), which also
+  needs bumping to 19 to match `configure`'s own `Only clang/llvm 19.0 or
+  newer is supported` error. **Diagnosed, fix written, but not yet pushed**
+  — it edits a workflow file, which needs `workflow` OAuth scope this
+  session's push credentials don't have. Someone with that scope needs to
+  push it (or make the equivalent edit via the GitHub UI) before ubuntu CI
+  will go green.
 
-None of this had been verified against real CI before — the "Testing"
-section below was checked against local builds and a real network job, not
-a green CI run. See that section for the corrected status.
+None of this had been verified against real CI before this pass — the
+"Testing" section below was checked against local builds and a real network
+job, not a green CI run. See that section for the corrected status. As of
+this writing, macOS and Windows CI have not yet been re-run against the
+fix above (pushed, awaiting the next CI run); ubuntu CI is still expected
+to fail until the held-back workflow-file fix is applied by someone with
+the right push scope.
 
 ### 4. `CMakeLists.txt` — `XP_WIN` now defined globally for the Windows build
 
