@@ -34,6 +34,7 @@
 #include <js/Class.h>
 #include <js/Date.h>
 #include <js/Initialization.h>
+#include <js/Modules.h>
 #include <js/Object.h>
 #include <js/Proxy.h>
 #include <js/SourceText.h>
@@ -83,6 +84,25 @@ void nurseryCollectionCallback(JSContext *cx, JS::GCNurseryProgress progress, JS
   if (progress == JS::GCNurseryProgress::GC_NURSERY_COLLECTION_END) {
     updateCharBufferPointers();
   }
+}
+
+// pythonmonkey doesn't implement module loading, so `import(...)` must be
+// rejected rather than left unhandled. HostLoadImportedModule
+// (js/src/vm/Modules.cpp) only auto-finishes the promise on this path when a
+// hook IS registered but returns false; when no hook is registered at all it
+// reports "Module load hook not set" and returns without ever settling the
+// promise or clearing that pending exception -- leaving `await import(...)`
+// hung forever and a stale exception on the context. Registering this hook
+// (even though it never resolves anything) makes pythonmonkey responsible
+// for finishing the promise itself, as every embedder that permits dynamic
+// import syntax at all is required to be.
+static bool pythonmonkeyModuleLoadHook(
+  JSContext *cx, JS::Handle<JSScript *> referrer, JS::Handle<JSObject *> moduleRequest,
+  JS::Handle<JS::Value> hostDefined, JS::Handle<JS::Value> payload,
+  uint32_t lineNumber, JS::ColumnNumberOneOrigin columnNumber
+) {
+  JS_ReportErrorASCII(cx, "Dynamic module import is disabled or not supported in this context");
+  return false;
 }
 
 bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
@@ -488,6 +508,10 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
+  // Mirrors the HTML spec's "clean up after running script" checkpoint --
+  // see JobQueue::runJobs for why the embedder now has to drain this itself.
+  js::RunJobs(GLOBAL_CX);
+
   // translate to the proper python type
   PyObject *returnValue = pyTypeFactory(GLOBAL_CX, rval);
   if (PyErr_Occurred()) {
@@ -571,9 +595,10 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
+  // asm.js was removed from SpiderMonkey (superseded by WebAssembly, set
+  // via .setWasm(true) below); ContextOptions::setAsmJS no longer exists.
   JS::ContextOptionsRef(GLOBAL_CX)
   .setWasm(true)
-  .setAsmJS(true)
   .setAsyncStack(true)
   .setSourcePragmas(true);
 
@@ -582,6 +607,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
   }
+
+  JS::SetModuleLoadHook(JS_GetRuntime(GLOBAL_CX), pythonmonkeyModuleLoadHook);
 
   if (!JS::InitSelfHostedCode(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not initialize self-hosted code.");
@@ -594,6 +621,10 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS::AddGCNurseryCollectionCallback(GLOBAL_CX, nurseryCollectionCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
+  // Off by default (a Spectre mitigation for untrusted web content, which
+  // doesn't apply to this embedded single-process run); Pyodide's threaded
+  // WASM build otherwise fails to link ("shared memory is disabled").
+  creationOptions.setSharedMemoryAndAtomicsEnabled(true);
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
   JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
   static JSClass globalClass = {"global", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};

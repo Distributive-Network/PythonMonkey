@@ -16,6 +16,7 @@
 #include "include/setSpiderMonkeyException.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 
 #include <Python.h>
 
@@ -58,6 +59,11 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
     setSpiderMonkeyException(cx);
     return NULL;
   }
+
+  // This is the generic entry point for any Python->JS callback (e.g. a
+  // setTimeout callback), so a Promise resolved here has nothing else
+  // scheduled to drain its reaction jobs. See JobQueue.cc's runJobs.
+  js::RunJobs(cx);
 
   if (PyErr_Occurred()) {
     return NULL;

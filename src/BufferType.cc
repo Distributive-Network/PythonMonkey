@@ -14,6 +14,7 @@
 #include <jsapi.h>
 #include <js/ArrayBuffer.h>
 #include <js/experimental/TypedData.h>
+#include <js/GCAPI.h>
 #include <js/ScalarType.h>
 
 #include <limits.h>
@@ -88,9 +89,23 @@ PyObject *BufferType::fromJsTypedArray(JSContext *cx, JS::HandleObject typedArra
   bool isSharedMemory;
   if (!JS_GetArrayBufferViewBuffer(cx, typedArray, &isSharedMemory)) return nullptr;
 
-  uint8_t __destBuf[0] = {}; // we don't care about its value as it's used only if the TypedArray still having inline data
-  uint8_t *data = JS_GetArrayBufferViewFixedData(typedArray, __destBuf, 0 /* making sure we don't copy inline data */);
-  if (data == nullptr) { // shared memory or still having inline data
+  if (isSharedMemory) {
+    PyErr_SetString(PyExc_TypeError, "PythonMonkey cannot coerce TypedArrays backed by shared memory.");
+    return nullptr;
+  }
+
+  // NEEDS REVIEW: JS_GetArrayBufferViewFixedData was removed upstream; its
+  // replacement trades the old "return nullptr if data is still inline/
+  // movable" runtime guard for a caller-supplied no-GC token. Safety here
+  // relies on JS_GetArrayBufferViewBuffer() above having already promoted
+  // any inline data to a stable allocation -- not independently verified
+  // against SpiderMonkey's GC (e.g. via --enable-gczeal). AutoAssertNoGC,
+  // not the base AutoRequireNoGC (protected ctor), since it actually
+  // asserts at runtime in diagnostic builds instead of being a bare marker.
+  JS::AutoAssertNoGC nogc(cx);
+  bool isSharedMemory2; // redundant with isSharedMemory above; required by this function's signature
+  uint8_t *data = static_cast<uint8_t *>(JS_GetArrayBufferViewData(typedArray, &isSharedMemory2, nogc));
+  if (data == nullptr) {
     PyErr_SetString(PyExc_TypeError, "PythonMonkey cannot coerce TypedArrays backed by shared memory.");
     return nullptr;
   }

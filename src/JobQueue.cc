@@ -14,11 +14,12 @@
 #include "include/PyEventLoop.hh"
 #include "include/pyTypeFactory.hh"
 #include "include/PromiseType.hh"
+#include "include/setSpiderMonkeyException.hh"
 
 #include <Python.h>
 
 #include <jsfriendapi.h>
-#include <mozilla/Unused.h>
+#include <js/friend/MicroTask.h>
 
 #include <stdexcept>
 
@@ -26,41 +27,93 @@ JobQueue::JobQueue(JSContext *cx) {
   finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);   // Leaks but it's OK since freed at process exit
 }
 
-bool JobQueue::getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> data) const {
+bool JobQueue::getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> incumbentGlobal, JS::MutableHandle<JSObject *> data) const {
+  incumbentGlobal.set(nullptr); // We don't need the incumbent global
   data.set(nullptr); // We don't need the host defined data
   return true; // `true` indicates no error
 }
 
-bool JobQueue::enqueuePromiseJob(JSContext *cx,
-  [[maybe_unused]] JS::HandleObject promise,
-  JS::HandleObject job,
-  [[maybe_unused]] JS::HandleObject allocationSite,
-  JS::HandleObject incumbentGlobal) {
-
-  // Convert the `job` JS function to a Python function for event-loop callback
-  JS::RootedValue jobv(cx, JS::ObjectValue(*job));
-  PyObject *callback = pyTypeFactory(cx, jobv);
-
-  // Send job to the running Python event-loop
-  PyEventLoop loop = PyEventLoop::getRunningLoop();
-  if (!loop.initialized()) return false;
-
-  // Inform the JS runtime that the job queue is no longer empty
-  JS::JobQueueMayNotBeEmpty(cx);
-
-  loop.enqueue(callback);
-
-  Py_DECREF(callback);
+bool JobQueue::getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) const {
+  out.set(nullptr);
   return true;
 }
 
-void JobQueue::runJobs(JSContext *cx) {
-  // Do nothing
+// The PyCFunction invoked by the Python event-loop once it's ready to run a
+// single deferred JS microtask. `closure` is a 2-tuple of (JSContext*,
+// JS::PersistentRooted<JSObject*>* job), both smuggled through as PyLong
+// pointers the same way JobQueue::dispatchToEventLoop's callDispatchFunc
+// does below for JS::Dispatchable.
+static PyObject *runMicroTaskCallback(PyObject *closure, PyObject *Py_UNUSED(unused)) {
+  JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(closure, 0));
+  auto *rootedJob = (JS::PersistentRooted<JSObject *> *)PyLong_AsVoidPtr(PyTuple_GetItem(closure, 1));
+
+  JS::Rooted<JS::JSMicroTask *> job(cx, rootedJob->get());
+  delete rootedJob; // the PersistentRooted was only needed to keep `job` alive until now
+
+  bool ok = true;
+  JSObject *global = JS::GetExecutionGlobalFromJSMicroTask(job);
+  if (global) {
+    JSAutoRealm ar(cx, global);
+    ok = JS::RunJSMicroTask(cx, job);
+  }
+
+  // Running this microtask may enqueue the next one in an await chain --
+  // re-checkpoint so it doesn't just sit there. See also PromiseType.cc.
+  js::RunJobs(cx);
+
+  if (!ok) {
+    setSpiderMonkeyException(cx);
+    return NULL; // propagates as a Python exception; PyEventLoop's own
+                 // eventLoopJobWrapper surfaces it to the loop's exception handler
+  }
+  Py_RETURN_NONE;
 }
 
-bool JobQueue::empty() const {
-  // TODO (Tom Tang): implement using `get_running_loop` and getting job count on loop???
-  return true; // see https://hg.mozilla.org/releases/mozilla-esr128/file/tip/js/src/builtin/Promise.cpp#l6946
+static PyMethodDef runMicroTaskCallbackDef = {"JsMicroTaskCallable", runMicroTaskCallback, METH_NOARGS, NULL};
+
+// NEEDS REVIEW: GC-safety of rooting a JSMicroTask* across the gap between
+// dequeuing it here and the Python event-loop calling runMicroTaskCallback
+// is modelled on the finalizationRegistryCallbacks pattern below, but not
+// independently verified for JSMicroTask specifically. Also unverified:
+// that draining once per top-level JS_ExecuteScript() (pythonmonkey.cc) is
+// the only place a checkpoint is needed for this embedding.
+void JobQueue::runJobs(JSContext *cx) {
+  while (JS::HasAnyMicroTasks(cx)) {
+    JS::RootedValue entry(cx, JS::DequeueNextMicroTask(cx));
+    if (entry.isNull()) {
+      break;
+    }
+
+    JS::Rooted<JS::JSMicroTask *> job(cx, JS::ToMaybeWrappedJSMicroTask(entry));
+    if (!job) {
+      continue; // not a JS microtask; nothing we support runs these
+    }
+
+    // Root the job on the heap so it survives until the Python event-loop
+    // calls back into us, which may be well after this function returns.
+    auto *rootedJob = new JS::PersistentRooted<JSObject *>(cx, job);
+
+    PyObject *cxArg = PyLong_FromVoidPtr(cx);
+    PyObject *jobArg = PyLong_FromVoidPtr(rootedJob);
+    PyObject *closure = PyTuple_Pack(2, cxArg, jobArg);
+    Py_DECREF(cxArg);
+    Py_DECREF(jobArg);
+    PyObject *callback = PyCFunction_New(&runMicroTaskCallbackDef, closure);
+    Py_DECREF(closure);
+
+    PyEventLoop loop = PyEventLoop::getRunningLoop();
+    if (!loop.initialized()) {
+      delete rootedJob;
+      Py_DECREF(callback);
+      return;
+    }
+
+    // Inform the JS runtime that the job queue is no longer empty
+    JS::JobQueueMayNotBeEmpty(cx);
+
+    loop.enqueue(callback);
+    Py_DECREF(callback);
+  }
 }
 
 bool JobQueue::isDrainingStopped() const {
@@ -79,7 +132,9 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
-  JS::InitDispatchToEventLoop(cx, dispatchToEventLoop, cx);
+  // Last two args (asyncTaskStarted/FinishedCallback) are optional; this
+  // embedding doesn't need to track background-task liveness.
+  JS::InitAsyncTaskCallbacks(cx, dispatchToEventLoop, delayedDispatchToEventLoop, nullptr, nullptr, cx);
   JS::SetPromiseRejectionTrackerCallback(cx, promiseRejectionTracker);
   return true;
 }
@@ -87,13 +142,23 @@ bool JobQueue::init(JSContext *cx) {
 static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUSED(unused)) {
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(dispatchFuncTuple, 0));
   JS::Dispatchable *dispatchable = (JS::Dispatchable *)PyLong_AsVoidPtr(PyTuple_GetItem(dispatchFuncTuple, 1));
-  dispatchable->run(cx, JS::Dispatchable::NotShuttingDown);
+  // Dispatchable::run() is protected; reconstruct the UniquePtr released
+  // into raw form by dispatchToEventLoop() below and run it via Run().
+  JS::Dispatchable::Run(cx, js::UniquePtr<JS::Dispatchable>(dispatchable), JS::Dispatchable::NotShuttingDown);
+
+  // This resumes JS execution (e.g. finishing an off-thread WebAssembly
+  // compile/instantiate), which can settle promises and enqueue reaction
+  // jobs -- same as the other checkpoints in this file, nothing else drains
+  // this one. Without it, `await WebAssembly.instantiate(...)` hangs forever
+  // even though the dispatchable itself ran successfully.
+  js::RunJobs(cx);
+
   Py_RETURN_NONE;
 }
 
 static PyMethodDef callDispatchFuncDef = {"JsDispatchCallable", callDispatchFunc, METH_NOARGS, NULL};
 
-bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable) {
+bool JobQueue::dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable) {
   JSContext *cx = (JSContext *)closure;
 
   // The `dispatchToEventLoop` function is running in a helper thread, so
@@ -101,7 +166,10 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
   //    see https://docs.python.org/3/c-api/init.html#non-python-created-threads
   PyGILState_STATE gstate = PyGILState_Ensure();
 
-  PyObject *dispatchFuncTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(dispatchable));
+  // Release ownership into a raw pointer to smuggle it through the Python
+  // closure; reclaimed by callDispatchFunc via Dispatchable::Run above.
+  JS::Dispatchable *raw = dispatchable.release();
+  PyObject *dispatchFuncTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(raw));
   PyObject *pyFunc = PyCFunction_New(&callDispatchFuncDef, dispatchFuncTuple);
 
   // Avoid using the current, JS helper thread to send jobs to event-loop as it may cause deadlock
@@ -109,6 +177,15 @@ bool JobQueue::dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable
 
   PyGILState_Release(gstate);
   return true;
+}
+
+bool JobQueue::delayedDispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable, uint32_t delay) {
+  // No cross-thread-safe delayed-dispatch mechanism here (see JobQueue.hh).
+  // ReleaseFailedTask is the embedder-facing way to decline after taking
+  // ownership -- transferToRuntime() is SpiderMonkey's own internal use
+  // and is protected.
+  JS::Dispatchable::ReleaseFailedTask(std::move(dispatchable));
+  return false;
 }
 
 bool sendJobToMainLoop(PyObject *pyFunc) {
@@ -165,7 +242,8 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
-  mozilla::Unused << finalizationRegistryCallbacks->append(callback);
+  // mozilla::Unused (mfbt) was removed upstream; it was just a discard cast.
+  (void)finalizationRegistryCallbacks->append(callback);
 }
 
 bool JobQueue::runFinalizationRegistryCallbacks(JSContext *cx) {
@@ -179,7 +257,7 @@ bool JobQueue::runFinalizationRegistryCallbacks(JSContext *cx) {
     JS::RootedFunction func(cx, f);
     JS::RootedValue unused_rval(cx);
     // we don't raise an exception here because there is nowhere to catch it
-    mozilla::Unused << JS_CallFunction(cx, NULL, func, JS::HandleValueArray::empty(), &unused_rval);
+    (void)JS_CallFunction(cx, NULL, func, JS::HandleValueArray::empty(), &unused_rval);
     ranCallbacks = true;
   }
 

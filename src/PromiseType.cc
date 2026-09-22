@@ -78,6 +78,11 @@ PyObject *PromiseType::getPyObject(JSContext *cx, JS::HandleObject promise) {
   js::SetFunctionNativeReserved(onResolved, PROMISE_OBJ_SLOT, JS::ObjectValue(*promise));
   JS::AddPromiseReactions(cx, promise, onResolved, onResolved);
 
+  // If `promise` was already settled, AddPromiseReactions just queued a job
+  // with nothing else scheduled to drain it (we're outside JS_ExecuteScript
+  // here). See JobQueue::runJobs.
+  js::RunJobs(cx);
+
   return future.getFutureObject(); // must be a new reference, ref count == 3
   // Here the ref count for the `future` object is 3, but will immediately decrease to 2 in `PyEventLoop::Future`'s destructor when the `PromiseType::getPyObject` function ends
   // Leaving one reference for the returned Python object, and another one for the `onResolved` callback function
@@ -109,6 +114,11 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
   } else { // having exception set, to reject the promise
     JS::RejectPromise(cx, promise, JS::RootedValue(cx, jsTypeFactorySafe(cx, exception)));
   }
+
+  // Same as getPyObject above: resolving/rejecting here may queue reaction
+  // jobs with nothing else scheduled to drain them.
+  js::RunJobs(cx);
+
   Py_XDECREF(exception); // cleanup
 
   delete rootedPtr; // no longer needed to be rooted, clean it up
