@@ -238,9 +238,27 @@ jobs:
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
             sudo apt-get update -y
             sudo apt-get install -y cmake llvm
+            # SpiderMonkey's headers now require clang/llvm >= 19 and
+            # libstdc++ >= 10 to compile against (same requirement as the
+            # build-spidermonkey job) -- this job's default toolchain
+            # (ubuntu:20.04's stock gcc-9) doesn't meet it.
+            sudo apt-get install -y lsb-release wget software-properties-common gnupg
+            wget https://apt.llvm.org/llvm.sh
+            chmod +x llvm.sh
+            sudo ./llvm.sh 19
+            sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-19 19
+            sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 19
+            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 19
+            sudo apt-get install -y libstdc++-10-dev
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
             brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
+            # Xcode's bundled clang is older than SpiderMonkey's own
+            # minimum (>=19) -- same fix as setup.sh's macOS branch.
+            brew install llvm
+            echo "PATH=$(brew --prefix llvm)/bin:$PATH" >> $GITHUB_ENV
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
