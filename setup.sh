@@ -32,10 +32,18 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew install lld
   # Xcode's bundled clang (16-17 on current runner images) is older than
   # SpiderMonkey's own minimum at the current mozcentral.version pin (>=19,
-  # per its own configure error) -- homebrew's llvm keg isn't symlinked onto
-  # PATH by default, so put it first explicitly for the rest of this script.
-  brew install llvm
-  export PATH="$(brew --prefix llvm)/bin:$PATH"
+  # per its own configure error). Pinned to the major-19 formula rather than
+  # unversioned `llvm` (currently 23.x): homebrew-core only publishes bottles
+  # for `llvm` on recent arm64 macOS + Linux, so on Intel macOS and macOS 14
+  # runners `brew install llvm` silently falls back to a from-source build
+  # (multi-hour, "Tier 3" unsupported) instead of installing a bottle --
+  # confirmed via https://formulae.brew.sh/api/formula/llvm.json's bottle
+  # list lacking any Intel or "sonoma" entry, versus llvm@19's, which has
+  # both. 19.x still satisfies the >=19 requirement.
+  # homebrew's llvm keg isn't symlinked onto PATH by default, so put it
+  # first explicitly for the rest of this script.
+  brew install llvm@19
+  export PATH="$(brew --prefix llvm@19)/bin:$PATH"
 elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
