@@ -191,21 +191,48 @@ failed, all for a version of this same reason):
   isn't symlinked onto PATH by default).
 - **Windows**: covered by the rustc 1.90.0 bump above. **Fixed, committed.**
 - **ubuntu (x64 and arm)**: `.github/workflows/test-and-publish.yaml`'s
-  "Setup LLVM" step explicitly installs LLVM 18 (`./llvm.sh 18`), which also
-  needs bumping to 19 to match `configure`'s own `Only clang/llvm 19.0 or
-  newer is supported` error. **Diagnosed, fix written, but not yet pushed**
-  — it edits a workflow file, which needs `workflow` OAuth scope this
-  session's push credentials don't have. Someone with that scope needs to
-  push it (or make the equivalent edit via the GitHub UI) before ubuntu CI
-  will go green.
+  "Setup LLVM" step explicitly installed LLVM 18 (`./llvm.sh 18`), which
+  needed bumping to 19 to match `configure`'s own `Only clang/llvm 19.0 or
+  newer is supported` error. **Fixed and applied via the GitHub UI** (this
+  session's push credentials don't have the `workflow` OAuth scope needed
+  to push workflow-file changes directly). This got ubuntu past the clang
+  check, but exposed a second issue right behind it — see 3c below.
 
 None of this had been verified against real CI before this pass — the
 "Testing" section below was checked against local builds and a real network
-job, not a green CI run. See that section for the corrected status. As of
-this writing, macOS and Windows CI have not yet been re-run against the
-fix above (pushed, awaiting the next CI run); ubuntu CI is still expected
-to fail until the held-back workflow-file fix is applied by someone with
-the right push scope.
+job, not a green CI run. See that section for the corrected status.
+
+**Update**: the ubuntu workflow-file fix above was applied by hand via the
+GitHub UI (workflow-file pushes need `workflow` OAuth scope this session
+didn't have). The clang bump alone got ubuntu past the clang-version check,
+but exposed a second, different issue right behind it:
+
+### 3c. Ubuntu's build container also needs a newer libstdc++, not just a newer clang
+
+`ERROR: The libstdc++ in use is not new enough.` CI's ubuntu jobs
+deliberately build inside an `ubuntu:20.04` container, not the
+`ubuntu-22.04` runner OS itself (`.github/workflows/test-and-publish.yaml`
+line 75: *"Use the Ubuntu 20.04 container inside Ubuntu 22.04 runner to
+build"*) — a real, deliberate choice, presumably so the resulting wheel
+links against an older glibc/libstdc++ and runs on more end-user systems.
+20.04's *default* toolchain is gcc-9.
+
+Checked the actual requirement rather than guessing: SpiderMonkey's own
+`build/moz.configure/toolchain.configure` (`minimum_gcc_version()`) requires
+libstdc++ from **gcc 10.1.0** specifically (`_GLIBCXX_RELEASE >= 10`) — not
+some bleeding-edge version. gcc-9's libstdc++ is `_GLIBCXX_RELEASE == 9`,
+one short.
+
+**Fixed, and pushed without needing workflow scope**: added
+`apt-get install --yes libstdc++-10-dev` to `setup.sh`'s own Linux
+dependency list (already available in 20.04's default repos, no PPA
+needed) -- this only adds headers/static libs for clang to compile against,
+it doesn't change which `libstdc++.so.6` the built binary links against at
+runtime. libstdc++'s ABI has been stable and symbol-versioned since long
+before gcc 10 (released 2020), so targeting gcc-10-level symbols shouldn't
+meaningfully narrow which end-user systems the wheel still works on --
+reasoned through, not independently verified against an actual old-system
+runtime.
 
 ### 4. `CMakeLists.txt` — `XP_WIN` now defined globally for the Windows build
 

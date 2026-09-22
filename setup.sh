@@ -15,6 +15,17 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   echo "Installing apt packages"
   $SUDO apt-get install --yes cmake llvm clang pkg-config m4 unzip \
     wget curl python3-dev
+  # SpiderMonkey's own build (build/moz.configure/toolchain.configure,
+  # minimum_gcc_version()) requires libstdc++ >= 10 regardless of which
+  # compiler is actually used -- CI's build container is ubuntu:20.04
+  # (deliberately, for wheel glibc/libstdc++ compatibility -- see the CI
+  # workflow), whose *default* toolchain is gcc-9. libstdc++-10-dev is
+  # still available from 20.04's own default repos (no PPA needed) and
+  # only adds headers/static libs for clang to find -- it doesn't change
+  # which libstdc++.so.6 the built binary links against at runtime, so it
+  # doesn't narrow the wheel's runtime compatibility the container was
+  # chosen to preserve.
+  $SUDO apt-get install --yes libstdc++-10-dev
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
