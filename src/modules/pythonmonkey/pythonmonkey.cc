@@ -34,6 +34,7 @@
 #include <js/Class.h>
 #include <js/Date.h>
 #include <js/Initialization.h>
+#include <js/Modules.h>
 #include <js/Object.h>
 #include <js/Proxy.h>
 #include <js/SourceText.h>
@@ -83,6 +84,25 @@ void nurseryCollectionCallback(JSContext *cx, JS::GCNurseryProgress progress, JS
   if (progress == JS::GCNurseryProgress::GC_NURSERY_COLLECTION_END) {
     updateCharBufferPointers();
   }
+}
+
+// pythonmonkey doesn't implement module loading, so `import(...)` must be
+// rejected rather than left unhandled. HostLoadImportedModule
+// (js/src/vm/Modules.cpp) only auto-finishes the promise on this path when a
+// hook IS registered but returns false; when no hook is registered at all it
+// reports "Module load hook not set" and returns without ever settling the
+// promise or clearing that pending exception -- leaving `await import(...)`
+// hung forever and a stale exception on the context. Registering this hook
+// (even though it never resolves anything) makes pythonmonkey responsible
+// for finishing the promise itself, as every embedder that permits dynamic
+// import syntax at all is required to be.
+static bool pythonmonkeyModuleLoadHook(
+  JSContext *cx, JS::Handle<JSScript *> referrer, JS::Handle<JSObject *> moduleRequest,
+  JS::Handle<JS::Value> hostDefined, JS::Handle<JS::Value> payload,
+  uint32_t lineNumber, JS::ColumnNumberOneOrigin columnNumber
+) {
+  JS_ReportErrorASCII(cx, "Dynamic module import is disabled or not supported in this context");
+  return false;
 }
 
 bool functionRegistryCallback(JSContext *cx, unsigned int argc, JS::Value *vp) {
@@ -587,6 +607,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not create the event-loop.");
     return NULL;
   }
+
+  JS::SetModuleLoadHook(JS_GetRuntime(GLOBAL_CX), pythonmonkeyModuleLoadHook);
 
   if (!JS::InitSelfHostedCode(GLOBAL_CX)) {
     PyErr_SetString(SpiderMonkeyError, "Spidermonkey could not initialize self-hosted code.");

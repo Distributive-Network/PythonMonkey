@@ -145,6 +145,14 @@ static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUS
   // Dispatchable::run() is protected; reconstruct the UniquePtr released
   // into raw form by dispatchToEventLoop() below and run it via Run().
   JS::Dispatchable::Run(cx, js::UniquePtr<JS::Dispatchable>(dispatchable), JS::Dispatchable::NotShuttingDown);
+
+  // This resumes JS execution (e.g. finishing an off-thread WebAssembly
+  // compile/instantiate), which can settle promises and enqueue reaction
+  // jobs -- same as the other checkpoints in this file, nothing else drains
+  // this one. Without it, `await WebAssembly.instantiate(...)` hangs forever
+  // even though the dispatchable itself ran successfully.
+  js::RunJobs(cx);
+
   Py_RETURN_NONE;
 }
 

@@ -698,6 +698,130 @@ and a few manual checks look right" turned out not to mean "actually works"
 this rewrite (the Debugger-API paths flagged in "Not yet done" below), not
 just the two paths that have now each independently failed once.
 
+### 12. `src/modules/pythonmonkey/pythonmonkey.cc` — no `ModuleLoadHook` registered, `import(...)` hung forever (found running the *actual* full test suite for the first time, not a hand-picked subset)
+
+**How this was found**: the user reported CI hangs on `(ubuntu-22.04, 3.8)`
+and `(ubuntu-22.04, 3.10)` with no further output after `test_dicts.py`.
+Reproducing locally with `pytest tests/python/test_event_loop.py::test_promises`
+alone did not hang (fast pass), but running the *actual full suite*
+(`pytest tests/python`, matching CI's own invocation) reproduced it -- and, on
+this machine, sometimes as a hang and sometimes as a genuine Windows access
+violation later in the same run (see fix #13; two independent bugs were
+stacked behind each other, and the first one being a hang meant the second
+one was never reached before). Bisected `test_promises` line-by-line with a
+`faulthandler.dump_traceback_later` watchdog down to one exact statement:
+
+```python
+with pytest.raises(pm.SpiderMonkeyError,
+                   match="\nError: Dynamic module import is disabled or not supported in this context"):
+  await pm.eval("import('some_module')")
+```
+
+**Root cause**: pythonmonkey never calls `JS::SetModuleLoadHook`. Reading
+`js::HostLoadImportedModule` (`js/src/vm/Modules.cpp`) directly: when
+`cx->runtime()->moduleLoadHook` is null, it calls `JS_ReportErrorASCII(cx,
+"Module load hook not set")` and returns `false` immediately -- it does
+**not** fall through to `FinishLoadingImportedModuleFailedWithPendingException`
+the way it does when a hook *is* registered but itself returns `false`. Its
+caller, `TryStartDynamicModuleImport`, discards that return value
+(`(void)HostLoadImportedModule(...)`) and unconditionally returns `true`, so
+`StartDynamicModuleImport`'s own fallback (`RejectPromiseWithPendingError`) is
+never reached either. Net effect: the promise returned by `import(...)` is
+created and returned to script, but nothing ever resolves or rejects it --
+confirmed empirically (`import('some_module').then(onResolve, onReject)`
+called neither callback, ever) -- and the pending "Module load hook not set"
+exception is left dangling on `cx`, uncleared. `await`ing that promise from
+Python hangs forever, since `PromiseType::getPyObject`'s own `js::RunJobs(cx)`
+checkpoint has nothing to drain: no reaction job is ever enqueued for a
+promise that never settles.
+
+This is not a regression introduced by anything else in this document -- this
+codepath has presumably always been broken the same way, just never
+exercised end-to-end before. It surfaced now because this was the first time
+the full suite was actually run to completion against a real rebuilt binary
+in one continuous session, one test after another with no gaps.
+
+**Fix**: register a `JS::ModuleLoadHook` at context-init time
+(`PyInit_pythonmonkey`, right after `JOB_QUEUE->init`) that immediately fails
+every load with `JS_ReportErrorASCII` and returns `false` -- making
+pythonmonkey the thing responsible for finishing the promise, exactly as the
+`JS::ModuleLoadHook` doc comment (`js/public/Modules.h`) requires of any
+embedder that permits dynamic-import syntax to be parsed at all:
+
+```diff
++ JS::SetModuleLoadHook(JS_GetRuntime(GLOBAL_CX), pythonmonkeyModuleLoadHook);
+```
+
+Since a hook is now registered, `HostLoadImportedModule` takes the
+already-correct `if (!ok) { ... FinishLoadingImportedModuleFailedWithPendingException(...) }`
+path instead of the no-hook early-return, and the promise rejects properly
+with an `Error: Dynamic module import is disabled or not supported in this
+context` -- which happens to be exactly the message the pre-existing test
+already expected, strongly suggesting this is what the test always assumed
+would happen and never got to verify.
+
+**Retested**: the exact `pytest.raises(...)` block above now passes; the
+full `test_promises` test passes; the isolated minimal repro
+(`await pm.eval("import('some_module')")`) resolves (rejects) immediately
+instead of hanging, across 3 repeated runs.
+
+### 13. `src/JobQueue.cc` -- a 5th missing JobQueue checkpoint, in the off-thread dispatch path (`callDispatchFunc`)
+
+**This is the "fifth Python-to-JS callback path" scenario fix #11 flagged as a
+reason to stop patching call sites one-by-one.** Found immediately after
+fixing #12 above, once the full suite could progress far enough to reach it:
+`test_webassembly` (off-thread `WebAssembly.instantiate`) hung in isolation,
+and crashed with a genuine Windows access violation when run as part of the
+full suite (same bug, two different symptoms depending on unrelated heap
+state at the time -- this is almost certainly also the explanation for why
+the CI hang and this session's local access-violation crash looked different
+from each other despite sharing a root cause upstream of this fix).
+
+**Root cause**: `JobQueue::dispatchToEventLoop` (the `JS::InitAsyncTaskCallbacks`
+callback added in fix #9, invoked by SpiderMonkey from a helper thread when
+off-thread work like WebAssembly compilation finishes) hands the JS
+`Dispatchable` off to `callDispatchFunc`, which runs it via
+`JS::Dispatchable::Run(cx, ...)`. Confirmed by instrumenting every step with
+`fprintf(stderr, ...)` and rebuilding: the dispatch machinery itself works
+correctly end-to-end (helper thread -> spawned thread -> main loop ->
+`callDispatchFunc` all ran and returned normally, twice, matching
+WebAssembly's compile-then-instantiate two-phase off-thread completion) -- but
+`callDispatchFunc` never called `js::RunJobs(cx)` afterward. Running the
+dispatchable resumes JS execution that settles the WebAssembly promise and
+enqueues its reaction job, and -- same story as fixes #7 and #11 -- nothing
+was draining it.
+
+**Fix**, same pattern as every other checkpoint in this rewrite:
+
+```diff
+   JS::Dispatchable::Run(cx, js::UniquePtr<JS::Dispatchable>(dispatchable), JS::Dispatchable::NotShuttingDown);
++
++  js::RunJobs(cx);
++
+   Py_RETURN_NONE;
+```
+
+**Retested**: the isolated `WebAssembly.instantiate(...).then(...)` repro
+resolves correctly across 3 repeated runs (previously hung every time); the
+full `test_webassembly` test passes.
+
+**This makes five independent missing-checkpoint sites found across fixes #7,
+#11, and #13 (`JobQueue::runJobs`'s own callback, `PromiseType::getPyObject`,
+`futureOnDoneCallback`, `JSFunctionProxy_call`/`JSMethodProxy_call`, and now
+`callDispatchFunc`).** Per fix #11's own stated threshold, this is the signal
+to stop finding these one at a time: **someone should systematically audit
+every place in this codebase that resumes JS execution from outside a
+top-level `JS_ExecuteScript()` call** (grep for `JS_Call*`, `JS_Invoke`,
+`Dispatchable::Run`, and any other JS-entry point) and confirm each one
+either already has a `js::RunJobs(cx)` checkpoint or is proven not to need
+one, rather than continuing to wait for the next one to surface as a hang or
+a crash in someone's test run.
+
+**Full suite re-run after both fix #12 and #13**: `pytest tests/python` (all
+files, not a subset) -- **676 passed in 59.8s, zero hangs, zero crashes** --
+confirmed on this machine (Windows, Python 3.14.7) in one continuous run
+immediately after applying both fixes and rebuilding.
+
 ---
 
 ## Testing — what was actually run, and what it showed
