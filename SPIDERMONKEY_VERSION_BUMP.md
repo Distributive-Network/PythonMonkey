@@ -830,10 +830,18 @@ immediately after applying both fixes and rebuilding.
 against a local build on the original development machine, using the local
 Rust `stable` override described in section 3 above — **not against real
 CI**. When this PR's actual CI ran, all 5 platforms failed on toolchain
-version mismatches invisible to that local setup (section 3/3b). Fixed as
-of the most recent commit; CI has not yet been re-verified green after that
-fix (this doc will be updated once it has, or note here if it wasn't
-before merge).
+version mismatches invisible to that local setup (section 3/3b). Those were
+fixed, followed by two more real runtime bugs found only by running the full
+test suite for real (sections 12-13), and finally two CI-infrastructure-only
+issues unrelated to any code in this PR (the docs step's `doxygen.nl` link
+having gone 404, and `brew install llvm` silently falling back to a
+multi-hour from-source build on Intel/macOS-14 runners because the
+unversioned formula has no bottle there — fixed by pinning `llvm@19`).
+
+**CI is now fully green**: every `build-spidermonkey-*` job and all 34
+`build-and-test` OS/Python combinations pass
+(https://github.com/Distributive-Network/PythonMonkey/actions/runs/35745019095),
+confirmed 2026-09-22. The PR is mergeable and awaiting review.
 
 Ten build errors were fixed in total (sections 1-10 above), each one a real
 SpiderMonkey-internal API break between the old `136a1` nightly-alpha build
