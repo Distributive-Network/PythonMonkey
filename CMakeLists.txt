@@ -43,7 +43,13 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     SET(PROFILE "/PROFILE")
     SET(ADDRESS_SANITIZE "/fsanitize=address /Oy-")
   else()
-    SET(COMPILE_FLAGS "-fno-rtti -Wno-invalid-offsetof")
+    # Same reasoning as the WIN32 branch's -DXP_WIN above: this build
+    # doesn't go through moz.build, which normally defines XP_UNIX on
+    # Linux/macOS -- without it, headers that branch on it (e.g.
+    # mfbt/UniquePtrExtensions.h's FileHandleType) hit their "Unsupported
+    # OS?" #error instead. Only surfaced now because CI's build-and-test
+    # job never got past an unrelated compiler-version failure before.
+    SET(COMPILE_FLAGS "-fno-rtti -Wno-invalid-offsetof -DXP_UNIX")
 
     SET(OPTIMIZED "-Ofast -DNDEBUG")
     SET(UNOPTIMIZED "-O0")
