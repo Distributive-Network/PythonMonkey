@@ -256,9 +256,12 @@ jobs:
             brew update || true # allow failure
             brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
             # Xcode's bundled clang is older than SpiderMonkey's own
-            # minimum (>=19) -- same fix as setup.sh's macOS branch.
-            brew install llvm
-            echo "PATH=$(brew --prefix llvm)/bin:$PATH" >> $GITHUB_ENV
+            # minimum (>=19) -- same fix as setup.sh's macOS branch. Pinned
+            # to llvm@19: the unversioned `llvm` formula (currently 23.x)
+            # has no bottle for Intel macOS or macOS 14, so it silently
+            # falls back to a multi-hour from-source build here.
+            brew install llvm@19
+            echo "PATH=$(brew --prefix llvm@19)/bin:$PATH" >> $GITHUB_ENV
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
