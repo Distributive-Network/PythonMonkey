@@ -2,25 +2,10 @@
  * @file     WebSocket.js
  *           Implement the WebSocket API, backed by Python's aiohttp
  *           WebSocket client (WebSocket-internal.py).
- *
- *           LOCAL PATCH (this session): pythonmonkey has never had a
- *           WebSocket implementation, which is why dcp-client's
- *           SocketIOTransport.buildOptions() hard-codes
- *           `transports: platform !== 'pythonmonkey' ? ['websocket','polling'] : ['polling']`
- *           -- every other platform upgrades to a persistent WebSocket
- *           almost immediately, while pythonmonkey is forced to sustain
- *           long-polling for the entire connection lifetime. That
- *           sustained-polling code path is essentially unexercised by any
- *           other real client, and packages.distributed.computer's own
- *           backend has a real, reproducible session-routing bug in it
- *           (a freshly-issued session id 404s on the very next polling
- *           request, confirmed with plain curl/aiohttp/Node https/a bare
- *           engine.io-client, no dcp-client or pythonmonkey involved).
- *           Giving pythonmonkey a real WebSocket lets it take the exact
- *           same well-exercised upgrade path every other platform takes,
- *           sidestepping that bug entirely instead of working around it.
- *
+ * @author   Dan Desjardins <dan@distributive.network>
  * @date     September 2026
+ *
+ * @copyright Copyright (c) 2026 Distributive Corp.
  */
 'use strict';
 
@@ -78,17 +63,10 @@ class WebSocket extends EventTarget
   #conn = null;
   #url;
   #protocol = '';
-  #sendBuffer = []; // messages queued before the underlying connection is ready
 
-  // engine.io-client's WS transport (addEventListeners()) unconditionally
-  // does `this.ws._socket.unref()` when its `autoUnref` option is set --
-  // real Node `ws` library sockets expose the underlying raw net.Socket as
-  // `._socket`, but a browser-style WebSocket has no such concept. dcp-client
-  // sets `autoUnref: true` for pythonmonkey (it's in env.js's
-  // referencedTimerPlatformList), so without this dummy property that call
-  // throws "can't access property unref, this.ws._socket is undefined" the
-  // instant the connection opens. A no-op unref() is exactly correct here:
-  // there is nothing OS-level for pythonmonkey to unref in the first place.
+  // engine.io-client's WebSocket transport calls `this.ws._socket.unref()` on
+  // open when its autoUnref option is set, a Node `ws`-library detail that a
+  // browser-style WebSocket doesn't have. Nothing here needs unref'ing.
   _socket = { unref() {}, ref() {} };
 
   /**
@@ -113,23 +91,22 @@ class WebSocket extends EventTarget
     wsConnect(
       httpURL,
       protoArray,
-      {},
-      (sendText, sendBinary, closeFn) => // onOpen
+      (protocol, sendText, sendBinary, closeFn) => // onOpen
       {
-        // Wired up in the SAME synchronous callback that fires 'open' --
-        // see WebSocket-internal.py's docstring for why this matters (a
-        // message sent in reaction to 'open', which real clients commonly
-        // do, must never race ahead of these being available).
         this.#conn = { sendText, sendBinary, close: closeFn };
+        if (this.#readyState === WebSocket.CLOSING) // close() was called while connecting
+        {
+          closeFn(1000, '');
+          return;
+        }
+        this.#protocol = protocol;
         this.#readyState = WebSocket.OPEN;
         debug('ws:open')(`connected to ${this.#url}`);
-        for (const queued of this.#sendBuffer)
-          this.#doSend(queued);
-        this.#sendBuffer = [];
         this.dispatchEvent(new Event('open'));
       },
       (data, isBinary) => // onMessage
       {
+        // copy binary payloads out of the Python bytearray into a JS-owned ArrayBuffer
         const payload = isBinary ? new Uint8Array(data).buffer : data;
         this.dispatchEvent(new MessageEvent('message', { data: payload }));
       },
@@ -142,13 +119,16 @@ class WebSocket extends EventTarget
       {
         this.#readyState = WebSocket.CLOSED;
         debug('ws:close')(`closed, code=${code} reason=${reason}`);
-        this.dispatchEvent(new CloseEvent('close', { code, reason, wasClean: code === 1000 }));
+        // 1006 is reserved for connections that dropped without a close handshake
+        this.dispatchEvent(new CloseEvent('close', { code, reason, wasClean: code !== 1006 }));
       },
       debug,
-    ).catch((e) =>
+    ).catch((e) => // only reachable if a callback above threw past the Python side
     {
-      this.#readyState = WebSocket.CLOSED;
       debug('ws:error')(String(e));
+      if (this.#readyState === WebSocket.CLOSED)
+        return;
+      this.#readyState = WebSocket.CLOSED;
       this.dispatchEvent(new Event('error'));
       this.dispatchEvent(new CloseEvent('close', { code: 1006, reason: String(e), wasClean: false }));
     });
@@ -168,19 +148,14 @@ class WebSocket extends EventTarget
       throw new DOMException('WebSocket is still connecting (readyState CONNECTING)', 'InvalidStateError');
     if (this.#readyState !== WebSocket.OPEN)
       return; // per spec: silently discard if not OPEN
-    this.#doSend(data);
-  }
-
-  #doSend(data)
-  {
-    if (!this.#conn)
-      return;
     if (typeof data === 'string')
       this.#conn.sendText(data);
     else if (data instanceof ArrayBuffer)
       this.#conn.sendBinary(new Uint8Array(data));
+    else if (ArrayBuffer.isView(data))
+      this.#conn.sendBinary(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
     else
-      this.#conn.sendBinary(data); // TypedArray/DataView
+      throw new TypeError('WebSocket.send() data must be a string, ArrayBuffer or ArrayBufferView');
   }
 
   /**
@@ -192,15 +167,13 @@ class WebSocket extends EventTarget
     if (this.#readyState === WebSocket.CLOSING || this.#readyState === WebSocket.CLOSED)
       return;
     this.#readyState = WebSocket.CLOSING;
-    if (this.#conn)
+    if (this.#conn) // otherwise still connecting; onOpen closes it
       this.#conn.close(code, reason);
   }
 }
 
-/* A side-effect of loading this module is to add WebSocket and related
- * symbols to the global object, matching XMLHttpRequest.js's convention,
- * so real code (like dcp-client, once its platform check is relaxed) can
- * use `new WebSocket(...)` directly with no require() needed.
+/* A side-effect of loading this module is to add WebSocket and related symbols to the global
+ * object, matching XMLHttpRequest.js, so code written for browsers works without a require().
  */
 if (!globalThis.WebSocket)
   globalThis.WebSocket = WebSocket;
