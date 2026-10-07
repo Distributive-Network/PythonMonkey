@@ -55,6 +55,7 @@ js_eval("console.log")('hello, world')
 - [done] CommonJS module system .py loader, loads Python modules for use by JS
 - [done] Python host environment supplies event loop, including EventEmitter, setTimeout, etc.
 - [done] Python host environment supplies XMLHttpRequest
+- [done] Python host environment supplies WebSocket
 - [done] Python TypedArrays coerce to JS TypeArrays
 - [done] JS TypedArrays coerce to Python TypeArrays
 - [done] Python lists coerce to JS Arrays
