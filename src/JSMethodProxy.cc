@@ -16,6 +16,7 @@
 #include "include/setSpiderMonkeyException.hh"
 
 #include <jsapi.h>
+#include <jsfriendapi.h>
 
 #include <Python.h>
 
@@ -69,6 +70,9 @@ PyObject *JSMethodProxyMethodDefinitions::JSMethodProxy_call(PyObject *self, PyO
     setSpiderMonkeyException(cx);
     return NULL;
   }
+
+  // Same checkpoint as JSFunctionProxy_call, for bound methods.
+  js::RunJobs(cx);
 
   if (PyErr_Occurred()) {
     return NULL;

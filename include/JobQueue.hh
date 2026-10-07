@@ -49,45 +49,37 @@ bool init(JSContext *cx);
  * If any error happens while generating the host defined data, this method
  * should set a pending exception to `cx` and return `false`.
  */
-bool getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> data) const override;
+bool getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> incumbentGlobal, JS::MutableHandle<JSObject *> data) const override;
 
 /**
- * @brief Enqueue a reaction job `job` for `promise`, which was allocated at
- * `allocationSite`. Provide `incumbentGlobal` as the incumbent global for
- * the reaction job's execution.
+ * @brief Ask the embedding for the host defined global to use when running
+ * a JS microtask.
  *
- * `promise` can be null if the promise is optimized out.
- * `promise` is guaranteed not to be optimized out if the promise has
- * non-default user-interaction flag.
+ * Not tracked by this embedding; null falls back to SpiderMonkey's default,
+ * as its own InternalJobQueue does.
  */
-bool enqueuePromiseJob(JSContext *cx, JS::HandleObject promise,
-  JS::HandleObject job, JS::HandleObject allocationSite,
-  JS::HandleObject incumbentGlobal) override;
+bool getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) const override;
 
 /**
- * @brief Run all jobs in the queue. Running one job may enqueue others; continue to
- * run jobs until the queue is empty.
+ * @brief Pull every job SpiderMonkey has queued internally and forward each
+ * one to the Python event-loop.
+ *
+ * SpiderMonkey no longer pushes promise jobs to the embedding as they are
+ * created; it queues them and expects the embedder to drain them at microtask
+ * checkpoints via js::RunJobs(cx) (jsfriendapi.h), which calls this method.
+ * Every place PythonMonkey enters JS from Python must checkpoint afterwards,
+ * or promises settled there never run their reactions.
  *
  * Calling this method at the wrong time can break the web. The HTML spec
  * indicates exactly when the job queue should be drained (in HTML jargon,
  * when it should "perform a microtask checkpoint"), and doing so at other
  * times can incompatibly change the semantics of programs that use promises
  * or other microtask-based features.
- *
- * This method is called only via AutoDebuggerJobQueueInterruption, used by
- * the Debugger API implementation to ensure that the debuggee's job queue is
- * protected from the debugger's own activity. See the comments on
- * AutoDebuggerJobQueueInterruption.
  */
 void runJobs(JSContext *cx) override;
 
 /**
- * @return true if the job queue is empty, false otherwise.
- */
-bool empty() const override;
-
-/**
- * @return true if the job queue stopped draining, which results in `empty()` being false after `runJobs()`.
+ * @return true if the job queue stopped draining before it was empty.
  */
 bool isDrainingStopped() const override;
 
@@ -127,11 +119,31 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> saveJobQueue(JSContext *) override;
  * @brief The callback for dispatching an off-thread promise to the event loop
  *          see https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/public/Promise.h#l580
  *              https://hg.mozilla.org/releases/mozilla-esr102/file/tip/js/src/vm/OffThreadPromiseRuntimeState.cpp#l160
+ *
+ * Takes ownership of the Dispatchable (run via the public static
+ * Dispatchable::Run, since Dispatchable::run() is protected).
+ *
  * @param closure - closure, currently the javascript context
- * @param dispatchable - Pointer to the Dispatchable to be called
+ * @param dispatchable - the Dispatchable to be called; ownership transferred to this callback
  * @return not shutting down
  */
-static bool dispatchToEventLoop(void *closure, JS::Dispatchable *dispatchable);
+static bool dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable);
+
+/**
+ * @brief The callback for dispatching an off-thread promise to the event
+ * loop after a delay.
+ *
+ * Always declines (returns false), which js/public/Promise.h permits when the
+ * embedding has no timeout manager. Only engine features needing a delayed
+ * off-thread callback (e.g. Atomics.waitAsync timeouts) are affected;
+ * setTimeout/setInterval use PyEventLoop::enqueueWithDelay instead.
+ *
+ * @param closure - closure, currently the javascript context
+ * @param dispatchable - the Dispatchable that would be called; ownership transferred to this callback
+ * @param delay - requested delay in milliseconds
+ * @return false (no timeout manager available)
+ */
+static bool delayedDispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable, uint32_t delay);
 
 /**
  * @brief The callback that gets invoked whenever a Promise is rejected without a rejection handler (uncaught/unhandled exception)

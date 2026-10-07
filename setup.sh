@@ -15,41 +15,71 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   echo "Installing apt packages"
   $SUDO apt-get install --yes cmake llvm clang pkg-config m4 unzip \
     wget curl python3-dev
+  # SpiderMonkey's configure requires libstdc++ >= 10 (toolchain.configure,
+  # minimum_gcc_version). Ubuntu 20.04, which CI builds in for wheel
+  # compatibility, defaults to gcc-9's; the -10 headers are in its own repos
+  # and don't change which libstdc++.so the wheel links against.
+  $SUDO apt-get install --yes libstdc++-10-dev
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
-  brew install lld
-elif [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  # SpiderMonkey requires clang >= 19 and lld as the host linker; Xcode's clang
+  # is older and ships no lld. Versioned formulas because the unversioned
+  # `llvm`/`lld` have no bottles for Intel macOS or macOS 14 and build from
+  # source for hours (and lld pulls in the unversioned llvm). Both kegs are
+  # keg-only, so put them on PATH explicitly.
+  brew install llvm@19 lld@19
+  export PATH="$(brew --prefix llvm@19)/bin:$(brew --prefix lld@19)/bin:$PATH"
+elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
   echo "Unsupported OS"
   exit 1
 fi
-# Install rust compiler
-echo "Installing rust compiler"
-unset HOST_ABI_FLAGS
-if [[ "$OSTYPE" == "msys"* ]]; then # Windows
-  HOST_ABI_FLAGS=("--default-host" "$(clang --print-target-triple)")
+# Install rust compiler, skipping if the pinned toolchain is already the
+# default so this script can be re-run without re-downloading the installer.
+if command -v rustup >/dev/null && rustup default 2>/dev/null | grep -q '^1\.90'; then
+  echo "Rust 1.90 toolchain already installed, skipping rustup-init"
+else
+  echo "Installing rust compiler"
+  unset HOST_ABI_FLAGS
+  if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
+    HOST_ABI_FLAGS=("--default-host" "$(clang --print-target-triple)")
+  fi
+  # SpiderMonkey's configure requires rustc >= 1.90.0
+  curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.90.0
 fi
-curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.85
 CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
-$CARGO_BIN install cbindgen
+command -v cbindgen >/dev/null || $CARGO_BIN install cbindgen
 # Setup Poetry
-echo "Installing poetry"
-curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
-if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
   POETRY_BIN="$APPDATA/Python/Scripts/poetry"
 else
   POETRY_BIN="$HOME/.local/bin/poetry"
 fi
-$POETRY_BIN self add 'poetry-dynamic-versioning[plugin]'
+# Skip if already installed, for the same re-run reason as rustup above.
+if [ -x "$POETRY_BIN" ]; then
+  echo "Poetry already installed, skipping"
+else
+  echo "Installing poetry"
+  # Windows Python installs often provide `python` but not `python3`
+  PYTHON_FOR_POETRY=$(command -v python3 || command -v python)
+  curl -sSL https://install.python-poetry.org | "$PYTHON_FOR_POETRY" - --version "1.7.1"
+  "$POETRY_BIN" self add 'poetry-dynamic-versioning[plugin]'
+fi
 echo "Done installing dependencies"
 
 echo "Downloading spidermonkey source code"
 # Read the commit hash for mozilla-central from the `mozcentral.version` file
 MOZCENTRAL_VERSION=$(cat mozcentral.version)
-wget -c -q -O firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla-firefox/firefox/archive/${MOZCENTRAL_VERSION}.zip
-unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv firefox-${MOZCENTRAL_VERSION} firefox-source
+# Skip if already extracted so this script can be re-run after a later failure.
+if [ ! -d firefox-source ]; then
+  # curl rather than wget: it ships with Windows, macOS and most Linux distros
+  curl -fsSL -o firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla-firefox/firefox/archive/${MOZCENTRAL_VERSION}.zip
+  unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv firefox-${MOZCENTRAL_VERSION} firefox-source
+else
+  echo "firefox-source already exists, skipping download+extract"
+fi
 echo "Done downloading spidermonkey source code"
 
 echo "Building spidermonkey"
@@ -69,6 +99,7 @@ sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedLi
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
 sed -i'' -e 's/"-fuse-ld=ld"/"-ld64" if c_compiler.version > "14.0.0" else "-fuse-ld=ld"/' ./build/moz.configure/toolchain.configure # XCode 15 changed the linker behaviour. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
 sed -i'' -e 's/defined(XP_WIN)/defined(_WIN32)/' ./mozglue/baseprofiler/public/BaseProfilerUtils.h # this header file is introduced to js/Debug.h in https://phabricator.services.mozilla.com/D221102, but it would be compiled without XP_WIN in this building configuration
+sed -i'' -e 's/os\.environ\["MOZILLABUILD"\]/os.environ.get("MOZILLABUILD", "")/g' ./python/mozbuild/mozbuild/backend/visualstudio.py # avoid KeyError: we don't use the official Mozilla Build package, so this is never set
 
 cd js/src
 mkdir -p _build
@@ -77,16 +108,14 @@ mkdir -p ../../../../_spidermonkey_install/
 ../configure --target=$(clang --print-target-triple) \
   --prefix=$(realpath $PWD/../../../../_spidermonkey_install) \
   --with-intl-api \
-  $(if [[ "$OSTYPE" != "msys"* ]]; then echo "--without-system-zlib"; fi) \
+  $(if [[ "$OSTYPE" != "msys"* && "$OSTYPE" != "cygwin"* ]]; then echo "--without-system-zlib"; fi) \
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
   $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
-  --enable-optimize \
-  --disable-explicit-resource-management
-# disable-explicit-resource-management: Disable the `using` syntax that is enabled by default in SpiderMonkey nightly, otherwise the header files will disagree with the compiled lib .so file
-#                                       when it's using a `IF_EXPLICIT_RESOURCE_MANAGEMENT` macro, e.g., the `enum JSProtoKey` index would be off by 1 (header `JSProto_Uint8Array` 27 will be interpreted as `JSProto_Int8Array` in lib as lib has an extra element)
-#                                       https://bugzilla.mozilla.org/show_bug.cgi?id=1940342
+  --enable-optimize
+# --disable-explicit-resource-management (Bugzilla 1940342 workaround) is no
+# longer a recognized flag; the feature it gated has shipped.
 make -j$CPUS
 echo "Done building spidermonkey"
 
@@ -120,7 +149,7 @@ if test -f .git/hooks/pre-commit; then
   cd uncrustify-source
   mkdir -p build
   cd build
-  if [[ "$OSTYPE" == "msys"* ]]; then # Windows
+  if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
     cmake ../
     cmake --build . -j$CPUS --config Release
     cp Release/uncrustify.exe ../../uncrustify.exe
