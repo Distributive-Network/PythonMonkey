@@ -38,11 +38,9 @@ bool JobQueue::getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *>
   return true;
 }
 
-// The PyCFunction invoked by the Python event-loop once it's ready to run a
-// single deferred JS microtask. `closure` is a 2-tuple of (JSContext*,
-// JS::PersistentRooted<JSObject*>* job), both smuggled through as PyLong
-// pointers the same way JobQueue::dispatchToEventLoop's callDispatchFunc
-// does below for JS::Dispatchable.
+// Runs one JS microtask once the Python event-loop gets to it. `closure` is
+// (JSContext*, JS::PersistentRooted<JSObject*>*) smuggled through as PyLongs,
+// the same way callDispatchFunc below handles JS::Dispatchable.
 static PyObject *runMicroTaskCallback(PyObject *closure, PyObject *Py_UNUSED(unused)) {
   JSContext *cx = (JSContext *)PyLong_AsVoidPtr(PyTuple_GetItem(closure, 0));
   auto *rootedJob = (JS::PersistentRooted<JSObject *> *)PyLong_AsVoidPtr(PyTuple_GetItem(closure, 1));
@@ -57,26 +55,22 @@ static PyObject *runMicroTaskCallback(PyObject *closure, PyObject *Py_UNUSED(unu
     ok = JS::RunJSMicroTask(cx, job);
   }
 
-  // Running this microtask may enqueue the next one in an await chain --
-  // re-checkpoint so it doesn't just sit there. See also PromiseType.cc.
+  // Running this microtask may enqueue the next one in an await chain.
   js::RunJobs(cx);
 
   if (!ok) {
     setSpiderMonkeyException(cx);
-    return NULL; // propagates as a Python exception; PyEventLoop's own
-                 // eventLoopJobWrapper surfaces it to the loop's exception handler
+    return NULL; // surfaces through the event-loop's exception handler
   }
   Py_RETURN_NONE;
 }
 
 static PyMethodDef runMicroTaskCallbackDef = {"JsMicroTaskCallable", runMicroTaskCallback, METH_NOARGS, NULL};
 
-// NEEDS REVIEW: GC-safety of rooting a JSMicroTask* across the gap between
-// dequeuing it here and the Python event-loop calling runMicroTaskCallback
-// is modelled on the finalizationRegistryCallbacks pattern below, but not
-// independently verified for JSMicroTask specifically. Also unverified:
-// that draining once per top-level JS_ExecuteScript() (pythonmonkey.cc) is
-// the only place a checkpoint is needed for this embedding.
+// SpiderMonkey queues promise jobs internally and expects the embedder to pull
+// them at microtask checkpoints (js::RunJobs). Each job is handed to the Python
+// event-loop rather than run here, preserving the ordering the old push-based
+// enqueuePromiseJob gave relative to Python callbacks.
 void JobQueue::runJobs(JSContext *cx) {
   while (JS::HasAnyMicroTasks(cx)) {
     JS::RootedValue entry(cx, JS::DequeueNextMicroTask(cx));
@@ -89,8 +83,8 @@ void JobQueue::runJobs(JSContext *cx) {
       continue; // not a JS microtask; nothing we support runs these
     }
 
-    // Root the job on the heap so it survives until the Python event-loop
-    // calls back into us, which may be well after this function returns.
+    // JSMicroTask is a JSObject, so a PersistentRooted keeps it alive and
+    // traced until the event-loop runs it, possibly long after we return.
     auto *rootedJob = new JS::PersistentRooted<JSObject *>(cx, job);
 
     PyObject *cxArg = PyLong_FromVoidPtr(cx);
@@ -146,11 +140,8 @@ static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUS
   // into raw form by dispatchToEventLoop() below and run it via Run().
   JS::Dispatchable::Run(cx, js::UniquePtr<JS::Dispatchable>(dispatchable), JS::Dispatchable::NotShuttingDown);
 
-  // This resumes JS execution (e.g. finishing an off-thread WebAssembly
-  // compile/instantiate), which can settle promises and enqueue reaction
-  // jobs -- same as the other checkpoints in this file, nothing else drains
-  // this one. Without it, `await WebAssembly.instantiate(...)` hangs forever
-  // even though the dispatchable itself ran successfully.
+  // Running the dispatchable resumes JS (e.g. an off-thread wasm compile
+  // finishing), which can settle promises; nothing else drains those jobs.
   js::RunJobs(cx);
 
   Py_RETURN_NONE;
@@ -180,10 +171,8 @@ bool JobQueue::dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable
 }
 
 bool JobQueue::delayedDispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable, uint32_t delay) {
-  // No cross-thread-safe delayed-dispatch mechanism here (see JobQueue.hh).
-  // ReleaseFailedTask is the embedder-facing way to decline after taking
-  // ownership -- transferToRuntime() is SpiderMonkey's own internal use
-  // and is protected.
+  // No thread-safe delayed dispatch exists here (see JobQueue.hh);
+  // ReleaseFailedTask is the public way to hand a declined task back.
   JS::Dispatchable::ReleaseFailedTask(std::move(dispatchable));
   return false;
 }
@@ -242,7 +231,6 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
-  // mozilla::Unused (mfbt) was removed upstream; it was just a discard cast.
   (void)finalizationRegistryCallbacks->append(callback);
 }
 

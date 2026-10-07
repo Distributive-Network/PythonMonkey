@@ -79,8 +79,7 @@ PyObject *PromiseType::getPyObject(JSContext *cx, JS::HandleObject promise) {
   JS::AddPromiseReactions(cx, promise, onResolved, onResolved);
 
   // If `promise` was already settled, AddPromiseReactions just queued a job
-  // with nothing else scheduled to drain it (we're outside JS_ExecuteScript
-  // here). See JobQueue::runJobs.
+  // that nothing else will drain. See JobQueue::runJobs.
   js::RunJobs(cx);
 
   return future.getFutureObject(); // must be a new reference, ref count == 3
@@ -115,8 +114,7 @@ static PyObject *futureOnDoneCallback(PyObject *futureCallbackTuple, PyObject *a
     JS::RejectPromise(cx, promise, JS::RootedValue(cx, jsTypeFactorySafe(cx, exception)));
   }
 
-  // Same as getPyObject above: resolving/rejecting here may queue reaction
-  // jobs with nothing else scheduled to drain them.
+  // Same as getPyObject above: settling the promise queues reaction jobs.
   js::RunJobs(cx);
 
   Py_XDECREF(exception); // cleanup

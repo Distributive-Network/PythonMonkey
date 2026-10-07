@@ -55,24 +55,20 @@ bool getHostDefinedData(JSContext *cx, JS::MutableHandle<JSObject *> incumbentGl
  * @brief Ask the embedding for the host defined global to use when running
  * a JS microtask.
  *
- * Same "we don't track this" stance as getHostDefinedData() above -- falls
- * back to SpiderMonkey's own default, matching the reference embedding
- * (InternalJobQueue::getHostDefinedGlobal, js/src/vm/JSContext.cpp).
+ * Not tracked by this embedding; null falls back to SpiderMonkey's default,
+ * as its own InternalJobQueue does.
  */
 bool getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) const override;
 
 /**
- * @brief Pull every job SpiderMonkey has queued internally since the last
- * call, and forward each one to the Python event-loop for execution.
+ * @brief Pull every job SpiderMonkey has queued internally and forward each
+ * one to the Python event-loop.
  *
- * SpiderMonkey no longer pushes promise jobs to the embedding as they're
- * created (the old enqueuePromiseJob); it queues them internally and
- * expects the embedder to pull them here on demand, via the free function
- * js::RunJobs(cx) (jsfriendapi.h -- not the same thing as this method: it's
- * what calls cx->jobQueue->runJobs(cx)). PythonMonkey calls
- * js::RunJobs(GLOBAL_CX) after every top-level JS_ExecuteScript(), plus a
- * few call sites where JS callbacks resolve promises outside of script
- * execution (see JSFunctionProxy.cc, PromiseType.cc).
+ * SpiderMonkey no longer pushes promise jobs to the embedding as they are
+ * created; it queues them and expects the embedder to drain them at microtask
+ * checkpoints via js::RunJobs(cx) (jsfriendapi.h), which calls this method.
+ * Every place PythonMonkey enters JS from Python must checkpoint afterwards,
+ * or promises settled there never run their reactions.
  *
  * Calling this method at the wrong time can break the web. The HTML spec
  * indicates exactly when the job queue should be drained (in HTML jargon,
@@ -83,7 +79,7 @@ bool getHostDefinedGlobal(JSContext *cx, JS::MutableHandle<JSObject *> out) cons
 void runJobs(JSContext *cx) override;
 
 /**
- * @return true if the job queue stopped draining, which results in `empty()` being false after `runJobs()`.
+ * @return true if the job queue stopped draining before it was empty.
  */
 bool isDrainingStopped() const override;
 
@@ -137,18 +133,15 @@ static bool dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &
  * @brief The callback for dispatching an off-thread promise to the event
  * loop after a delay.
  *
- * Always returns false (no timeout manager available), which
- * js/public/Promise.h documents as a valid response when the embedding
- * can't service delayed cross-thread dispatch. Only affects SpiderMonkey
- * features needing a delayed off-thread callback (e.g. an
- * Atomics.waitAsync timeout) -- ordinary setTimeout/setInterval go through
- * PyEventLoop::enqueueWithDelay instead and are unaffected. NEEDS REVIEW:
- * not verified against a real Atomics.waitAsync-with-timeout case.
+ * Always declines (returns false), which js/public/Promise.h permits when the
+ * embedding has no timeout manager. Only engine features needing a delayed
+ * off-thread callback (e.g. Atomics.waitAsync timeouts) are affected;
+ * setTimeout/setInterval use PyEventLoop::enqueueWithDelay instead.
  *
  * @param closure - closure, currently the javascript context
  * @param dispatchable - the Dispatchable that would be called; ownership transferred to this callback
  * @param delay - requested delay in milliseconds
- * @return false (no timeout manager available for cross-thread delayed dispatch)
+ * @return false (no timeout manager available)
  */
 static bool delayedDispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable, uint32_t delay);
 

@@ -30,10 +30,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(FetchContent)
 
   if (WIN32)
-    # This build doesn't go through Mozilla's moz.build system, which
-    # normally defines XP_WIN on Windows -- without it, SpiderMonkey headers
-    # that branch on it (e.g. PlatformMutex.h) fall through to a POSIX path
-    # that doesn't exist here.
+    # This build bypasses moz.build, which normally defines XP_WIN; without
+    # it SpiderMonkey headers (e.g. PlatformMutex.h) take a POSIX path.
     SET(COMPILE_FLAGS "/GR- /W0 /DXP_WIN")
 
     SET(OPTIMIZED "/O2")
@@ -43,12 +41,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     SET(PROFILE "/PROFILE")
     SET(ADDRESS_SANITIZE "/fsanitize=address /Oy-")
   else()
-    # Same reasoning as the WIN32 branch's -DXP_WIN above: this build
-    # doesn't go through moz.build, which normally defines XP_UNIX on
-    # Linux/macOS -- without it, headers that branch on it (e.g.
-    # mfbt/UniquePtrExtensions.h's FileHandleType) hit their "Unsupported
-    # OS?" #error instead. Only surfaced now because CI's build-and-test
-    # job never got past an unrelated compiler-version failure before.
+    # Same as -DXP_WIN above: without XP_UNIX, headers such as
+    # mfbt/UniquePtrExtensions.h hit their "Unsupported OS" #error.
     SET(COMPILE_FLAGS "-fno-rtti -Wno-invalid-offsetof -DXP_UNIX")
 
     SET(OPTIMIZED "-Ofast -DNDEBUG")

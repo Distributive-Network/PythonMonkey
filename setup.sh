@@ -15,33 +15,19 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
   echo "Installing apt packages"
   $SUDO apt-get install --yes cmake llvm clang pkg-config m4 unzip \
     wget curl python3-dev
-  # SpiderMonkey's own build (build/moz.configure/toolchain.configure,
-  # minimum_gcc_version()) requires libstdc++ >= 10 regardless of which
-  # compiler is actually used -- CI's build container is ubuntu:20.04
-  # (deliberately, for wheel glibc/libstdc++ compatibility -- see the CI
-  # workflow), whose *default* toolchain is gcc-9. libstdc++-10-dev is
-  # still available from 20.04's own default repos (no PPA needed) and
-  # only adds headers/static libs for clang to find -- it doesn't change
-  # which libstdc++.so.6 the built binary links against at runtime, so it
-  # doesn't narrow the wheel's runtime compatibility the container was
-  # chosen to preserve.
+  # SpiderMonkey's configure requires libstdc++ >= 10 (toolchain.configure,
+  # minimum_gcc_version). Ubuntu 20.04, which CI builds in for wheel
+  # compatibility, defaults to gcc-9's; the -10 headers are in its own repos
+  # and don't change which libstdc++.so the wheel links against.
   $SUDO apt-get install --yes libstdc++-10-dev
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
   brew install lld
-  # Xcode's bundled clang (16-17 on current runner images) is older than
-  # SpiderMonkey's own minimum at the current mozcentral.version pin (>=19,
-  # per its own configure error). Pinned to the major-19 formula rather than
-  # unversioned `llvm` (currently 23.x): homebrew-core only publishes bottles
-  # for `llvm` on recent arm64 macOS + Linux, so on Intel macOS and macOS 14
-  # runners `brew install llvm` silently falls back to a from-source build
-  # (multi-hour, "Tier 3" unsupported) instead of installing a bottle --
-  # confirmed via https://formulae.brew.sh/api/formula/llvm.json's bottle
-  # list lacking any Intel or "sonoma" entry, versus llvm@19's, which has
-  # both. 19.x still satisfies the >=19 requirement.
-  # homebrew's llvm keg isn't symlinked onto PATH by default, so put it
-  # first explicitly for the rest of this script.
+  # SpiderMonkey requires clang >= 19; Xcode's bundled clang is older.
+  # Pinned to llvm@19 because the unversioned `llvm` formula has no bottle for
+  # Intel macOS or macOS 14 and would build from source for hours. Homebrew
+  # doesn't put llvm on PATH by default.
   brew install llvm@19
   export PATH="$(brew --prefix llvm@19)/bin:$PATH"
 elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
@@ -50,10 +36,9 @@ else
   echo "Unsupported OS"
   exit 1
 fi
-# Install rust compiler
-# Skip if already installed: re-running rustup-init.sh here downloads and
-# runs a fresh installer exe, which Defender/SmartScreen blocks on this box.
-if command -v rustup >/dev/null && rustup toolchain list 2>/dev/null | grep -q '^1\.90'; then
+# Install rust compiler, skipping if the pinned toolchain is already the
+# default so this script can be re-run without re-downloading the installer.
+if command -v rustup >/dev/null && rustup default 2>/dev/null | grep -q '^1\.90'; then
   echo "Rust 1.90 toolchain already installed, skipping rustup-init"
 else
   echo "Installing rust compiler"
@@ -61,8 +46,7 @@ else
   if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
     HOST_ABI_FLAGS=("--default-host" "$(clang --print-target-triple)")
   fi
-  # SpiderMonkey at the current mozcentral.version pin requires at least
-  # rustc 1.90.0 (confirmed via its own configure error message).
+  # SpiderMonkey's configure requires rustc >= 1.90.0
   curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/rust-lang/rustup/refs/tags/1.28.2/rustup-init.sh -sSf | sh -s -- -y ${HOST_ABI_FLAGS+"${HOST_ABI_FLAGS[@]}"} --default-toolchain 1.90.0
 fi
 CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
@@ -73,13 +57,12 @@ if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
 else
   POETRY_BIN="$HOME/.local/bin/poetry"
 fi
-# Skip if already installed (same idempotency reasoning as rustup above).
-# Falls back to `python` since this machine has no `python3` on PATH.
-# Poetry is still needed below by the .git/hooks/pre-commit branch.
-if command -v "$POETRY_BIN" >/dev/null || [ -x "$POETRY_BIN" ]; then
+# Skip if already installed, for the same re-run reason as rustup above.
+if [ -x "$POETRY_BIN" ]; then
   echo "Poetry already installed, skipping"
 else
   echo "Installing poetry"
+  # Windows Python installs often provide `python` but not `python3`
   PYTHON_FOR_POETRY=$(command -v python3 || command -v python)
   curl -sSL https://install.python-poetry.org | "$PYTHON_FOR_POETRY" - --version "1.7.1"
   "$POETRY_BIN" self add 'poetry-dynamic-versioning[plugin]'
@@ -89,10 +72,9 @@ echo "Done installing dependencies"
 echo "Downloading spidermonkey source code"
 # Read the commit hash for mozilla-central from the `mozcentral.version` file
 MOZCENTRAL_VERSION=$(cat mozcentral.version)
-# Skip if already extracted -- lets this script be re-run after a later
-# step fails without re-downloading/re-extracting every time.
+# Skip if already extracted so this script can be re-run after a later failure.
 if [ ! -d firefox-source ]; then
-  # curl instead of wget: wget.exe is blocked by this machine's WDAC policy.
+  # curl rather than wget: it ships with Windows, macOS and most Linux distros
   curl -fsSL -o firefox-source-${MOZCENTRAL_VERSION}.zip https://github.com/mozilla-firefox/firefox/archive/${MOZCENTRAL_VERSION}.zip
   unzip -q firefox-source-${MOZCENTRAL_VERSION}.zip && mv firefox-${MOZCENTRAL_VERSION} firefox-source
 else
@@ -132,8 +114,8 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-tests \
   $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
   --enable-optimize
-# --disable-explicit-resource-management (worked around Bugzilla 1940342)
-# is no longer a recognized flag -- the feature it gated has since shipped.
+# --disable-explicit-resource-management (Bugzilla 1940342 workaround) is no
+# longer a recognized flag; the feature it gated has shipped.
 make -j$CPUS
 echo "Done building spidermonkey"
 

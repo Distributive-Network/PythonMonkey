@@ -60,9 +60,8 @@ PyObject *JSFunctionProxyMethodDefinitions::JSFunctionProxy_call(PyObject *self,
     return NULL;
   }
 
-  // This is the generic entry point for any Python->JS callback (e.g. a
-  // setTimeout callback), so a Promise resolved here has nothing else
-  // scheduled to drain its reaction jobs. See JobQueue.cc's runJobs.
+  // Python->JS callbacks (e.g. setTimeout handlers) can settle promises, and
+  // nothing else drains those reaction jobs. See JobQueue::runJobs.
   js::RunJobs(cx);
 
   if (PyErr_Occurred()) {

@@ -86,16 +86,10 @@ void nurseryCollectionCallback(JSContext *cx, JS::GCNurseryProgress progress, JS
   }
 }
 
-// pythonmonkey doesn't implement module loading, so `import(...)` must be
-// rejected rather than left unhandled. HostLoadImportedModule
-// (js/src/vm/Modules.cpp) only auto-finishes the promise on this path when a
-// hook IS registered but returns false; when no hook is registered at all it
-// reports "Module load hook not set" and returns without ever settling the
-// promise or clearing that pending exception -- leaving `await import(...)`
-// hung forever and a stale exception on the context. Registering this hook
-// (even though it never resolves anything) makes pythonmonkey responsible
-// for finishing the promise itself, as every embedder that permits dynamic
-// import syntax at all is required to be.
+// pythonmonkey doesn't load ES modules, but `import(...)` still parses. With
+// no hook registered, HostLoadImportedModule (js/src/vm/Modules.cpp) reports
+// an error without ever settling the import promise, so `await import(...)`
+// hangs. A hook that fails every load makes the engine reject it instead.
 static bool pythonmonkeyModuleLoadHook(
   JSContext *cx, JS::Handle<JSScript *> referrer, JS::Handle<JSObject *> moduleRequest,
   JS::Handle<JS::Value> hostDefined, JS::Handle<JS::Value> payload,
@@ -508,8 +502,8 @@ static PyObject *eval(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  // Mirrors the HTML spec's "clean up after running script" checkpoint --
-  // see JobQueue::runJobs for why the embedder now has to drain this itself.
+  // Microtask checkpoint (the HTML spec's "clean up after running script");
+  // see JobQueue::runJobs.
   js::RunJobs(GLOBAL_CX);
 
   // translate to the proper python type
@@ -595,8 +589,6 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
     return NULL;
   }
 
-  // asm.js was removed from SpiderMonkey (superseded by WebAssembly, set
-  // via .setWasm(true) below); ContextOptions::setAsmJS no longer exists.
   JS::ContextOptionsRef(GLOBAL_CX)
   .setWasm(true)
   .setAsyncStack(true)
@@ -621,9 +613,8 @@ PyMODINIT_FUNC PyInit_pythonmonkey(void)
   JS::AddGCNurseryCollectionCallback(GLOBAL_CX, nurseryCollectionCallback, NULL);
 
   JS::RealmCreationOptions creationOptions = JS::RealmCreationOptions();
-  // Off by default (a Spectre mitigation for untrusted web content, which
-  // doesn't apply to this embedded single-process run); Pyodide's threaded
-  // WASM build otherwise fails to link ("shared memory is disabled").
+  // Off by default as a Spectre mitigation for untrusted web content, which
+  // doesn't apply here; threaded wasm builds (e.g. Pyodide) need it to link.
   creationOptions.setSharedMemoryAndAtomicsEnabled(true);
   JS::RealmBehaviors behaviours = JS::RealmBehaviors();
   JS::RealmOptions options = JS::RealmOptions(creationOptions, behaviours);
