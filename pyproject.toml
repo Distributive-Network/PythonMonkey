@@ -75,7 +75,7 @@ pminit = { path = "./python/pminit", develop = true }
 
 
 [build-system]
-requires = ["poetry-core>=1.1.1", "poetry-dynamic-versioning==1.1.1"]
+requires = ["poetry-core>=1.1.1", "poetry-dynamic-versioning==1.10.1"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.autopep8]
