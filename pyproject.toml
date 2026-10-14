@@ -41,6 +41,10 @@ aiohttp = { version = "^3.9.5" }
 pminit = { version = ">=0.4.0", allow-prereleases = true }
 
 
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = "1.10.1", extras = ["plugin"] }
+
+
 [tool.poetry-dynamic-versioning]
 enable = true
 vcs = "git"
@@ -75,7 +79,7 @@ pminit = { path = "./python/pminit", develop = true }
 
 
 [build-system]
-requires = ["poetry-core>=1.1.1", "poetry-dynamic-versioning==1.1.1"]
+requires = ["poetry-core>=1.1.1", "poetry-dynamic-versioning==1.10.1"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.autopep8]

@@ -231,7 +231,7 @@ jobs:
       - name: Setup Poetry
         uses: snok/install-poetry@v1.4.1
         with:
-          version: 1.5.1
+          version: 2.5.1
       - name: Install Dependencies
         run: |
           echo "Installing Dependencies"
@@ -330,7 +330,7 @@ jobs:
       - name: Setup Poetry
         uses: snok/install-poetry@v1
         with:
-          version: 1.5.1
+          version: 2.5.1
       - name: Build source distribution (sdist) file
         run: |
           poetry self add "poetry-dynamic-versioning[plugin]"
