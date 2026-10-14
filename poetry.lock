@@ -759,6 +759,17 @@ files = [
 ]
 
 [[package]]
+name = "pip"
+version = "26.2.1"
+description = "The PyPA recommended tool for installing Python packages."
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "pip-26.2.1-py3-none-any.whl", hash = "sha256:71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e"},
+    {file = "pip-26.2.1.tar.gz", hash = "sha256:f6ad667e89a1fe78046c8f13232b247200f5258d7828f3f7883d660878e0813f"},
+]
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 description = "plugin and hook calling mechanisms for python"
@@ -1116,4 +1127,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "2d013bea49038417aa9b694c608e17b27fc02bd318c4c4c85ab6db63e275c6fe"
+content-hash = "67082ea0d853f196a8fbd925e4ced54f8058c3b3f14b6b4a44f738c12f197760"
