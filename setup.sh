@@ -36,7 +36,7 @@ CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equ
 $CARGO_BIN install cbindgen
 # Setup Poetry
 echo "Installing poetry"
-curl -sSL https://install.python-poetry.org | python3 - --version "2.5.1"
+curl -sSL https://install.python-poetry.org | python3 - --version "1.7.1"
 if [[ "$OSTYPE" == "msys"* ]]; then # Windows
   POETRY_BIN="$APPDATA/Python/Scripts/poetry"
 else
