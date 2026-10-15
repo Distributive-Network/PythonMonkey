@@ -32,6 +32,7 @@ on:
         - '3.12'
         - '3.13'
         - '3.14'
+        - '3.15'
       build_type:
         type: choice
         description: 'Choose the build type to use'
@@ -181,7 +182,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'ubuntu-22.04', 'macos-15-intel', 'macos-15', 'windows-2022', 'ubuntu-22.04-arm' ]
-        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14' ]
+        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15' ]
     runs-on: ${{ matrix.os }}
     container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }}
     steps:
@@ -230,7 +231,7 @@ jobs:
       - name: Setup Poetry
         uses: snok/install-poetry@v1.4.1
         with:
-          version: 1.5.1
+          version: 1.8.5
       - name: Install Dependencies
         run: |
           echo "Installing Dependencies"
@@ -329,7 +330,7 @@ jobs:
       - name: Setup Poetry
         uses: snok/install-poetry@v1
         with:
-          version: 1.5.1
+          version: 1.8.5
       - name: Build source distribution (sdist) file
         run: |
           poetry self add "poetry-dynamic-versioning[plugin]"
