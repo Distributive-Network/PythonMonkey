@@ -12,6 +12,7 @@
 #include "include/PyEventLoop.hh"
 
 #include <Python.h>
+#include <stdint.h>
 
 /**
  * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
@@ -153,6 +154,42 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
   {
     // Every `PyThreadState` is actually allocated with extra fields as a `_PyThreadStateImpl` struct
     // See https://github.com/python/cpython/blob/v3.13.0rc1/Include/internal/pycore_tstate.h#L17-L24
+#if PY_VERSION_HEX >= 0x030f0000 // Python version is greater than 3.14
+    // Python 3.15 embeds a frame and adds stack fields before asyncio_running_loop.
+    using PyThreadStateHolder = struct { // _PyThreadStateImpl
+      PyThreadState base;
+      struct { // _PyInterpreterFrame
+        uintptr_t f_executable;
+        void *previous;
+        uintptr_t f_funcobj;
+        PyObject *f_globals;
+        PyObject *f_builtins;
+        PyObject *f_locals;
+        PyObject *frame_obj;
+        void *instr_ptr;
+        uintptr_t *stackpointer;
+        #ifdef Py_GIL_DISABLED
+        int32_t tlbc_index;
+        #endif
+        uint16_t return_offset;
+        char owner;
+        #ifdef Py_DEBUG
+        uint8_t visited : 1;
+        uint8_t lltrace : 7;
+        #else
+        uint8_t visited;
+        #endif
+        uintptr_t localsplus[1];
+      } base_frame;
+      Py_ssize_t refcount;
+      uintptr_t c_stack_top;
+      uintptr_t c_stack_soft_limit;
+      uintptr_t c_stack_hard_limit;
+      uintptr_t c_stack_init_base;
+      uintptr_t c_stack_init_top;
+      PyObject *asyncio_running_loop;
+    };
+#else
     using PyThreadStateHolder = struct { // _PyThreadStateImpl
       PyThreadState base;
       #if PY_VERSION_HEX >= 0x030e0000 // Python version is greater than 3.14
@@ -164,6 +201,7 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
       #endif
       PyObject *asyncio_running_loop; // we only need the first few fields of `_PyThreadStateImpl`
     };
+#endif
 
     // Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Modules/_asynciomodule.c#L3205-L3210
     PyObject *loop = ((PyThreadStateHolder *)tstate)->asyncio_running_loop;
