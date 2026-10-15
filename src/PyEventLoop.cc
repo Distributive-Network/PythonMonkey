@@ -154,11 +154,14 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
   {
     // Every `PyThreadState` is actually allocated with extra fields as a `_PyThreadStateImpl` struct
     // See https://github.com/python/cpython/blob/v3.13.0rc1/Include/internal/pycore_tstate.h#L17-L24
-#if PY_VERSION_HEX >= 0x030f0000 // Python version is greater than 3.14
-    // Python 3.15 embeds a frame and adds stack fields before asyncio_running_loop.
     using PyThreadStateHolder = struct { // _PyThreadStateImpl
       PyThreadState base;
+
+      #if PY_VERSION_HEX >= 0x030f0000 // Python version is greater than 3.15
+      // Python 3.15 embeds a frame and adds stack fields before asyncio_running_loop.
+      // See https://github.com/python/cpython/blob/v3.15.0/Include/internal/pycore_tstate.h#L34-L36
       struct { // _PyInterpreterFrame
+        // Condensed from https://github.com/python/cpython/blob/main/Include/internal/pycore_interpframe_structs.h#L29-L53
         uintptr_t f_executable;
         void *previous;
         uintptr_t f_funcobj;
@@ -181,27 +184,25 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
         #endif
         uintptr_t localsplus[1];
       } base_frame;
-      Py_ssize_t refcount;
-      uintptr_t c_stack_top;
-      uintptr_t c_stack_soft_limit;
-      uintptr_t c_stack_hard_limit;
-      uintptr_t c_stack_init_base;
-      uintptr_t c_stack_init_top;
-      PyObject *asyncio_running_loop;
-    };
-#else
-    using PyThreadStateHolder = struct { // _PyThreadStateImpl
-      PyThreadState base;
+      #endif // Python >= 3.15
+
       #if PY_VERSION_HEX >= 0x030e0000 // Python version is greater than 3.14
       // the struct is changed with more additional fields, see https://github.com/python/cpython/blob/v3.14.0rc3/Include/internal/pycore_tstate.h#L24-L40
       Py_ssize_t refcount;
       uintptr_t c_stack_top;
       uintptr_t c_stack_soft_limit;
       uintptr_t c_stack_hard_limit;
-      #endif
-      PyObject *asyncio_running_loop; // we only need the first few fields of `_PyThreadStateImpl`
+      #endif // Python >= 3.14
+
+      #if PY_VERSION_HEX >= 0x030f0000 // Python version is greater than 3.15
+      uintptr_t c_stack_init_base;
+      uintptr_t c_stack_init_top;
+      #endif // Python >= 3.15
+
+      PyObject *asyncio_running_loop;
+      // ...
+      // (we only need the first few fields of `_PyThreadStateImpl`)
     };
-#endif
 
     // Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Modules/_asynciomodule.c#L3205-L3210
     PyObject *loop = ((PyThreadStateHolder *)tstate)->asyncio_running_loop;
