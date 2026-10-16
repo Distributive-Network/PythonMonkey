@@ -299,6 +299,16 @@ jobs:
           for file in *.whl; do
             mv "$file" "$(echo "$file" | sed -E 's/macosx_[0-9]+_[0-9]+/macosx_11_0/')";
           done
+      - name: Tag the Linux wheels as manylinux
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        # PyPI rejects wheels with the plain `linux_xxx` platform tag.
+        # The wheels are built inside the Ubuntu 20.04 container (glibc 2.31), so tag them as `manylinux_2_31_xxx`.
+        run: |
+          cd ./dist/
+          for file in *-linux_*.whl; do
+            [ -e "$file" ] || continue
+            mv "$file" "$(echo "$file" | sed -E 's/-linux_/-manylinux_2_31_/')";
+          done
       - name: Upload wheel as CI artifacts
         uses: actions/upload-artifact@v4
         with:
