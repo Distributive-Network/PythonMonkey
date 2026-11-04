@@ -23,16 +23,16 @@ fetch_intel_bottle() {
 install_macos_brew_deps() {
   brew update || true # allow failure
   if [[ "$(uname -m)" == "x86_64" ]]; then
-    # openssl@4 (a dependency of coreutils): newest version with an Intel bottle is 4.0.2
-    brew install ca-certificates
-    fetch_intel_bottle openssl/4 4.0.2 openssl@4
     # llvm@19 depends on zstd
     brew install zstd
     fetch_intel_bottle llvm/19 19.1.7 llvm@19
     fetch_intel_bottle lld/19 19.1.7 lld@19
-    brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
+    # NOTE: `coreutils` is deliberately not installed: it depends on openssl@4,
+    # which has no Intel bottle at its current version (built from source, ~10 min).
+    # macOS ships `realpath` natively since 12.3.
+    brew install cmake pkg-config wget unzip
   else
-    brew install cmake pkg-config wget unzip coreutils
+    brew install cmake pkg-config wget unzip
     # SpiderMonkey requires clang >= 19 and lld as the host linker; Xcode's clang
     # is older and ships no lld. Versioned formulas because the unversioned
     # `llvm`/`lld` build from source for hours on some macOS versions.
