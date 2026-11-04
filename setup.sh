@@ -23,13 +23,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then # Linux
 elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
   brew update || true # allow failure
   brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
-  # SpiderMonkey requires clang >= 19 and lld as the host linker; Xcode's clang
-  # is older and ships no lld. Versioned formulas because the unversioned
-  # `llvm`/`lld` have no bottles for Intel macOS or macOS 14 and build from
-  # source for hours (and lld pulls in the unversioned llvm). Both kegs are
-  # keg-only, so put them on PATH explicitly.
-  brew install llvm@19 lld@19
-  export PATH="$(brew --prefix llvm@19)/bin:$(brew --prefix lld@19)/bin:$PATH"
+  source ./macos-llvm.sh
 elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
   echo "Dependencies are not going to be installed automatically on Windows."
 else
