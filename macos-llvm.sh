@@ -23,14 +23,15 @@ else
     curl -fsSL -o "$tarball" "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/LLVM-$LLVM_VERSION-macOS-X64.tar.xz"
     echo "$LLVM_X64_SHA256  $tarball" | shasum -a 256 -c -
     # The full toolchain unpacks to many GB; take only what SpiderMonkey's
-    # configure looks up (libclang is for bindgen). Leave out the bundled libc++
-    # headers, which are newer than the system libc++ the build links against,
-    # so clang uses the SDK's.
+    # configure looks up (libclang is for bindgen). Use the bundled libc++
+    # headers, as Homebrew's llvm@19 does: the SDK's are written for Apple clang
+    # and don't compile with upstream clang 19. Its libc++ dylibs are left out so
+    # the build still links the system libc++.
     includes=()
     for f in bin/clang bin/clang++ bin/clang-19 bin/clang-cpp bin/lld bin/ld64.lld bin/ld.lld \
              bin/llvm-ar bin/llvm-ranlib bin/llvm-nm bin/llvm-objcopy bin/llvm-objdump bin/llvm-otool \
              bin/llvm-strip bin/llvm-install-name-tool bin/llvm-profdata bin/llvm-config bin/dsymutil \
-             lib/libclang.dylib 'lib/clang/*'; do
+             lib/libclang.dylib 'lib/clang/*' 'include/c++/v1/*'; do
       includes+=(--include "LLVM-$LLVM_VERSION-macOS-X64/$f")
     done
     tar -xJf "$tarball" -C "$(dirname "$LLVM_DIR")" "${includes[@]}"
