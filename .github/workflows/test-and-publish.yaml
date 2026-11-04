@@ -260,8 +260,29 @@ jobs:
             # to llvm@19: the unversioned `llvm` formula (currently 23.x)
             # has no bottle for Intel macOS or macOS 14, so it silently
             # falls back to a multi-hour from-source build here.
-            brew install llvm@19
-            echo "PATH=$(brew --prefix llvm@19)/bin:$PATH" >> $GITHUB_ENV
+            if [[ "$(uname -m)" == "x86_64" ]]; then
+              # Homebrew no longer publishes Intel bottles for llvm@19/lld@19 on
+              # newer macOS, and the from-source fallback is broken. The older
+              # Intel (sonoma) bottles are still on GHCR: install them manually.
+              brew install zstd
+              CELLAR="$(brew --cellar)"
+              fetch_bottle() { # $1=formula dir on GHCR (e.g. llvm/19)  $2=version  $3=keg name (e.g. llvm@19)
+                local token index digest
+                token=$(curl -fsSL "https://ghcr.io/token?service=ghcr.io&scope=repository:homebrew/core/$1:pull" | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+                index=$(curl -fsSL -H "Authorization: Bearer $token" -H "Accept: application/vnd.oci.image.index.v1+json" "https://ghcr.io/v2/homebrew/core/$1/manifests/$2")
+                digest=$(echo "$index" | python3 -c 'import sys,json; print(next(m["annotations"]["sh.brew.bottle.digest"] for m in json.load(sys.stdin)["manifests"] if m["annotations"].get("org.opencontainers.image.ref.name","").endswith(".sonoma") and m["platform"]["architecture"]=="amd64"))')
+                curl -fsSL -H "Authorization: Bearer $token" -o "/tmp/$3.tar.gz" "https://ghcr.io/v2/homebrew/core/$1/blobs/sha256:$digest"
+                tar -xzf "/tmp/$3.tar.gz" -C "$CELLAR"
+                brew link --force "$3" 2>/dev/null || true
+                mkdir -p "$(brew --prefix)/opt"
+                ln -sfn "$CELLAR/$3/$2" "$(brew --prefix)/opt/$3"
+              }
+              fetch_bottle llvm/19 19.1.7 llvm@19
+              fetch_bottle lld/19 19.1.7 lld@19
+            else
+              brew install llvm@19 lld@19
+            fi
+            echo "PATH=$(brew --prefix llvm@19)/bin:$(brew --prefix lld@19)/bin:$PATH" >> $GITHUB_ENV
           fi
           echo "Installing python deps"
           poetry self add "poetry-dynamic-versioning[plugin]"
