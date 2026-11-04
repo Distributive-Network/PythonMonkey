@@ -254,17 +254,10 @@ jobs:
             echo "CXX=clang++" >> $GITHUB_ENV
           elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
             brew update || true # allow failure
-            brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
-            # Xcode's bundled clang is older than SpiderMonkey's own
-            # minimum (>=19) -- same fix as setup.sh's macOS branch. Pinned
-            # to llvm@19: the unversioned `llvm` formula (currently 23.x)
-            # has no bottle for Intel macOS or macOS 14, so it silently
-            # falls back to a multi-hour from-source build here.
             if [[ "$(uname -m)" == "x86_64" ]]; then
-              # Homebrew no longer publishes Intel bottles for llvm@19/lld@19 on
-              # newer macOS, and the from-source fallback is broken. The older
-              # Intel (sonoma) bottles are still on GHCR: install them manually.
-              brew install zstd
+              # Homebrew no longer publishes Intel bottles for newer macOS, and the
+              # from-source fallbacks are slow or broken. The older Intel (macOS Sonoma)
+              # bottles are still on GHCR: install them manually.
               CELLAR="$(brew --cellar)"
               fetch_bottle() { # $1=formula dir on GHCR (e.g. llvm/19)  $2=version  $3=keg name (e.g. llvm@19)
                 local token index digest
@@ -277,6 +270,19 @@ jobs:
                 mkdir -p "$(brew --prefix)/opt"
                 ln -sfn "$CELLAR/$3/$2" "$(brew --prefix)/opt/$3"
               }
+              # openssl@4 (a dependency of coreutils etc.): latest version with an Intel bottle is 4.0.2
+              brew install ca-certificates
+              fetch_bottle openssl/4 4.0.2 openssl@4
+            fi
+            brew install cmake pkg-config wget unzip coreutils # `coreutils` installs the `realpath` command
+            # Xcode's bundled clang is older than SpiderMonkey's own
+            # minimum (>=19) -- same fix as setup.sh's macOS branch. Pinned
+            # to llvm@19: the unversioned `llvm` formula (currently 23.x)
+            # has no bottle for Intel macOS or macOS 14, so it silently
+            # falls back to a multi-hour from-source build here.
+            if [[ "$(uname -m)" == "x86_64" ]]; then
+              # llvm@19/lld@19 have no Intel bottle on newer macOS either (see above)
+              brew install zstd
               fetch_bottle llvm/19 19.1.7 llvm@19
               fetch_bottle lld/19 19.1.7 lld@19
             else
