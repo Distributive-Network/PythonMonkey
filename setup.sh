@@ -52,8 +52,6 @@ fi
 CARGO_BIN="$HOME/.cargo/bin/cargo" # also works for Windows. On Windows this equals to %USERPROFILE%\.cargo\bin\cargo
 command -v cbindgen >/dev/null || $CARGO_BIN install cbindgen
 # Setup Poetry
-echo "Installing poetry"
-curl -sSL https://install.python-poetry.org | python3 - --version "1.8.5"
 if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* ]]; then # Windows
   POETRY_BIN="$APPDATA/Python/Scripts/poetry"
 else
@@ -66,7 +64,7 @@ else
   echo "Installing poetry"
   # Windows Python installs often provide `python` but not `python3`
   PYTHON_FOR_POETRY=$(command -v python3 || command -v python)
-  curl -sSL https://install.python-poetry.org | "$PYTHON_FOR_POETRY" - --version "1.7.1"
+  curl -sSL https://install.python-poetry.org | "$PYTHON_FOR_POETRY" - --version "1.8.5"
   "$POETRY_BIN" self add 'poetry-dynamic-versioning[plugin]'
 fi
 echo "Done installing dependencies"
