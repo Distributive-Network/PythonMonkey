@@ -62,6 +62,12 @@ static PyObject *runMicroTaskCallback(PyObject *closure, PyObject *Py_UNUSED(unu
     setSpiderMonkeyException(cx);
     return NULL; // surfaces through the event-loop's exception handler
   }
+
+  // SystemExit (e.g. `python.exit()`) is left set rather than converted to a
+  // JS exception, so the job can succeed with a Python exception pending.
+  if (PyErr_Occurred()) {
+    return NULL;
+  }
   Py_RETURN_NONE;
 }
 
