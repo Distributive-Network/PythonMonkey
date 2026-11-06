@@ -14,6 +14,7 @@
 #include <jsapi.h>
 #include <js/ArrayBuffer.h>
 #include <js/experimental/TypedData.h>
+#include <js/GCAPI.h>
 #include <js/ScalarType.h>
 
 #include <limits.h>
@@ -80,17 +81,15 @@ PyObject *BufferType::fromJsTypedArray(JSContext *cx, JS::HandleObject typedArra
   JS::Scalar::Type subtype = JS_GetArrayBufferViewType(typedArray);
   auto byteLength = JS_GetTypedArrayByteLength(typedArray);
 
-  // Retrieve/Create the underlying ArrayBuffer object for side-effect.
-  //
-  // If byte length is less than `JS_MaxMovableTypedArraySize()`,
-  // the ArrayBuffer object would be created lazily and the data is stored inline in the TypedArray.
-  // We don't want inline data because the data pointer would be invalidated during a GC as the TypedArray object is moved.
-  bool isSharedMemory;
-  if (!JS_GetArrayBufferViewBuffer(cx, typedArray, &isSharedMemory)) return nullptr;
+  // Python keeps the returned pointer (as a memoryview) long after this call,
+  // so the data must not live inline in a GC-movable object. This moves both
+  // TypedArray-inline and small-ArrayBuffer-inline data out of line.
+  if (!JS::EnsureNonInlineArrayBufferOrView(cx, typedArray)) return nullptr;
 
-  uint8_t __destBuf[0] = {}; // we don't care about its value as it's used only if the TypedArray still having inline data
-  uint8_t *data = JS_GetArrayBufferViewFixedData(typedArray, __destBuf, 0 /* making sure we don't copy inline data */);
-  if (data == nullptr) { // shared memory or still having inline data
+  JS::AutoCheckCannotGC nogc(cx);
+  bool isSharedMemory;
+  uint8_t *data = static_cast<uint8_t *>(JS_GetArrayBufferViewData(typedArray, &isSharedMemory, nogc));
+  if (isSharedMemory || data == nullptr) {
     PyErr_SetString(PyExc_TypeError, "PythonMonkey cannot coerce TypedArrays backed by shared memory.");
     return nullptr;
   }
