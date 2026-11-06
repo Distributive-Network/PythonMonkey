@@ -1,9 +1,9 @@
 #!/bin/bash
 # Source this file on macOS, then call `install_macos_brew_deps`.
 #
-# Installs cmake, pkg-config, wget, unzip, coreutils, llvm@19 and lld@19.
+# Installs cmake, pkg-config, wget, unzip, llvm@19 and lld@19.
 # On Intel Macs Homebrew no longer publishes bottles for newer macOS, so some
-# formulae (openssl@4, llvm@19, lld@19) would be built from source, which is
+# formulae (llvm@19, lld@19) would be built from source, which is
 # very slow or broken. The older Intel (macOS Sonoma) bottles are still on
 # GHCR, so install those manually first.
 

@@ -118,6 +118,39 @@ if ! realpath --relative-to=. . >/dev/null 2>&1; then
   }
 fi
 
+# macOS has no `timeout` (GNU coreutils); use `gtimeout` if installed, otherwise
+# fall back to a small perl implementation. Supports `[-s SIG] [--foreground] DURATION CMD...`.
+if ! command -v timeout >/dev/null 2>&1; then
+  if command -v gtimeout >/dev/null 2>&1; then
+    timeout() { gtimeout "$@"; }
+  else
+    timeout()
+    {
+      local sig=15
+      while [[ "${1:-}" == -* ]]; do
+        case "$1" in
+          -s)           sig="$2"; shift 2;;
+          -s*)          sig="${1#-s}"; shift;;
+          --foreground) shift;;
+          *)            shift;;
+        esac
+      done
+      local secs="$1"
+      shift
+      perl -e '
+        my ($secs, $sig) = (shift, shift);
+        my $pid = fork();
+        die "fork: $!" unless defined $pid;
+        if (!$pid) { exec @ARGV or exit 127; }
+        $SIG{ALRM} = sub { kill $sig, $pid; waitpid($pid, 0); exit 124; };
+        alarm $secs;
+        waitpid($pid, 0);
+        exit(($? & 127) ? 128 + ($? & 127) : ($? >> 8));
+      ' "$secs" "$sig" "$@"
+    }
+  fi
+fi
+
 findTests()
 {
   for loc in "${testLocations[@]}"
