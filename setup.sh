@@ -106,6 +106,7 @@ mkdir -p ../../../../_spidermonkey_install/
   --disable-debug-symbols \
   --disable-jemalloc \
   --disable-tests \
+  --disable-bootstrap \
   $(if [[ "$OSTYPE" == "darwin"* ]]; then echo "--enable-linker=ld64"; fi) \
   --enable-optimize
 # --disable-explicit-resource-management (Bugzilla 1940342 workaround) is no
