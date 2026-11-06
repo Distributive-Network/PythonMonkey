@@ -46,6 +46,10 @@ on:
         - 'Release'
         - 'None'
   pull_request:
+  schedule:
+    # GitHub Actions delete the CI caches that haven't been accessed in 7 days.
+    # We need to keep the cached SpiderMonkey build because it takes a long time to build and is required for the PythonMonkey build.
+    - cron: '0 4 */6 * *' # every 6 days
 
 env:
   # don't upgrade outdated brew packages because the process is too slow
