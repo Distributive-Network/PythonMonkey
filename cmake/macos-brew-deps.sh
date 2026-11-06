@@ -36,12 +36,12 @@ relocate_bottle() {
   find "$dir" -type f ! -type l | while IFS= read -r f; do
     file "$f" | grep -q 'Mach-O' || continue
     chmod u+w "$f"
-    otool -L "$f" | awk 'NR>1{print $1}' | grep '@@HOMEBREW_' | while IFS= read -r old; do
+    otool -L "$f" | awk 'NR>1 && /@@HOMEBREW_/{print $1}' | while IFS= read -r old; do
       install_name_tool -change "$old" "$(_reloc "$old")" "$f"
     done
-    old="$(otool -D "$f" | sed -n '2p')"
+    old="$(otool -D "$f" 2>/dev/null | sed -n '2p' || true)"
     if [[ "$old" == *@@HOMEBREW_* ]]; then install_name_tool -id "$(_reloc "$old")" "$f"; fi
-    otool -l "$f" | awk '/cmd LC_RPATH/{getline; getline; print $2}' | grep '@@HOMEBREW_' | while IFS= read -r old; do
+    otool -l "$f" | awk '/cmd LC_RPATH/{getline; getline; if ($2 ~ /@@HOMEBREW_/) print $2}' | while IFS= read -r old; do
       install_name_tool -rpath "$old" "$(_reloc "$old")" "$f"
     done
     codesign -f -s - "$f" 2>/dev/null || true # ad-hoc re-sign after editing
