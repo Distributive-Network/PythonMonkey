@@ -29,9 +29,9 @@ relocate_bottle() {
   cellar="$(brew --cellar)"
   _reloc() { local s="${1//@@HOMEBREW_PREFIX@@/$prefix}"; echo "${s//@@HOMEBREW_CELLAR@@/$cellar}"; }
   # text files (scripts, .pc, .cmake, clang config, ...)
-  grep -rIl '@@HOMEBREW_' "$dir" 2>/dev/null | while IFS= read -r f; do
+  while IFS= read -r f; do
     sed -i '' -e "s|@@HOMEBREW_PREFIX@@|$prefix|g" -e "s|@@HOMEBREW_CELLAR@@|$cellar|g" "$f"
-  done
+  done < <(grep -rIl '@@HOMEBREW_' "$dir" 2>/dev/null || true)
   # Mach-O files: dependent libraries, install names and rpaths
   find "$dir" -type f ! -type l | while IFS= read -r f; do
     file "$f" | grep -q 'Mach-O' || continue
