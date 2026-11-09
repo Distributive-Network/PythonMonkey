@@ -142,6 +142,26 @@ PyEventLoop PyEventLoop::_loopNotFound() {
 PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
   // Modified from Python 3.9 `get_running_loop` https://github.com/python/cpython/blob/7cb3a44/Modules/_asynciomodule.c#L241-L278
 
+  // For the current thread, ask asyncio itself instead of reading CPython's private thread-state layout,
+  // which differs between patch releases (e.g. 3.14.3 vs 3.14.4).
+  if (tstate == PyThreadState_Get()) {
+    PyObject *asyncio = PyImport_ImportModule("asyncio");
+    if (asyncio == NULL) {
+      return _loopNotFound();
+    }
+    PyObject *loop = PyObject_CallMethod(asyncio, "_get_running_loop", NULL);
+    Py_DECREF(asyncio);
+    if (loop == NULL) {
+      PyErr_Clear();
+      return _loopNotFound();
+    }
+    if (loop == Py_None) {
+      Py_DECREF(loop);
+      return _loopNotFound();
+    }
+    return PyEventLoop(loop); // takes the new reference
+  }
+
   PyObject *ts_dict;
   #if PY_VERSION_HEX >= 0x030d0000 // Python version is greater than 3.13
   // The private `_PyThreadState_GetDict(tstate)` API gets removed in Python 3.13.
@@ -203,6 +223,14 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
       // ...
       // (we only need the first few fields of `_PyThreadStateImpl`)
     };
+
+    #if PY_VERSION_HEX >= 0x030e0000 && PY_VERSION_HEX < 0x030f0000
+    // Python 3.14.4 added a pointer field to the public `PyThreadState`, shifting the offsets of the private fields.
+    // Refuse to read another thread's state when the runtime and build-time layouts differ.
+    if ((PY_VERSION_HEX >= 0x030e0400) != (Py_Version >= 0x030e0400)) {
+      return _loopNotFound();
+    }
+    #endif
 
     // Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Modules/_asynciomodule.c#L3205-L3210
     PyObject *loop = ((PyThreadStateHolder *)tstate)->asyncio_running_loop;
