@@ -34,13 +34,12 @@ def new(ctor):
   newCtor = pm.eval("""'use strict'; (
 function pmNewFactory(ctor)
 {
-  return function newCtor(args) {
-    args = Array.from(args || []);
-    return new ctor(...args);
+  return function newCtor() {
+    return new ctor(...[...arguments]);
   };
 }
     )""", evalOpts)(ctor)
-  return (lambda *args: newCtor(list(args)))
+  return (lambda *args, **kwargs: newCtor(*args, **kwargs))
 
 
 def simpleUncaughtExceptionHandler(loop, context):
