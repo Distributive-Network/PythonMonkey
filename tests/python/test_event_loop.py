@@ -1,6 +1,7 @@
 import pytest
 import pythonmonkey as pm
 import asyncio
+import gc
 
 
 def test_setTimeout_unref():
@@ -433,3 +434,20 @@ def test_webassembly():
     # making sure the async_fn is run
     return True
   assert asyncio.run(async_fn())
+
+
+def test_promise_jobs_release_job_wrappers():
+  schedule = pm.eval("() => Promise.resolve().then(() => 0)")
+  awaits = 50
+
+  async def drive():
+    for _ in range(awaits):
+      await schedule()
+    return sum(1 for o in gc.get_objects()
+               if getattr(o, "__name__", "") == "eventLoopJobWrapper")
+
+  leaked = asyncio.run(drive())
+  assert leaked == 0, (
+    f"{leaked} eventLoopJobWrapper objects retained after {awaits} awaits; "
+    f"each settled promise job's wrapper must be released once the job has run"
+  )
