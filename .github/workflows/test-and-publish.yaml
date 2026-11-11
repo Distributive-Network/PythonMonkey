@@ -233,7 +233,15 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
+        if: ${{ runner.os != 'Windows' }}
         uses: snok/install-poetry@v1.4.2
+        with:
+          version: 1.8.5
+      # v1.4.2's installer fails to create its venv on Windows + Python 3.8 under bash
+      # (snok/install-poetry#94); v1.4.1 uses the legacy installer on Windows.
+      - name: Setup Poetry (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        uses: snok/install-poetry@v1.4.1
         with:
           version: 1.8.5
       - name: Install Dependencies
