@@ -30,7 +30,9 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(FetchContent)
 
   if (WIN32)
-    SET(COMPILE_FLAGS "/GR- /W0")
+    # This build bypasses moz.build, which normally defines XP_WIN; without
+    # it SpiderMonkey headers (e.g. PlatformMutex.h) take a POSIX path.
+    SET(COMPILE_FLAGS "/GR- /W0 /DXP_WIN")
 
     SET(OPTIMIZED "/O2")
     SET(UNOPTIMIZED "/Od")
@@ -39,7 +41,9 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     SET(PROFILE "/PROFILE")
     SET(ADDRESS_SANITIZE "/fsanitize=address /Oy-")
   else()
-    SET(COMPILE_FLAGS "-fno-rtti -Wno-invalid-offsetof")
+    # Same as -DXP_WIN above: without XP_UNIX, headers such as
+    # mfbt/UniquePtrExtensions.h hit their "Unsupported OS" #error.
+    SET(COMPILE_FLAGS "-fno-rtti -Wno-invalid-offsetof -DXP_UNIX")
 
     SET(OPTIMIZED "-Ofast -DNDEBUG")
     SET(UNOPTIMIZED "-O0")
