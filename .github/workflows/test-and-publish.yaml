@@ -233,7 +233,7 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
       - name: Setup Poetry
-        uses: snok/install-poetry@v1.4.1
+        uses: snok/install-poetry@v1.4.2
         with:
           version: 1.8.5
       - name: Install Dependencies
