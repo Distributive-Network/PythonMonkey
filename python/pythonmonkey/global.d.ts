@@ -64,6 +64,9 @@ declare var clearInterval: typeof import("timers").clearInterval;
 declare var URL: typeof import("url").URL;
 declare var URLSearchParams: typeof import("url").URLSearchParams;
 
+// Expose `structuredClone`
+declare function structuredClone<T = any>(value: T, options?: { transfer?: any[] }): T;
+
 // Expose `XMLHttpRequest` (XHR) API
 declare var XMLHttpRequest: typeof import("XMLHttpRequest").XMLHttpRequest;
 

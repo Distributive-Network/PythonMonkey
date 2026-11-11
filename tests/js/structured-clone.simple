@@ -1,0 +1,28 @@
+/**
+ * @file        structured-clone.simple
+ *              Simple test for the structuredClone() global
+ * @author      Dan Desjardins <dan@distributive.network>
+ * @date        November 2026
+ */
+
+function assert(cond, message)
+{
+  if (!cond) throw new Error(message);
+}
+
+assert(typeof structuredClone === 'function', 'structuredClone is not a global function');
+
+const source = { list: ['a'], nested: { map: new Map([[1, { x: 2 }]]), date: new Date(0), bytes: new Uint8Array([1, 2, 3]) } };
+source.self = source;
+const copy = structuredClone(source);
+
+copy.list.push('b');
+assert(source.list.length === 1, 'clone shares an array with its source');
+assert(copy.nested.map.get(1).x === 2, 'Map entries were not cloned');
+assert(copy.nested.date instanceof Date && copy.nested.date.getTime() === 0, 'Date was not cloned');
+assert(copy.nested.bytes.join() === '1,2,3' && copy.nested.bytes !== source.nested.bytes, 'Uint8Array was not cloned');
+assert(copy.self === copy, 'cycle was not preserved');
+
+let error;
+try { structuredClone(function f() {}); } catch (e) { error = e; }
+assert(error && error.name === 'DataCloneError', 'cloning a function did not throw DataCloneError');
