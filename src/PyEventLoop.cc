@@ -13,6 +13,7 @@
 
 #include <Python.h>
 #include <stdint.h>
+#include <stddef.h>
 
 /**
  * @brief Wrapper to decrement the counter of queueing event-loop jobs after the job finishes
@@ -205,7 +206,26 @@ PyEventLoop PyEventLoop::_getLoopOnThread(PyThreadState *tstate) {
     };
 
     // Modified from https://github.com/python/cpython/blob/v3.13.0rc1/Modules/_asynciomodule.c#L3205-L3210
-    PyObject *loop = ((PyThreadStateHolder *)tstate)->asyncio_running_loop;
+    size_t loopOffset = offsetof(PyThreadStateHolder, asyncio_running_loop);
+    #if PY_VERSION_HEX >= 0x030e0000 && PY_VERSION_HEX < 0x030f0000 // Python 3.14
+    // Python 3.14.4 appended a pointer field (`datastack_cached_chunk`) to the public `PyThreadState` struct,
+    //    so `sizeof(PyThreadState)` is 8 bytes larger, and every `_PyThreadStateImpl` field after it is shifted.
+    //    see https://github.com/python/cpython/commit/19cbcc0f85 (gh-142183)
+    //        https://github.com/Distributive-Network/PythonMonkey/issues/515
+    // `sizeof(PyThreadState)` is fixed at compile time by the headers we build against,
+    //    so adjust the offset if the running interpreter is on the other side of 3.14.4.
+    {
+      constexpr unsigned long tstateGrewVersion = 0x030e0400; // 3.14.4
+      bool builtWithCachedChunk = PY_VERSION_HEX >= tstateGrewVersion;
+      bool runningWithCachedChunk = Py_Version >= tstateGrewVersion;
+      if (builtWithCachedChunk && !runningWithCachedChunk) {
+        loopOffset -= sizeof(void *);
+      } else if (!builtWithCachedChunk && runningWithCachedChunk) {
+        loopOffset += sizeof(void *);
+      }
+    }
+    #endif // Python 3.14
+    PyObject *loop = *(PyObject **)((char *)tstate + loopOffset); // = ((PyThreadStateHolder *)tstate)->asyncio_running_loop;
     if (loop == NULL) {
       return _loopNotFound();
     }
