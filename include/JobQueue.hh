@@ -130,6 +130,25 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> saveJobQueue(JSContext *) override;
 static bool dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable);
 
 /**
+ * @brief Called on the JS thread when SpiderMonkey starts an off-thread task whose promise settles
+ *        through dispatchToEventLoop (e.g. WebAssembly.compile); counts it as a pending event-loop job,
+ *        so that pm.wait() waits for it
+ *
+ * @param closure - closure, currently the javascript context
+ * @param dispatchable - the task
+ */
+static void asyncTaskStarted(void *closure, JS::Dispatchable *dispatchable);
+
+/**
+ * @brief Called on the JS thread when a task counted by asyncTaskStarted has run or been cancelled;
+ *        uncounts it
+ *
+ * @param closure - closure, currently the javascript context
+ * @param dispatchable - the task
+ */
+static void asyncTaskFinished(void *closure, JS::Dispatchable *dispatchable);
+
+/**
  * @brief The callback for dispatching an off-thread promise to the event
  * loop after a delay.
  *
@@ -162,11 +181,11 @@ static void promiseRejectionTracker(JSContext *cx, bool mutedErrors,
 }; // class
 
 /**
- * @brief Send job to the Python event-loop on main thread
- * (Thread-Safe)
- * @param pyFunc - the Python job function
- * @return success
+ * @brief Send an off-thread task's Dispatchable to the Python event-loop on the main thread, or hand
+ * it back to SpiderMonkey when no event-loop is running. Runs on its own thread, started by
+ * JobQueue::dispatchToEventLoop.
+ * @param job - the DispatchJob (JSContext and Dispatchable); deleted here
  */
-bool sendJobToMainLoop(PyObject *pyFunc);
+void sendJobToMainLoop(void *job);
 
 #endif
