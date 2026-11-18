@@ -26,6 +26,9 @@ if [[ "$OSTYPE" != "linux-gnu"* ]]; then
   # TODO: add tests on Windows and macOS. What's the equivalence of `strace`?
 fi
 
+command -v strace >/dev/null || panic "strace is not installed"
+strace -o /dev/null true 2>/dev/null || panic "strace cannot trace processes here (ptrace denied?)"
+
 code='
 function newRequest(url) {
   return new Promise(function (resolve, reject) 
