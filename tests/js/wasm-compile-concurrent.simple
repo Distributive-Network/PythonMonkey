@@ -1,0 +1,52 @@
+/**
+ * @file        wasm-compile-concurrent.simple
+ *              Several WebAssembly.compile() calls in flight at once all settle: a compile that
+ *              finishes on a helper thread while the JS thread starts another one does not deadlock.
+ * @author      Wes Garland, wes@distributive.network
+ * @date        Nov 2026
+ *
+ * timeout: 10
+ */
+'use strict';
+
+/* A module of `count` functions, each `per` times (i32.const 0; drop): big enough to compile off-thread */
+function makeModule(count, per)
+{
+  function leb(n)
+  {
+    const out = [];
+    do
+    {
+      const b = n & 0x7f;
+      n >>>= 7;
+      out.push(n ? b | 0x80 : b);
+    } while (n);
+    return out;
+  }
+  function section(id, payload)
+  {
+    return [ id, ...leb(payload.length), ...payload ];
+  }
+
+  const body = [ 0 ];
+  for (let i = 0; i < per; i++)
+    body.push(0x41, 0, 0x1a);
+  body.push(0x0b);
+
+  const code = leb(count);
+  for (let i = 0; i < count; i++)
+    code.push(...leb(body.length), ...body);
+
+  return new Uint8Array([ 0, 0x61, 0x73, 0x6d, 1, 0, 0, 0,
+    ...section(1, [ 1, 0x60, 0, 0 ]),
+    ...section(3, [ ...leb(count), ...new Array(count).fill(0) ]),
+    ...section(10, code) ]);
+}
+
+const bytes = makeModule(2000, 30);
+const tiny  = new Uint8Array([ 0, 0x61, 0x73, 0x6d, 1, 0, 0, 0 ]);
+Promise.all([ WebAssembly.compile(bytes), WebAssembly.compile(tiny), WebAssembly.compile(bytes) ]).then((modules) => {
+  if (!modules.every((module) => module instanceof WebAssembly.Module))
+    throw new Error('a compile did not resolve with a WebAssembly.Module');
+  console.log(`compiled ${modules.length} modules concurrently`);
+});

@@ -132,9 +132,7 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> JobQueue::saveJobQueue(JSContext *cx)
 
 bool JobQueue::init(JSContext *cx) {
   JS::SetJobQueue(cx, this);
-  // Last two args (asyncTaskStarted/FinishedCallback) are optional; this
-  // embedding doesn't need to track background-task liveness.
-  JS::InitAsyncTaskCallbacks(cx, dispatchToEventLoop, delayedDispatchToEventLoop, nullptr, nullptr, cx);
+  JS::InitAsyncTaskCallbacks(cx, dispatchToEventLoop, delayedDispatchToEventLoop, asyncTaskStarted, asyncTaskFinished, cx);
   JS::SetPromiseRejectionTrackerCallback(cx, promiseRejectionTracker);
   return true;
 }
@@ -155,24 +153,25 @@ static PyObject *callDispatchFunc(PyObject *dispatchFuncTuple, PyObject *Py_UNUS
 
 static PyMethodDef callDispatchFuncDef = {"JsDispatchCallable", callDispatchFunc, METH_NOARGS, NULL};
 
+/**
+ * A Dispatchable on its way from a SpiderMonkey helper thread to the Python event-loop.
+ */
+struct DispatchJob {
+  JSContext *cx;
+  JS::Dispatchable *dispatchable;
+};
+
 bool JobQueue::dispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispatchable> &&dispatchable) {
-  JSContext *cx = (JSContext *)closure;
+  // SpiderMonkey calls this on a helper thread that holds the helper-thread lock, which the JS thread
+  // can be waiting for while it holds the GIL (e.g. when it starts another WebAssembly.compile). So this
+  // must not take the GIL: it starts a thread, without the GIL, that takes it and enqueues the job.
+  DispatchJob *job = new DispatchJob{(JSContext *)closure, dispatchable.release()};
 
-  // The `dispatchToEventLoop` function is running in a helper thread, so
-  // we must acquire the Python GIL (global interpreter lock)
-  //    see https://docs.python.org/3/c-api/init.html#non-python-created-threads
-  PyGILState_STATE gstate = PyGILState_Ensure();
-
-  // Release ownership into a raw pointer to smuggle it through the Python
-  // closure; reclaimed by callDispatchFunc via Dispatchable::Run above.
-  JS::Dispatchable *raw = dispatchable.release();
-  PyObject *dispatchFuncTuple = PyTuple_Pack(2, PyLong_FromVoidPtr(cx), PyLong_FromVoidPtr(raw));
-  PyObject *pyFunc = PyCFunction_New(&callDispatchFuncDef, dispatchFuncTuple);
-
-  // Avoid using the current, JS helper thread to send jobs to event-loop as it may cause deadlock
-  PyThread_start_new_thread((void (*)(void *)) &sendJobToMainLoop, pyFunc);
-
-  PyGILState_Release(gstate);
+  if (PyThread_start_new_thread(sendJobToMainLoop, job) == PYTHREAD_INVALID_THREAD_ID) {
+    JS::Dispatchable::ReleaseFailedTask(js::UniquePtr<JS::Dispatchable>(job->dispatchable));
+    delete job;
+    return false;
+  }
   return true;
 }
 
@@ -183,20 +182,53 @@ bool JobQueue::delayedDispatchToEventLoop(void *closure, js::UniquePtr<JS::Dispa
   return false;
 }
 
-bool sendJobToMainLoop(PyObject *pyFunc) {
+void sendJobToMainLoop(void *arg) {
+  DispatchJob *job = (DispatchJob *)arg;
+
+  // This thread was not created by Python, so it must acquire the GIL
+  //    see https://docs.python.org/3/c-api/init.html#non-python-created-threads
   PyGILState_STATE gstate = PyGILState_Ensure();
 
   // Send job to the running Python event-loop on cx's thread (the main thread)
   PyEventLoop loop = PyEventLoop::getMainLoop();
   if (!loop.initialized()) {
+    PyErr_Clear(); // getMainLoop() raises when no event-loop is running
+    loop._loop = nullptr;
     PyGILState_Release(gstate);
-    return false;
+    // Hand the task back so that SpiderMonkey can delete it at shutdown instead of waiting for it
+    JS::Dispatchable::ReleaseFailedTask(js::UniquePtr<JS::Dispatchable>(job->dispatchable));
+    delete job;
+    return;
   }
+
+  // Ownership travels through the Python closure as a raw pointer, reclaimed by callDispatchFunc
+  PyObject *cxArg = PyLong_FromVoidPtr(job->cx);
+  PyObject *dispatchableArg = PyLong_FromVoidPtr(job->dispatchable);
+  PyObject *dispatchFuncTuple = PyTuple_Pack(2, cxArg, dispatchableArg);
+  Py_DECREF(cxArg);
+  Py_DECREF(dispatchableArg);
+  PyObject *pyFunc = PyCFunction_New(&callDispatchFuncDef, dispatchFuncTuple);
+  Py_DECREF(dispatchFuncTuple);
+  delete job;
+
   loop.enqueue(pyFunc);
+  Py_DECREF(pyFunc);
 
   loop._loop = nullptr; // the `Py_XDECREF` Python API call in `PyEventLoop`'s destructor will not be accessible once we hand over the GIL by `PyGILState_Release`
   PyGILState_Release(gstate);
-  return true;
+}
+
+void JobQueue::asyncTaskStarted(void *closure, JS::Dispatchable *dispatchable) {
+  // Counted like a queued job, so that pm.wait() waits for the task (e.g. an off-thread
+  // WebAssembly.compile) instead of returning while it runs and leaving its promise unsettled
+  PyEventLoop::_locker->incCounter();
+}
+
+void JobQueue::asyncTaskFinished(void *closure, JS::Dispatchable *dispatchable) {
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback); // decCounter() calls into Python, which needs a clear error indicator
+  PyEventLoop::_locker->decCounter();
+  PyErr_Restore(type, value, traceback);
 }
 
 void JobQueue::promiseRejectionTracker(JSContext *cx,
