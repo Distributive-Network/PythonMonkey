@@ -82,8 +82,8 @@ cd firefox-source
 # Apply patching
 # making it work for both GNU and BSD (macOS) versions of sed
 sed -i'' -e 's/os not in ("WINNT", "OSX", "Android")/os not in ("WINNT", "Android")/' ./build/moz.configure/pkg.configure # use pkg-config on macOS
-sed -i'' -e 's/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h           # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
-sed -i'' -e 's/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp  # same here
+sed -i'' -e '/JS_PUBLIC_API bool Unbox/!s/bool Unbox/JS_PUBLIC_API bool Unbox/g' ./js/public/Class.h     # need to manually add JS_PUBLIC_API to js::Unbox until it gets fixed in Spidermonkey
+sed -i'' -e '/JS_PUBLIC_API bool js::Unbox/!s/bool js::Unbox/JS_PUBLIC_API bool js::Unbox/g' ./js/src/vm/JSObject.cpp # same here
 sed -i'' -e 's/shared_lib = self._pretty_path(libdef.output_path, backend_file)/shared_lib = libdef.lib_name/' ./python/mozbuild/mozbuild/backend/recursivemake.py # would generate a Makefile to install the binary files from an invalid path prefix
 sed -i'' -e 's/% self._pretty_path(libdef.import_path, backend_file)/% libdef.import_name/' ./python/mozbuild/mozbuild/backend/recursivemake.py # same as above. Shall we file a bug in bugzilla?
 sed -i'' -e 's/if version < Version(mac_sdk_min_version())/if False/' ./build/moz.configure/toolchain.configure # do not verify the macOS SDK version as the required version is not available on Github Actions runner
@@ -91,7 +91,7 @@ sed -i'' -e 's/return JS::GetWeakRefsEnabled() == JS::WeakRefSpecifier::Disabled
 sed -i'' -e 's/return !IsIteratorHelpersEnabled()/return false/' ./js/src/vm/GlobalObject.cpp # forcibly enable iterator helpers
 sed -i'' -e '/MOZ_CRASH_UNSAFE_PRINTF/,/__PRETTY_FUNCTION__);/d' ./mfbt/LinkedList.h # would crash in Debug Build: in `~LinkedList()` it should have removed all this list's elements before the list's destruction
 sed -i'' -e '/MOZ_ASSERT(stackRootPtr == nullptr);/d' ./js/src/vm/JSContext.cpp # would assert false in Debug Build since we extensively use `new JS::Rooted`
-sed -i'' -e 's/"-fuse-ld=ld"/"-ld64" if c_compiler.version > "14.0.0" else "-fuse-ld=ld"/' ./build/moz.configure/toolchain.configure # XCode 15 changed the linker behaviour. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
+sed -i'' -e '/"-ld64" if/!s/"-fuse-ld=ld"/"-ld64" if c_compiler.version > "14.0.0" else "-fuse-ld=ld"/' ./build/moz.configure/toolchain.configure # XCode 15 changed the linker behaviour. See https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes#Linking
 sed -i'' -e 's/defined(XP_WIN)/defined(_WIN32)/' ./mozglue/baseprofiler/public/BaseProfilerUtils.h # this header file is introduced to js/Debug.h in https://phabricator.services.mozilla.com/D221102, but it would be compiled without XP_WIN in this building configuration
 sed -i'' -e 's/os\.environ\["MOZILLABUILD"\]/os.environ.get("MOZILLABUILD", "")/g' ./python/mozbuild/mozbuild/backend/visualstudio.py # avoid KeyError: we don't use the official Mozilla Build package, so this is never set
 
