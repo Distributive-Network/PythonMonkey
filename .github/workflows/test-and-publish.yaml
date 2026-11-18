@@ -25,8 +25,6 @@ on:
         required: false
         options:
         - ''
-        - '3.8'
-        - '3.9'
         - '3.10'
         - '3.11'
         - '3.12'
@@ -186,7 +184,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'ubuntu-22.04', 'macos-15-intel', 'macos-15', 'windows-2022', 'ubuntu-22.04-arm' ]
-        python_version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15' ]
+        python_version: [ '3.10', '3.11', '3.12', '3.13', '3.14', '3.15' ]
     runs-on: ${{ matrix.os }}
     container: ${{ (startsWith(matrix.os, 'ubuntu') && 'ubuntu:20.04') || null }}
     steps:
@@ -365,7 +363,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - name: Setup Poetry
         uses: snok/install-poetry@v1
         with:
@@ -388,7 +386,7 @@ jobs:
       # no need to checkout
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
       - run: pip install twine
       - name: Download wheels built
         uses: actions/download-artifact@v4
