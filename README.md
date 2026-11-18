@@ -72,7 +72,9 @@ Read this if you want to build a local version.
     - graphviz  (if you want to build the docs)
     - llvm
     - rust
-    - python3.8 or later with header files (python3-dev)
+    - python3.10 or later with header files (python3-dev); 3.8 and 3.9 are deprecated and untested,
+      but the source still supports them: lower the `python` constraint in `pyproject.toml` and
+      `python/pminit/pyproject.toml` and re-lock to build for them
     - spidermonkey latest from mozilla-central
     - npm (nodejs)
     - [Poetry](https://python-poetry.org/docs/#installation)

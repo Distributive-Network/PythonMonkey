@@ -35,12 +35,9 @@ include = [
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 pyreadline3 = { version = "^3.4.1", platform = "win32" }
-aiohttp = [
-  {version = "^3.14.4", python = ">=3.10"},
-  {version = "^3.10.11", python = ">=3.8,<3.10"}, # aiohttp 3.14 requires Python 3.10
-]
+aiohttp = { version = "^3.14.4" }
 pminit = { version = ">=0.4.0", allow-prereleases = true }
 
 
@@ -65,21 +62,13 @@ pmjs = "pythonmonkey.cli.pmjs:main"
 
 
 [tool.poetry.group.dev.dependencies]
-pytest = [
-  {version = "^9.0.3", python = ">=3.10"},
-  {version = "^7.3.1", python = ">=3.8,<3.10"}, # pytest 9 requires Python 3.10
-]
-pip = [
-  {version = "^26.2.1", python = ">=3.10"},      # Needed for Python 3.15 support,
-                                                 # otherwise TypeError: Can't instantiate abstract class WheelDistribution...
-  {version = "^23.1.2", python = ">=3.8,<3.10"},
-]
+pytest = "^9.0.3"
+pip = "^26.2.1" # Needed for Python 3.15 support,
+                 # otherwise TypeError: Can't instantiate abstract class WheelDistribution...
 numpy = [
   {version = "^2.5.0", python = ">=3.12"},
   {version = "^2.3.0", python = ">=3.11,<3.12"}, # NumPy 2.5.0  drops support for Python 3.11
   {version = "^2.1.0", python = ">=3.10,<3.11"}, # NumPy 2.3.0  drops support for Python 3.10
-  {version = "^2.0.1",  python = ">=3.9,<3.10"}, # NumPy 2.1.0  drops support for Python 3.9
-  {version = "^1.24.3", python = ">=3.8,<3.9"},  # NumPy 1.25.0 drops support for Python 3.8
 ]
 pminit = { path = "./python/pminit", develop = true }
 
