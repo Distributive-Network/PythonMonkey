@@ -93,5 +93,37 @@ def test_xhr():
     result_json = json.loads(post_result)
     assert result_json["fromPM"] == "snakesandmonkeys"
     assert result_json["User-Agent"].startswith("Python/")
+
+    # responseType 'json': the first read of response returns the parsed object, later reads the same one
+    json_result = await pm.eval("""
+      new Promise(function (resolve, reject)
+      {
+        let xhr = new XMLHttpRequest();
+        xhr.open('POST', 'http://localhost:4001');
+        xhr.responseType = 'json';
+
+        xhr.onload = function ()
+        {
+          try
+          {
+            const first = this.response;
+            resolve({ first, same: first === this.response });
+          }
+          catch (error)
+          {
+            reject(error);
+          }
+        };
+
+        xhr.onerror = function (ev)
+        {
+          reject(ev.error);
+        };
+
+        xhr.send(JSON.stringify({fromPM: "json"}));
+      })
+      """)
+    assert json_result["first"]["fromPM"] == "json"
+    assert json_result["same"] is True
     httpd.shutdown()
   asyncio.run(async_fn())
