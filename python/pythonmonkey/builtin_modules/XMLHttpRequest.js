@@ -643,6 +643,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       }
       // step 8.4
       this.#responseObject = jsonObject;
+      return this.#responseObject;
     }
 
     // step 6 and step 7 ("blob" or "document") are not supported
