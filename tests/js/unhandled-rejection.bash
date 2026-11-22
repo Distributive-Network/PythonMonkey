@@ -14,8 +14,9 @@ panic()
   exit 2
 }
 
-program="$(mktemp --suffix=.js)"
-trap 'rm -f "${program}"' EXIT
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "${tmpdir}"' EXIT
+program="${tmpdir}/unhandled.js"
 echo 'Promise.reject(new Error("nobody handles this"));' > "${program}"
 output="$("${PMJS:-pmjs}" "${program}" 2>&1)" && panic "pmjs exited 0"
 echo "${output}" | grep -q 'Uncaught.*nobody handles this' || panic "no Uncaught report: ${output}"
