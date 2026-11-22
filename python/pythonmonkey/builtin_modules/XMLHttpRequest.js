@@ -12,7 +12,7 @@
 const { EventTarget, Event } = require('event-target');
 const { DOMException } = require('dom-exception');
 const { URL, URLSearchParams } = require('url');
-const { request, decodeStr } = require('XMLHttpRequest-internal');
+const { request, requestUnref, decodeStr } = require('XMLHttpRequest-internal');
 const debug = globalThis.python.eval('__import__("pythonmonkey").bootstrap.require')('debug');
 
 /**
@@ -412,7 +412,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
     this.#debug('xhr:headers')('headers=' + Object.entries(this.#requestHeaders));
 
     // send() step 6
-    request(
+    const requestArgs = [
       this.#requestMethod,
       this.#requestURL.toString(),
       this.#requestHeaders,
@@ -426,7 +426,33 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
       () => (this.#timedOutFlag = true), // onTimeoutError
       () => (this.#response = null /* network error */), // onNetworkError
       this.#debug.bind(this),
-    ).catch((e) => this.#handleErrors(e));
+    ];
+    if (this.#unrefFlag)
+      requestUnref(...requestArgs, (e) => this.#handleErrors(e));
+    else
+      request(...requestArgs).catch((e) => this.#handleErrors(e));
+  }
+
+  /**
+   * Non-standard, like Node.js's socket.unref(): requests sent after this call do not keep the
+   * program running (pm.wait() and pmjs do not wait for them).
+   * @returns {XMLHttpRequest} this
+   */
+  unref()
+  {
+    this.#unrefFlag = true;
+    return this;
+  }
+
+  /**
+   * Non-standard, undoes unref(): requests sent after this call keep the program running until
+   * they complete.
+   * @returns {XMLHttpRequest} this
+   */
+  ref()
+  {
+    this.#unrefFlag = false;
+    return this;
   }
 
   /**
@@ -674,6 +700,7 @@ class XMLHttpRequest extends XMLHttpRequestEventTarget
   #uploadObject = new XMLHttpRequestUpload();
   #state = XMLHttpRequest.UNSENT; // One of unsent, opened, headers received, loading, and done; initially unsent.
   #sendFlag = false; // A flag, initially unset.
+  #unrefFlag = false; // Non-standard: set by unref(), requests are not waited for
   #crossOriginCredentials = false; // A boolean, initially false.
   /** @type {Method} */
   #requestMethod = null;
