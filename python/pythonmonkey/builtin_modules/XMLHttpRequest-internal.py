@@ -135,6 +135,26 @@ def decodeStr(data: bytes, encoding='utf-8'):  # XXX: Remove this once we get pr
   return str(data, encoding=encoding)
 
 
+def requestUnref(*args):
+  """
+  Run `request()` as an asyncio task that the program does not wait for (pm.wait() does not count it).
+  The last argument is a callback for the exception the request raises, if any; the others are
+  `request()`'s arguments.
+  """
+  *requestArgs, onError = args
+  task = asyncio.get_running_loop().create_task(request(*requestArgs))
+  pendingUnrefTasks.add(task)  # asyncio keeps only weak references to tasks
+
+  def done(task):
+    pendingUnrefTasks.discard(task)
+    if not task.cancelled() and task.exception() is not None:
+      onError(task.exception())
+  task.add_done_callback(done)
+
+
+pendingUnrefTasks = set()
+
 # Module exports
 exports['request'] = request  # type: ignore
+exports['requestUnref'] = requestUnref  # type: ignore
 exports['decodeStr'] = decodeStr  # type: ignore
