@@ -1,0 +1,36 @@
+/**
+ * @file        finally-rejection-handled.simple
+ *              A rejection handled through Promise.prototype.finally() is not reported as
+ *              uncaught: finally() rejects an internal promise that gets its handler a few jobs
+ *              later, and the program exits 0 after the handler runs.
+ * @author      Wes Garland, wes@distributive.network
+ * @date        Nov 2026
+ *
+ * timeout: 10
+ */
+'use strict';
+
+var handled = 0;
+
+function handler(error)
+{
+  handled++;
+  console.log('handled', error.message);
+}
+
+const p = new Promise((resolve, reject) => setTimeout(() => reject(new Error('rejected')), 10));
+p.finally(() => {}).catch(handler);
+p.finally(() => {}).then(null, handler);
+
+async function exec()
+{
+  await null;
+  return new Promise((resolve, reject) => setTimeout(() => reject(new Error('cancelled')), 20))
+    .finally(() => {});
+}
+exec().then(null, handler);
+
+setTimeout(() => {
+  if (handled !== 3)
+    throw new Error(`only ${handled} of 3 rejections were handled`);
+}, 100);
