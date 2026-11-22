@@ -22,6 +22,7 @@
 #include <js/friend/MicroTask.h>
 
 #include <stdexcept>
+#include <vector>
 
 JobQueue::JobQueue(JSContext *cx) {
   finalizationRegistryCallbacks = new JS::PersistentRooted<FunctionVector>(cx);   // Leaks but it's OK since freed at process exit
@@ -199,21 +200,17 @@ bool sendJobToMainLoop(PyObject *pyFunc) {
   return true;
 }
 
-void JobQueue::promiseRejectionTracker(JSContext *cx,
-  bool mutedErrors,
-  JS::HandleObject promise,
-  JS::PromiseRejectionHandlingState state,
-  [[maybe_unused]] void *privateData) {
+/**
+ * Rejected promises with no handler yet, reported by checkUnhandledRejections unless a handler is
+ * attached first.
+ */
+static std::vector<JS::PersistentRooted<JSObject *> *> pendingRejections;
+static bool rejectionCheckScheduled = false;
 
-  // We only care about unhandled Promises
-  if (state != JS::PromiseRejectionHandlingState::Unhandled) {
-    return;
-  }
-  // If the `mutedErrors` option is set to True in `pm.eval`, eval errors or unhandled rejections should be ignored.
-  if (mutedErrors) {
-    return;
-  }
-
+/**
+ * Send an unhandled Promise rejection to the exception handler on the Python event-loop
+ */
+static void reportUnhandledRejection(JSContext *cx, JS::HandleObject promise) {
   // Test if there's no user-defined (or pmjs defined) exception handler on the Python event-loop
   PyEventLoop loop = PyEventLoop::getRunningLoop();
   if (!loop.initialized()) return;
@@ -228,12 +225,72 @@ void JobQueue::promiseRejectionTracker(JSContext *cx,
   }
   Py_DECREF(customHandler);
 
-  // Go ahead and send this unhandled Promise rejection to the exception handler on the Python event-loop
   PyObject *pyFuture = PromiseType::getPyObject(cx, promise); // ref count == 2
   // Unhandled Future object calls the event-loop exception handler in its destructor (the `__del__` magic method)
   // See https://github.com/python/cpython/blob/v3.9.16/Lib/asyncio/futures.py#L108
   //  or https://github.com/python/cpython/blob/v3.9.16/Modules/_asynciomodule.c#L1457-L1467 (It will actually use the C module by default, see futures.py#L417-L423)
   Py_DECREF(pyFuture); // decreasing the reference count from 2 to 1, leaving one for the `onResolved` callback in `PromiseType::getPyObject`, which will be called very soon and clean up the reference
+}
+
+// Reports the rejections still unhandled once the jobs queued around their rejection have run, so a
+// handler attached a few jobs later (e.g. through Promise.prototype.finally) is not reported
+static PyObject *checkUnhandledRejections(PyObject *closure, PyObject *Py_UNUSED(unused)) {
+  JSContext *cx = (JSContext *)PyLong_AsVoidPtr(closure);
+  std::vector<JS::PersistentRooted<JSObject *> *> rejections;
+
+  rejections.swap(pendingRejections);
+  rejectionCheckScheduled = false;
+  for (auto *rootedPromise : rejections) {
+    JS::RootedObject promise(cx, rootedPromise->get());
+    delete rootedPromise;
+    reportUnhandledRejection(cx, promise);
+  }
+  PyEventLoop::_locker->decCounter();
+  Py_RETURN_NONE;
+}
+
+static PyMethodDef checkUnhandledRejectionsDef = {"JsCheckUnhandledRejections", checkUnhandledRejections, METH_NOARGS, NULL};
+
+void JobQueue::promiseRejectionTracker(JSContext *cx,
+  bool mutedErrors,
+  JS::HandleObject promise,
+  JS::PromiseRejectionHandlingState state,
+  [[maybe_unused]] void *privateData) {
+
+  if (state == JS::PromiseRejectionHandlingState::Handled) {
+    for (auto it = pendingRejections.begin(); it != pendingRejections.end(); ++it) {
+      if ((*it)->get() == promise) {
+        delete *it;
+        pendingRejections.erase(it);
+        break;
+      }
+    }
+    return;
+  }
+
+  // If the `mutedErrors` option is set to True in `pm.eval`, eval errors or unhandled rejections should be ignored.
+  if (mutedErrors) {
+    return;
+  }
+
+  PyEventLoop loop = PyEventLoop::getRunningLoop();
+  if (!loop.initialized()) return;
+
+  pendingRejections.push_back(new JS::PersistentRooted<JSObject *>(cx, promise));
+  if (!rejectionCheckScheduled) {
+    // call_later(0) runs after the callbacks already ready on the event-loop, including the jobs
+    // queued while this rejection's job runs; counted so that pm.wait() waits for the check
+    PyObject *cxArg = PyLong_FromVoidPtr(cx);
+    PyObject *check = PyCFunction_New(&checkUnhandledRejectionsDef, cxArg);
+    Py_DECREF(cxArg);
+    PyObject *handle = PyObject_CallMethod(loop._loop, "call_later", "dO", 0.0, check);
+    Py_DECREF(check);
+    if (handle) {
+      Py_DECREF(handle);
+      PyEventLoop::_locker->incCounter();
+      rejectionCheckScheduled = true;
+    }
+  }
 }
 
 void JobQueue::queueFinalizationRegistryCallback(JSFunction *callback) {
